@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, User, Shield, Sparkles } from "lucide-react";
+import { LogOut, User, Shield, Sparkles, Menu } from "lucide-react";
 import { useState } from "react";
 
 interface TopbarProps {
@@ -10,9 +10,10 @@ interface TopbarProps {
     role: string;
   };
   tenantName: string;
+  onToggleSidebar?: () => void;
 }
 
-export function Topbar({ user, tenantName }: TopbarProps) {
+export function Topbar({ user, tenantName, onToggleSidebar }: TopbarProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -41,28 +42,40 @@ export function Topbar({ user, tenantName }: TopbarProps) {
   };
 
   return (
-    <header className="h-16 bg-zinc-950/70 backdrop-blur-md border-b border-zinc-800/80 px-6 flex items-center justify-between sticky top-0 z-20">
-      {/* Left section: Breadcrumb / Context */}
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-zinc-400">Establecimiento:</span>
-        <span className="text-sm font-semibold text-white px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-          {tenantName}
-        </span>
+    <header className="h-16 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/80 px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
+      {/* Left section: Hamburger button (mobile) + Breadcrumb / Context */}
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {/* Mobile Hamburger Toggle */}
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          className="lg:hidden p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900 border border-zinc-800 transition-colors shrink-0 cursor-pointer"
+          aria-label="Abrir menú de navegación"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+          <span className="hidden sm:inline text-xs text-zinc-400 shrink-0">Establecimiento:</span>
+          <span className="text-xs sm:text-sm font-semibold text-white px-2 sm:px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center gap-1.5 min-w-0 shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+            <span className="truncate max-w-[130px] sm:max-w-[220px] md:max-w-none">{tenantName}</span>
+          </span>
+        </div>
       </div>
 
       {/* Right section: User info & Logout */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 shrink-0">
         {/* User Card */}
-        <div className="flex items-center gap-3 pr-3 border-r border-zinc-800">
-          <div className="w-8 h-8 rounded-full bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300 text-xs font-bold">
+        <div className="flex items-center gap-2 sm:gap-3 pr-2 sm:pr-3 border-r border-zinc-800">
+          <div className="w-8 h-8 rounded-full bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300 text-xs font-bold shrink-0">
             {user.name.charAt(0)}
           </div>
-          <div className="hidden sm:block text-left">
-            <div className="text-xs font-semibold text-white leading-none">{user.name}</div>
-            <div className="text-[10px] text-zinc-400 mt-0.5">{user.email}</div>
+          <div className="hidden md:block text-left">
+            <div className="text-xs font-semibold text-white leading-none truncate max-w-[140px]">{user.name}</div>
+            <div className="text-[10px] text-zinc-400 mt-0.5 truncate max-w-[140px]">{user.email}</div>
           </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getRoleBadgeColor(user.role)}`}>
+          <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full border ${getRoleBadgeColor(user.role)}`}>
             {user.role}
           </span>
         </div>
@@ -72,10 +85,10 @@ export function Topbar({ user, tenantName }: TopbarProps) {
           onClick={handleLogout}
           disabled={isLoggingOut}
           title="Cerrar sesión"
-          className="p-2 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-950/30 border border-transparent hover:border-red-900/40 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-medium"
+          className="p-2 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-950/30 border border-transparent hover:border-red-900/40 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-medium shrink-0"
         >
           <LogOut className="w-4 h-4" />
-          <span className="hidden md:inline">Cerrar Sesión</span>
+          <span className="hidden md:inline">Salir</span>
         </button>
       </div>
     </header>

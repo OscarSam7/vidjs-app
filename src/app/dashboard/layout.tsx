@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Topbar } from "@/components/layout/Topbar";
+import { DashboardShell } from "@/components/layout/DashboardShell";
 
 export default async function DashboardLayout({
   children,
@@ -28,21 +27,15 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-[#070709] text-zinc-100">
-      <Sidebar role={session.role} tenantName={tenantName} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Topbar
-          user={{
-            name: session.name,
-            email: session.email,
-            role: session.role,
-          }}
-          tenantName={tenantName}
-        />
-        <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto overflow-y-auto">
-          {children}
-        </main>
-      </div>
-    </div>
+    <DashboardShell
+      user={{
+        name: session.name,
+        email: session.email,
+        role: session.role,
+      }}
+      tenantName={tenantName}
+    >
+      {children}
+    </DashboardShell>
   );
 }
