@@ -2,11 +2,13 @@ import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/auth/session";
 
 export default async function HomePage() {
-  const session = await getCurrentSession();
+  const staffSession = await getCurrentSession();
 
-  if (session) {
+  // Si es personal del establecimiento (Owner, DJ, Manager, Super Admin) -> al Dashboard
+  if (staffSession) {
     redirect("/dashboard");
-  } else {
-    redirect("/login");
   }
+
+  // Por defecto para clientes, comensales y visitantes de la app -> al Portal de Invitados
+  redirect("/guest");
 }

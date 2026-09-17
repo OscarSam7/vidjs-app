@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Music, Disc3, ShieldCheck, ArrowRight, Sparkles, Building2, UserCircle2 } from "lucide-react";
+import { Music, Disc3, ShieldCheck, ArrowRight, Sparkles, Building2, UserCircle2, QrCode } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -193,8 +193,19 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {/* Link directo para clientes comensales */}
+        <div className="mt-5 text-center">
+          <a
+            href="/guest"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/50 border border-purple-800/50 text-purple-300 hover:text-white text-xs font-bold transition-all shadow-lg"
+          >
+            <QrCode className="w-4 h-4 text-purple-400" />
+            <span>¿Eres cliente en una mesa? Entrar a pedir canciones &rarr;</span>
+          </a>
+        </div>
+
         {/* Footer info */}
-        <p className="text-center text-xs text-zinc-500 mt-8">
+        <p className="text-center text-xs text-zinc-500 mt-6">
           Aislamiento seguro multi-tenant a nivel de base de datos &copy; 2026 Vidjs
         </p>
       </div>
