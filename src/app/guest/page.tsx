@@ -181,6 +181,13 @@ function GuestContent() {
   const [photoCaption, setPhotoCaption] = useState("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoSuccess, setPhotoSuccess] = useState(false);
+  const [manualCode, setManualCode] = useState("");
+
+  const handleJoinByCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualCode.trim()) return;
+    window.location.href = `/display/${manualCode.trim().toUpperCase()}/tables`;
+  };
 
   // Cargar sesión inicial
   const loadSessionAndRequests = async () => {
@@ -503,19 +510,41 @@ function GuestContent() {
 
   if (!loadingSession && !session) {
     return (
-      <div className="p-6 text-center my-auto space-y-5">
+      <div className="p-6 text-center my-auto space-y-6 max-w-sm mx-auto w-full">
         <div className="w-16 h-16 rounded-2xl bg-purple-600/10 border border-purple-500/30 text-purple-400 mx-auto flex items-center justify-center glow-purple">
           <QrCode className="w-8 h-8" />
         </div>
         <div>
-          <h2 className="text-xl font-black text-white">¡Escanea tu Mesa!</h2>
-          <p className="text-sm text-zinc-400 mt-1.5">
-            Para pedir canciones y participar del karaoke o la música en vivo, escanea el código QR ubicado en tu mesa.
+          <h2 className="text-xl font-black text-white">¡Conéctate a tu Mesa!</h2>
+          <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
+            Apunta la cámara de tu teléfono al código QR de tu mesa, o ingresa el código del evento que ves en la pantalla gigante de TV.
           </p>
         </div>
 
-        <div className="pt-4 border-t border-zinc-800 text-left">
-          <div className="text-xs text-zinc-400 mb-2 font-medium">Probar en modo demostración (1-clic):</div>
+        {/* Input de Código de Evento */}
+        <form onSubmit={handleJoinByCode} className="space-y-2 text-left bg-zinc-900/60 p-3.5 rounded-xl border border-zinc-800">
+          <label className="text-[11px] font-bold text-zinc-300 block">
+            Código de la Noche / Pantalla TV:
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Ej: RETRO-POP"
+              value={manualCode}
+              onChange={(e) => setManualCode(e.target.value.toUpperCase())}
+              className="flex-1 px-3 py-2 bg-zinc-950 border border-zinc-700 rounded-lg text-white font-mono text-xs uppercase placeholder:text-zinc-600 focus:outline-none focus:border-purple-500"
+            />
+            <button
+              type="submit"
+              className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer"
+            >
+              Conectar
+            </button>
+          </div>
+        </form>
+
+        <div className="pt-2 border-t border-zinc-800/80 text-left">
+          <div className="text-[11px] text-zinc-400 mb-2 font-medium">O prueba en modo demostración (1-clic):</div>
           <a
             href="/qr/qr_centro_m2"
             className="block p-3 rounded-xl bg-zinc-900 hover:bg-purple-950/40 border border-zinc-800 hover:border-purple-600/50 transition-all"
