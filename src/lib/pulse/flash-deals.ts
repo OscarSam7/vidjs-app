@@ -28,7 +28,7 @@ export function getActiveFlashDeal(level: PulseLevel): FlashDeal | null {
         title: "⚡ Promo Calentamiento de Pista",
         subtitle: "Aprovecha la barra antes de que se llene la pista de baile",
         discount: "2x1 en Cerveza & Gin Tonic",
-        badgeText: "HORA VALLE &bull; 15 MIN",
+        badgeText: "HORA VALLE • 15 MIN",
         color: "text-cyan-300 border-cyan-500/60",
         bannerBg: "from-cyan-950/80 via-zinc-950 to-purple-950/80",
         expiresInMinutes: 15,

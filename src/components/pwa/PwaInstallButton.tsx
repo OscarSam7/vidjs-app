@@ -17,6 +17,7 @@ export default function PwaInstallButton({
   const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
 
   if (isInstalled) {
+    if (variant === "guest") return null;
     return (
       <div
         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 text-xs font-medium ${className}`}

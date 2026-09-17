@@ -619,13 +619,14 @@ function GuestContent() {
   };
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col w-full overflow-x-hidden">
       {/* 1. Header Nocturno de Mesa */}
-      <header className="p-4 bg-zinc-900/90 border-b border-zinc-800 sticky top-0 z-20 backdrop-blur-md">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+      <header className="p-3 sm:p-4 bg-zinc-900/95 border-b border-zinc-800 sticky top-0 z-20 backdrop-blur-md w-full">
+        <div className="flex items-center justify-between gap-2 w-full">
+          {/* Brand & Evento */}
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             {branding?.logoUrl ? (
-              <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800 p-0.5 flex items-center justify-center overflow-hidden shrink-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 p-0.5 flex items-center justify-center overflow-hidden shrink-0">
                 <img
                   src={branding.logoUrl}
                   alt={session?.tenant.name || "Logo"}
@@ -633,43 +634,44 @@ function GuestContent() {
                 />
               </div>
             ) : (
-              <div className="w-8 h-8 rounded-lg bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
                 <Disc3 className="w-4 h-4 animate-spin [animation-duration:10s]" />
               </div>
             )}
-            <div>
-              <div className="text-xs font-black text-white tracking-wide uppercase">
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-black text-white tracking-wide uppercase truncate">
                 {branding?.welcomeTitle || session?.tenant.name}
               </div>
-              <div className="text-[11px] text-zinc-400 truncate max-w-[170px]">
+              <div className="text-[10px] sm:text-[11px] text-zinc-400 truncate max-w-[130px] sm:max-w-[200px]">
                 {session?.event.name}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Acciones & Mesa Badge */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <PwaInstallButton variant="guest" />
 
             <button
               onClick={() => setIsPhotoModalOpen(true)}
-              className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-purple-300 border border-purple-500/30 text-xs flex items-center gap-1 cursor-pointer transition-colors"
+              className="p-1.5 sm:px-2 sm:py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-purple-300 border border-purple-500/30 text-xs flex items-center gap-1 cursor-pointer transition-colors shrink-0"
               title="Subir foto a la pantalla"
             >
-              <Camera className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline font-bold">Foto</span>
+              <Camera className="w-3.5 h-3.5 text-purple-400" />
+              <span className="hidden sm:inline font-bold text-[11px]">Foto</span>
             </button>
 
-            <div className="px-3 py-1 rounded-full bg-purple-600/20 border border-purple-500/40 text-purple-300 text-xs font-bold flex items-center gap-1.5 shrink-0">
+            <div className="px-2.5 sm:px-3 py-1 rounded-full bg-purple-600/20 border border-purple-500/40 text-purple-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 shrink-0 max-w-[140px]">
               <span
-                className={`w-2 h-2 rounded-full ${
+                className={`w-2 h-2 rounded-full shrink-0 ${
                   isRealtime
                     ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] animate-pulse"
                     : "bg-emerald-400"
                 }`}
               />
-              <span>{session?.table.label}</span>
+              <span className="truncate">{session?.table.label}</span>
               {isRealtime && (
-                <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/80 font-mono">
+                <span className="text-[8px] sm:text-[9px] px-1 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/80 font-mono shrink-0">
                   SSE
                 </span>
               )}
@@ -767,27 +769,27 @@ function GuestContent() {
       </div>
 
       {/* 3. Contenido Principal */}
-      <div className="flex-1 p-4 overflow-y-auto">
+      <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto w-full overflow-x-hidden">
         {/* PESTAÑA 1: "MI NOCHE" (WELCOME HUB) */}
         {activeTab === "hub" && (
-          <div className="space-y-4">
+          <div className="space-y-4 w-full">
             {/* Promo Flash Deal de Barra (Pulse) */}
             {flashDeal && (
               <div
-                className={`p-3.5 rounded-2xl bg-gradient-to-r ${flashDeal.bannerBg} border ${flashDeal.color} flex items-center justify-between shadow-xl animate-fadeIn`}
+                className={`p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r ${flashDeal.bannerBg} border ${flashDeal.color} flex items-center justify-between gap-2 shadow-xl animate-fadeIn w-full`}
               >
-                <div className="min-w-0 pr-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-black/40 border border-white/10 text-white font-mono">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-black/40 border border-white/10 text-white font-mono shrink-0">
                       {flashDeal.badgeText}
                     </span>
                     <span className="text-xs font-black text-white truncate">{flashDeal.title}</span>
                   </div>
-                  <div className="text-[11px] text-zinc-300 font-semibold mt-0.5">
+                  <div className="text-[11px] text-zinc-300 font-semibold mt-0.5 truncate">
                     {flashDeal.discount}
                   </div>
                 </div>
-                <span className="text-[10px] px-3 py-1.5 rounded-xl bg-white text-black font-extrabold shrink-0 shadow-md">
+                <span className="text-[10px] px-2.5 sm:px-3 py-1.5 rounded-xl bg-white text-black font-extrabold shrink-0 shadow-md">
                   {flashDeal.callToAction}
                 </span>
               </div>
@@ -873,23 +875,23 @@ function GuestContent() {
             )}
 
             {/* "¿Qué quieres hacer esta noche?" - Tarjetas de Acción Directa */}
-            <div>
+            <div className="w-full">
               <h3 className="text-xs font-black uppercase text-zinc-400 tracking-wider mb-2.5">
                 ¿Qué quieres hacer esta noche?
               </h3>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full">
                 <button
                   onClick={() => {
                     setSelectedMood(null);
                     setActiveTab("catalog");
                   }}
-                  className="p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-purple-500/60 text-left transition-all group cursor-pointer"
+                  className="p-2.5 sm:p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-purple-500/60 text-left transition-all group cursor-pointer flex flex-col justify-between min-w-0"
                 >
-                  <div className="w-7 h-7 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-2 group-hover:scale-110 transition-transform">
+                  <div className="w-7 h-7 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-2 group-hover:scale-110 transition-transform shrink-0">
                     <Music className="w-3.5 h-3.5" />
                   </div>
-                  <div className="text-xs font-bold text-white">Pedir Canción</div>
-                  <div className="text-[10px] text-zinc-400 mt-0.5">Catálogo oficial</div>
+                  <div className="text-xs font-bold text-white truncate w-full">Pedir Canción</div>
+                  <div className="text-[10px] text-zinc-400 mt-0.5 truncate w-full">Catálogo oficial</div>
                 </button>
 
                 <button
@@ -897,24 +899,24 @@ function GuestContent() {
                     setSelectedMood("fiesta");
                     setActiveTab("catalog");
                   }}
-                  className="p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-fuchsia-500/60 text-left transition-all group cursor-pointer"
+                  className="p-2.5 sm:p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-fuchsia-500/60 text-left transition-all group cursor-pointer flex flex-col justify-between min-w-0"
                 >
-                  <div className="w-7 h-7 rounded-xl bg-fuchsia-600/20 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-400 mb-2 group-hover:scale-110 transition-transform">
+                  <div className="w-7 h-7 rounded-xl bg-fuchsia-600/20 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-400 mb-2 group-hover:scale-110 transition-transform shrink-0">
                     <Sparkles className="w-3.5 h-3.5" />
                   </div>
-                  <div className="text-xs font-bold text-white">Sorpréndeme</div>
-                  <div className="text-[10px] text-zinc-400 mt-0.5">Por mood</div>
+                  <div className="text-xs font-bold text-white truncate w-full">Sorpréndeme</div>
+                  <div className="text-[10px] text-zinc-400 mt-0.5 truncate w-full">Por mood</div>
                 </button>
 
                 <button
                   onClick={() => setIsPhotoModalOpen(true)}
-                  className="p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-cyan-500/60 text-left transition-all group cursor-pointer"
+                  className="p-2.5 sm:p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-cyan-500/60 text-left transition-all group cursor-pointer flex flex-col justify-between min-w-0"
                 >
-                  <div className="w-7 h-7 rounded-xl bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-2 group-hover:scale-110 transition-transform">
+                  <div className="w-7 h-7 rounded-xl bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-2 group-hover:scale-110 transition-transform shrink-0">
                     <Camera className="w-3.5 h-3.5" />
                   </div>
-                  <div className="text-xs font-bold text-white">Foto en TV</div>
-                  <div className="text-[10px] text-zinc-400 mt-0.5">Muro social</div>
+                  <div className="text-xs font-bold text-white truncate w-full">Foto en TV</div>
+                  <div className="text-[10px] text-zinc-400 mt-0.5 truncate w-full">Muro social</div>
                 </button>
               </div>
             </div>
