@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # 1. Aplicación Web Vidjs (Next.js 15 Standalone)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vidjs_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://vidjs_user:vidjs_secure_password@db:5432/vidjs_production?schema=public
+      - JWT_SECRET=change_this_to_a_secure_random_string_in_production
+      - NEXTAUTH_URL=http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - vidjs_net
+
+  # 2. Base de Datos PostgreSQL para Producción
+  db:
+    image: postgres:16-alpine
+    container_name: vidjs_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vidjs_user
+      POSTGRES_PASSWORD: vidjs_secure_password
+      POSTGRES_DB: vidjs_production
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vidjs_user -d vidjs_production"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vidjs_net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  vidjs_net:
+    driver: bridge

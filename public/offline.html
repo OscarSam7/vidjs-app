@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sin Conexión | Vidjs Night OS</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body {
+      background-color: #040406;
+      color: #f4f4f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .glow-bg {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, rgba(4, 4, 6, 0) 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .card {
+      position: relative;
+      max-width: 420px;
+      width: 100%;
+      background: rgba(15, 10, 28, 0.85);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      border-radius: 24px;
+      padding: 36px 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(124, 58, 237, 0.15);
+      backdrop-filter: blur(12px);
+    }
+    .icon-box {
+      width: 68px;
+      height: 68px;
+      border-radius: 20px;
+      background: rgba(124, 58, 237, 0.15);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      color: #c084fc;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+    p {
+      font-size: 13px;
+      color: #a1a1aa;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #f59e0b;
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
+      color: #ffffff;
+      border: none;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
+    }
+    .btn:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+    .btn:active {
+      transform: translateY(1px);
+    }
+    .footer {
+      margin-top: 20px;
+      font-size: 11px;
+      color: #71717a;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-bg"></div>
+
+  <div class="card">
+    <div class="icon-box">
+      <!-- Wifi Off Icon -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="2" x2="22" y1="2" y2="22"></line>
+        <path d="M8.5 16.5a5 5 0 0 1 7 0"></path>
+        <path d="M2 8.82a15 15 0 0 1 4.17-2.65"></path>
+        <path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"></path>
+        <path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"></path>
+        <path d="M5 13a10 10 0 0 1 5.24-2.78"></path>
+        <line x1="12" x2="12.01" y1="20" y2="20"></line>
+      </svg>
+    </div>
+
+    <div class="status-badge">
+      <span class="pulse-dot"></span>
+      <span>MODO CONTINGENCIA OFFLINE</span>
+    </div>
+
+    <h1>Sin Conexión en el Local</h1>
+    <p>
+      La señal de red o Wi-Fi se ha interrumpido momentáneamente en esta zona de la sala. Tus datos locales se conservan intactos.
+    </p>
+
+    <button class="btn" onclick="retryConnection()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+        <path d="M3 3v5h5"></path>
+        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+        <path d="M16 16h5v5"></path>
+      </svg>
+      <span>Reintentar Conexión</span>
+    </button>
+
+    <div class="footer">
+      Vidjs &bull; Night Experience OS
+    </div>
+  </div>
+
+  <script>
+    function retryConnection() {
+      if (navigator.onLine) {
+        window.location.reload();
+      } else {
+        fetch('/', { method: 'HEAD', cache: 'no-store' })
+          .then(() => window.location.reload())
+          .catch(() => {
+            const btn = document.querySelector('.btn span');
+            const orig = btn.innerText;
+            btn.innerText = 'Buscando señal...';
+            setTimeout(() => { btn.innerText = orig; }, 1500);
+          });
+      }
+    }
+
+    // Reconexión automática cuando el navegador detecta señal
+    window.addEventListener('online', () => {
+      window.location.reload();
+    });
+
+    // Sondeo periódico pasivo cada 6 segundos
+    setInterval(() => {
+      if (navigator.onLine) {
+        fetch('/', { method: 'HEAD', cache: 'no-store' })
+          .then(() => window.location.reload())
+          .catch(() => {});
+      }
+    }, 6000);
+  </script>
+</body>
+</html>

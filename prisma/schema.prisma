@@ -1,0 +1,329 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Tenant (El Establecimiento cliente SaaS)
+model Tenant {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  status        String         @default("ACTIVE") // ACTIVE, SUSPENDED, TRIALING, CANCELLED
+  logoUrl       String?
+  settings      String?        // JSON string con configuraciones generales
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  users         User[]
+  venues        Venue[]
+  events        Event[]
+  tables        Table[]
+  guestSessions GuestSession[]
+  songRequests  SongRequest[]
+  queueEntries  QueueEntry[]
+  subscription  Subscription?
+  auditLogs     AuditLog[]
+  photoPosts    PhotoPost[]
+
+  @@index([status])
+  @@index([slug])
+}
+
+// 2. User (Usuarios administrativos y operativos del sistema)
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  passwordHash  String
+  name          String
+  phone         String?
+  role          String      @default("OPERATOR") // SUPER_ADMIN, OWNER, MANAGER, DJ, OPERATOR, GUEST, DISPLAY
+  status        String      @default("ACTIVE") // ACTIVE, SUSPENDED, PENDING
+  tokenVersion  Int         @default(1)
+  tenantId      String?     // Null para SUPER_ADMIN global
+  tenant        Tenant?     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  auditLogs     AuditLog[]
+
+  @@index([tenantId])
+  @@index([role])
+  @@index([email])
+}
+
+// 3. Venue (Locales físicos o sucursales de un Tenant)
+model Venue {
+  id          String      @id @default(cuid())
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  address     String?
+  phone       String?
+  timezone    String      @default("UTC")
+  active      Boolean     @default(true)
+  settings    String?     // JSON string con branding y configuraciones específicas del local
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  events      Event[]
+  tables      Table[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+}
+
+// 4. Event (Noches de fiesta, karaoke, sesiones en vivo)
+model Event {
+  id          String         @id @default(cuid())
+  tenantId    String
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId     String
+  venue       Venue          @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  code        String         @unique // Código corto para acceso o display
+  status      String         @default("DRAFT") // DRAFT, ACTIVE, PAUSED, FINISHED
+  startsAt    DateTime
+  endsAt      DateTime?
+  pin         String?        // PIN de seguridad opcional para DJ o Display
+  settings    String?        // JSON: límite de solicitudes por mesa, filtros, etc.
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  guestSessions GuestSession[]
+  songRequests  SongRequest[]
+  queueEntries  QueueEntry[]
+  photoPosts    PhotoPost[]
+
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([status])
+}
+
+// 5. Table (Mesas o zonas del local con código QR individual)
+model Table {
+  id          String         @id @default(cuid())
+  tenantId    String
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId     String
+  venue       Venue          @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  number      Int
+  label       String         // Ej: "Mesa 12", "VIP Terraza A"
+  qrToken     String         @unique // Token único seguro codificado en el QR
+  qrCodeUrl   String?        // URL de la imagen generada del QR
+  capacity    Int            @default(4)
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  guestSessions GuestSession[]
+  songRequests  SongRequest[]
+  photoPosts    PhotoPost[]
+
+  @@unique([venueId, number])
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([qrToken])
+}
+
+// 6. GuestSession (Sesión del cliente tras escanear el QR)
+model GuestSession {
+  id                String        @id @default(cuid())
+  tenantId          String
+  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventId           String
+  event             Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tableId           String
+  table             Table         @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  sessionToken      String        @unique
+  guestName         String?
+  deviceFingerprint String?
+  ipAddress         String?
+  expiresAt         DateTime
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  songRequests      SongRequest[]
+
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([tableId])
+  @@index([sessionToken])
+}
+
+// 7. Artist (Artistas del catálogo musical)
+model Artist {
+  id          String    @id @default(cuid())
+  tenantId    String?   // null si es del catálogo global
+  name        String
+  imageUrl    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  songs       Song[]
+
+  @@index([tenantId])
+  @@index([name])
+}
+
+// 8. Song (Canciones disponibles en el catálogo de karaoke o DJ)
+model Song {
+  id              String        @id @default(cuid())
+  tenantId        String?       // null si es del catálogo global
+  artistId        String?
+  artist          Artist?       @relation(fields: [artistId], references: [id], onDelete: SetNull)
+  title           String
+  durationSeconds Int           @default(0)
+  genre           String?
+  bpm             Int?
+  key             String?
+  fileUrl         String?
+  isrc            String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  songRequests    SongRequest[]
+
+  @@index([tenantId])
+  @@index([title])
+  @@index([genre])
+}
+
+// 9. SongRequest (Peticiones de canciones enviadas por los clientes)
+model SongRequest {
+  id              String        @id @default(cuid())
+  tenantId        String
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventId         String
+  event           Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tableId         String
+  table           Table         @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  guestSessionId  String?
+  guestSession    GuestSession? @relation(fields: [guestSessionId], references: [id], onDelete: SetNull)
+  songId          String?
+  song            Song?         @relation(fields: [songId], references: [id], onDelete: SetNull)
+  customTitle     String?
+  customArtist    String?
+  status          String        @default("PENDING") // PENDING, ACCEPTED, PLAYING, PLAYED, REJECTED, CANCELLED
+  notes           String?       // Dedicatoria o mensaje del cliente
+  tipAmountCents  Int           @default(0)
+  playedAt        DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  queueEntry      QueueEntry?
+
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([tableId])
+  @@index([status])
+}
+
+// 10. QueueEntry (Entrada en la cola de reproducción en vivo del DJ)
+model QueueEntry {
+  id                  String       @id @default(cuid())
+  tenantId            String
+  tenant              Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventId             String
+  event               Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  songRequestId       String       @unique
+  songRequest         SongRequest  @relation(fields: [songRequestId], references: [id], onDelete: Cascade)
+  orderIndex          Int
+  status              String       @default("QUEUED") // QUEUED, CURRENT, COMPLETED, SKIPPED
+  estimatedStartTime  DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([status])
+  @@index([orderIndex])
+}
+
+// 11. Plan (Planes comerciales del SaaS)
+model Plan {
+  id                String         @id @default(cuid())
+  name              String
+  code              String         @unique // STARTER, PRO, ENTERPRISE
+  priceCents        Int
+  currency          String         @default("USD")
+  interval          String         @default("MONTHLY") // MONTHLY, YEARLY
+  maxVenues         Int            @default(1)
+  maxEventsPerMonth Int            @default(10)
+  maxActiveTables   Int            @default(20)
+  features          String?        // JSON array de características
+  active            Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  subscriptions     Subscription[]
+
+  @@index([code])
+  @@index([active])
+}
+
+// 12. Subscription (Suscripción comercial del Tenant)
+model Subscription {
+  id                 String    @id @default(cuid())
+  tenantId           String    @unique
+  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planId             String
+  plan               Plan      @relation(fields: [planId], references: [id])
+  status             String    @default("ACTIVE") // TRIALING, ACTIVE, PAST_DUE, CANCELED
+  currentPeriodStart DateTime  @default(now())
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+// 13. AuditLog (Registro de auditoría inmutable para seguridad y trazabilidad)
+model AuditLog {
+  id         String    @id @default(cuid())
+  tenantId   String?
+  tenant     Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String    // AUTH_LOGIN, VENUE_CREATE, EVENT_UPDATE, ROLE_ASSIGN, etc.
+  resource   String    // AUTH, VENUE, EVENT, SUBSCRIPTION, etc.
+  resourceId String?
+  ipAddress  String?
+  userAgent  String?
+  metadata   String?   // JSON con detalles previos y posteriores
+  createdAt  DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// 14. PhotoPost (Muro social de fotos del local tomadas desde las mesas)
+model PhotoPost {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tableId   String
+  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  guestName String?
+  imageUrl  String   // URL o Base64 Data URL
+  caption   String?  // Mensaje o dedicatoria de la foto
+  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([status])
+  @@index([tableId])
+}
