@@ -78,6 +78,7 @@ interface DisplayState {
     id: string;
     status: string;
     updatedAt: string;
+    youtubeVideoId?: string | null;
     song: {
       title: string;
       artist: string;
@@ -194,6 +195,9 @@ export default function PublicDisplayScreenPage({
       if (res.ok) {
         const json = await res.json();
         setData(json.data);
+        if (json.data?.currentPlaying?.youtubeVideoId) {
+          setKaraokeVideoId(json.data.currentPlaying.youtubeVideoId);
+        }
         setError(null);
       } else {
         const errJson = await res.json();
@@ -438,6 +442,34 @@ export default function PublicDisplayScreenPage({
     return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
+  const isKaraoke = data?.policy?.zone === "KARAOKE";
+
+  // Auto-resolución de video de YouTube para el tema al aire (Karaoke TV)
+  useEffect(() => {
+    const current = data?.currentPlaying;
+    if (!isKaraoke || !current) return;
+    if (karaokeVideoId) return;
+
+    let isMounted = true;
+    const songTitle = current.song?.title || "";
+    const songArtist = current.song?.artist || "";
+    const q = `${songTitle} ${songArtist}`.trim();
+    if (!q) return;
+
+    fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(q)}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (isMounted && json.success && json.data?.recommended?.id) {
+          setKaraokeVideoId(json.data.recommended.id);
+        }
+      })
+      .catch((err) => console.warn("Error resolviendo pista de YouTube en TV:", err));
+
+    return () => {
+      isMounted = false;
+    };
+  }, [data?.currentPlaying?.id, isKaraoke, karaokeVideoId]);
+
   if (loading && !data) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
@@ -462,7 +494,6 @@ export default function PublicDisplayScreenPage({
   }
 
   const track = data.currentPlaying;
-  const isKaraoke = data?.policy?.zone === "KARAOKE";
   const duration = track?.song.durationSeconds || 210;
   const progressPercent = Math.min((elapsedSeconds / duration) * 100, 100);
   const isCelebration = Boolean(
@@ -773,21 +804,26 @@ export default function PublicDisplayScreenPage({
 
               {/* Marco Widescreen 16:9 del Video de YouTube */}
               <div className="w-full relative aspect-video rounded-3xl overflow-hidden border-2 sm:border-4 border-cyan-500/60 shadow-[0_0_50px_rgba(6,182,212,0.3)] bg-black">
-                <iframe
-                  key={karaokeVideoId || track.id}
-                  src={
-                    karaokeVideoId
-                      ? `https://www.youtube.com/embed/${karaokeVideoId}?autoplay=1&enablejsapi=1`
-                      : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(
-                          track.song.youtubeSearchQuery ||
-                            `${track.song.title} ${track.song.artist} karaoke`
-                        )}&autoplay=1`
-                  }
-                  title={`Karaoke: ${track.song.title}`}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  className="w-full h-full border-0"
-                />
+                {karaokeVideoId ? (
+                  <iframe
+                    key={karaokeVideoId}
+                    src={`https://www.youtube.com/embed/${karaokeVideoId}?autoplay=1&enablejsapi=1`}
+                    title={`Karaoke: ${track.song.title}`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    className="w-full h-full border-0"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center space-y-3 bg-zinc-950 text-cyan-400 p-6 text-center">
+                    <Disc3 className="w-12 h-12 animate-spin text-cyan-400" />
+                    <span className="text-xs sm:text-sm font-black tracking-widest uppercase text-cyan-300">
+                      Sincronizando pista de Karaoke en YouTube...
+                    </span>
+                    <span className="text-[11px] text-zinc-500 font-mono">
+                      {track.song.title} &bull; {track.song.artist}
+                    </span>
+                  </div>
+                )}
 
                 {/* Dedicatoria Flotante si existe */}
                 {track.notes && (

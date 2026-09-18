@@ -745,8 +745,13 @@ export default function DjBoothPage() {
         const json = await res.json();
         if (json.success && json.data) {
           setKaraokeResults(json.data.results || []);
-          if (json.data.recommended?.id && !selectedKaraokeVideoId) {
+          if (json.data.recommended?.id) {
             setSelectedKaraokeVideoId(json.data.recommended.id);
+            // Sincronizar automáticamente con la pantalla de TV
+            handleSelectAndBroadcastVideo(
+              json.data.recommended.id,
+              json.data.recommended.title
+            );
           }
         }
       }
@@ -798,13 +803,13 @@ export default function DjBoothPage() {
     }
   };
 
-  // Auto-búsqueda de pista en YouTube al cambiar de tema en Karaoke (Hook placed unconditionally)
+  // Auto-búsqueda de pista en YouTube al cambiar de tema
   useEffect(() => {
-    if (queuePolicy.zone === "KARAOKE" && currentTrack) {
+    if (currentTrack) {
       setSelectedKaraokeVideoId(null);
       handleSearchKaraoke();
     }
-  }, [currentTrack?.id, queuePolicy.zone]);
+  }, [currentTrack?.id]);
 
   if (loading && !data) {
     return (
@@ -1747,21 +1752,22 @@ export default function DjBoothPage() {
                         </button>
                       </div>
                       <div className="relative aspect-video max-h-44 w-full rounded-lg overflow-hidden border border-zinc-800 bg-black">
-                        <iframe
-                          key={selectedKaraokeVideoId || currentTrack.id}
-                          src={
-                            selectedKaraokeVideoId
-                              ? `https://www.youtube.com/embed/${selectedKaraokeVideoId}?enablejsapi=1`
-                              : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(
-                                  `${currentTrack.song?.title || currentTrack.customTitle} ${
-                                    currentTrack.song?.artist?.name || currentTrack.customArtist || ""
-                                  } karaoke`
-                                )}`
-                          }
-                          title="Karaoke Booth Preview"
-                          className="w-full h-full border-0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        />
+                        {selectedKaraokeVideoId ? (
+                          <iframe
+                            key={selectedKaraokeVideoId}
+                            src={`https://www.youtube.com/embed/${selectedKaraokeVideoId}?enablejsapi=1`}
+                            title="Karaoke Booth Preview"
+                            className="w-full h-full border-0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center space-y-1.5 text-cyan-400 p-4 bg-zinc-950/80">
+                            <Disc3 className="w-6 h-6 animate-spin text-cyan-400" />
+                            <span className="text-[10px] font-bold">
+                              Buscando video de karaoke en YouTube...
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

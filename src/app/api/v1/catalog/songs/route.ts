@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { handleApiError } from "@/lib/errors";
+import { searchYouTube } from "@/lib/youtube/search";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
@@ -70,7 +73,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const [songs, allGenres] = await Promise.all([
+    const [songs, allGenres, youtubeResults] = await Promise.all([
       prisma.song.findMany({
         where: whereClause,
         include: {
@@ -86,6 +89,10 @@ export async function GET(req: NextRequest) {
         distinct: ["genre"],
         where: { genre: { not: null } },
       }),
+      // Estirar resultados complementarios de YouTube si se busca texto
+      q.length >= 2
+        ? searchYouTube(q, { isKaraoke: true, limit: 6 }).catch(() => [])
+        : Promise.resolve([]),
     ]);
 
     const genres = allGenres
@@ -96,6 +103,7 @@ export async function GET(req: NextRequest) {
       success: true,
       data: {
         songs,
+        youtubeResults,
         genres: ["ALL", ...genres],
         total: songs.length,
       },

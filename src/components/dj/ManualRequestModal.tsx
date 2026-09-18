@@ -59,6 +59,7 @@ export default function ManualRequestModal({
   // Búsqueda en catálogo para autocompletar
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<CatalogSongResult[]>([]);
+  const [youtubeResults, setYoutubeResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -75,6 +76,7 @@ export default function ManualRequestModal({
       setError(null);
       setSearchQuery("");
       setSearchResults([]);
+      setYoutubeResults([]);
       setSelectedSongId(null);
     }
   }, [isOpen]);
@@ -86,6 +88,7 @@ export default function ManualRequestModal({
 
     if (val.trim().length < 2) {
       setSearchResults([]);
+      setYoutubeResults([]);
       return;
     }
 
@@ -96,9 +99,11 @@ export default function ManualRequestModal({
         if (res.ok) {
           const json = await res.json();
           setSearchResults(json.data?.songs || []);
+          setYoutubeResults(json.data?.youtubeResults || []);
         }
       } catch {
         setSearchResults([]);
+        setYoutubeResults([]);
       } finally {
         setSearching(false);
       }
@@ -111,6 +116,16 @@ export default function ManualRequestModal({
     setSelectedSongId(song.id);
     setSearchQuery("");
     setSearchResults([]);
+    setYoutubeResults([]);
+  };
+
+  const handleSelectYouTubeSong = (yt: any) => {
+    setTitle(yt.parsedTitle || yt.title);
+    setArtist(yt.parsedArtist || yt.channelTitle || "Desconocido");
+    setSelectedSongId(null);
+    setSearchQuery("");
+    setSearchResults([]);
+    setYoutubeResults([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -218,34 +233,66 @@ export default function ManualRequestModal({
             )}
           </div>
 
-          {/* Resultados flotantes */}
-          {searchResults.length > 0 && (
-            <div className="p-2 rounded-xl bg-zinc-900 border border-zinc-700 space-y-1 max-h-44 overflow-y-auto">
-              <span className="text-[10px] font-mono text-zinc-400 font-bold block px-2 py-0.5">
-                Resultados encontrados (Toca para autocompletar):
-              </span>
-              {searchResults.map((song) => (
-                <button
-                  key={song.id}
-                  type="button"
-                  onClick={() => handleSelectCatalogSong(song)}
-                  className="w-full text-left p-2 rounded-lg hover:bg-purple-950/60 hover:border-purple-600/40 border border-transparent transition-all flex items-center justify-between cursor-pointer group"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold text-white group-hover:text-purple-300 truncate">
-                      {song.title}
-                    </div>
-                    <div className="text-[10px] text-zinc-400 truncate">
-                      {song.artist?.name || "Varios artistas"}
-                    </div>
-                  </div>
-                  {song.key && (
-                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-950 text-amber-300 border border-zinc-800 ml-2 shrink-0">
-                      Key: {song.key}
-                    </span>
-                  )}
-                </button>
-              ))}
+          {/* Resultados flotantes (Catálogo + YouTube) */}
+          {(searchResults.length > 0 || youtubeResults.length > 0) && (
+            <div className="p-2 rounded-xl bg-zinc-900 border border-zinc-700 space-y-2 max-h-56 overflow-y-auto">
+              {searchResults.length > 0 && (
+                <div className="space-y-1">
+                  <span className="text-[10px] font-mono text-zinc-400 font-bold block px-2 py-0.5">
+                    Catálogo Local ({searchResults.length}):
+                  </span>
+                  {searchResults.map((song) => (
+                    <button
+                      key={song.id}
+                      type="button"
+                      onClick={() => handleSelectCatalogSong(song)}
+                      className="w-full text-left p-2 rounded-lg hover:bg-purple-950/60 hover:border-purple-600/40 border border-transparent transition-all flex items-center justify-between cursor-pointer group"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-white group-hover:text-purple-300 truncate">
+                          {song.title}
+                        </div>
+                        <div className="text-[10px] text-zinc-400 truncate">
+                          {song.artist?.name || "Varios artistas"}
+                        </div>
+                      </div>
+                      {song.key && (
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-950 text-amber-300 border border-zinc-800 ml-2 shrink-0">
+                          Key: {song.key}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {youtubeResults.length > 0 && (
+                <div className="space-y-1 pt-1 border-t border-zinc-800">
+                  <span className="text-[10px] font-mono text-cyan-400 font-bold block px-2 py-0.5 flex items-center gap-1.5">
+                    <span>🎬 Sugerencias de YouTube ({youtubeResults.length}):</span>
+                  </span>
+                  {youtubeResults.map((yt) => (
+                    <button
+                      key={yt.id}
+                      type="button"
+                      onClick={() => handleSelectYouTubeSong(yt)}
+                      className="w-full text-left p-2 rounded-lg hover:bg-cyan-950/40 hover:border-cyan-500/40 border border-transparent transition-all flex items-center justify-between cursor-pointer group"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-white group-hover:text-cyan-300 truncate">
+                          {yt.parsedTitle || yt.title}
+                        </div>
+                        <div className="text-[10px] text-zinc-400 truncate">
+                          {yt.parsedArtist || yt.channelTitle}
+                        </div>
+                      </div>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 ml-2 shrink-0">
+                        YouTube
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

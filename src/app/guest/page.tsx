@@ -214,6 +214,7 @@ function GuestContent() {
 
   // Catálogo state
   const [songs, setSongs] = useState<Song[]>([]);
+  const [youtubeSongs, setYoutubeSongs] = useState<any[]>([]);
   const [genres, setGenres] = useState<string[]>(["ALL"]);
   const [selectedGenre, setSelectedGenre] = useState("ALL");
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
@@ -407,6 +408,7 @@ function GuestContent() {
         if (res.ok) {
           const data = await res.json();
           setSongs(data.data.songs);
+          setYoutubeSongs(data.data.youtubeResults || []);
           if (data.data.genres) setGenres(data.data.genres);
         }
       } catch (err) {
@@ -1447,44 +1449,92 @@ function GuestContent() {
               </span>
             </button>
 
-            <div className="space-y-2">
-              <div className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                Canciones Disponibles ({songs.length})
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+                  Canciones del Local ({songs.length})
+                </div>
+
+                {songs.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-zinc-500 bg-zinc-900/30 rounded-xl border border-zinc-800/50">
+                    No se encontraron temas en el repertorio local.
+                  </div>
+                ) : (
+                  songs.map((song) => (
+                    <div
+                      key={song.id}
+                      className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 hover:border-purple-600/40 flex items-center justify-between transition-all"
+                    >
+                      <div className="min-w-0 pr-3">
+                        <div className="text-xs font-bold text-white truncate">{song.title}</div>
+                        <div className="text-[11px] text-zinc-400 truncate mt-0.5">
+                          {song.artist?.name || "Artista desconocido"}
+                        </div>
+                        {song.genre && (
+                          <span className="inline-block text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 mt-1">
+                            {song.genre}
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setSelectedSong(song);
+                          setIsCustomModalOpen(true);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30 text-xs font-bold transition-colors shrink-0 cursor-pointer"
+                      >
+                        Pedir
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
 
-              {songs.length === 0 ? (
-                <div className="py-12 text-center text-xs text-zinc-500">
-                  No se encontraron canciones con esa búsqueda.
-                </div>
-              ) : (
-                songs.map((song) => (
-                  <div
-                    key={song.id}
-                    className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 hover:border-purple-600/40 flex items-center justify-between transition-all"
-                  >
-                    <div className="min-w-0 pr-3">
-                      <div className="text-xs font-bold text-white truncate">{song.title}</div>
-                      <div className="text-[11px] text-zinc-400 truncate mt-0.5">
-                        {song.artist?.name || "Artista desconocido"}
-                      </div>
-                      {song.genre && (
-                        <span className="inline-block text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 mt-1">
-                          {song.genre}
-                        </span>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setSelectedSong(song);
-                        setIsCustomModalOpen(true);
-                      }}
-                      className="px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30 text-xs font-bold transition-colors shrink-0 cursor-pointer"
-                    >
-                      Pedir
-                    </button>
+              {/* Resultados complementarios estirados de YouTube */}
+              {youtubeSongs.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-zinc-800">
+                  <div className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Mic className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Resultados de YouTube ({youtubeSongs.length})</span>
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-normal lowercase">
+                      (toca para pedir)
+                    </span>
                   </div>
-                ))
+
+                  {youtubeSongs.map((yt) => (
+                    <div
+                      key={yt.id}
+                      className="p-3 rounded-xl bg-zinc-900/60 border border-cyan-500/30 hover:border-cyan-500/60 flex items-center justify-between transition-all"
+                    >
+                      <div className="min-w-0 pr-3">
+                        <div className="text-xs font-bold text-white truncate">
+                          {yt.parsedTitle || yt.title}
+                        </div>
+                        <div className="text-[11px] text-cyan-300 truncate mt-0.5">
+                          {yt.parsedArtist || yt.channelTitle}
+                        </div>
+                        <span className="inline-block text-[9px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800/60 mt-1">
+                          YouTube Karaoke
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setSelectedSong(null);
+                          setCustomTitle(yt.parsedTitle || yt.title);
+                          setCustomArtist(yt.parsedArtist || yt.channelTitle || "Desconocido");
+                          setIsCustomModalOpen(true);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white border border-cyan-500/30 text-xs font-bold transition-colors shrink-0 cursor-pointer"
+                      >
+                        Pedir
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>

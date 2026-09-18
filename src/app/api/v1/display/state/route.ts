@@ -6,6 +6,9 @@ import { getMergedBranding } from "@/lib/branding/config";
 import { calculateNightPulse } from "@/lib/pulse/night-pulse";
 import { getActiveFlashDeal } from "@/lib/pulse/flash-deals";
 import { parseQueuePolicy } from "@/lib/dj/rotation";
+import { searchYouTube } from "@/lib/youtube/search";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
@@ -98,6 +101,30 @@ export async function GET(req: NextRequest) {
     // 6. Política de cola (Modo Karaoke / DJ, Pausa)
     const policy = parseQueuePolicy(event.settings);
 
+    // 7. Resolver ID de video de YouTube para el tema al aire (Karaoke TV)
+    let youtubeVideoId: string | null = null;
+    if (currentPlaying) {
+      const songTitle =
+        currentPlaying.songRequest.song?.title ||
+        currentPlaying.songRequest.customTitle ||
+        "";
+      const songArtist =
+        currentPlaying.songRequest.song?.artist?.name ||
+        currentPlaying.songRequest.customArtist ||
+        "";
+      const q = `${songTitle} ${songArtist}`.trim();
+      if (q) {
+        try {
+          const ytResults = await searchYouTube(q, { isKaraoke: true, limit: 1 });
+          if (ytResults.length > 0) {
+            youtubeVideoId = ytResults[0].id;
+          }
+        } catch (e) {
+          console.warn("No se pudo pre-resolver video de YouTube para display state:", e);
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -117,6 +144,7 @@ export async function GET(req: NextRequest) {
               id: currentPlaying.id,
               status: currentPlaying.status,
               updatedAt: currentPlaying.updatedAt,
+              youtubeVideoId,
               song: {
                 title:
                   currentPlaying.songRequest.song?.title ||
