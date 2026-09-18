@@ -28,6 +28,10 @@ import {
   ArrowRight,
   Camera,
   Swords,
+  Scale,
+  Mic,
+  PauseCircle,
+  PlayCircle,
 } from "lucide-react";
 import DjBridgeModal from "@/components/dj/DjBridgeModal";
 import DjSoundboard from "@/components/dj/DjSoundboard";
@@ -113,11 +117,29 @@ interface DjStateResponse {
   };
 }
 
+interface QueuePolicyState {
+  maxActivePerTable: number;
+  queuePaused: boolean;
+  rotationMode: "ROUND_ROBIN" | "FIFO";
+  zone: "DJ" | "KARAOKE" | "MAIN";
+  avgSongDurationMinutes: number;
+}
+
 export default function DjBoothPage() {
   const [data, setData] = useState<DjStateResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // ⚖️ Fair-Play Queue Policy State
+  const [queuePolicy, setQueuePolicy] = useState<QueuePolicyState>({
+    maxActivePerTable: 1,
+    queuePaused: false,
+    rotationMode: "ROUND_ROBIN",
+    zone: "KARAOKE",
+    avgSongDurationMinutes: 4,
+  });
+  const [policyLoading, setPolicyLoading] = useState(false);
 
   // Reproductor simulado en vivo
   const [isPlaying, setIsPlaying] = useState(true);
@@ -191,12 +213,48 @@ export default function DjBoothPage() {
               if (pj.success && pj.data?.photos) setPendingPhotos(pj.data.photos);
             })
             .catch(() => {});
+
+          // Consultar política de cola Fair-Play
+          fetch(`/api/v1/dj/queue/policy?eventId=${currentId}`)
+            .then((r) => r.json())
+            .then((pol) => {
+              if (pol.success && pol.data?.policy) setQueuePolicy(pol.data.policy);
+            })
+            .catch(() => {});
         }
       }
     } catch (err) {
       console.error("Error al obtener estado de DJ:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Actualizar políticas de cola en tiempo real (Límite por mesa, Pausa, Zona)
+  const handleUpdatePolicy = async (patch: Partial<QueuePolicyState>) => {
+    const eventId = selectedEventId || data?.event?.id;
+    if (!eventId) return;
+    setPolicyLoading(true);
+    try {
+      const res = await fetch("/api/v1/dj/queue/policy", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId,
+          ...patch,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setQueuePolicy(json.data);
+        showFeedback("success", "Regla de cola actualizada");
+      } else {
+        showFeedback("error", json.error?.message || "Error al actualizar política");
+      }
+    } catch {
+      showFeedback("error", "Error al comunicar con el servidor");
+    } finally {
+      setPolicyLoading(false);
     }
   };
 
@@ -304,6 +362,22 @@ export default function DjBoothPage() {
         setActiveDuel(payload || null);
       } else if (type === "QUEUE_UPDATE" || type === "TRACK_CHANGE") {
         fetchDjState();
+      } else if (type === "QUEUE_POLICY_UPDATED") {
+        if (payload?.policy) {
+          setQueuePolicy(payload.policy);
+          showFeedback(
+            "info",
+            `Regla de cola: ${payload.policy.maxActivePerTable} tema(s)/mesa (${
+              payload.policy.queuePaused ? "Pausada" : "Abierta"
+            })`
+          );
+        }
+      } else if (type === "QUEUE_SLOT_UNLOCKED") {
+        fetchDjState();
+        showFeedback(
+          "success",
+          `🎤 ${payload?.tableLabel || "Mesa"} completó su turno. ¡Cupo liberado!`
+        );
       }
     },
   });
@@ -751,6 +825,126 @@ export default function DjBoothPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* 1.6 CONTROL FAIR-PLAY & ROTACIÓN DE TURNOS ("CANTA Y LIBERA") */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-zinc-950 via-purple-950/20 to-zinc-950 border border-purple-500/30 space-y-3 shadow-lg">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30">
+              <Scale className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-white uppercase tracking-wider">
+                  Fair-Play & Rotación de Turnos
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-[10px] font-bold">
+                  {queuePolicy.zone === "KARAOKE" ? "🎤 MODO KARAOKE" : "🎧 MODO DJ"}
+                </span>
+                {queuePolicy.queuePaused ? (
+                  <span className="px-2 py-0.5 rounded-full bg-red-950 text-red-300 border border-red-800 text-[10px] font-bold animate-pulse">
+                    ⏸ COLA PAUSADA
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-bold">
+                    🟢 RECIBIENDO PEDIDOS
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-zinc-400">
+                Regla &ldquo;Canta y Libera&rdquo;: cuando la mesa termina su turno, el sistema desbloquea su cupo automáticamente para volver a pedir.
+              </p>
+            </div>
+          </div>
+
+          {/* Selectores rápidos de política en vivo */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] uppercase font-bold text-zinc-500 mr-1">Cupo por Mesa:</span>
+
+            <button
+              onClick={() => handleUpdatePolicy({ maxActivePerTable: 1 })}
+              disabled={policyLoading}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                queuePolicy.maxActivePerTable === 1
+                  ? "bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-600/30"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white border-zinc-800"
+              }`}
+              title="1 tema activo por mesa a la vez (ideal Karaoke)"
+            >
+              <span>1 Tema (Estricto)</span>
+            </button>
+
+            <button
+              onClick={() => handleUpdatePolicy({ maxActivePerTable: 2 })}
+              disabled={policyLoading}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                queuePolicy.maxActivePerTable === 2
+                  ? "bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-600/30"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white border-zinc-800"
+              }`}
+              title="Hasta 2 temas por mesa simultáneos"
+            >
+              <span>2 Temas (Moderado)</span>
+            </button>
+
+            <button
+              onClick={() => handleUpdatePolicy({ maxActivePerTable: 99 })}
+              disabled={policyLoading}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                queuePolicy.maxActivePerTable >= 99
+                  ? "bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-600/30"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white border-zinc-800"
+              }`}
+              title="Sin límite de temas por mesa"
+            >
+              <span>Ilimitado</span>
+            </button>
+
+            <div className="h-5 w-px bg-zinc-800 hidden sm:block mx-1" />
+
+            <button
+              onClick={() => handleUpdatePolicy({ queuePaused: !queuePolicy.queuePaused })}
+              disabled={policyLoading}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                queuePolicy.queuePaused
+                  ? "bg-red-600 text-white border-red-400 animate-pulse shadow-md shadow-red-600/30"
+                  : "bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border-emerald-800"
+              }`}
+              title={
+                queuePolicy.queuePaused
+                  ? "Reanudar recepción de pedidos"
+                  : "Pausar recepción de pedidos si la sala está colmada"
+              }
+            >
+              {queuePolicy.queuePaused ? (
+                <>
+                  <PlayCircle className="w-3.5 h-3.5" />
+                  <span>Reanudar Pedidos</span>
+                </>
+              ) : (
+                <>
+                  <PauseCircle className="w-3.5 h-3.5" />
+                  <span>Pausar Pedidos</span>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() =>
+                handleUpdatePolicy({
+                  zone: queuePolicy.zone === "KARAOKE" ? "DJ" : "KARAOKE",
+                })
+              }
+              disabled={policyLoading}
+              className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Alternar entre modo Karaoke y modo DJ"
+            >
+              <Mic className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Zona: {queuePolicy.zone}</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* ⚔️ Banner de Duelo Activo si existe */}

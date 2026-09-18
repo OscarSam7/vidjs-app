@@ -7,6 +7,7 @@ import { getActiveFlashDeal } from "@/lib/pulse/flash-deals";
 import { getMergedBranding } from "@/lib/branding/config";
 import { handleApiError, UnauthorizedError, AppError } from "@/lib/errors";
 import { realtimeBus } from "@/lib/realtime/event-bus";
+import { parseQueuePolicy } from "@/lib/dj/rotation";
 
 const createRequestSchema = z
   .object({
@@ -35,24 +36,35 @@ export async function POST(req: NextRequest) {
       throw new AppError("El evento de esta noche ha finalizado. No se aceptan más solicitudes.", 400);
     }
 
+    const policy = parseQueuePolicy(guestSession.event.settings);
+
+    // 2.1 Validar si la cola está pausada por la cabina
+    if (policy.queuePaused) {
+      throw new AppError(
+        "La recepción de canciones está pausada temporalmente por la cabina. Volveremos a abrir pedidos en breve.",
+        423,
+        "QUEUE_PAUSED"
+      );
+    }
+
     const body = await req.json();
     const data = createRequestSchema.parse(body);
 
-    // 3. Regla Fair-Play anti-spam: Máximo de canciones pendientes simultáneas por mesa
-    const pendingCount = await prisma.songRequest.count({
+    // 3. Regla Fair-Play: Máximo de canciones activas simultáneas por mesa (PENDING, ACCEPTED o PLAYING)
+    const activeCount = await prisma.songRequest.count({
       where: {
         tableId: guestSession.tableId,
         eventId: guestSession.eventId,
-        status: "PENDING",
+        status: { in: ["PENDING", "ACCEPTED", "PLAYING"] },
       },
     });
 
-    const MAX_PENDING_PER_TABLE = 2;
-    if (pendingCount >= MAX_PENDING_PER_TABLE) {
+    if (activeCount >= policy.maxActivePerTable) {
+      const unit = policy.maxActivePerTable === 1 ? "canción activa" : "canciones activas";
       throw new AppError(
-        `Tu mesa ya tiene ${pendingCount} canciones en revisión. Espera a que el DJ atienda alguna para pedir otra.`,
+        `Tu mesa ya tiene su cupo completo (${activeCount}/${policy.maxActivePerTable} ${unit}). Podrán pedir su siguiente tema en cuanto hayan cantado en el escenario.`,
         429,
-        "MAX_PENDING_REACHED"
+        "MAX_ACTIVE_PER_TABLE_REACHED"
       );
     }
 
@@ -147,6 +159,8 @@ export async function GET() {
       }),
     ]);
 
+    const policy = parseQueuePolicy(guestSession.event.settings);
+
     // 2. Calcular posición exacta y tiempo estimado para cada pedido
     const enrichedRequests = requests.map((req) => {
       let queuePosition: number | null = null;
@@ -156,7 +170,7 @@ export async function GET() {
         const indexInQueue = queuedEntries.findIndex((q) => q.id === req.queueEntry?.id);
         if (indexInQueue !== -1) {
           queuePosition = indexInQueue + 1;
-          estimatedWaitMinutes = Math.max(1, queuePosition * 3);
+          estimatedWaitMinutes = Math.max(1, queuePosition * policy.avgSongDurationMinutes);
         }
       }
 
@@ -166,6 +180,19 @@ export async function GET() {
         estimatedWaitMinutes,
       };
     });
+
+    // 2.1 Calcular estado de cupo activo de la mesa
+    const activeRequestsCount = requests.filter((r) =>
+      ["PENDING", "ACCEPTED", "PLAYING"].includes(r.status)
+    ).length;
+
+    const tableAllowance = {
+      usedSlots: activeRequestsCount,
+      maxSlots: policy.maxActivePerTable,
+      isLocked: activeRequestsCount >= policy.maxActivePerTable,
+      queuePaused: policy.queuePaused,
+      zone: (guestSession.table as any).zone || policy.zone || "MAIN",
+    };
 
     // 3. Resolver branding del local y establecimiento
     const venueSettings = (guestSession.table as any).venue?.settings;
@@ -218,6 +245,8 @@ export async function GET() {
           : null,
         branding,
         flashDeal,
+        policy,
+        tableAllowance,
         requests: enrichedRequests,
       },
     });

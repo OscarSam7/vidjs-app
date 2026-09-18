@@ -79,6 +79,12 @@ interface DisplayState {
     discount: string;
     badgeText: string;
   } | null;
+  policy?: {
+    zone: string;
+    maxActivePerTable: number;
+    queuePaused: boolean;
+    rotationMode: string;
+  };
   qr: {
     scanUrl: string;
     dataUrl: string;
@@ -148,7 +154,12 @@ export default function PublicDisplayScreenPage({
           payload,
           ...prev.filter((p) => p.id !== payload.id),
         ]);
-      } else if (type === "TRACK_CHANGE" || type === "QUEUE_UPDATE") {
+      } else if (
+        type === "TRACK_CHANGE" ||
+        type === "QUEUE_UPDATE" ||
+        type === "QUEUE_POLICY_UPDATED" ||
+        type === "QUEUE_SLOT_UNLOCKED"
+      ) {
         fetchDisplayState();
       }
     },
@@ -265,6 +276,7 @@ export default function PublicDisplayScreenPage({
   }
 
   const track = data.currentPlaying;
+  const isKaraoke = data?.policy?.zone === "KARAOKE";
   const duration = track?.song.durationSeconds || 210;
   const progressPercent = Math.min((elapsedSeconds / duration) * 100, 100);
   const isCelebration = Boolean(
@@ -321,6 +333,11 @@ export default function PublicDisplayScreenPage({
               <span className="px-2.5 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800 text-xs font-bold font-mono">
                 {data.event.venueName}
               </span>
+              {isKaraoke && (
+                <span className="px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-xs font-bold font-mono animate-pulse">
+                  🎤 MODO KARAOKE
+                </span>
+              )}
             </div>
             <p className="text-xs sm:text-sm text-zinc-400 mt-0.5 font-medium">
               {data.event.name}
@@ -529,9 +546,15 @@ export default function PublicDisplayScreenPage({
                     <span>🎉</span>
                   </div>
                 ) : (
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-600/30 text-purple-300 border border-purple-500/40 text-xs font-black tracking-widest uppercase">
-                    <Radio className="w-4 h-4 animate-pulse text-purple-400" />
-                    <span>SONANDO EN LA PISTA</span>
+                  <div
+                    className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black tracking-widest uppercase border ${
+                      isKaraoke
+                        ? "bg-cyan-950/80 text-cyan-300 border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                        : "bg-purple-600/30 text-purple-300 border-purple-500/40"
+                    }`}
+                  >
+                    <Radio className={`w-4 h-4 animate-pulse ${isKaraoke ? "text-cyan-400" : "text-purple-400"}`} />
+                    <span>{isKaraoke ? `🎤 CANTANDO AHORA: ${track.table.label}` : "SONANDO EN LA PISTA"}</span>
                   </div>
                 )}
                 {track.isFastPass && (
@@ -693,31 +716,58 @@ export default function PublicDisplayScreenPage({
       <footer className="z-10 pt-4 border-t border-zinc-800/60 flex flex-col md:flex-row items-center justify-between gap-6">
         {/* Próximos Temas en Cola */}
         <div className="flex-1 min-w-0 space-y-2 text-center md:text-left">
-          <div className="flex items-center justify-center md:justify-start gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest">
+          <div className="flex items-center justify-center md:justify-start gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest flex-wrap">
             <Clock className="w-3.5 h-3.5 text-purple-400" />
-            <span>A continuación en la cola ({data.upcomingQueue.length})</span>
+            <span>
+              {isKaraoke
+                ? `🎤 Turnos de Karaoke (${data.upcomingQueue.length} mesas en espera)`
+                : `A continuación en la cola (${data.upcomingQueue.length})`}
+            </span>
+            {data.policy?.queuePaused && (
+              <span className="px-2 py-0.5 rounded-full bg-red-950 text-red-300 border border-red-800 text-[10px] font-bold animate-pulse">
+                ⏸ Pedidos en pausa momentánea
+              </span>
+            )}
           </div>
 
           {data.upcomingQueue.length === 0 ? (
             <p className="text-xs text-zinc-500">
-              No hay más canciones en espera. ¡Envía tu pedido desde tu mesa!
+              {isKaraoke
+                ? "No hay más mesas en espera para cantar. ¡Sé el primero en pedir desde tu mesa!"
+                : "No hay más canciones en espera. ¡Envía tu pedido desde tu mesa!"}
             </p>
           ) : (
             <div className="flex flex-wrap gap-2.5 justify-center md:justify-start">
               {data.upcomingQueue.map((item) => (
                 <div
                   key={item.id}
-                  className="px-3.5 py-2 rounded-xl bg-zinc-900/90 border border-zinc-800 flex items-center gap-2.5 text-xs shadow-md"
+                  className={`px-3.5 py-2 rounded-xl flex items-center gap-2.5 text-xs shadow-md border ${
+                    item.order === 1 && isKaraoke
+                      ? "bg-gradient-to-r from-cyan-950/80 to-zinc-900 border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse"
+                      : "bg-zinc-900/90 border-zinc-800"
+                  }`}
                 >
-                  <span className="w-5 h-5 rounded-md bg-purple-600/30 text-purple-300 font-mono font-bold flex items-center justify-center text-[10px]">
+                  <span
+                    className={`w-5 h-5 rounded-md font-mono font-bold flex items-center justify-center text-[10px] ${
+                      item.order === 1 && isKaraoke
+                        ? "bg-cyan-400 text-black font-black"
+                        : "bg-purple-600/30 text-purple-300"
+                    }`}
+                  >
                     #{item.order}
                   </span>
                   <div className="truncate max-w-[160px]">
                     <div className="font-bold text-white truncate">{item.title}</div>
                     <div className="text-[10px] text-zinc-400 truncate">{item.artist}</div>
                   </div>
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-950 text-purple-300 border border-zinc-800">
-                    {item.table}
+                  <span
+                    className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${
+                      item.order === 1 && isKaraoke
+                        ? "bg-cyan-950 text-cyan-200 border-cyan-700 font-bold"
+                        : "bg-zinc-950 text-purple-300 border-zinc-800"
+                    }`}
+                  >
+                    {item.order === 1 && isKaraoke ? `🎤 Siguiente: ${item.table}` : item.table}
                   </span>
                   {item.isFastPass && (
                     <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-800 shrink-0">

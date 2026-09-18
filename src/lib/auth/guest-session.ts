@@ -40,6 +40,7 @@ export async function getCurrentGuestSession() {
           id: true,
           number: true,
           label: true,
+          zone: true,
           venueId: true,
           venue: { select: { id: true, name: true, settings: true } },
         },

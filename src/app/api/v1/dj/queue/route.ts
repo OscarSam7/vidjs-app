@@ -27,12 +27,26 @@ export async function POST(req: NextRequest) {
 
       const targetEntry = await prisma.queueEntry.findFirst({
         where: { id: data.queueEntryId, tenantId },
-        include: { songRequest: true },
+        include: { songRequest: { include: { song: true, table: true } } },
       });
 
       if (!targetEntry) throw new NotFoundError("Entrada de cola no encontrada");
 
       const now = new Date();
+
+      // Buscar canciones que estaban en PLAYING para notificar liberación de slot
+      const prevPlaying = await prisma.songRequest.findMany({
+        where: {
+          tenantId,
+          eventId: targetEntry.eventId,
+          status: "PLAYING",
+          id: { not: targetEntry.songRequestId },
+        },
+        include: {
+          table: { select: { id: true, label: true } },
+          song: { select: { title: true } },
+        },
+      });
 
       // Transacción atómica: finalizar la que estaba sonando y arrancar la nueva
       await prisma.$transaction([
@@ -85,6 +99,19 @@ export async function POST(req: NextRequest) {
         currentEntryId: targetEntry.id,
       });
 
+      realtimeBus.broadcast(targetEntry.eventId, "QUEUE_UPDATE", {
+        action: "PLAY",
+      });
+
+      // Desbloquear slots ("Canta y Libera") para las mesas que terminaron de sonar
+      for (const p of prevPlaying) {
+        realtimeBus.broadcast(targetEntry.eventId, "QUEUE_SLOT_UNLOCKED", {
+          tableId: p.tableId,
+          tableLabel: p.table.label,
+          songTitle: p.song?.title || p.customTitle || "Canción",
+        });
+      }
+
       return NextResponse.json({
         success: true,
         message: "Canción en reproducción activa",
@@ -95,6 +122,15 @@ export async function POST(req: NextRequest) {
     if (data.action === "NEXT") {
       if (!data.eventId) throw new AppError("eventId es obligatorio para NEXT");
 
+      // Buscar canciones que estaban en PLAYING para desbloquear slot
+      const prevPlaying = await prisma.songRequest.findMany({
+        where: { tenantId, eventId: data.eventId, status: "PLAYING" },
+        include: {
+          table: { select: { id: true, label: true } },
+          song: { select: { title: true } },
+        },
+      });
+
       // Buscar el primer tema en cola
       const nextEntry = await prisma.queueEntry.findFirst({
         where: {
@@ -102,7 +138,7 @@ export async function POST(req: NextRequest) {
           eventId: data.eventId,
           status: "QUEUED",
         },
-        include: { songRequest: true },
+        include: { songRequest: { include: { song: true, table: true } } },
         orderBy: { orderIndex: "asc" },
       });
 
@@ -124,6 +160,18 @@ export async function POST(req: NextRequest) {
         realtimeBus.broadcast(data.eventId, "TRACK_CHANGE", {
           currentEntryId: null,
         });
+
+        realtimeBus.broadcast(data.eventId, "QUEUE_UPDATE", {
+          action: "NEXT",
+        });
+
+        for (const p of prevPlaying) {
+          realtimeBus.broadcast(data.eventId, "QUEUE_SLOT_UNLOCKED", {
+            tableId: p.tableId,
+            tableLabel: p.table.label,
+            songTitle: p.song?.title || p.customTitle || "Canción",
+          });
+        }
 
         return NextResponse.json({
           success: true,
@@ -164,6 +212,18 @@ export async function POST(req: NextRequest) {
       realtimeBus.broadcast(data.eventId, "TRACK_CHANGE", {
         currentEntryId: nextEntry.id,
       });
+
+      realtimeBus.broadcast(data.eventId, "QUEUE_UPDATE", {
+        action: "NEXT",
+      });
+
+      for (const p of prevPlaying) {
+        realtimeBus.broadcast(data.eventId, "QUEUE_SLOT_UNLOCKED", {
+          tableId: p.tableId,
+          tableLabel: p.table.label,
+          songTitle: p.song?.title || p.customTitle || "Canción",
+        });
+      }
 
       return NextResponse.json({
         success: true,
@@ -233,6 +293,14 @@ export async function POST(req: NextRequest) {
 
       const entry = await prisma.queueEntry.findFirst({
         where: { id: data.queueEntryId, tenantId },
+        include: {
+          songRequest: {
+            include: {
+              table: { select: { id: true, label: true } },
+              song: { select: { title: true } },
+            },
+          },
+        },
       });
 
       if (!entry) throw new NotFoundError("Entrada no encontrada");
@@ -248,9 +316,42 @@ export async function POST(req: NextRequest) {
         }),
       ]);
 
+      realtimeBus.broadcast(entry.eventId, "QUEUE_UPDATE", {
+        action: "SKIP",
+      });
+
+      // Liberar slot de la mesa
+      realtimeBus.broadcast(entry.eventId, "QUEUE_SLOT_UNLOCKED", {
+        tableId: entry.songRequest.tableId,
+        tableLabel: entry.songRequest.table.label,
+        songTitle: entry.songRequest.song?.title || entry.songRequest.customTitle || "Canción",
+      });
+
       return NextResponse.json({
         success: true,
         message: "Canción salteada/removida de la cola",
+      });
+    }
+
+    // 5. Acción: REORDER (reordenamiento manual de la cola)
+    if (data.action === "REORDER") {
+      if (!data.newOrder || !Array.isArray(data.newOrder)) {
+        throw new AppError("newOrder es obligatorio para REORDER");
+      }
+      await prisma.$transaction(
+        data.newOrder.map((id, index) =>
+          prisma.queueEntry.updateMany({
+            where: { id, tenantId },
+            data: { orderIndex: index + 1 },
+          })
+        )
+      );
+      if (data.eventId) {
+        realtimeBus.broadcast(data.eventId, "QUEUE_UPDATE", { action: "REORDER" });
+      }
+      return NextResponse.json({
+        success: true,
+        message: "Cola reordenada correctamente",
       });
     }
 

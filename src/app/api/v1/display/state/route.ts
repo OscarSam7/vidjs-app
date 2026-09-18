@@ -5,6 +5,7 @@ import { handleApiError, NotFoundError } from "@/lib/errors";
 import { getMergedBranding } from "@/lib/branding/config";
 import { calculateNightPulse } from "@/lib/pulse/night-pulse";
 import { getActiveFlashDeal } from "@/lib/pulse/flash-deals";
+import { parseQueuePolicy } from "@/lib/dj/rotation";
 
 export async function GET(req: NextRequest) {
   try {
@@ -94,6 +95,9 @@ export async function GET(req: NextRequest) {
       event.tenant.logoUrl
     );
 
+    // 6. Política de cola (Modo Karaoke / DJ, Pausa)
+    const policy = parseQueuePolicy(event.settings);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -106,6 +110,7 @@ export async function GET(req: NextRequest) {
           tenantName: event.tenant.name,
           logoUrl: branding.logoUrl || event.tenant.logoUrl,
         },
+        policy,
         branding,
         currentPlaying: currentPlaying
           ? {

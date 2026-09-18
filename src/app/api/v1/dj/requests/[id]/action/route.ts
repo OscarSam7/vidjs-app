@@ -124,6 +124,13 @@ export async function POST(
         requestId: id,
       });
 
+      // Liberar cupo a la mesa inmediatamente
+      realtimeBus.broadcast(songRequest.eventId, "QUEUE_SLOT_UNLOCKED", {
+        tableId: songRequest.tableId,
+        tableLabel: songRequest.table.label,
+        songTitle: songRequest.song?.title || songRequest.customTitle || "Canción",
+      });
+
       return NextResponse.json({
         success: true,
         message: "Solicitud rechazada",

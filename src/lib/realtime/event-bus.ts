@@ -5,6 +5,8 @@ export type RealtimeEventType =
   | "DUEL_UPDATE"
   | "TRACK_CHANGE"
   | "QUEUE_UPDATE"
+  | "QUEUE_POLICY_UPDATED"
+  | "QUEUE_SLOT_UNLOCKED"
   | "REQUEST_NEW"
   | "PHOTO_NEW"
   | "PHOTO_APPROVED"

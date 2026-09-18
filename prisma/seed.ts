@@ -180,8 +180,11 @@ async function main() {
       endsAt: tonightEnds,
       pin: "1234",
       settings: JSON.stringify({
-        maxQueuePerTable: 2,
-        rotationMode: "FAIR_SHARE",
+        zone: "KARAOKE",
+        maxActivePerTable: 1,
+        queuePaused: false,
+        rotationMode: "ROUND_ROBIN",
+        avgSongDurationMinutes: 4,
       }),
     },
   });
@@ -198,19 +201,23 @@ async function main() {
       startsAt: tomorrowStarts,
       pin: "5678",
       settings: JSON.stringify({
-        maxQueuePerTable: 1,
+        zone: "DJ",
+        maxActivePerTable: 2,
+        queuePaused: false,
+        rotationMode: "FIFO",
+        avgSongDurationMinutes: 3,
       }),
     },
   });
 
-  // 8. Mesas con tokens fijos predecibles para pruebas directas
+  // 8. Mesas con Zonas diferenciadas (Pista DJ vs Salón Karaoke)
   const tablesCentroData = [
-    { number: 1, label: "Mesa 1 (Pista Central)", token: "qr_centro_m1" },
-    { number: 2, label: "Mesa 2 (Pista)", token: "qr_centro_m2" },
-    { number: 3, label: "Mesa 3 (Barra Cocktail)", token: "qr_centro_m3" },
-    { number: 4, label: "Mesa 4 (Barra)", token: "qr_centro_m4" },
-    { number: 5, label: "Mesa 5 (Living VIP)", token: "qr_centro_m5" },
-    { number: 6, label: "Mesa 6 (Box Terraza)", token: "qr_centro_m6" },
+    { number: 1, label: "Mesa 1 (Pista Central)", token: "qr_centro_m1", zone: "DJ" },
+    { number: 2, label: "Mesa 2 (Pista)", token: "qr_centro_m2", zone: "DJ" },
+    { number: 3, label: "Mesa 3 (Barra Cocktail)", token: "qr_centro_m3", zone: "DJ" },
+    { number: 4, label: "Mesa 4 (Karaoke Escenario)", token: "qr_centro_m4", zone: "KARAOKE" },
+    { number: 5, label: "Mesa 5 (Box Karaoke VIP)", token: "qr_centro_m5", zone: "KARAOKE" },
+    { number: 6, label: "Mesa 6 (Box Karaoke Lounge)", token: "qr_centro_m6", zone: "KARAOKE" },
   ];
 
   for (const t of tablesCentroData) {
@@ -220,6 +227,7 @@ async function main() {
         venueId: venueCentro.id,
         number: t.number,
         label: t.label,
+        zone: t.zone,
         qrToken: t.token,
         capacity: 4,
         active: true,
@@ -228,11 +236,11 @@ async function main() {
   }
 
   const tablesTerrazaData = [
-    { number: 1, label: "Mesa Terraza 1", token: "qr_terraza_m1" },
-    { number: 2, label: "Mesa Terraza 2", token: "qr_terraza_m2" },
-    { number: 3, label: "Mesa Terraza 3", token: "qr_terraza_m3" },
-    { number: 4, label: "Barra Lounge", token: "qr_terraza_m4" },
-    { number: 5, label: "Box VIP Mirador", token: "qr_terraza_m5" },
+    { number: 1, label: "Mesa Terraza 1", token: "qr_terraza_m1", zone: "DJ" },
+    { number: 2, label: "Mesa Terraza 2", token: "qr_terraza_m2", zone: "DJ" },
+    { number: 3, label: "Mesa Terraza 3", token: "qr_terraza_m3", zone: "DJ" },
+    { number: 4, label: "Barra Lounge", token: "qr_terraza_m4", zone: "DJ" },
+    { number: 5, label: "Box VIP Mirador", token: "qr_terraza_m5", zone: "DJ" },
   ];
 
   for (const t of tablesTerrazaData) {
@@ -242,6 +250,7 @@ async function main() {
         venueId: venueTerraza.id,
         number: t.number,
         label: t.label,
+        zone: t.zone,
         qrToken: t.token,
         capacity: 6,
         active: true,

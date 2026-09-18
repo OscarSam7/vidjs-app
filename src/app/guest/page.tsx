@@ -64,9 +64,17 @@ interface SongRequestItem {
 
 interface GuestSessionInfo {
   guestName: string | null;
-  table: { id: string; number: number; label: string };
+  table: { id: string; number: number; label: string; zone?: string };
   event: { id: string; name: string; code: string; status: string };
   tenant: { id: string; name: string; slug: string };
+}
+
+export interface TableAllowanceInfo {
+  usedSlots: number;
+  maxSlots: number;
+  isLocked: boolean;
+  queuePaused: boolean;
+  zone: string;
 }
 
 interface CurrentPlayingInfo {
@@ -143,6 +151,7 @@ function GuestContent() {
 
   const [activeTab, setActiveTab] = useState<"hub" | "catalog" | "my-requests">("hub");
   const [session, setSession] = useState<GuestSessionInfo | null>(null);
+  const [tableAllowance, setTableAllowance] = useState<TableAllowanceInfo | null>(null);
   const [currentPlaying, setCurrentPlaying] = useState<CurrentPlayingInfo | null>(null);
   const [flashDeal, setFlashDeal] = useState<FlashDealInfo | null>(null);
   const [activeDuel, setActiveDuel] = useState<LiveDuelInfo | null>(null);
@@ -204,6 +213,9 @@ function GuestContent() {
         }
         if (data.data.branding) {
           setBranding(data.data.branding);
+        }
+        if (data.data.tableAllowance) {
+          setTableAllowance(data.data.tableAllowance);
         }
         if (data.data.session.guestName) {
           setGuestName(data.data.session.guestName);
@@ -280,6 +292,17 @@ function GuestContent() {
     onEvent: async (type: RealtimeEventType, payload: any) => {
       if (type === "DUEL_UPDATE") {
         setActiveDuel(payload || null);
+      } else if (type === "QUEUE_SLOT_UNLOCKED") {
+        // Desbloqueo en tiempo real: avisar al comensal si es su mesa
+        await loadSessionAndRequests();
+        if (!payload?.tableId || (session && payload.tableId === session.table.id)) {
+          setSuccessMessage(
+            `🎉 ¡Tu mesa completó su turno! Cupo desbloqueado para pedir tu siguiente canción.`
+          );
+          setTimeout(() => setSuccessMessage(null), 7000);
+        }
+      } else if (type === "QUEUE_POLICY_UPDATED") {
+        await loadSessionAndRequests();
       } else if (
         type === "TRACK_CHANGE" ||
         type === "QUEUE_UPDATE" ||
@@ -292,6 +315,7 @@ function GuestContent() {
             setMyRequests(data.data.requests);
             setCurrentPlaying(data.data.currentPlaying || null);
             if (data.data.flashDeal) setFlashDeal(data.data.flashDeal);
+            if (data.data.tableAllowance) setTableAllowance(data.data.tableAllowance);
           }
         } catch {}
       }
@@ -309,6 +333,7 @@ function GuestContent() {
           setMyRequests(data.data.requests);
           setCurrentPlaying(data.data.currentPlaying || null);
           if (data.data.flashDeal) setFlashDeal(data.data.flashDeal);
+          if (data.data.tableAllowance) setTableAllowance(data.data.tableAllowance);
         }
         fetchDuelState(session.event.id);
       } catch {
@@ -715,11 +740,59 @@ function GuestContent() {
           </div>
         )}
 
-        {/* Notificación flotante de éxito */}
-        {successMessage && (
-          <div className="mt-3 p-2.5 rounded-xl bg-emerald-950/90 border border-emerald-700/80 text-emerald-200 text-xs flex items-center gap-2 animate-fadeIn">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="font-medium">{successMessage}</span>
+        {/* Banner de Cupo Fair-Play ("Canta y Libera") */}
+        {tableAllowance && (
+          <div
+            className={`mt-2.5 px-3 py-2 rounded-xl text-xs flex items-center justify-between gap-2 border transition-all ${
+              tableAllowance.queuePaused
+                ? "bg-red-950/80 text-red-200 border-red-800"
+                : tableAllowance.isLocked
+                ? "bg-amber-950/70 text-amber-200 border-amber-700/80"
+                : "bg-purple-950/60 text-purple-200 border-purple-800/80"
+            }`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-base shrink-0">
+                {tableAllowance.queuePaused ? "⏸" : tableAllowance.isLocked ? "🎤" : "✨"}
+              </span>
+              <div className="min-w-0">
+                <div className="font-bold flex items-center gap-1.5 flex-wrap">
+                  <span>
+                    {tableAllowance.queuePaused
+                      ? "Pedidos pausados por la cabina"
+                      : tableAllowance.isLocked
+                      ? `Turno asignado: ${tableAllowance.usedSlots}/${tableAllowance.maxSlots} pedidos activos`
+                      : `Cupo disponible: ${tableAllowance.usedSlots}/${tableAllowance.maxSlots} temas`}
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-black/40 border border-white/10 font-mono">
+                    {tableAllowance.zone === "KARAOKE" ? "Zona Karaoke" : "Zona DJ"}
+                  </span>
+                </div>
+                <div className="text-[10px] text-zinc-300 opacity-90 truncate">
+                  {tableAllowance.queuePaused
+                    ? "El DJ pausó momentáneamente los pedidos. Se reanudarán pronto."
+                    : tableAllowance.isLocked
+                    ? "Canta tu turno y al terminar se desbloqueará tu cupo para pedir otro tema."
+                    : "Pide tu tema para entrar a la rotación secuencial."}
+                </div>
+              </div>
+            </div>
+
+            <span
+              className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${
+                tableAllowance.queuePaused
+                  ? "bg-red-900 text-red-100"
+                  : tableAllowance.isLocked
+                  ? "bg-amber-500 text-black animate-pulse"
+                  : "bg-emerald-950 text-emerald-300 border border-emerald-700"
+              }`}
+            >
+              {tableAllowance.queuePaused
+                ? "Pausa"
+                : tableAllowance.isLocked
+                ? "En Turno"
+                : "Libre"}
+            </span>
           </div>
         )}
       </header>
@@ -1235,6 +1308,30 @@ function GuestContent() {
               </div>
             )}
 
+            {tableAllowance?.isLocked && (
+              <div className="p-3 rounded-xl bg-amber-950/80 border border-amber-800 text-amber-200 text-xs space-y-1">
+                <div className="font-bold flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Cupo de mesa alcanzado ({tableAllowance.usedSlots}/{tableAllowance.maxSlots})</span>
+                </div>
+                <p className="text-[11px] text-amber-300/90 leading-relaxed">
+                  Tu mesa ya tiene su turno asignado. En cuanto terminen de cantar, se habilitará tu cupo para pedir otro tema automáticamente (&ldquo;Canta y Libera&rdquo;).
+                </p>
+              </div>
+            )}
+
+            {tableAllowance?.queuePaused && (
+              <div className="p-3 rounded-xl bg-red-950/80 border border-red-800 text-red-200 text-xs space-y-1">
+                <div className="font-bold flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                  <span>Pedidos en pausa momentánea</span>
+                </div>
+                <p className="text-[11px] text-red-300/90 leading-relaxed">
+                  La cabina ha pausado temporalmente los pedidos debido a alta concurrencia. Se reactivará en unos momentos.
+                </p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmitRequest} className="space-y-3">
               {selectedSong ? (
                 <div className="p-3 rounded-xl bg-zinc-950/80 border border-purple-900/40">
@@ -1346,7 +1443,7 @@ function GuestContent() {
 
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || Boolean(tableAllowance?.isLocked) || Boolean(tableAllowance?.queuePaused)}
                 className="w-full py-2.5 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {submitting ? (
@@ -1354,6 +1451,10 @@ function GuestContent() {
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     <span>Enviando al DJ...</span>
                   </>
+                ) : tableAllowance?.queuePaused ? (
+                  <span>⏸ Pedidos Pausados por el DJ</span>
+                ) : tableAllowance?.isLocked ? (
+                  <span>🔒 Cupo Asignado &bull; Canta para Liberar</span>
                 ) : (
                   <>
                     <Send className="w-3.5 h-3.5" />

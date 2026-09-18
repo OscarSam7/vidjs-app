@@ -5,6 +5,63 @@ export interface RotatableQueueItem {
   createdAt: Date | string;
 }
 
+export interface QueuePolicy {
+  zone: "DJ" | "KARAOKE" | "MAIN";
+  maxActivePerTable: number; // 1, 2, 99
+  queuePaused: boolean;
+  rotationMode: "ROUND_ROBIN" | "FIFO";
+  avgSongDurationMinutes: number;
+}
+
+export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
+  if (!settingsJson) {
+    return {
+      zone: "KARAOKE",
+      maxActivePerTable: 1,
+      queuePaused: false,
+      rotationMode: "ROUND_ROBIN",
+      avgSongDurationMinutes: 4,
+    };
+  }
+  try {
+    const parsed = JSON.parse(settingsJson);
+    const rawLimit = typeof parsed.maxActivePerTable === "number" ? parsed.maxActivePerTable : 1;
+    const rawDuration = typeof parsed.avgSongDurationMinutes === "number" ? parsed.avgSongDurationMinutes : 4;
+
+    return {
+      zone: parsed.zone === "DJ" || parsed.zone === "MAIN" ? parsed.zone : "KARAOKE",
+      maxActivePerTable: Math.max(1, Math.min(99, rawLimit)),
+      queuePaused: Boolean(parsed.queuePaused),
+      rotationMode: parsed.rotationMode === "FIFO" ? "FIFO" : "ROUND_ROBIN",
+      avgSongDurationMinutes: Math.max(1, Math.min(15, rawDuration)),
+    };
+  } catch {
+    return {
+      zone: "KARAOKE",
+      maxActivePerTable: 1,
+      queuePaused: false,
+      rotationMode: "ROUND_ROBIN",
+      avgSongDurationMinutes: 4,
+    };
+  }
+}
+
+export function calculateEstimatedWait(
+  position: number | null | undefined,
+  avgSongDurationMinutes = 4
+): { minutes: number; text: string } | null {
+  if (position === null || position === undefined) return null;
+  if (position <= 0) return { minutes: 0, text: "¡Al aire ahora!" };
+  const minutes = position * avgSongDurationMinutes;
+  return {
+    minutes,
+    text:
+      position === 1
+        ? `Próximo turno (~${minutes} min)`
+        : `En ~${minutes} min (turno #${position})`,
+  };
+}
+
 /**
  * Algoritmo de Rotación Justa de Mesas (Fair-Share Round-Robin).
  *

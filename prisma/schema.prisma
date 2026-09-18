@@ -117,6 +117,7 @@ model Table {
   qrToken     String         @unique // Token único seguro codificado en el QR
   qrCodeUrl   String?        // URL de la imagen generada del QR
   capacity    Int            @default(4)
+  zone        String         @default("MAIN") // MAIN, DJ, KARAOKE
   active      Boolean        @default(true)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
@@ -129,6 +130,7 @@ model Table {
   @@index([tenantId])
   @@index([venueId])
   @@index([qrToken])
+  @@index([zone])
 }
 
 // 6. GuestSession (Sesión del cliente tras escanear el QR)
