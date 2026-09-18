@@ -439,7 +439,7 @@ export default function PublicDisplayScreenPage({
   );
 
   return (
-    <div className="min-h-screen bg-[#040406] text-zinc-100 flex flex-col justify-between p-6 sm:p-10 relative overflow-hidden select-none">
+    <div className="h-screen max-h-screen w-screen bg-[#040406] text-zinc-100 flex flex-col justify-between p-3 sm:p-5 lg:p-6 relative overflow-hidden select-none">
       {/* Luces de fondo y resplandor estilo discoteca */}
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none" />
@@ -501,10 +501,10 @@ export default function PublicDisplayScreenPage({
       </div>
 
       {/* 1. Encabezado Superior (Logo del Local y Código) */}
-      <header className="flex items-center justify-between z-10 border-b border-zinc-800/60 pb-5">
-        <div className="flex items-center gap-4">
+      <header className="flex items-center justify-between z-10 border-b border-zinc-800/60 pb-2.5 sm:pb-3 shrink-0">
+        <div className="flex items-center gap-3 sm:gap-4">
           {data.branding?.logoUrl || data.event.logoUrl ? (
-            <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-700/80 p-1.5 flex items-center justify-center overflow-hidden shadow-xl shrink-0">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-zinc-900 border border-zinc-700/80 p-1 flex items-center justify-center overflow-hidden shadow-xl shrink-0">
               <img
                 src={data.branding?.logoUrl || data.event.logoUrl || ""}
                 alt={data.event.tenantName}
@@ -512,39 +512,39 @@ export default function PublicDisplayScreenPage({
               />
             </div>
           ) : (
-            <div className="p-3 rounded-2xl bg-purple-600/20 border border-purple-500/30 text-purple-400 shrink-0">
-              <Disc3 className="w-8 h-8 animate-spin [animation-duration:12s]" />
+            <div className="p-2.5 rounded-2xl bg-purple-600/20 border border-purple-500/30 text-purple-400 shrink-0">
+              <Disc3 className="w-6 h-6 animate-spin [animation-duration:12s]" />
             </div>
           )}
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xl sm:text-2xl font-black text-white tracking-wider">
+              <span className="text-lg sm:text-xl font-black text-white tracking-wider">
                 {data.branding?.welcomeTitle || data.event.tenantName.toUpperCase()}
               </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800 text-xs font-bold font-mono">
+              <span className="px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800 text-[11px] font-bold font-mono">
                 {data.event.venueName}
               </span>
               {isKaraoke && (
-                <span className="px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-xs font-bold font-mono animate-pulse">
+                <span className="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-[11px] font-bold font-mono animate-pulse">
                   🎤 MODO KARAOKE
                 </span>
               )}
             </div>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-0.5 font-medium">
+            <p className="text-xs text-zinc-400 font-medium">
               {data.event.name}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           {data.branding?.instagramHandle && (
-            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-950/80 to-pink-950/80 border border-purple-700/60 text-purple-200 text-xs font-bold">
+            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-purple-950/80 to-pink-950/80 border border-purple-700/60 text-purple-200 text-xs font-bold">
               <span>📸 {data.branding.instagramHandle}</span>
             </div>
           )}
-          <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800">
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800">
             <span
-              className={`w-2.5 h-2.5 rounded-full ${
+              className={`w-2 h-2 rounded-full ${
                 isRealtime
                   ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse"
                   : "bg-emerald-400 animate-ping"
@@ -555,7 +555,7 @@ export default function PublicDisplayScreenPage({
             </span>
           </div>
 
-          <div className="px-3.5 py-2 rounded-xl bg-purple-900/40 border border-purple-600/50 text-purple-200 font-mono text-xs font-extrabold tracking-wider">
+          <div className="px-3 py-1.5 rounded-xl bg-purple-900/40 border border-purple-600/50 text-purple-200 font-mono text-xs font-extrabold tracking-wider">
             CÓDIGO: {data.event.code}
           </div>
         </div>
@@ -563,8 +563,8 @@ export default function PublicDisplayScreenPage({
 
       {/* Marquesina de Anuncios y Promociones */}
       {data.branding?.marqueeText && (
-        <div className="z-10 -mx-6 sm:-mx-10 my-2 bg-gradient-to-r from-purple-950/90 via-zinc-950 to-purple-950/90 border-y border-purple-500/30 py-2 overflow-hidden shadow-xl">
-          <div className="flex animate-pulse whitespace-nowrap justify-center gap-6 font-bold text-xs sm:text-sm text-purple-200 tracking-wider px-4">
+        <div className="z-10 -mx-3 sm:-mx-5 lg:-mx-6 my-1 bg-gradient-to-r from-purple-950/90 via-zinc-950 to-purple-950/90 border-y border-purple-500/30 py-1 overflow-hidden shadow-xl shrink-0">
+          <div className="flex animate-pulse whitespace-nowrap justify-center gap-6 font-bold text-xs text-purple-200 tracking-wider px-4">
             <span>✨ {data.branding.marqueeText}</span>
           </div>
         </div>
@@ -572,18 +572,18 @@ export default function PublicDisplayScreenPage({
 
       {/* Marquesina de Flash Deals de Barra */}
       {data.flashDeal && (
-        <div className="z-10 -mx-6 sm:-mx-10 my-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-black py-2 px-4 shadow-lg shadow-amber-500/30 flex items-center justify-center gap-3 font-black text-xs sm:text-sm tracking-wider animate-pulse">
-          <span className="px-2 py-0.5 rounded bg-black text-amber-300 text-[10px] uppercase font-mono">
+        <div className="z-10 -mx-3 sm:-mx-5 lg:-mx-6 my-0.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-black py-1 px-4 shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2.5 font-black text-xs tracking-wider animate-pulse shrink-0">
+          <span className="px-1.5 py-0.2 rounded bg-black text-amber-300 text-[9px] uppercase font-mono">
             {data.flashDeal.badgeText || "PROMO BARRA"}
           </span>
           <span>⚡ {data.flashDeal.title}:</span>
           <span className="font-semibold text-zinc-950">{data.flashDeal.discount || data.flashDeal.subtitle}</span>
-          <span className="text-[10px] font-mono uppercase bg-black/20 px-2 py-0.5 rounded">¡Pide en barra!</span>
+          <span className="text-[9px] font-mono uppercase bg-black/20 px-1.5 py-0.2 rounded">¡Pide en barra!</span>
         </div>
       )}
 
       {/* 2. Escenario Central (Duelo en Vivo vs Now Playing vs Idle Mode) */}
-      <main className="my-auto py-8 z-10 relative">
+      <main className="flex-1 min-h-0 flex items-center justify-center my-auto py-1 sm:py-2 z-10 relative overflow-hidden">
         {activeDuel && activeDuel.status === "ACTIVE" ? (
           /* ESCENARIO DE DUELO MUSICAL EN VIVO */
           <div className="max-w-5xl mx-auto w-full space-y-6 animate-fadeIn">
@@ -703,19 +703,19 @@ export default function PublicDisplayScreenPage({
             </div>
           </div>
         ) : track ? (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center max-w-7xl mx-auto">
-            {/* Vinilo Gigante Giratorio (Col 4) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center max-w-6xl mx-auto w-full px-2">
+            {/* Vinilo Giratorio Proporcional a la TV (Col 4) */}
             <div className="lg:col-span-4 flex justify-center">
               <div className="relative">
-                <div className="w-64 h-64 sm:w-80 sm:h-80 rounded-full bg-black border-8 border-zinc-900 shadow-2xl flex items-center justify-center animate-spin [animation-duration:5s]">
+                <div className="w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-full bg-black border-6 sm:border-8 border-zinc-900 shadow-2xl flex items-center justify-center animate-spin [animation-duration:5s]">
                   {/* Surcos del Vinilo */}
-                  <div className="w-52 h-52 sm:w-64 sm:h-64 rounded-full border border-zinc-800 flex items-center justify-center">
-                    <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-full border border-zinc-850 flex items-center justify-center">
+                  <div className="w-38 h-38 sm:w-46 sm:h-46 lg:w-52 lg:h-52 rounded-full border border-zinc-800 flex items-center justify-center">
+                    <div className="w-28 h-28 sm:w-34 sm:h-34 lg:w-40 lg:h-40 rounded-full border border-zinc-850 flex items-center justify-center">
                       {/* Centro del Disco con Logo */}
-                      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 border-4 border-white flex flex-col items-center justify-center text-center p-2">
-                        <Disc3 className="w-6 h-6 text-white" />
-                        <span className="text-[8px] font-black text-white mt-1">VIDJS</span>
-                        <div className="w-3 h-3 rounded-full bg-black mt-1" />
+                      <div className="w-18 h-18 sm:w-22 sm:h-22 lg:w-26 lg:h-26 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 border-2 sm:border-4 border-white flex flex-col items-center justify-center text-center p-1.5">
+                        <Disc3 className="w-5 h-5 text-white" />
+                        <span className="text-[7px] font-black text-white mt-0.5">VIDJS</span>
+                        <div className="w-2 h-2 rounded-full bg-black mt-0.5" />
                       </div>
                     </div>
                   </div>
@@ -727,57 +727,57 @@ export default function PublicDisplayScreenPage({
             </div>
 
             {/* Información del Tema & Dedicatoria (Col 8) */}
-            <div className="lg:col-span-8 space-y-6 text-center lg:text-left">
+            <div className="lg:col-span-8 space-y-3 sm:space-y-4 text-center lg:text-left">
               {/* Badge Al Aire o Celebración */}
               <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap">
                 {isCelebration ? (
-                  <div className="p-3 rounded-2xl bg-gradient-to-r from-pink-600 via-purple-600 to-amber-500 text-white font-black text-xs sm:text-sm tracking-widest uppercase flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(236,72,153,0.5)] animate-bounce">
+                  <div className="px-3 py-1.5 rounded-2xl bg-gradient-to-r from-pink-600 via-purple-600 to-amber-500 text-white font-black text-xs sm:text-sm tracking-widest uppercase flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(236,72,153,0.5)] animate-bounce">
                     <span>🎂</span>
                     <span>¡MOMENTO DE CELEBRACIÓN EN EL LOCAL!</span>
                     <span>🎉</span>
                   </div>
                 ) : (
                   <div
-                    className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black tracking-widest uppercase border ${
+                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase border ${
                       isKaraoke
                         ? "bg-cyan-950/80 text-cyan-300 border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
                         : "bg-purple-600/30 text-purple-300 border-purple-500/40"
                     }`}
                   >
-                    <Radio className={`w-4 h-4 animate-pulse ${isKaraoke ? "text-cyan-400" : "text-purple-400"}`} />
+                    <Radio className={`w-3.5 h-3.5 animate-pulse ${isKaraoke ? "text-cyan-400" : "text-purple-400"}`} />
                     <span>{isKaraoke ? `🎤 CANTANDO AHORA: ${track.table.label}` : "SONANDO EN LA PISTA"}</span>
                   </div>
                 )}
                 {track.isFastPass && (
-                  <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-xs font-black tracking-widest uppercase shadow-lg shadow-amber-500/20 animate-pulse">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-xs font-black tracking-widest uppercase shadow-lg shadow-amber-500/20 animate-pulse">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
                     <span>⭐ VIP FAST-PASS</span>
                   </div>
                 )}
               </div>
 
               {/* Título y Artista */}
-              <div className="space-y-2">
-                <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-none drop-shadow-lg">
+              <div className="space-y-1">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-none drop-shadow-lg truncate">
                   {track.song.title}
                 </h1>
-                <p className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400">
+                <p className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 truncate">
                   {track.song.artist}
                 </p>
               </div>
 
               {/* Caja de Dedicatoria y Mesa del Comensal */}
               <div
-                className={`p-5 rounded-2xl border shadow-xl space-y-2 text-left ${
+                className={`p-3 sm:p-4 rounded-2xl border shadow-xl space-y-1.5 text-left ${
                   track.isFastPass
-                    ? "bg-gradient-to-r from-amber-950/60 via-zinc-900/90 to-zinc-900/80 border-amber-500/50 shadow-[0_0_25px_rgba(245,158,11,0.2)]"
+                    ? "bg-gradient-to-r from-amber-950/60 via-zinc-900/90 to-zinc-900/80 border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]"
                     : isCelebration
-                    ? "bg-gradient-to-r from-pink-950/70 via-purple-950/80 to-zinc-900 border-pink-500/60 shadow-[0_0_25px_rgba(236,72,153,0.3)]"
+                    ? "bg-gradient-to-r from-pink-950/70 via-purple-950/80 to-zinc-900 border-pink-500/60 shadow-[0_0_20px_rgba(236,72,153,0.3)]"
                     : "bg-gradient-to-r from-purple-950/60 via-zinc-900/90 to-zinc-900/80 border-purple-500/40"
                 }`}
               >
                 <div className="flex items-center gap-2 text-xs text-purple-300 font-bold uppercase tracking-wider">
-                  <Sparkles className="w-4 h-4 text-purple-400" />
+                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
                   <span>Pedido por: {track.table.label}</span>
                   {track.guestName && (
                     <span className="text-white">({track.guestName})</span>
@@ -788,18 +788,18 @@ export default function PublicDisplayScreenPage({
                 </div>
 
                 {track.notes && (
-                  <p className="text-base sm:text-lg text-white font-medium italic">
+                  <p className="text-sm sm:text-base text-white font-medium italic line-clamp-2">
                     &ldquo;{track.notes}&rdquo;
                   </p>
                 )}
               </div>
 
               {/* Ecualizador Visual Animado */}
-              <div className="flex items-end justify-center lg:justify-start gap-1.5 h-12 pt-2">
+              <div className="flex items-end justify-center lg:justify-start gap-1 h-8 sm:h-9 pt-1">
                 {[45, 80, 60, 95, 30, 75, 90, 50, 85, 40, 70, 100, 55, 90, 65, 80, 45, 95, 60, 85, 50, 75, 90, 35].map((height, i) => (
                   <div
                     key={i}
-                    className="w-2 rounded-t-full bg-gradient-to-t from-purple-600 via-fuchsia-500 to-cyan-400 animate-pulse"
+                    className="w-1.5 sm:w-2 rounded-t-full bg-gradient-to-t from-purple-600 via-fuchsia-500 to-cyan-400 animate-pulse"
                     style={{
                       height: `${height}%`,
                       animationDuration: `${0.4 + (i % 5) * 0.15}s`,
@@ -809,14 +809,14 @@ export default function PublicDisplayScreenPage({
               </div>
 
               {/* Barra de Progreso */}
-              <div className="space-y-1.5 max-w-xl mx-auto lg:mx-0">
-                <div className="w-full h-2.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+              <div className="space-y-1 max-w-xl mx-auto lg:mx-0">
+                <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
                   <div
                     className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 transition-all duration-1000"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-xs font-mono text-zinc-400">
+                <div className="flex justify-between text-[11px] font-mono text-zinc-400">
                   <span>{formatTime(elapsedSeconds)}</span>
                   <span>{formatTime(duration)}</span>
                 </div>
@@ -824,48 +824,72 @@ export default function PublicDisplayScreenPage({
             </div>
           </div>
         ) : (
-          /* MODO INTERMEDIO (IDLE): Pantalla de Bienvenida con QR Central */
-          <div className="text-center max-w-2xl mx-auto space-y-6 py-6">
-            <div className="inline-flex p-4 rounded-3xl bg-purple-600/10 border border-purple-500/30 text-purple-400 shadow-2xl glow-purple">
-              <Disc3 className="w-16 h-16 animate-spin [animation-duration:10s]" />
-            </div>
-
-            <div className="space-y-2">
-              <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight">
-                ¡LA PISTA ESTÁ ABIERTA!
-              </h1>
-              <p className="text-base sm:text-lg text-zinc-400">
-                Sé el primero en pedir tu canción favorita para cantar o bailar en{" "}
-                <span className="text-purple-300 font-bold">{data.event.tenantName}</span>
-              </p>
-            </div>
-
-            {/* QR Gigante en el Centro */}
-            <div className="p-6 rounded-3xl bg-zinc-900/80 border border-purple-500/30 inline-block shadow-2xl space-y-3">
-              <div className="p-4 bg-white rounded-2xl inline-block shadow-inner">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={data.qr.dataUrl}
-                  alt="Escanea para pedir"
-                  className="w-48 h-48 sm:w-56 sm:h-56 object-contain"
-                />
+          /* MODO INTERMEDIO (IDLE): Widescreen 16:9 con QR Central Proporcional */
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-10 items-center max-w-5xl mx-auto w-full px-4">
+            {/* Columna Izquierda: Información de Apertura y Wi-Fi */}
+            <div className="md:col-span-7 space-y-3 sm:space-y-4 text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start gap-3">
+                <div className="p-2.5 rounded-2xl bg-purple-600/20 border border-purple-500/30 text-purple-400 shadow-xl glow-purple shrink-0">
+                  <Disc3 className="w-7 h-7 sm:w-8 sm:h-8 animate-spin [animation-duration:10s]" />
+                </div>
+                <span className="px-3 py-1 rounded-full bg-purple-950 text-purple-300 border border-purple-800 text-xs font-black uppercase tracking-wider">
+                  {isKaraoke ? "🎤 Escenario Karaoke Listo" : "🎧 Pista DJ Abierta"}
+                </span>
               </div>
-              <div className="text-xs font-bold text-white tracking-wider">
-                📱 APUNTA LA CÁMARA DE TU CELULAR AQUÍ
-              </div>
-              <p className="text-[11px] text-zinc-400">
-                Catálogo en vivo sin descargas ni registros
-              </p>
 
+              <div className="space-y-1.5">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+                  ¡LA PISTA ESTÁ ABIERTA!
+                </h1>
+                <p className="text-sm sm:text-base text-zinc-300">
+                  Sé el primero en pedir tu canción favorita para cantar o bailar en{" "}
+                  <span className="text-purple-300 font-bold">{data.event.tenantName}</span>
+                </p>
+              </div>
+
+              {/* Banner de Instrucciones */}
+              <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 text-xs text-zinc-300 space-y-1 inline-block text-left shadow-lg">
+                <div className="font-bold text-white flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                  <span>Pide canciones desde tu mesa con tu celular</span>
+                </div>
+                <p className="text-[11px] text-zinc-400">
+                  Sin descargar aplicaciones ni registros. Apunta la cámara y selecciona tus temas.
+                </p>
+              </div>
+
+              {/* Wi-Fi si está configurado */}
               {data.branding?.wifiSsid && (
-                <div className="pt-2 border-t border-zinc-800 text-xs text-zinc-300 flex items-center justify-center gap-1.5">
+                <div className="text-xs text-zinc-300 flex items-center justify-center md:justify-start gap-2 pt-0.5">
                   <span className="text-cyan-400 font-bold">📶 Wi-Fi:</span>
-                  <span className="font-bold text-white">{data.branding.wifiSsid}</span>
+                  <span className="font-bold text-white bg-zinc-900 px-2 py-0.5 rounded-lg border border-zinc-800">
+                    {data.branding.wifiSsid}
+                  </span>
                   {data.branding.wifiPassword && (
                     <span className="font-mono text-zinc-400">({data.branding.wifiPassword})</span>
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Columna Derecha: Tarjeta con QR Proporcional que cabe 100% en la TV */}
+            <div className="md:col-span-5 flex justify-center">
+              <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 border-2 border-purple-500/40 shadow-2xl shadow-purple-500/20 text-center space-y-2.5 max-w-[270px] sm:max-w-[290px]">
+                <div className="p-3 bg-white rounded-2xl inline-block shadow-inner">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={data.qr.dataUrl}
+                    alt="Escanea para pedir"
+                    className="w-36 h-36 sm:w-44 sm:h-44 lg:w-48 lg:h-48 object-contain"
+                  />
+                </div>
+                <div className="text-xs font-black text-white tracking-wider">
+                  📱 APUNTA TU CÁMARA AQUÍ
+                </div>
+                <span className="text-[10px] font-semibold text-purple-300 block">
+                  Catálogo en vivo sin descargas
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -874,9 +898,9 @@ export default function PublicDisplayScreenPage({
         {approvedPhotos.length > 0 && (
           <div
             key={approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.id || currentPhotoIdx}
-            className="hidden xl:block absolute -bottom-4 right-0 z-20 w-64 bg-zinc-950/95 border-2 border-pink-500/40 rounded-2xl p-3 shadow-2xl shadow-pink-500/20 rotate-1 hover:rotate-0 transition-all animate-fadeIn"
+            className="hidden xl:block absolute bottom-12 right-2 z-20 w-56 bg-zinc-950/95 border-2 border-pink-500/40 rounded-2xl p-2.5 shadow-2xl shadow-pink-500/20 rotate-1 hover:rotate-0 transition-all animate-fadeIn"
           >
-            <div className="flex items-center justify-between text-[10px] font-bold text-pink-400 uppercase mb-2">
+            <div className="flex items-center justify-between text-[10px] font-bold text-pink-400 uppercase mb-1.5">
               <span className="flex items-center gap-1">
                 <Camera className="w-3 h-3" />
                 <span>Social Lounge</span>
@@ -913,9 +937,9 @@ export default function PublicDisplayScreenPage({
                 />
               )}
             </div>
-            <div className="mt-2 text-center">
+            <div className="mt-1.5 text-center">
               {approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.caption && (
-                <p className="text-xs text-white italic line-clamp-2">
+                <p className="text-xs text-white italic line-clamp-1">
                   &ldquo;{approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.caption}&rdquo;
                 </p>
               )}
@@ -927,10 +951,10 @@ export default function PublicDisplayScreenPage({
         )}
       </main>
 
-      {/* 3. Barra Inferior (Próximos Temas & QR Lateral) */}
-      <footer className="z-10 pt-4 border-t border-zinc-800/60 flex flex-col md:flex-row items-center justify-between gap-6">
+      {/* 3. Barra Inferior (Próximos Temas & QR Lateral) - Siempre Visible al Fondo */}
+      <footer className="z-10 pt-2 sm:pt-2.5 border-t border-zinc-800/60 flex flex-col md:flex-row items-center justify-between gap-3 shrink-0">
         {/* Próximos Temas en Cola */}
-        <div className="flex-1 min-w-0 space-y-2 text-center md:text-left">
+        <div className="flex-1 min-w-0 space-y-1.5 text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest flex-wrap">
             <Clock className="w-3.5 h-3.5 text-purple-400" />
             <span>
@@ -952,11 +976,11 @@ export default function PublicDisplayScreenPage({
                 : "No hay más canciones en espera. ¡Envía tu pedido desde tu mesa!"}
             </p>
           ) : (
-            <div className="flex flex-wrap gap-2.5 justify-center md:justify-start">
+            <div className="flex flex-wrap gap-2 justify-center md:justify-start">
               {data.upcomingQueue.map((item) => (
                 <div
                   key={item.id}
-                  className={`px-3.5 py-2 rounded-xl flex items-center gap-2.5 text-xs shadow-md border ${
+                  className={`px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs shadow-md border ${
                     item.order === 1 && isKaraoke
                       ? "bg-gradient-to-r from-cyan-950/80 to-zinc-900 border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse"
                       : "bg-zinc-900/90 border-zinc-800"
@@ -971,7 +995,7 @@ export default function PublicDisplayScreenPage({
                   >
                     #{item.order}
                   </span>
-                  <div className="truncate max-w-[160px]">
+                  <div className="truncate max-w-[150px]">
                     <div className="font-bold text-white truncate">{item.title}</div>
                     <div className="text-[10px] text-zinc-400 truncate">{item.artist}</div>
                   </div>
@@ -997,22 +1021,22 @@ export default function PublicDisplayScreenPage({
 
         {/* QR Escaneable en la Esquina */}
         {track && (
-          <div className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900/90 border border-purple-500/30 shadow-xl shrink-0">
-            <div className="p-1.5 bg-white rounded-xl shadow-inner">
+          <div className="flex items-center gap-2.5 p-2 rounded-2xl bg-zinc-900/90 border border-purple-500/30 shadow-xl shrink-0">
+            <div className="p-1 bg-white rounded-xl shadow-inner">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={data.qr.dataUrl}
                 alt="QR en pantalla"
-                className="w-16 h-16 sm:w-20 sm:h-20 object-contain"
+                className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
               />
             </div>
             <div className="text-left space-y-0.5">
-              <div className="text-[11px] font-black text-white flex items-center gap-1">
+              <div className="text-[10px] font-black text-white flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-purple-400" />
                 <span>¿QUÉ QUIERES ESCUCHAR?</span>
               </div>
-              <p className="text-[10px] text-zinc-400 max-w-[140px]">
-                Escanea desde tu mesa con tu celular y pide tu tema
+              <p className="text-[9px] text-zinc-400 max-w-[130px]">
+                Escanea desde tu mesa y pide tu tema
               </p>
             </div>
           </div>
