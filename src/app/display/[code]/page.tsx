@@ -444,10 +444,10 @@ export default function PublicDisplayScreenPage({
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none" />
 
-      {/* Botones de Control Flotante (auto-ocultables en Smart TV) */}
+      {/* Botones de Control Flotante (Centrado en la parte superior, auto-ocultable en Smart TV) */}
       <div
-        className={`fixed top-4 right-4 z-50 flex items-center gap-2 transition-opacity duration-300 ${
-          showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+        className={`fixed top-3 sm:top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 transition-all duration-300 ${
+          showControls ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"
         }`}
       >
         {/* Selector de Modo de Ajuste de Foto en TV */}
