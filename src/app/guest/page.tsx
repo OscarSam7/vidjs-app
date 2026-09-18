@@ -31,6 +31,9 @@ import {
   Camera,
   Image as ImageIcon,
   Star,
+  ArrowLeftRight,
+  LogOut,
+  Mic,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -192,10 +195,60 @@ function GuestContent() {
   const [photoSuccess, setPhotoSuccess] = useState(false);
   const [manualCode, setManualCode] = useState("");
 
+  const [isManageTableOpen, setIsManageTableOpen] = useState(false);
+  const [leavingTable, setLeavingTable] = useState(false);
+  const [switchBanner, setSwitchBanner] = useState<string | null>(null);
+
   const handleJoinByCode = (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualCode.trim()) return;
     window.location.href = `/display/${manualCode.trim().toUpperCase()}/tables`;
+  };
+
+  useEffect(() => {
+    const switched = searchParams.get("switched");
+    const toZone = searchParams.get("toZone");
+    const tableName = searchParams.get("table");
+    if (switched === "zone") {
+      setSwitchBanner(
+        `🎉 ¡Te has mudado a ${tableName || "tu nueva mesa"} en el Sector ${
+          toZone === "KARAOKE" ? "🎤 Karaoke" : "🎧 DJ"
+        }! Tu catálogo y cola se han adaptado a este ambiente.`
+      );
+    } else if (switched === "table") {
+      setSwitchBanner(`✨ ¡Te has cambiado a ${tableName || "tu nueva mesa"}! Tu mesa anterior fue liberada con éxito.`);
+    }
+  }, [searchParams]);
+
+  const handleLeaveTable = async () => {
+    if (
+      !confirm(
+        "¿Estás seguro de que deseas liberar tu mesa? Tus pedidos en espera serán cancelados y la mesa quedará disponible para nuevos comensales."
+      )
+    ) {
+      return;
+    }
+    setLeavingTable(true);
+    try {
+      const res = await fetch("/api/v1/guest/session/leave", {
+        method: "POST",
+      });
+      if (res.ok) {
+        setSession(null);
+        setMyRequests([]);
+        setTableAllowance(null);
+        setIsManageTableOpen(false);
+        setSuccessMessage("¡Mesa liberada con éxito! Esperamos que hayas disfrutado tu noche.");
+        setTimeout(() => setSuccessMessage(null), 5000);
+      } else {
+        const json = await res.json();
+        alert(json.error?.message || "No se pudo liberar la mesa");
+      }
+    } catch {
+      alert("Error de conexión al liberar la mesa");
+    } finally {
+      setLeavingTable(false);
+    }
   };
 
   // Cargar sesión inicial
@@ -686,7 +739,12 @@ function GuestContent() {
               <span className="hidden sm:inline font-bold text-[11px]">Foto</span>
             </button>
 
-            <div className="px-2.5 sm:px-3 py-1 rounded-full bg-purple-600/20 border border-purple-500/40 text-purple-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 shrink-0 max-w-[140px]">
+            {/* Badge de Mesa con acción de cambiar/salir */}
+            <button
+              onClick={() => setIsManageTableOpen(true)}
+              className="px-2.5 sm:px-3 py-1 rounded-full bg-purple-600/20 hover:bg-purple-600/35 border border-purple-500/40 hover:border-purple-400 text-purple-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 shrink-0 max-w-[170px] transition-all cursor-pointer group shadow-sm"
+              title="Toca para cambiar de mesa, mudarte al Karaoke o liberar tu mesa"
+            >
               <span
                 className={`w-2 h-2 rounded-full shrink-0 ${
                   isRealtime
@@ -695,14 +753,26 @@ function GuestContent() {
                 }`}
               />
               <span className="truncate">{session?.table.label}</span>
-              {isRealtime && (
-                <span className="text-[8px] sm:text-[9px] px-1 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/80 font-mono shrink-0">
-                  SSE
-                </span>
-              )}
-            </div>
+              <ArrowLeftRight className="w-3 h-3 text-purple-400 group-hover:text-white shrink-0 ml-0.5" />
+            </button>
           </div>
         </div>
+
+        {/* Notificación de Cambio de Sector o Mesa */}
+        {switchBanner && (
+          <div className="mt-3 px-3 py-2 rounded-xl bg-purple-950/70 border border-purple-500/60 flex items-center justify-between text-xs text-purple-200 shadow-lg animate-fade-in">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-yellow-400 shrink-0 animate-bounce" />
+              <span className="leading-snug">{switchBanner}</span>
+            </div>
+            <button
+              onClick={() => setSwitchBanner(null)}
+              className="text-purple-300 hover:text-white ml-2 p-1 shrink-0 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* Tarjeta de Cortesía Wi-Fi */}
         {branding?.wifiSsid && (
@@ -1549,6 +1619,119 @@ function GuestContent() {
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Gestión de Mesa & Cambio de Sector */}
+      {isManageTableOpen && session && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl relative">
+            <button
+              onClick={() => setIsManageTableOpen(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-white p-1 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2.5">
+              <div className="p-2.5 rounded-xl bg-purple-600/20 border border-purple-500/30 text-purple-400">
+                <ArrowLeftRight className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white">Tu Mesa y Sector</h3>
+                <p className="text-xs text-zinc-400">
+                  Actualmente en: <strong className="text-purple-300">{session.table.label}</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* Badge del sector actual */}
+            <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {session.table.zone === "KARAOKE" ? (
+                  <>
+                    <Mic className="w-4 h-4 text-pink-400" />
+                    <div>
+                      <div className="text-xs font-bold text-white">Sector Karaoke</div>
+                      <div className="text-[10px] text-zinc-400">Escenario y turnos para cantar</div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Radio className="w-4 h-4 text-indigo-400" />
+                    <div>
+                      <div className="text-xs font-bold text-white">Sector DJ / Pista</div>
+                      <div className="text-[10px] text-zinc-400">Música ambiente, baile y duelos</div>
+                    </div>
+                  </>
+                )}
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">
+                {session.table.zone}
+              </span>
+            </div>
+
+            {/* Opciones */}
+            <div className="space-y-2.5 pt-1">
+              <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                Acciones disponibles:
+              </div>
+
+              {/* Opción 1: Cambiar de Mesa o Sector */}
+              <div className="p-3 rounded-xl bg-purple-950/20 border border-purple-800/40 text-left space-y-2">
+                <div className="flex items-center gap-2">
+                  <QrCode className="w-4 h-4 text-purple-400 shrink-0" />
+                  <span className="text-xs font-bold text-white">¿Te mudas a otra mesa o al Karaoke?</span>
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Para cambiarte, simplemente <strong>apunta tu cámara al código QR de tu nueva mesa</strong>. Tu mesa anterior se liberará automáticamente y tu experiencia se adaptará al nuevo ambiente sin perder tu nombre.
+                </p>
+                <form onSubmit={handleJoinByCode} className="flex gap-2 pt-1">
+                  <input
+                    type="text"
+                    placeholder="Código de la noche (ej. RETRO-POP)"
+                    value={manualCode}
+                    onChange={(e) => setManualCode(e.target.value.toUpperCase())}
+                    className="flex-1 px-2.5 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-white font-mono text-[11px] uppercase placeholder:text-zinc-600 focus:outline-none focus:border-purple-500"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer"
+                  >
+                    Mudarme
+                  </button>
+                </form>
+              </div>
+
+              {/* Opción 2: Finalizar Estadía y Salir */}
+              <div className="p-3 rounded-xl bg-red-950/20 border border-red-900/40 text-left space-y-2">
+                <div className="flex items-center gap-2">
+                  <LogOut className="w-4 h-4 text-red-400 shrink-0" />
+                  <span className="text-xs font-bold text-white">Finalizar Estadía y Salir</span>
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  ¿Te retiras del local? Liberarás la mesa para que otros clientes puedan ocuparla y se cancelarán tus canciones pendientes en cola.
+                </p>
+                <button
+                  onClick={handleLeaveTable}
+                  disabled={leavingTable}
+                  className="w-full py-2 px-3 bg-red-600/80 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {leavingTable ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Liberando mesa...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Liberar {session.table.label} y Salir</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

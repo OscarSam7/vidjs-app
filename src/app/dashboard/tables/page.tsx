@@ -14,6 +14,7 @@ import {
   RefreshCw,
   X,
   Disc3,
+  RotateCcw,
 } from "lucide-react";
 
 interface TableWithQr {
@@ -37,6 +38,7 @@ export default function TablesManagementPage() {
   const [loading, setLoading] = useState(true);
   const [selectedVenue, setSelectedVenue] = useState<string>("ALL");
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [resettingId, setResettingId] = useState<string | null>(null);
 
   // Modal para imprimir plantilla
   const [printingTable, setPrintingTable] = useState<TableWithQr | null>(null);
@@ -49,6 +51,33 @@ export default function TablesManagementPage() {
   const [newCapacity, setNewCapacity] = useState<number>(4);
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const handleResetTable = async (tableId: string, label: string) => {
+    if (
+      !confirm(
+        `¿Confirmas liberar y resetear la ${label}? Esto cancelará pedidos huérfanos pendientes y liberará el cupo de la mesa para nuevos clientes.`
+      )
+    ) {
+      return;
+    }
+    setResettingId(tableId);
+    try {
+      const res = await fetch(`/api/v1/tables/${tableId}/reset`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || `Mesa ${label} liberada con éxito.`);
+        await fetchTables();
+      } else {
+        alert(data.error?.message || "Error al resetear la mesa");
+      }
+    } catch {
+      alert("Error de conexión al resetear la mesa");
+    } finally {
+      setResettingId(null);
+    }
+  };
 
   const fetchTables = async () => {
     try {
@@ -282,6 +311,26 @@ export default function TablesManagementPage() {
                     <>
                       <Copy className="w-3 h-3" />
                       <span>Copiar Enlace de Mesa</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Liberar / Resetear Mesa */}
+                <button
+                  onClick={() => handleResetTable(table.id, table.label)}
+                  disabled={resettingId === table.id}
+                  className="w-full py-1.5 px-3 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[11px] text-amber-300 hover:text-amber-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  title="Cancela pedidos huérfanos y renueva el cupo para los nuevos comensales"
+                >
+                  {resettingId === table.id ? (
+                    <>
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      <span>Liberando mesa...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-3 h-3 text-amber-400" />
+                      <span>Liberar Mesa (Reset Rotación)</span>
                     </>
                   )}
                 </button>

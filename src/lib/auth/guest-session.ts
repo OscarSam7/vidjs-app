@@ -22,6 +22,11 @@ export async function getGuestSessionToken(): Promise<string | null> {
   return cookie ? cookie.value : null;
 }
 
+export async function clearGuestSessionCookie() {
+  const cookieStore = await cookies();
+  cookieStore.delete(GUEST_COOKIE_NAME);
+}
+
 export async function getCurrentGuestSession() {
   const token = await getGuestSessionToken();
   if (!token) return null;
