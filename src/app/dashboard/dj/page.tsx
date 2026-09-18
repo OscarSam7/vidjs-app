@@ -41,9 +41,11 @@ import {
   Send,
   Megaphone,
   ExternalLink,
+  PlusCircle,
 } from "lucide-react";
 import DjBridgeModal from "@/components/dj/DjBridgeModal";
 import DjSoundboard from "@/components/dj/DjSoundboard";
+import ManualRequestModal from "@/components/dj/ManualRequestModal";
 import { calculateCrossfaderGains, djSoundEffects } from "@/lib/audio/dj-audio-engine";
 import { generateQueueIntelligence, QueueSuggestion } from "@/lib/dj/queue-intelligence";
 import { useRealtime } from "@/hooks/use-realtime";
@@ -212,6 +214,9 @@ export default function DjBoothPage() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedShareTableId, setSelectedShareTableId] = useState<string>("");
   const [copiedShareLink, setCopiedShareLink] = useState(false);
+
+  // ➕ Carga Manual de Pedidos (Fuera de App / QR)
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
 
   // Cargar estado de la cabina
   const fetchDjState = async (eventId?: string) => {
@@ -854,6 +859,19 @@ export default function DjBoothPage() {
                     <span>DJ Bridge</span>
                   </button>
 
+                  <button
+                    onClick={() => setIsManualModalOpen(true)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm border ${
+                      queuePolicy.zone === "KARAOKE"
+                        ? "bg-cyan-600/20 hover:bg-cyan-600/30 border-cyan-500/40 text-cyan-200"
+                        : "bg-purple-600/20 hover:bg-purple-600/30 border-purple-500/40 text-purple-200"
+                    }`}
+                    title="Cargar manualmente pedidos recibidos de palabra o fuera de la app"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>{queuePolicy.zone === "KARAOKE" ? "➕ Cargar Cantante" : "➕ Cargar Pedido"}</span>
+                  </button>
+
                   <PwaInstallButton variant="dj" />
                 </>
               )}
@@ -992,6 +1010,19 @@ export default function DjBoothPage() {
 
           {/* Quick Action Buttons */}
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsManualModalOpen(true)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                queuePolicy.zone === "KARAOKE"
+                  ? "bg-cyan-600/30 hover:bg-cyan-600/40 border-cyan-500/50 text-cyan-200"
+                  : "bg-purple-600/30 hover:bg-purple-600/40 border-purple-500/50 text-purple-200"
+              }`}
+              title="Cargar un pedido pedido verbalmente o fuera del código QR"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>{queuePolicy.zone === "KARAOKE" ? "➕ Cargar Cantante" : "➕ Cargar Pedido"}</span>
+            </button>
+
             <button
               onClick={() => setIsDuelModalOpen(true)}
               className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -2053,6 +2084,15 @@ export default function DjBoothPage() {
               <p className="text-[10px] text-zinc-600">
                 Aparecerán automáticamente cuando los clientes escaneen el QR.
               </p>
+              <div className="pt-2">
+                <button
+                  onClick={() => setIsManualModalOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <PlusCircle className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Cargar pedido manual</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
@@ -2197,6 +2237,19 @@ export default function DjBoothPage() {
               <p className="text-[10px] text-zinc-600">
                 Acepta canciones de las mesas para ordenarlas aquí.
               </p>
+              <div className="pt-2">
+                <button
+                  onClick={() => setIsManualModalOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <PlusCircle className="w-3.5 h-3.5 text-purple-400" />
+                  <span>
+                    {queuePolicy.zone === "KARAOKE"
+                      ? "Agregar cantante a la cola"
+                      : "Cargar tema directo a la cola"}
+                  </span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -2653,6 +2706,19 @@ export default function DjBoothPage() {
           </div>
         </div>
       )}
+
+      {/* 6. MODAL CARGA MANUAL DE PEDIDOS (FUERA DE APP O QR) */}
+      <ManualRequestModal
+        isOpen={isManualModalOpen}
+        onClose={() => setIsManualModalOpen(false)}
+        eventId={selectedEventId || data?.event?.id || ""}
+        tables={data?.tables || []}
+        isKaraokeMode={queuePolicy.zone === "KARAOKE"}
+        onSuccess={() => {
+          showFeedback("success", "¡Pedido manual cargado con éxito!");
+          fetchDjState();
+        }}
+      />
     </div>
   );
 }
