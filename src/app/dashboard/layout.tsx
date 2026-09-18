@@ -14,13 +14,23 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Obtener nombre del establecimiento
+  // Validar de forma segura si el usuario existe y sigue activo en la BD
+  const user = await prisma.user.findUnique({
+    where: { id: session.sub },
+    select: { id: true, status: true, tokenVersion: true },
+  }).catch(() => null);
+
+  if (!user || user.status !== "ACTIVE" || user.tokenVersion !== session.tokenVersion) {
+    redirect("/login");
+  }
+
+  // Obtener nombre del establecimiento con fallback tolerante a fallos
   let tenantName = "Plataforma Central";
   if (session.tenantId) {
     const tenant = await prisma.tenant.findUnique({
       where: { id: session.tenantId },
       select: { name: true },
-    });
+    }).catch(() => null);
     if (tenant) tenantName = tenant.name;
   } else if (session.role === "SUPER_ADMIN") {
     tenantName = "Vidjs Global SaaS (Admin)";
