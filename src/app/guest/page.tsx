@@ -208,13 +208,25 @@ function GuestContent() {
   useEffect(() => {
     const switched = searchParams.get("switched");
     const toZone = searchParams.get("toZone");
+    const fromZone = searchParams.get("fromZone");
     const tableName = searchParams.get("table");
+
     if (switched === "zone") {
-      setSwitchBanner(
-        `🎉 ¡Te has mudado a ${tableName || "tu nueva mesa"} en el Sector ${
-          toZone === "KARAOKE" ? "🎤 Karaoke" : "🎧 DJ"
-        }! Tu catálogo y cola se han adaptado a este ambiente.`
-      );
+      if (fromZone === "KARAOKE" && toZone !== "KARAOKE") {
+        setSwitchBanner(
+          `🎧 ¡Te has mudado del Karaoke a ${tableName || "tu nueva mesa"} (Sector DJ & Música de Ambiente)! Tu app ahora está en modo Fiesta y Pista de Baile. Pide temas para los parlantes de cabina.`
+        );
+      } else if (fromZone !== "KARAOKE" && toZone === "KARAOKE") {
+        setSwitchBanner(
+          `🎤 ¡Te has mudado de la Pista a ${tableName || "tu nueva mesa"} (Sector Karaoke)! Catálogo con letras y turnos de escenario activados. ¡Prepara tu voz!`
+        );
+      } else {
+        setSwitchBanner(
+          `🎉 ¡Te has mudado a ${tableName || "tu nueva mesa"} en el Sector ${
+            toZone === "KARAOKE" ? "🎤 Karaoke" : "🎧 DJ"
+          }! Tu catálogo y cola se han adaptado a este ambiente.`
+        );
+      }
     } else if (switched === "table") {
       setSwitchBanner(`✨ ¡Te has cambiado a ${tableName || "tu nueva mesa"}! Tu mesa anterior fue liberada con éxito.`);
     }
@@ -1682,11 +1694,37 @@ function GuestContent() {
               <div className="p-3 rounded-xl bg-purple-950/20 border border-purple-800/40 text-left space-y-2">
                 <div className="flex items-center gap-2">
                   <QrCode className="w-4 h-4 text-purple-400 shrink-0" />
-                  <span className="text-xs font-bold text-white">¿Te mudas a otra mesa o al Karaoke?</span>
+                  <span className="text-xs font-bold text-white">
+                    {session.table.zone === "KARAOKE"
+                      ? "¿Te mudas al Sector DJ / Pista o a otra mesa?"
+                      : "¿Te mudas al Sector Karaoke o a otra mesa?"}
+                  </span>
                 </div>
                 <p className="text-[11px] text-zinc-400 leading-relaxed">
-                  Para cambiarte, simplemente <strong>apunta tu cámara al código QR de tu nueva mesa</strong>. Tu mesa anterior se liberará automáticamente y tu experiencia se adaptará al nuevo ambiente sin perder tu nombre.
+                  {session.table.zone === "KARAOKE"
+                    ? "Para mudarte al sector de baile o barra, apunta tu cámara al código QR de tu nueva mesa. Tu turno en el escenario se limpiará, tu mesa actual se liberará y tu app pasará a modo DJ sin perder tu nombre."
+                    : "Para mudarte a cantar al karaoke, apunta tu cámara al código QR de tu mesa en el salón de karaoke. Tu mesa actual se liberará y tu app activará el catálogo de letras y turnos para el escenario sin perder tu nombre."}
                 </p>
+
+                {/* Acceso directo 1-clic según sector actual */}
+                <div className="pt-1">
+                  {session.table.zone === "KARAOKE" ? (
+                    <a
+                      href="/qr/qr_centro_m1"
+                      className="block p-2 rounded-lg bg-zinc-950 hover:bg-purple-950/40 border border-zinc-800 hover:border-purple-600/50 text-[11px] font-semibold text-purple-300 transition-all text-center"
+                    >
+                      ⇄ Simular mudanza a Mesa 1 (Sector DJ / Pista)
+                    </a>
+                  ) : (
+                    <a
+                      href="/qr/qr_centro_m4"
+                      className="block p-2 rounded-lg bg-zinc-950 hover:bg-pink-950/40 border border-zinc-800 hover:border-pink-600/50 text-[11px] font-semibold text-pink-300 transition-all text-center"
+                    >
+                      🎤 Simular mudanza a Mesa 4 (Sector Karaoke)
+                    </a>
+                  )}
+                </div>
+
                 <form onSubmit={handleJoinByCode} className="flex gap-2 pt-1">
                   <input
                     type="text"

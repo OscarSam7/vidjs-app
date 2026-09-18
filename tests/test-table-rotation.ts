@@ -169,6 +169,74 @@ async function runTableRotationTests() {
     assert(guest2Moved.tableId === tableB.id, `Cliente 2 reubicado exitosamente en ${tableB.label}`);
     assert(guest2Moved.guestName === "Cliente 2 (Nuevo comensal)", "El nombre del cliente se conservó durante el cambio de mesa");
 
+    console.log("\n🔄 4.2 Simulando Migración a la Inversa (Sector Karaoke -> Sector DJ / Música Ambiente)...");
+    // Cliente 3 comienza en Karaoke (tableB)
+    const tokenC3 = `test_c3_${Date.now()}`;
+    const guest3Karaoke = await prisma.guestSession.create({
+      data: {
+        tenantId: event.tenantId,
+        eventId: event.id,
+        tableId: tableB.id,
+        guestName: "Cliente 3 (Cantante Karaoke)",
+        sessionToken: tokenC3,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 3),
+      },
+    });
+
+    // Pide un tema para cantar en el escenario
+    const karaokeReq = await prisma.songRequest.create({
+      data: {
+        tenantId: event.tenantId,
+        eventId: event.id,
+        tableId: tableB.id,
+        guestSessionId: guest3Karaoke.id,
+        customTitle: "A Mi Manera (Karaoke)",
+        customArtist: "Frank Sinatra",
+        notes: "Para cantar en vivo",
+        status: "PENDING",
+      },
+    });
+
+    // Cliente 3 decide mudarse a la Pista DJ (tableA)
+    // 1) Cancelar temas pendientes de karaoke para liberar el escenario
+    await prisma.songRequest.updateMany({
+      where: {
+        tableId: tableB.id,
+        guestSessionId: guest3Karaoke.id,
+        status: { in: ["PENDING", "ACCEPTED"] },
+      },
+      data: {
+        status: "CANCELLED",
+        notes: `Cliente se mudó a ${tableA.label} (Sector DJ)`,
+      },
+    });
+
+    // 2) Expirar sesión en Karaoke
+    await prisma.guestSession.update({
+      where: { id: guest3Karaoke.id },
+      data: { expiresAt: new Date() },
+    });
+
+    // 3) Crear nueva sesión en Pista DJ preservando nombre
+    const tokenC3DJ = `test_c3_dj_${Date.now()}`;
+    const guest3DJ = await prisma.guestSession.create({
+      data: {
+        tenantId: event.tenantId,
+        eventId: event.id,
+        tableId: tableA.id,
+        guestName: guest3Karaoke.guestName,
+        sessionToken: tokenC3DJ,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 3),
+      },
+    });
+
+    const karaokeReqAfter = await prisma.songRequest.findUnique({
+      where: { id: karaokeReq.id },
+    });
+    assert(karaokeReqAfter?.status === "CANCELLED", "El tema de karaoke fue cancelado para no trabar el escenario al mudarse a la pista");
+    assert(guest3DJ.tableId === tableA.id, `Cliente 3 ahora está conectado exitosamente en ${tableA.label} (Sector DJ)`);
+    assert(guest3DJ.guestName === "Cliente 3 (Cantante Karaoke)", "El nombre del cliente se preservó de Karaoke a DJ");
+
     console.log("\n🧹 5. Validando Reset Administrativo de Mesa por Staff...");
     // Crear un pedido huérfano en Mesa B
     const orphanReq = await prisma.songRequest.create({
@@ -203,10 +271,10 @@ async function runTableRotationTests() {
 
     // Limpieza de datos de prueba
     await prisma.songRequest.deleteMany({
-      where: { id: { in: [request1.id, orphanReq.id] } },
+      where: { id: { in: [request1.id, orphanReq.id, karaokeReq.id] } },
     });
     await prisma.guestSession.deleteMany({
-      where: { id: { in: [guest1.id, guest2.id, guest2Moved.id] } },
+      where: { id: { in: [guest1.id, guest2.id, guest2Moved.id, guest3Karaoke.id, guest3DJ.id] } },
     });
     console.log("  🧹 Registros de prueba temporales limpiados.");
 

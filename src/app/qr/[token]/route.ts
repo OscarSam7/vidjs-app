@@ -63,13 +63,26 @@ export async function GET(
       switchType = "table";
     }
 
+    // Cancelar solicitudes pendientes en la mesa anterior para que no queden huérfanas
+    await prisma.songRequest.updateMany({
+      where: {
+        tableId: prevSession.tableId,
+        guestSessionId: prevSession.id,
+        status: { in: ["PENDING", "ACCEPTED"] },
+      },
+      data: {
+        status: "CANCELLED",
+        notes: `Cliente se mudó a ${table.label} (Sector ${table.zone === "KARAOKE" ? "Karaoke" : "DJ / Pista"})`,
+      },
+    }).catch(() => null);
+
     // Expirar la sesión anterior para liberar la mesa previa
     await prisma.guestSession.update({
       where: { id: prevSession.id },
       data: { expiresAt: new Date() },
     }).catch(() => null);
 
-    // Notificar liberación de la mesa previa
+    // Notificar liberación de la mesa previa y desbloqueo de cupo
     realtimeBus.broadcast(prevSession.eventId, "TABLE_RELEASED", {
       tableId: prevSession.tableId,
       tableLabel: prevSession.table.label,
@@ -77,6 +90,17 @@ export async function GET(
       reason: "GUEST_MOVED_TABLE",
       newTableLabel: table.label,
       newZone: table.zone,
+    });
+
+    realtimeBus.broadcast(prevSession.eventId, "QUEUE_UPDATE", {
+      reason: "GUEST_MOVED_TABLE",
+      tableId: prevSession.tableId,
+    });
+
+    realtimeBus.broadcast(prevSession.eventId, "QUEUE_SLOT_UNLOCKED", {
+      tableId: prevSession.tableId,
+      tableLabel: prevSession.table.label,
+      reason: "GUEST_MIGRATED_ZONE",
     });
   }
 
