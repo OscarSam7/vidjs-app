@@ -348,6 +348,121 @@ class DjSoundEffectsEngine {
     noise.start(now);
     noise.stop(now + 2.0);
   }
+
+  /**
+   * 🔘 Click de CUE / Hot Cue (Feedback percusivo táctil como Pioneer / VirtualDJ)
+   */
+  public playCueClick() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(1400, now);
+    osc.frequency.exponentialRampToValueAtTime(180, now + 0.04);
+
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.04);
+  }
+
+  /**
+   * ⚡ Tono de Confirmación Beat Sync (Emparejamiento de BPM)
+   */
+  public playBeatSyncTone() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const notes = [
+      { freq: 523.25, delay: 0 },    // C5
+      { freq: 659.25, delay: 0.07 }, // E5
+      { freq: 783.99, delay: 0.14 }, // G5
+    ];
+
+    notes.forEach((n) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(n.freq, now + n.delay);
+
+      gain.gain.setValueAtTime(0.18, now + n.delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + n.delay + 0.18);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + n.delay);
+      osc.stop(now + n.delay + 0.18);
+    });
+  }
+
+  /**
+   * 🛑 Vinyl Brake / Slow Down (Freno de plato giratorio al parar)
+   */
+  public playVinylBrake() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.exponentialRampToValueAtTime(35, now + 0.85);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.linearRampToValueAtTime(0.15, now + 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(1200, now);
+    filter.frequency.exponentialRampToValueAtTime(150, now + 0.85);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.9);
+  }
+
+  /**
+   * 🎛️ Nudge / Pitch Bend (Micro ajuste de fase para cuadrar compases)
+   */
+  public playNudge() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(300, now + 0.03);
+
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.03);
+  }
 }
 
 export const djSoundEffects = new DjSoundEffectsEngine();
+
