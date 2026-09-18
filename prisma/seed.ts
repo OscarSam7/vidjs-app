@@ -21,7 +21,28 @@ async function main() {
   await prisma.tenant.deleteMany({});
   await prisma.plan.deleteMany({});
 
-  // 2. Planes Comerciales
+  // 2. Planes Comerciales y Personales
+  const personalPlan = await prisma.plan.create({
+    data: {
+      name: "Plan Amigos & Fiestas Privadas",
+      code: "PERSONAL",
+      priceCents: 499,
+      currency: "USD",
+      interval: "MONTHLY",
+      maxVenues: 1,
+      maxEventsPerMonth: 4,
+      maxActiveTables: 1,
+      features: JSON.stringify([
+        "Ideal para fiestas en casa, asados y juntadas",
+        "1 Anfitrión / DJ personal con cabina interactiva",
+        "1 Código QR y Link directo para WhatsApp",
+        "Recepción de pedidos musicales en vivo de amigos",
+        "Muro interactivo de fotos con marcos temáticos",
+        "Juegos en TV: Aplausómetro y Ruleta de Sorteos",
+      ]),
+    },
+  });
+
   const starterPlan = await prisma.plan.create({
     data: {
       name: "Plan Starter",

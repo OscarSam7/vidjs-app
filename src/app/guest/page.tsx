@@ -246,6 +246,12 @@ function GuestContent() {
       }
     } else if (switched === "table") {
       setSwitchBanner(`✨ ¡Te has cambiado a ${tableName || "tu nueva mesa"}! Tu mesa anterior fue liberada con éxito.`);
+    } else if (switched === "venue") {
+      const fromVenue = searchParams.get("fromVenue") || "tu evento anterior";
+      const toVenue = searchParams.get("toVenue") || "este local";
+      setSwitchBanner(
+        `🎉 ¡Bienvenido a ${toVenue} (${tableName || "tu nueva mesa"})! Te desvinculaste de ${fromVenue} y tu sesión se actualizó con éxito. ¡Tu nombre sigue guardado, que disfrutes la noche!`
+      );
     }
   }, [searchParams]);
 

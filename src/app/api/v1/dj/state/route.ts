@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     const eventId = currentEvent.id;
 
     // 4. Consultar estado en paralelo
-    const [pendingRequests, queue, currentPlaying, recentHistory, statsCounts] =
+    const [pendingRequests, queue, currentPlaying, recentHistory, statsCounts, tables] =
       await Promise.all([
         // Solicitudes pendientes de moderación
         prisma.songRequest.findMany({
@@ -119,6 +119,13 @@ export async function GET(req: NextRequest) {
           where: { tenantId, eventId },
           _count: true,
         }),
+
+        // Mesas y tokens de acceso QR del local / fiesta
+        prisma.table.findMany({
+          where: { venueId: currentEvent.venueId, active: true },
+          select: { id: true, number: true, label: true, qrToken: true, zone: true },
+          orderBy: { number: "asc" },
+        }),
       ]);
 
     const statsMap = Object.fromEntries(
@@ -136,6 +143,7 @@ export async function GET(req: NextRequest) {
           venueName: currentEvent.venue.name,
           settings: currentEvent.settings ? JSON.parse(currentEvent.settings) : {},
         },
+        tables,
         activeEvents: activeEvents.map((e) => ({
           id: e.id,
           name: e.name,

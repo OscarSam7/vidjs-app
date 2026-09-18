@@ -10,30 +10,54 @@ export async function GET() {
     await requireRole(["OWNER", "SUPER_ADMIN"]);
     const { tenantId } = await requireTenantContext();
 
-    // 2. Asegurar que el plan ENTERPRISE exista en la base de datos
-    await prisma.plan.upsert({
-      where: { code: "ENTERPRISE" },
-      update: {},
-      create: {
-        name: "Plan Enterprise Elite",
-        code: "ENTERPRISE",
-        priceCents: 9900,
-        currency: "USD",
-        interval: "MONTHLY",
-        maxVenues: 10,
-        maxEventsPerMonth: 200,
-        maxActiveTables: 200,
-        features: JSON.stringify([
-          "Locales físicos ilimitados",
-          "Hasta 200 mesas QR simultáneas",
-          "Eventos en vivo ilimitados",
-          "Doble Deck profesional con Crossfader",
-          "Pantalla pública 4K sin marca de agua",
-          "DJ Bridge (Integración de audio de escritorio)",
-          "Soporte prioritario 24/7 y SLA garantizado",
-        ]),
-      },
-    });
+    // 2. Asegurar que los planes PERSONAL y ENTERPRISE existan en la base de datos
+    await Promise.all([
+      prisma.plan.upsert({
+        where: { code: "PERSONAL" },
+        update: {},
+        create: {
+          name: "Plan Amigos & Fiestas Privadas",
+          code: "PERSONAL",
+          priceCents: 499,
+          currency: "USD",
+          interval: "MONTHLY",
+          maxVenues: 1,
+          maxEventsPerMonth: 4,
+          maxActiveTables: 1,
+          features: JSON.stringify([
+            "Ideal para fiestas en casa, asados y juntadas",
+            "1 Anfitrión / DJ personal con cabina interactiva",
+            "1 Código QR y Link directo para WhatsApp",
+            "Recepción de pedidos musicales en vivo de amigos",
+            "Muro interactivo de fotos con marcos temáticos",
+            "Juegos en TV: Aplausómetro y Ruleta de Sorteos",
+          ]),
+        },
+      }),
+      prisma.plan.upsert({
+        where: { code: "ENTERPRISE" },
+        update: {},
+        create: {
+          name: "Plan Enterprise Elite",
+          code: "ENTERPRISE",
+          priceCents: 9900,
+          currency: "USD",
+          interval: "MONTHLY",
+          maxVenues: 10,
+          maxEventsPerMonth: 200,
+          maxActiveTables: 200,
+          features: JSON.stringify([
+            "Locales físicos ilimitados",
+            "Hasta 200 mesas QR simultáneas",
+            "Eventos en vivo ilimitados",
+            "Doble Deck profesional con Crossfader",
+            "Pantalla pública 4K sin marca de agua",
+            "DJ Bridge (Integración de audio de escritorio)",
+            "Soporte prioritario 24/7 y SLA garantizado",
+          ]),
+        },
+      }),
+    ]);
 
     // 3. Consultar suscripción activa del Tenant
     const subscription = await prisma.subscription.findUnique({

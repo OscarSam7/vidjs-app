@@ -46,18 +46,27 @@ export async function GET(
     );
   }
 
-  // 3. Revisar si el comensal ya tenía una sesión activa previa en otra mesa
+  // 3. Revisar si el comensal ya tenía una sesión activa previa en otra mesa o local
   const prevSession = await getCurrentGuestSession().catch(() => null);
   let carriedGuestName: string | null = null;
   let switchType: string | null = null;
   let fromZone: string | null = null;
+  let fromVenue: string | null = null;
+  let toVenue: string | null = null;
 
   if (prevSession && prevSession.tableId !== table.id) {
     carriedGuestName = prevSession.guestName;
     fromZone = prevSession.table.zone;
 
-    // Detectar si cambió de zona o solo de mesa
-    if (prevSession.table.zone !== table.zone) {
+    // Detectar si cambió de local comercial / fiesta privada (cross-tenant o cross-venue)
+    const isDifferentTenant = prevSession.tenantId !== table.tenantId;
+    const isDifferentVenue = prevSession.table.venueId !== table.venueId;
+
+    if (isDifferentTenant || isDifferentVenue) {
+      switchType = "venue";
+      fromVenue = prevSession.tenant.name || prevSession.table.venue?.name || "tu evento anterior";
+      toVenue = table.tenant.name || table.venue.name || "este local";
+    } else if (prevSession.table.zone !== table.zone) {
       switchType = "zone";
     } else {
       switchType = "table";
@@ -72,7 +81,9 @@ export async function GET(
       },
       data: {
         status: "CANCELLED",
-        notes: `Cliente se mudó a ${table.label} (Sector ${table.zone === "KARAOKE" ? "Karaoke" : "DJ / Pista"})`,
+        notes: isDifferentTenant
+          ? `Cliente se retiró y conectó a ${toVenue}`
+          : `Cliente se mudó a ${table.label} (Sector ${table.zone === "KARAOKE" ? "Karaoke" : "DJ / Pista"})`,
       },
     }).catch(() => null);
 
@@ -87,20 +98,20 @@ export async function GET(
       tableId: prevSession.tableId,
       tableLabel: prevSession.table.label,
       zone: prevSession.table.zone,
-      reason: "GUEST_MOVED_TABLE",
+      reason: isDifferentTenant ? "GUEST_CHANGED_VENUE" : "GUEST_MOVED_TABLE",
       newTableLabel: table.label,
       newZone: table.zone,
     });
 
     realtimeBus.broadcast(prevSession.eventId, "QUEUE_UPDATE", {
-      reason: "GUEST_MOVED_TABLE",
+      reason: isDifferentTenant ? "GUEST_CHANGED_VENUE" : "GUEST_MOVED_TABLE",
       tableId: prevSession.tableId,
     });
 
     realtimeBus.broadcast(prevSession.eventId, "QUEUE_SLOT_UNLOCKED", {
       tableId: prevSession.tableId,
       tableLabel: prevSession.table.label,
-      reason: "GUEST_MIGRATED_ZONE",
+      reason: isDifferentTenant ? "GUEST_CHANGED_VENUE" : "GUEST_MIGRATED_ZONE",
     });
   }
 
@@ -130,6 +141,12 @@ export async function GET(
     redirectUrl.searchParams.set("table", table.label);
     if (fromZone) {
       redirectUrl.searchParams.set("fromZone", fromZone);
+    }
+    if (fromVenue) {
+      redirectUrl.searchParams.set("fromVenue", fromVenue);
+    }
+    if (toVenue) {
+      redirectUrl.searchParams.set("toVenue", toVenue);
     }
   }
 

@@ -35,6 +35,10 @@ import {
   Trash2,
   Dices,
   Trophy,
+  QrCode,
+  Share2,
+  Copy,
+  Send,
 } from "lucide-react";
 import DjBridgeModal from "@/components/dj/DjBridgeModal";
 import DjSoundboard from "@/components/dj/DjSoundboard";
@@ -105,6 +109,13 @@ interface DjStateResponse {
     name: string;
     code: string;
     venueName: string;
+  }>;
+  tables?: Array<{
+    id: string;
+    number: number;
+    label: string;
+    qrToken: string;
+    zone?: string;
   }>;
   pendingRequests: SongRequestData[];
   queue: QueueEntryData[];
@@ -192,6 +203,11 @@ export default function DjBoothPage() {
   const [isApplauseModalOpen, setIsApplauseModalOpen] = useState(false);
   const [applauseTarget, setApplauseTarget] = useState("");
   const [interactiveLoading, setInteractiveLoading] = useState(false);
+
+  // 📲 Compartir Fiesta / Amigos QR & WhatsApp
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [selectedShareTableId, setSelectedShareTableId] = useState<string>("");
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
 
   // Cargar estado de la cabina
   const fetchDjState = async (eventId?: string) => {
@@ -751,6 +767,20 @@ export default function DjBoothPage() {
                     <Radio className="w-3.5 h-3.5" />
                     <span>Pantalla TV</span>
                   </a>
+
+                  <button
+                    onClick={() => {
+                      if (data.tables && data.tables.length > 0 && !selectedShareTableId) {
+                        setSelectedShareTableId(data.tables[0].id);
+                      }
+                      setIsShareModalOpen(true);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-pink-600/30 via-purple-600/30 to-indigo-600/30 hover:from-pink-600/50 hover:to-indigo-600/50 border border-pink-500/40 text-pink-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                    title="Compartir QR o Link de WhatsApp con tus amigos"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-pink-400" />
+                    <span>📲 Invitar Amigos</span>
+                  </button>
 
                   <button
                     onClick={() => setIsBridgeModalOpen(true)}
@@ -1986,6 +2016,159 @@ export default function DjBoothPage() {
                 <span>{interactiveLoading ? "Activando..." : "¡Iniciar en Pantalla (15s)!"}</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📲 Modal de Invitar Amigos / QR y WhatsApp */}
+      {isShareModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-zinc-950 border border-pink-500/40 rounded-3xl p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-pink-500/20 text-pink-400 border border-pink-500/30">
+                  <QrCode className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                    Invitar Amigos a la Fiesta
+                  </h3>
+                  <p className="text-[11px] text-zinc-400">
+                    {data.event?.name || "Comparte tu evento para recibir pedidos"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsShareModalOpen(false)}
+                className="text-zinc-500 hover:text-white text-base font-bold cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Selector si hay múltiples mesas, o indicador de fiesta personal */}
+            {data.tables && data.tables.length > 1 ? (
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-zinc-400">
+                  Selecciona la mesa o sector a compartir:
+                </label>
+                <select
+                  value={selectedShareTableId || (data.tables[0]?.id ?? "")}
+                  onChange={(e) => setSelectedShareTableId(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-pink-500"
+                >
+                  {data.tables.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.label} (Sector {t.zone || "Principal"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="px-3 py-2 rounded-xl bg-pink-950/40 border border-pink-500/30 flex items-center gap-2 text-xs text-pink-200">
+                <Sparkles className="w-4 h-4 text-pink-400 shrink-0" />
+                <span>Modo Fiesta Privada: Un solo QR para que todos los amigos se sumen.</span>
+              </div>
+            )}
+
+            {/* QR Code Grande Centrado */}
+            {(() => {
+              const activeTable =
+                data.tables?.find((t) => t.id === selectedShareTableId) ||
+                data.tables?.[0];
+              const shareToken = activeTable?.qrToken || "";
+              const shareUrl =
+                typeof window !== "undefined" && shareToken
+                  ? `${window.location.origin}/qr/${shareToken}`
+                  : "";
+              const qrImgUrl = shareUrl
+                ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
+                    shareUrl
+                  )}`
+                : "";
+
+              return (
+                <div className="space-y-4">
+                  <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl shadow-inner border border-zinc-200">
+                    {qrImgUrl ? (
+                      <img
+                        src={qrImgUrl}
+                        alt="Código QR de la Fiesta"
+                        className="w-48 h-48 rounded-lg object-contain"
+                      />
+                    ) : (
+                      <div className="w-48 h-48 flex items-center justify-center text-zinc-400 text-xs">
+                        Generando QR...
+                      </div>
+                    )}
+                    <span className="mt-2 text-xs font-bold text-zinc-900">
+                      {activeTable?.label || "Pista / Amigos"}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      Escaneá con la cámara del celular
+                    </span>
+                  </div>
+
+                  {/* Acciones: Copiar Link & WhatsApp */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (shareUrl) {
+                          navigator.clipboard.writeText(shareUrl);
+                          setCopiedShareLink(true);
+                          setTimeout(() => setCopiedShareLink(false), 3000);
+                        }
+                      }}
+                      className="px-3 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      {copiedShareLink ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-300">¡Copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-zinc-400" />
+                          <span>Copiar Link</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (shareUrl) {
+                          const msg = encodeURIComponent(
+                            `🎉 ¡Sumate a la fiesta de ${
+                              data.event?.name || "hoy"
+                            }! Pedí tus temas y subí tus fotos a la pantalla acá:\n${shareUrl}`
+                          );
+                          window.open(`https://api.whatsapp.com/send?text=${msg}`, "_blank");
+                        }
+                      }}
+                      className="px-3 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-lg shadow-emerald-600/20"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>WhatsApp</span>
+                    </button>
+                  </div>
+
+                  {/* Proyectar en Smart TV */}
+                  {data.event && (
+                    <a
+                      href={`/display/${data.event.code}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full py-2 px-3 text-center rounded-xl bg-purple-950/40 hover:bg-purple-950/70 border border-purple-500/30 text-purple-300 text-xs font-semibold transition-colors"
+                    >
+                      📺 Abrir Pantalla Gigante para TV del Living
+                    </a>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

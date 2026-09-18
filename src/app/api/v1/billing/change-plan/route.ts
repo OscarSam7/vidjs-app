@@ -5,7 +5,7 @@ import { requireTenantContext, requireRole } from "@/lib/auth/session";
 import { handleApiError, NotFoundError } from "@/lib/errors";
 
 const changePlanSchema = z.object({
-  planCode: z.enum(["STARTER", "PRO", "ENTERPRISE"]),
+  planCode: z.enum(["PERSONAL", "STARTER", "PRO", "ENTERPRISE"]),
 });
 
 export async function POST(req: NextRequest) {

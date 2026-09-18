@@ -20,7 +20,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 interface PlanItem {
   id: string;
   name: string;
-  code: "STARTER" | "PRO" | "ENTERPRISE";
+  code: "PERSONAL" | "STARTER" | "PRO" | "ENTERPRISE";
   priceCents: number;
   currency: string;
   interval: string;
@@ -312,31 +312,39 @@ export default function SubscriptionPage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {data.availablePlans.map((plan) => {
             const isCurrent = plan.isCurrent;
             const isPopular = plan.code === "PRO";
+            const isPersonal = plan.code === "PERSONAL";
             const isLoading = changingPlan === plan.code;
 
             return (
               <div
                 key={plan.id}
-                className={`p-6 rounded-2xl flex flex-col justify-between space-y-5 transition-all relative ${
+                className={`p-5 rounded-2xl flex flex-col justify-between space-y-5 transition-all relative ${
                   isCurrent
                     ? "bg-gradient-to-b from-purple-950/40 via-zinc-900 to-zinc-900 border-2 border-purple-500 shadow-xl"
+                    : isPersonal
+                    ? "bg-zinc-900/90 border-2 border-pink-500/40 hover:border-pink-500/70 shadow-lg"
                     : isPopular
                     ? "bg-zinc-900/90 border-2 border-purple-500/30 hover:border-purple-500/60 shadow-lg"
                     : "bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700"
                 }`}
               >
-                {/* Badge de Plan Actual o Popular */}
+                {/* Badge de Plan Actual, Personal o Popular */}
                 {isCurrent && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider shadow-md">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider shadow-md whitespace-nowrap">
                     Tu Plan Actual
                   </div>
                 )}
+                {!isCurrent && isPersonal && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-gradient-to-r from-pink-600 to-rose-600 text-white text-[10px] font-black uppercase tracking-wider shadow-md whitespace-nowrap">
+                    🎉 Fiestas & Amigos
+                  </div>
+                )}
                 {!isCurrent && isPopular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider shadow-md">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider shadow-md whitespace-nowrap">
                     Más Popular
                   </div>
                 )}
