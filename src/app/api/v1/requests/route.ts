@@ -37,11 +37,17 @@ export async function POST(req: NextRequest) {
     }
 
     const policy = parseQueuePolicy(guestSession.event.settings);
+    const tableZone = (guestSession.table as any).zone || policy.zone || "MAIN";
+    const isDjZone = tableZone === "DJ" || policy.nightMode === "DJ_ONLY";
+    const effectiveLimit = isDjZone ? policy.dj.maxActivePerTable : policy.karaoke.maxActivePerTable;
+    const isPaused = isDjZone ? policy.dj.queuePaused : policy.karaoke.queuePaused;
 
     // 2.1 Validar si la cola está pausada por la cabina
-    if (policy.queuePaused) {
+    if (isPaused) {
       throw new AppError(
-        "La recepción de canciones está pausada temporalmente por la cabina. Volveremos a abrir pedidos en breve.",
+        isDjZone
+          ? "La cabina DJ ha pausado temporalmente la recepción de pedidos para la pista."
+          : "El escenario de Karaoke ha pausado temporalmente la recepción de cantantes.",
         423,
         "QUEUE_PAUSED"
       );
@@ -59,10 +65,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (activeCount >= policy.maxActivePerTable) {
-      const unit = policy.maxActivePerTable === 1 ? "canción activa" : "canciones activas";
+    if (activeCount >= effectiveLimit) {
+      const unit = effectiveLimit === 1 ? "canción activa" : "canciones activas";
       throw new AppError(
-        `Tu mesa ya tiene su cupo completo (${activeCount}/${policy.maxActivePerTable} ${unit}). Podrán pedir su siguiente tema en cuanto hayan cantado en el escenario.`,
+        isDjZone
+          ? `Tu mesa ya tiene su cupo completo (${activeCount}/${effectiveLimit} ${unit}). Podrán pedir su siguiente tema en cuanto el DJ reproduzca el actual.`
+          : `Tu mesa ya tiene su cupo completo (${activeCount}/${effectiveLimit} ${unit}). Podrán pedir su siguiente tema en cuanto hayan cantado en el escenario.`,
         429,
         "MAX_ACTIVE_PER_TABLE_REACHED"
       );
@@ -186,12 +194,20 @@ export async function GET() {
       ["PENDING", "ACCEPTED", "PLAYING"].includes(r.status)
     ).length;
 
+    const tableZone = (guestSession.table as any).zone || policy.zone || "MAIN";
+    const isDjZone = tableZone === "DJ" || policy.nightMode === "DJ_ONLY";
+    const effectiveMax = isDjZone ? policy.dj.maxActivePerTable : policy.karaoke.maxActivePerTable;
+    const effectivePaused = isDjZone ? policy.dj.queuePaused : policy.karaoke.queuePaused;
+
     const tableAllowance = {
       usedSlots: activeRequestsCount,
-      maxSlots: policy.maxActivePerTable,
-      isLocked: activeRequestsCount >= policy.maxActivePerTable,
-      queuePaused: policy.queuePaused,
-      zone: (guestSession.table as any).zone || policy.zone || "MAIN",
+      maxSlots: effectiveMax,
+      isLocked: activeRequestsCount >= effectiveMax,
+      queuePaused: effectivePaused,
+      zone: isDjZone ? "DJ" : tableZone === "KARAOKE" || policy.nightMode === "KARAOKE_ONLY" ? "KARAOKE" : "MAIN",
+      nightMode: policy.nightMode,
+      djQueuePaused: policy.dj.queuePaused,
+      karaokeQueuePaused: policy.karaoke.queuePaused,
     };
 
     // 3. Resolver branding del local y establecimiento

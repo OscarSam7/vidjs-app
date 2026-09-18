@@ -4,6 +4,7 @@ import { requireTenantContext, requireRole } from "@/lib/auth/session";
 import { handleApiError } from "@/lib/errors";
 import { calculateNightPulse } from "@/lib/pulse/night-pulse";
 import { RoomTableItem, TableRoomStatus } from "@/components/dashboard/RoomMapMini";
+import { parseQueuePolicy } from "@/lib/dj/rotation";
 
 export async function GET(req: NextRequest) {
   try {
@@ -191,6 +192,7 @@ export async function GET(req: NextRequest) {
           venueName: currentEvent.venue.name,
           startsAt: currentEvent.startsAt,
         },
+        policy: parseQueuePolicy(currentEvent.settings),
         activeEvents: activeEvents.map((e) => ({
           id: e.id,
           name: e.name,

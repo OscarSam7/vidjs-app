@@ -78,6 +78,9 @@ export interface TableAllowanceInfo {
   isLocked: boolean;
   queuePaused: boolean;
   zone: string;
+  nightMode?: string;
+  djQueuePaused?: boolean;
+  karaokeQueuePaused?: boolean;
 }
 
 interface CurrentPlayingInfo {
@@ -981,27 +984,35 @@ function GuestContent() {
           >
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-base shrink-0">
-                {tableAllowance.queuePaused ? "⏸" : tableAllowance.isLocked ? "🎤" : "✨"}
+                {tableAllowance.queuePaused ? "⏸" : tableAllowance.isLocked ? (tableAllowance.zone === "DJ" ? "🎧" : "🎤") : "✨"}
               </span>
               <div className="min-w-0">
                 <div className="font-bold flex items-center gap-1.5 flex-wrap">
                   <span>
                     {tableAllowance.queuePaused
-                      ? "Pedidos pausados por la cabina"
+                      ? "Pedidos pausados temporalmente"
                       : tableAllowance.isLocked
-                      ? `Turno asignado: ${tableAllowance.usedSlots}/${tableAllowance.maxSlots} pedidos activos`
-                      : `Cupo disponible: ${tableAllowance.usedSlots}/${tableAllowance.maxSlots} temas`}
+                      ? `Turno asignado: ${tableAllowance.usedSlots}/${tableAllowance.maxSlots} activos`
+                      : `Cupo disponible: ${tableAllowance.usedSlots}/${tableAllowance.maxSlots} pedidos`}
                   </span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-black/40 border border-white/10 font-mono">
-                    {tableAllowance.zone === "KARAOKE" ? "Zona Karaoke" : "Zona DJ"}
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-black/40 border border-white/10 font-mono font-bold">
+                    {tableAllowance.zone === "DJ"
+                      ? "🎧 Pista DJ"
+                      : tableAllowance.zone === "KARAOKE"
+                      ? "🎤 Escenario Karaoke"
+                      : "🔀 Modo Híbrido"}
                   </span>
                 </div>
                 <div className="text-[10px] text-zinc-300 opacity-90 truncate">
                   {tableAllowance.queuePaused
-                    ? "El DJ pausó momentáneamente los pedidos. Se reanudarán pronto."
+                    ? "La cabina pausó momentáneamente los pedidos. Se reanudarán en breve."
                     : tableAllowance.isLocked
-                    ? "Canta tu turno y al terminar se desbloqueará tu cupo para pedir otro tema."
-                    : "Pide tu tema para entrar a la rotación secuencial."}
+                    ? tableAllowance.zone === "DJ"
+                      ? "Tu tema está en cola de mezcla. Al reproducirse se desbloqueará tu cupo."
+                      : "Canta tu turno en el escenario y al terminar se desbloqueará tu cupo (Canta y Libera)."
+                    : tableAllowance.zone === "DJ"
+                    ? "Pide temas para bailar en la pista a la consola del DJ."
+                    : "Pide una canción para cantar en vivo en el escenario."}
                 </div>
               </div>
             </div>

@@ -5,61 +5,151 @@ export interface RotatableQueueItem {
   createdAt: Date | string;
 }
 
+export type NightMode = "KARAOKE_ONLY" | "DJ_ONLY" | "HYBRID";
+
+export interface DjSettings {
+  enabled: boolean;
+  queueMode: "FIFO" | "TIPS_PRIORITY";
+  maxActivePerTable: number;
+  queuePaused: boolean;
+  tippingEnabled: boolean;
+  autoTransitionBeats: number;
+}
+
+export interface KaraokeSettings {
+  enabled: boolean;
+  fairPlayMode: "ROUND_ROBIN" | "FIFO";
+  maxActivePerTable: number;
+  queuePaused: boolean;
+  avgSongDurationMinutes: number;
+  tvLyricsVideoEnabled: boolean;
+  applauseMeterEnabled: boolean;
+}
+
 export interface QueuePolicy {
+  // Configuración de arquitectura dual
+  nightMode: NightMode;
+  dj: DjSettings;
+  karaoke: KaraokeSettings;
+
+  // Parámetros de proyección visual y fotos
+  photosAllowed: boolean;
+  photoRotationSeconds: number;
+  photoFitMode: "BLUR_FILL" | "CONTAIN" | "COVER";
+
+  // Campos heredados / de compatibilidad plana
   zone: "DJ" | "KARAOKE" | "MAIN";
   maxActivePerTable: number; // 1, 2, 99
   queuePaused: boolean;
   rotationMode: "ROUND_ROBIN" | "FIFO";
   avgSongDurationMinutes: number;
-  photosAllowed: boolean;
-  photoRotationSeconds: number;
-  photoFitMode: "BLUR_FILL" | "CONTAIN" | "COVER";
 }
 
+const DEFAULT_DJ_SETTINGS: DjSettings = {
+  enabled: true,
+  queueMode: "FIFO",
+  maxActivePerTable: 2,
+  queuePaused: false,
+  tippingEnabled: true,
+  autoTransitionBeats: 8,
+};
+
+const DEFAULT_KARAOKE_SETTINGS: KaraokeSettings = {
+  enabled: true,
+  fairPlayMode: "ROUND_ROBIN",
+  maxActivePerTable: 1,
+  queuePaused: false,
+  avgSongDurationMinutes: 4,
+  tvLyricsVideoEnabled: true,
+  applauseMeterEnabled: true,
+};
+
 export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
+  const fallbackPolicy: QueuePolicy = {
+    nightMode: "HYBRID",
+    dj: { ...DEFAULT_DJ_SETTINGS },
+    karaoke: { ...DEFAULT_KARAOKE_SETTINGS },
+    photosAllowed: true,
+    photoRotationSeconds: 8,
+    photoFitMode: "BLUR_FILL",
+    zone: "KARAOKE",
+    maxActivePerTable: 1,
+    queuePaused: false,
+    rotationMode: "ROUND_ROBIN",
+    avgSongDurationMinutes: 4,
+  };
+
   if (!settingsJson) {
-    return {
-      zone: "KARAOKE",
-      maxActivePerTable: 1,
-      queuePaused: false,
-      rotationMode: "ROUND_ROBIN",
-      avgSongDurationMinutes: 4,
-      photosAllowed: true,
-      photoRotationSeconds: 8,
-      photoFitMode: "BLUR_FILL",
-    };
+    return fallbackPolicy;
   }
+
   try {
-    const parsed = JSON.parse(settingsJson);
-    const rawLimit = typeof parsed.maxActivePerTable === "number" ? parsed.maxActivePerTable : 1;
-    const rawDuration = typeof parsed.avgSongDurationMinutes === "number" ? parsed.avgSongDurationMinutes : 4;
-    const rawPhotoRot = typeof parsed.photoRotationSeconds === "number" ? parsed.photoRotationSeconds : 8;
+    const parsed = typeof settingsJson === "string" ? JSON.parse(settingsJson) : settingsJson;
+
+    // Determinar Modo de Noche
+    let nightMode: NightMode = "HYBRID";
+    if (parsed.nightMode === "KARAOKE_ONLY" || parsed.nightMode === "DJ_ONLY" || parsed.nightMode === "HYBRID") {
+      nightMode = parsed.nightMode;
+    } else if (parsed.zone === "DJ") {
+      nightMode = "DJ_ONLY";
+    } else if (parsed.zone === "KARAOKE") {
+      nightMode = "KARAOKE_ONLY";
+    }
+
+    // Configuración DJ
+    const djRaw = parsed.dj || {};
+    const dj: DjSettings = {
+      enabled: typeof djRaw.enabled === "boolean" ? djRaw.enabled : nightMode !== "KARAOKE_ONLY",
+      queueMode: djRaw.queueMode === "TIPS_PRIORITY" ? "TIPS_PRIORITY" : "FIFO",
+      maxActivePerTable: typeof djRaw.maxActivePerTable === "number" ? Math.max(1, Math.min(99, djRaw.maxActivePerTable)) : 2,
+      queuePaused: typeof djRaw.queuePaused === "boolean" ? djRaw.queuePaused : false,
+      tippingEnabled: typeof djRaw.tippingEnabled === "boolean" ? djRaw.tippingEnabled : true,
+      autoTransitionBeats: typeof djRaw.autoTransitionBeats === "number" ? djRaw.autoTransitionBeats : 8,
+    };
+
+    // Configuración Karaoke
+    const karaokeRaw = parsed.karaoke || {};
+    const karaoke: KaraokeSettings = {
+      enabled: typeof karaokeRaw.enabled === "boolean" ? karaokeRaw.enabled : nightMode !== "DJ_ONLY",
+      fairPlayMode: karaokeRaw.fairPlayMode === "FIFO" ? "FIFO" : "ROUND_ROBIN",
+      maxActivePerTable: typeof karaokeRaw.maxActivePerTable === "number" ? Math.max(1, Math.min(99, karaokeRaw.maxActivePerTable)) : 1,
+      queuePaused: typeof karaokeRaw.queuePaused === "boolean" ? karaokeRaw.queuePaused : false,
+      avgSongDurationMinutes: typeof karaokeRaw.avgSongDurationMinutes === "number" ? Math.max(1, Math.min(15, karaokeRaw.avgSongDurationMinutes)) : 4,
+      tvLyricsVideoEnabled: typeof karaokeRaw.tvLyricsVideoEnabled === "boolean" ? karaokeRaw.tvLyricsVideoEnabled : true,
+      applauseMeterEnabled: typeof karaokeRaw.applauseMeterEnabled === "boolean" ? karaokeRaw.applauseMeterEnabled : true,
+    };
+
+    // Visuales y Fotos
     const validModes = ["BLUR_FILL", "CONTAIN", "COVER"];
-    const rawFit = typeof parsed.photoFitMode === "string" && validModes.includes(parsed.photoFitMode)
+    const photoFitMode = typeof parsed.photoFitMode === "string" && validModes.includes(parsed.photoFitMode)
       ? (parsed.photoFitMode as "BLUR_FILL" | "CONTAIN" | "COVER")
       : "BLUR_FILL";
+    const photosAllowed = parsed.photosAllowed !== undefined ? Boolean(parsed.photosAllowed) : true;
+    const photoRotationSeconds = typeof parsed.photoRotationSeconds === "number" ? Math.max(3, Math.min(60, parsed.photoRotationSeconds)) : 8;
+
+    // Compatibilidad Plana (Flat Compatibility)
+    const effectiveZone: "DJ" | "KARAOKE" | "MAIN" =
+      nightMode === "DJ_ONLY" ? "DJ" : nightMode === "KARAOKE_ONLY" ? "KARAOKE" : (parsed.zone || "KARAOKE");
+
+    const effectiveMaxActive = effectiveZone === "DJ" ? dj.maxActivePerTable : karaoke.maxActivePerTable;
+    const effectivePaused = effectiveZone === "DJ" ? dj.queuePaused : karaoke.queuePaused;
+    const effectiveRotation = effectiveZone === "DJ" ? (dj.queueMode === "TIPS_PRIORITY" ? "FIFO" : "FIFO") : karaoke.fairPlayMode;
 
     return {
-      zone: parsed.zone === "DJ" || parsed.zone === "MAIN" ? parsed.zone : "KARAOKE",
-      maxActivePerTable: Math.max(1, Math.min(99, rawLimit)),
-      queuePaused: Boolean(parsed.queuePaused),
-      rotationMode: parsed.rotationMode === "FIFO" ? "FIFO" : "ROUND_ROBIN",
-      avgSongDurationMinutes: Math.max(1, Math.min(15, rawDuration)),
-      photosAllowed: parsed.photosAllowed !== undefined ? Boolean(parsed.photosAllowed) : true,
-      photoRotationSeconds: Math.max(3, Math.min(60, rawPhotoRot)),
-      photoFitMode: rawFit,
+      nightMode,
+      dj,
+      karaoke,
+      photosAllowed,
+      photoRotationSeconds,
+      photoFitMode,
+      zone: effectiveZone,
+      maxActivePerTable: typeof parsed.maxActivePerTable === "number" ? parsed.maxActivePerTable : effectiveMaxActive,
+      queuePaused: typeof parsed.queuePaused === "boolean" ? parsed.queuePaused : effectivePaused,
+      rotationMode: parsed.rotationMode || effectiveRotation,
+      avgSongDurationMinutes: karaoke.avgSongDurationMinutes,
     };
   } catch {
-    return {
-      zone: "KARAOKE",
-      maxActivePerTable: 1,
-      queuePaused: false,
-      rotationMode: "ROUND_ROBIN",
-      avgSongDurationMinutes: 4,
-      photosAllowed: true,
-      photoRotationSeconds: 8,
-      photoFitMode: "BLUR_FILL",
-    };
+    return fallbackPolicy;
   }
 }
 

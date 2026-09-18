@@ -26,11 +26,15 @@ import {
   Trophy,
   Printer,
   Flame,
+  Mic,
+  Sliders,
 } from "lucide-react";
 import NightPulseBadge from "@/components/dashboard/NightPulseBadge";
 import RoomMapMini, { RoomTableItem } from "@/components/dashboard/RoomMapMini";
+import ModeSettingsModal from "@/components/dashboard/ModeSettingsModal";
 import { NightPulseResult } from "@/lib/pulse/night-pulse";
 import { NightReport } from "@/lib/analytics/night-report";
+import { QueuePolicy } from "@/lib/dj/rotation";
 
 interface NightControlData {
   hasActiveEvent: boolean;
@@ -41,6 +45,7 @@ interface NightControlData {
     venueName: string;
     startsAt: string;
   };
+  policy?: QueuePolicy;
   activeEvents?: Array<{
     id: string;
     name: string;
@@ -121,6 +126,7 @@ export default function NightControlDashboard({
   const [data, setData] = useState<NightControlData | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "night-control" | "analytics" | "administration"
   >("night-control");
@@ -195,28 +201,71 @@ export default function NightControlDashboard({
                   Noche en Vivo
                 </span>
               )}
+              {data?.policy?.nightMode === "DJ_ONLY" && (
+                <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-amber-950/80 text-amber-300 border border-amber-500/40 shrink-0">
+                  <Headphones className="w-3.5 h-3.5 text-amber-400" />
+                  Solo Modo DJ
+                </span>
+              )}
+              {data?.policy?.nightMode === "KARAOKE_ONLY" && (
+                <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 shrink-0">
+                  <Mic className="w-3.5 h-3.5 text-cyan-400" />
+                  Solo Karaoke
+                </span>
+              )}
+              {(data?.policy?.nightMode === "HYBRID" || !data?.policy?.nightMode) && data?.hasActiveEvent && (
+                <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-purple-950/80 text-purple-300 border border-purple-500/40 shrink-0">
+                  <Layers className="w-3.5 h-3.5 text-purple-400" />
+                  Modo Híbrido (DJ + Karaoke)
+                </span>
+              )}
             </h1>
             <p className="text-xs text-zinc-400">
               Operando como <strong className="text-purple-300">{userRole}</strong> ({userName})
             </p>
           </div>
 
-          {/* Quick Actions Operativas (Grid 2x2 en móvil, flex en desktop) */}
-          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full lg:w-auto">
+          {/* Quick Actions Operativas */}
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full lg:w-auto flex-wrap">
+            {/* Cabina DJ */}
             <Link
               href="/dashboard/dj"
-              className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-600/30 group"
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-md shadow-amber-600/30 group"
+              title="Abrir Consola Virtual DJ Dual-Deck"
             >
               <Headphones className="w-4 h-4 group-hover:rotate-12 transition-transform shrink-0" />
               <span>Cabina DJ</span>
             </Link>
+
+            {/* Cabina Karaoke */}
+            <Link
+              href="/dashboard/karaoke"
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-500 hover:from-cyan-500 hover:to-teal-400 text-black text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-md shadow-cyan-600/30 group"
+              title="Abrir Consola de Escenario KJ Karaoke"
+            >
+              <Mic className="w-4 h-4 group-hover:scale-110 transition-transform shrink-0" />
+              <span>Cabina Karaoke</span>
+            </Link>
+
+            {/* Configurar Modos */}
+            {data?.event && (
+              <button
+                type="button"
+                onClick={() => setIsSettingsModalOpen(true)}
+                className="px-3 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/40 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                title="Configurar parámetros independientes de DJ y Karaoke"
+              >
+                <Sliders className="w-4 h-4 text-purple-400 shrink-0" />
+                <span>Configurar Modos</span>
+              </button>
+            )}
 
             {data?.event?.code && (
               <a
                 href={`/display/${data.event.code}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-cyan-300 text-xs font-bold transition-all flex items-center justify-center gap-2"
+                className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-cyan-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
               >
                 <Tv className="w-4 h-4 text-cyan-400 shrink-0" />
                 <span>Pantalla TV</span>
@@ -226,7 +275,7 @@ export default function NightControlDashboard({
 
             <Link
               href="/dashboard/tables"
-              className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-medium transition-all flex items-center justify-center gap-2"
+              className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-medium transition-all flex items-center justify-center gap-1.5"
             >
               <QrCode className="w-4 h-4 text-zinc-400 shrink-0" />
               <span>Mesas & QR</span>
@@ -234,7 +283,7 @@ export default function NightControlDashboard({
 
             <Link
               href="/dashboard/branding"
-              className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-medium transition-all flex items-center justify-center gap-2"
+              className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-medium transition-all flex items-center justify-center gap-1.5"
             >
               <Palette className="w-4 h-4 text-fuchsia-400 shrink-0" />
               <span>Branding</span>
@@ -816,6 +865,20 @@ export default function NightControlDashboard({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Configuración Independiente de Modos (Owner) */}
+      {data?.event && (
+        <ModeSettingsModal
+          isOpen={isSettingsModalOpen}
+          onClose={() => setIsSettingsModalOpen(false)}
+          eventId={data.event.id}
+          eventName={data.event.name}
+          initialPolicy={data.policy}
+          onPolicyUpdated={(newPolicy) => {
+            setData((prev) => (prev ? { ...prev, policy: newPolicy } : null));
+          }}
+        />
       )}
     </div>
   );

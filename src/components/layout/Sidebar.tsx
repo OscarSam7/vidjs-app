@@ -13,6 +13,8 @@ import {
   Disc3,
   Palette,
   X,
+  Headphones,
+  Mic,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -42,10 +44,11 @@ export function Sidebar({
 
   const menuItems: MenuItem[] = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard", active: pathname === "/dashboard" },
+    { name: "Cabina DJ (VirtualDJ)", icon: Headphones, href: "/dashboard/dj", active: pathname === "/dashboard/dj", badge: "DJ" },
+    { name: "Cabina Karaoke (KJ)", icon: Mic, href: "/dashboard/karaoke", active: pathname === "/dashboard/karaoke", badge: "KJ" },
     { name: "Locales (Venues)", icon: Building2, href: "/dashboard#venues", badge: "2" },
     { name: "Eventos & Noches", icon: CalendarCheck2, href: "/dashboard#events", badge: "2 activos" },
     { name: "Mesas & Códigos QR", icon: QrCode, href: "/dashboard/tables", badge: "11", active: pathname === "/dashboard/tables" },
-    { name: "Cola DJ & Deck", icon: ListMusic, href: "/dashboard/dj", active: pathname === "/dashboard/dj", badge: "En Vivo" },
     { name: "Marca & White-Label", icon: Palette, href: "/dashboard/branding", active: pathname === "/dashboard/branding", tag: "Nuevo" },
     { name: "Suscripción & Plan", icon: CreditCard, href: "/dashboard/subscription", active: pathname === "/dashboard/subscription" },
     { name: "Auditoría & Logs", icon: ShieldCheck, href: "#audit" },

@@ -8,6 +8,28 @@ import { realtimeBus } from "@/lib/realtime/event-bus";
 
 const updatePolicySchema = z.object({
   eventId: z.string().min(1, "eventId es obligatorio"),
+  nightMode: z.enum(["KARAOKE_ONLY", "DJ_ONLY", "HYBRID"]).optional(),
+  dj: z
+    .object({
+      enabled: z.boolean().optional(),
+      queueMode: z.enum(["FIFO", "TIPS_PRIORITY"]).optional(),
+      maxActivePerTable: z.number().int().min(1).max(99).optional(),
+      queuePaused: z.boolean().optional(),
+      tippingEnabled: z.boolean().optional(),
+      autoTransitionBeats: z.number().int().min(0).max(64).optional(),
+    })
+    .optional(),
+  karaoke: z
+    .object({
+      enabled: z.boolean().optional(),
+      fairPlayMode: z.enum(["ROUND_ROBIN", "FIFO"]).optional(),
+      maxActivePerTable: z.number().int().min(1).max(99).optional(),
+      queuePaused: z.boolean().optional(),
+      avgSongDurationMinutes: z.number().int().min(1).max(15).optional(),
+      tvLyricsVideoEnabled: z.boolean().optional(),
+      applauseMeterEnabled: z.boolean().optional(),
+    })
+    .optional(),
   maxActivePerTable: z.number().int().min(1).max(99).optional(),
   queuePaused: z.boolean().optional(),
   rotationMode: z.enum(["ROUND_ROBIN", "FIFO"]).optional(),
@@ -70,16 +92,40 @@ export async function PATCH(req: NextRequest) {
 
     const currentPolicy = parseQueuePolicy(event.settings);
 
+    // Resolver nuevo nightMode si se especifica o deducir
+    const nextNightMode = data.nightMode ?? currentPolicy.nightMode;
+
+    const updatedDj = {
+      ...currentPolicy.dj,
+      ...(data.dj || {}),
+      ...(data.zone === "DJ" && data.maxActivePerTable !== undefined ? { maxActivePerTable: data.maxActivePerTable } : {}),
+      ...(data.zone === "DJ" && data.queuePaused !== undefined ? { queuePaused: data.queuePaused } : {}),
+      ...(data.nightMode ? { enabled: data.nightMode !== "KARAOKE_ONLY" } : {}),
+    };
+
+    const updatedKaraoke = {
+      ...currentPolicy.karaoke,
+      ...(data.karaoke || {}),
+      ...(data.zone === "KARAOKE" && data.maxActivePerTable !== undefined ? { maxActivePerTable: data.maxActivePerTable } : {}),
+      ...(data.zone === "KARAOKE" && data.queuePaused !== undefined ? { queuePaused: data.queuePaused } : {}),
+      ...(data.rotationMode !== undefined ? { fairPlayMode: data.rotationMode } : {}),
+      ...(data.avgSongDurationMinutes !== undefined ? { avgSongDurationMinutes: data.avgSongDurationMinutes } : {}),
+      ...(data.nightMode ? { enabled: data.nightMode !== "DJ_ONLY" } : {}),
+    };
+
     const updatedPolicy: QueuePolicy = {
       ...currentPolicy,
-      ...(data.maxActivePerTable !== undefined && { maxActivePerTable: data.maxActivePerTable }),
-      ...(data.queuePaused !== undefined && { queuePaused: data.queuePaused }),
-      ...(data.rotationMode !== undefined && { rotationMode: data.rotationMode }),
-      ...(data.zone !== undefined && { zone: data.zone }),
-      ...(data.avgSongDurationMinutes !== undefined && { avgSongDurationMinutes: data.avgSongDurationMinutes }),
+      nightMode: nextNightMode,
+      dj: updatedDj,
+      karaoke: updatedKaraoke,
       ...(data.photosAllowed !== undefined && { photosAllowed: data.photosAllowed }),
       ...(data.photoRotationSeconds !== undefined && { photoRotationSeconds: data.photoRotationSeconds }),
       ...(data.photoFitMode !== undefined && { photoFitMode: data.photoFitMode }),
+      ...(data.zone !== undefined && { zone: data.zone }),
+      maxActivePerTable: data.maxActivePerTable ?? (data.zone === "DJ" ? updatedDj.maxActivePerTable : updatedKaraoke.maxActivePerTable),
+      queuePaused: data.queuePaused ?? (data.zone === "DJ" ? updatedDj.queuePaused : updatedKaraoke.queuePaused),
+      rotationMode: data.rotationMode ?? updatedKaraoke.fairPlayMode,
+      avgSongDurationMinutes: data.avgSongDurationMinutes ?? updatedKaraoke.avgSongDurationMinutes,
     };
 
     // Combinar con otras configuraciones existentes del evento si las hubiera
