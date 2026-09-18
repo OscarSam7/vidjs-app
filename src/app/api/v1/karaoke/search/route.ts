@@ -20,7 +20,9 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const results = await searchYouTube(query, { isKaraoke: true, limit: 6 });
+    const isKaraokeParam = searchParams.get("isKaraoke");
+    const isKaraoke = isKaraokeParam !== "false" && isKaraokeParam !== "0";
+    const results = await searchYouTube(query, { isKaraoke, limit: 6 });
 
     return NextResponse.json({
       success: true,

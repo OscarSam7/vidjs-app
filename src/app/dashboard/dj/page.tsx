@@ -75,6 +75,7 @@ interface SongRequestData {
     key: string | null;
     artist: { name: string } | null;
   } | null;
+  youtubeVideoId?: string | null;
 }
 
 interface PhotoItem {
@@ -102,6 +103,7 @@ interface QueueEntryData {
   orderIndex: number;
   status: string;
   songRequest: SongRequestData;
+  youtubeVideoId?: string | null;
 }
 
 interface DjStateResponse {

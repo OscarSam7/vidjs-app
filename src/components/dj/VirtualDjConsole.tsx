@@ -21,6 +21,9 @@ import {
   Repeat,
   Headphones,
   CheckCircle2,
+  Search,
+  Youtube,
+  ExternalLink,
 } from "lucide-react";
 import { calculateCrossfaderGains, djSoundEffects } from "@/lib/audio/dj-audio-engine";
 
@@ -43,6 +46,7 @@ interface SongRequestData {
     key: string | null;
     artist: { name: string } | null;
   } | null;
+  youtubeVideoId?: string | null;
 }
 
 interface QueueEntryData {
@@ -50,6 +54,7 @@ interface QueueEntryData {
   orderIndex: number;
   status: string;
   songRequest: SongRequestData;
+  youtubeVideoId?: string | null;
 }
 
 interface VirtualDjConsoleProps {
@@ -73,9 +78,15 @@ export default function VirtualDjConsole({
   crossfaderValue,
   setCrossfaderValue,
 }: VirtualDjConsoleProps) {
+  // ==================== MASTER AUDIO CABINA STATE ====================
+  const [isMasterMuted, setIsMasterMuted] = useState(false);
+  const [masterVolume, setMasterVolume] = useState(100);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+
   // ==================== DECK A STATE ====================
-  const [isPlayingA, setIsPlayingA] = useState(true);
-  const [playbackSecondsA, setPlaybackSecondsA] = useState(42);
+  const [manualTrackA, setManualTrackA] = useState<SongRequestData | null>(null);
+  const [isPlayingA, setIsPlayingA] = useState(Boolean(currentPlaying));
+  const [playbackSecondsA, setPlaybackSecondsA] = useState(0);
   const [pitchA, setPitchA] = useState(0); // -8% a +8%
   const [cuePointA, setCuePointA] = useState(0);
   const [isKeyLockA, setIsKeyLockA] = useState(true);
@@ -88,6 +99,13 @@ export default function VirtualDjConsole({
   const [bassKillA, setBassKillA] = useState(false);
   const [channelVolA, setChannelVolA] = useState(100);
   const [isPflA, setIsPflA] = useState(false);
+  const [videoIdA, setVideoIdA] = useState<string | null>(null);
+  const [isLoadingVideoA, setIsLoadingVideoA] = useState(false);
+  const iframeRefA = useRef<HTMLIFrameElement | null>(null);
+  const [isSelectorOpenA, setIsSelectorOpenA] = useState(false);
+  const [searchQueryA, setSearchQueryA] = useState("");
+  const [searchResultsA, setSearchResultsA] = useState<any[]>([]);
+  const [isSearchingA, setIsSearchingA] = useState(false);
 
   // ==================== DECK B STATE ====================
   const [selectedQueueIdB, setSelectedQueueIdB] = useState<string | null>(null);
@@ -108,6 +126,12 @@ export default function VirtualDjConsole({
   const [channelVolB, setChannelVolB] = useState(100);
   const [isPflB, setIsPflB] = useState(true);
   const [isSelectorOpenB, setIsSelectorOpenB] = useState(false);
+  const [videoIdB, setVideoIdB] = useState<string | null>(null);
+  const [isLoadingVideoB, setIsLoadingVideoB] = useState(false);
+  const iframeRefB = useRef<HTMLIFrameElement | null>(null);
+  const [searchQueryB, setSearchQueryB] = useState("");
+  const [searchResultsB, setSearchResultsB] = useState<any[]>([]);
+  const [isSearchingB, setIsSearchingB] = useState(false);
 
   // ==================== AUTO-ENGANCHE / TRANSITION ENGINE ====================
   const [isEnganchando, setIsEnganchando] = useState(false);
@@ -119,7 +143,7 @@ export default function VirtualDjConsole({
   const [beatPhase, setBeatPhase] = useState(1); // 1, 2, 3, 4
 
   // Determinar Track A
-  const trackA = currentPlaying?.songRequest;
+  const trackA = manualTrackA || currentPlaying?.songRequest;
   const trackADuration = trackA?.song?.durationSeconds || 210;
   const baseBpmA = trackA?.song?.bpm || 124;
   const effectiveBpmA = Number((baseBpmA * (1 + pitchA / 100)).toFixed(1));
@@ -135,6 +159,88 @@ export default function VirtualDjConsole({
 
   // Cálculo de ganancias de crossfader de potencia constante
   const crossfaderGains = calculateCrossfaderGains(crossfaderValue);
+
+  // Cálculo de volumen efectivo dinámico para YouTube (0 a 100)
+  const effectiveVolA = isMasterMuted
+    ? 0
+    : Math.min(
+        100,
+        Math.max(
+          0,
+          Math.round(
+            (channelVolA / 100) *
+              (gainA / 100) *
+              crossfaderGains.gainA *
+              (bassKillA ? 0.75 : 1) *
+              (masterVolume / 100) *
+              100
+          )
+        )
+      );
+
+  const effectiveVolB = isMasterMuted
+    ? 0
+    : Math.min(
+        100,
+        Math.max(
+          0,
+          Math.round(
+            (channelVolB / 100) *
+              (gainB / 100) *
+              crossfaderGains.gainB *
+              (bassKillB ? 0.75 : 1) *
+              (masterVolume / 100) *
+              100
+          )
+        )
+      );
+
+  // Enviar comando a iframe de YouTube por postMessage
+  const sendPlayerCommand = (
+    iframe: HTMLIFrameElement | null,
+    func: string,
+    args: any[] = []
+  ) => {
+    if (!iframe?.contentWindow) return;
+    try {
+      iframe.contentWindow.postMessage(
+        JSON.stringify({
+          event: "command",
+          func,
+          args,
+        }),
+        "*"
+      );
+    } catch {
+      // Ignorar fallos de postMessage
+    }
+  };
+
+  // Extraer video ID de notas o URL de YouTube
+  const extractYoutubeId = (str: string | null | undefined): string | null => {
+    if (!str) return null;
+    const clean = str.trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(clean)) return clean;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = clean.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
+  // Desbloquear audio del navegador
+  const unlockAudio = () => {
+    setAudioUnlocked(true);
+    setIsMasterMuted(false);
+    if (iframeRefA.current) {
+      sendPlayerCommand(iframeRefA.current, "unMute");
+      sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+      if (isPlayingA) sendPlayerCommand(iframeRefA.current, "playVideo");
+    }
+    if (iframeRefB.current) {
+      sendPlayerCommand(iframeRefB.current, "unMute");
+      sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+      if (isPlayingB) sendPlayerCommand(iframeRefB.current, "playVideo");
+    }
+  };
 
   // Formato mm:ss
   const formatTime = (secs: number) => {
@@ -215,6 +321,233 @@ export default function VirtualDjConsole({
     showFeedback("success", `⚡ Deck A sincronizado a ${effectiveBpmB} BPM`);
   };
 
+  // Reset de reproducción al cambiar tema en Deck A
+  useEffect(() => {
+    if (currentPlaying?.songRequest?.id && !manualTrackA) {
+      setPlaybackSecondsA(0);
+      setIsPlayingA(true);
+    }
+  }, [currentPlaying?.id, currentPlaying?.songRequest?.id, manualTrackA]);
+
+  // Reset de reproducción al cambiar tema en Deck B
+  useEffect(() => {
+    setPlaybackSecondsB(0);
+  }, [trackB?.id, trackB?.customTitle]);
+
+  // Resolución de video de YouTube para DECK A
+  useEffect(() => {
+    if (!trackA) {
+      setVideoIdA(null);
+      return;
+    }
+    const explicitId =
+      (!manualTrackA && currentPlaying?.youtubeVideoId) ||
+      trackA.youtubeVideoId ||
+      extractYoutubeId(trackA.notes);
+
+    if (explicitId) {
+      setVideoIdA(explicitId);
+      return;
+    }
+
+    const title = trackA.song?.title || trackA.customTitle || "";
+    const artist = trackA.song?.artist?.name || trackA.customArtist || "";
+    const query = `${title} ${artist}`.trim();
+    if (!query) return;
+
+    let isMounted = true;
+    setIsLoadingVideoA(true);
+    fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query)}&isKaraoke=false`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted) return;
+        if (data.success && data.data?.results?.length > 0) {
+          setVideoIdA(data.data.results[0].id);
+        }
+      })
+      .catch((err) => console.warn("Error resolviendo video Deck A:", err))
+      .finally(() => {
+        if (isMounted) setIsLoadingVideoA(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    trackA?.id,
+    trackA?.customTitle,
+    manualTrackA?.customTitle,
+    currentPlaying?.id,
+    currentPlaying?.youtubeVideoId,
+  ]);
+
+  // Resolución de video de YouTube para DECK B
+  useEffect(() => {
+    if (!trackB) {
+      setVideoIdB(null);
+      return;
+    }
+    const explicitId =
+      (!manualTrackB && effectiveQueueEntryB?.youtubeVideoId) ||
+      trackB.youtubeVideoId ||
+      extractYoutubeId(trackB.notes);
+
+    if (explicitId) {
+      setVideoIdB(explicitId);
+      return;
+    }
+
+    const title = trackB.song?.title || trackB.customTitle || "";
+    const artist = trackB.song?.artist?.name || trackB.customArtist || "";
+    const query = `${title} ${artist}`.trim();
+    if (!query) return;
+
+    let isMounted = true;
+    setIsLoadingVideoB(true);
+    fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query)}&isKaraoke=false`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted) return;
+        if (data.success && data.data?.results?.length > 0) {
+          setVideoIdB(data.data.results[0].id);
+        }
+      })
+      .catch((err) => console.warn("Error resolviendo video Deck B:", err))
+      .finally(() => {
+        if (isMounted) setIsLoadingVideoB(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    trackB?.id,
+    trackB?.customTitle,
+    manualTrackB?.customTitle,
+    effectiveQueueEntryB?.id,
+    effectiveQueueEntryB?.youtubeVideoId,
+  ]);
+
+  // Sincronización de volumen y mute en Deck A
+  useEffect(() => {
+    if (videoIdA && iframeRefA.current) {
+      sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+      if (effectiveVolA === 0) {
+        sendPlayerCommand(iframeRefA.current, "mute");
+      } else {
+        sendPlayerCommand(iframeRefA.current, "unMute");
+      }
+    }
+  }, [effectiveVolA, videoIdA]);
+
+  // Sincronización de volumen y mute en Deck B
+  useEffect(() => {
+    if (videoIdB && iframeRefB.current) {
+      sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+      if (effectiveVolB === 0) {
+        sendPlayerCommand(iframeRefB.current, "mute");
+      } else {
+        sendPlayerCommand(iframeRefB.current, "unMute");
+      }
+    }
+  }, [effectiveVolB, videoIdB]);
+
+  // Sincronización de Play/Pausa en Deck A
+  useEffect(() => {
+    if (!videoIdA || !iframeRefA.current) return;
+    if (isPlayingA) {
+      sendPlayerCommand(iframeRefA.current, "playVideo");
+      sendPlayerCommand(iframeRefA.current, "unMute");
+      sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+    } else {
+      sendPlayerCommand(iframeRefA.current, "pauseVideo");
+    }
+  }, [isPlayingA, videoIdA, effectiveVolA]);
+
+  // Sincronización de Play/Pausa en Deck B
+  useEffect(() => {
+    if (!videoIdB || !iframeRefB.current) return;
+    if (isPlayingB) {
+      sendPlayerCommand(iframeRefB.current, "playVideo");
+      sendPlayerCommand(iframeRefB.current, "unMute");
+      sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+    } else {
+      sendPlayerCommand(iframeRefB.current, "pauseVideo");
+    }
+  }, [isPlayingB, videoIdB, effectiveVolB]);
+
+  // Sincronización de Pitch Fader (Playback Rate)
+  useEffect(() => {
+    if (!videoIdA || !iframeRefA.current) return;
+    const rate = Math.max(0.5, Math.min(2.0, Number((1 + pitchA / 100).toFixed(2))));
+    sendPlayerCommand(iframeRefA.current, "setPlaybackRate", [rate]);
+  }, [pitchA, videoIdA]);
+
+  useEffect(() => {
+    if (!videoIdB || !iframeRefB.current) return;
+    const rate = Math.max(0.5, Math.min(2.0, Number((1 + pitchB / 100).toFixed(2))));
+    sendPlayerCommand(iframeRefB.current, "setPlaybackRate", [rate]);
+  }, [pitchB, videoIdB]);
+
+  // Inicialización de audio al montar iframes
+  useEffect(() => {
+    if (!videoIdA) return;
+    const t = setTimeout(() => {
+      if (iframeRefA.current) {
+        sendPlayerCommand(iframeRefA.current, "unMute");
+        sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+        if (isPlayingA) sendPlayerCommand(iframeRefA.current, "playVideo");
+      }
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [videoIdA]);
+
+  useEffect(() => {
+    if (!videoIdB) return;
+    const t = setTimeout(() => {
+      if (iframeRefB.current) {
+        sendPlayerCommand(iframeRefB.current, "unMute");
+        sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+        if (isPlayingB) sendPlayerCommand(iframeRefB.current, "playVideo");
+      }
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [videoIdB]);
+
+  // Búsqueda en YouTube para cargar pista en Deck A
+  const handleSearchYtA = async (query: string) => {
+    if (!query.trim()) return;
+    setIsSearchingA(true);
+    try {
+      const res = await fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query.trim())}&isKaraoke=false`);
+      const data = await res.json();
+      if (data.success) {
+        setSearchResultsA(data.data?.results || []);
+      }
+    } catch {
+      showFeedback("error", "Error buscando en YouTube");
+    } finally {
+      setIsSearchingA(false);
+    }
+  };
+
+  // Búsqueda en YouTube para cargar pista en Deck B
+  const handleSearchYtB = async (query: string) => {
+    if (!query.trim()) return;
+    setIsSearchingB(true);
+    try {
+      const res = await fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query.trim())}&isKaraoke=false`);
+      const data = await res.json();
+      if (data.success) {
+        setSearchResultsB(data.data?.results || []);
+      }
+    } catch {
+      showFeedback("error", "Error buscando en YouTube");
+    } finally {
+      setIsSearchingB(false);
+    }
+  };
+
   // ==================== MOTOR DE AUTO-ENGANCHE ====================
   const handleStartAutoEnganche = () => {
     if (!trackB) {
@@ -223,7 +556,8 @@ export default function VirtualDjConsole({
     }
     if (isEnganchando) return;
 
-    // 1. Iniciar Deck B si no está sonando y sincronizarlo
+    // 1. Desbloquear audio, iniciar Deck B y sincronizarlo
+    unlockAudio();
     setIsPlayingB(true);
     handleSyncDeckB();
     setIsEnganchando(true);
@@ -294,6 +628,7 @@ export default function VirtualDjConsole({
   // Corte directo (Hard Drop)
   const handleInstantDropCut = () => {
     if (!trackB) return;
+    unlockAudio();
     djSoundEffects.playScratch();
     setCrossfaderValue(100);
     setIsPlayingA(false);
@@ -319,9 +654,13 @@ export default function VirtualDjConsole({
   const handleNudge = (deck: "A" | "B", dir: -1 | 1) => {
     djSoundEffects.playNudge();
     if (deck === "A") {
-      setPlaybackSecondsA((prev) => Math.max(0, prev + dir * 0.2));
+      const next = Math.max(0, playbackSecondsA + dir * 0.5);
+      setPlaybackSecondsA(next);
+      sendPlayerCommand(iframeRefA.current, "seekTo", [next, true]);
     } else {
-      setPlaybackSecondsB((prev) => Math.max(0, prev + dir * 0.2));
+      const next = Math.max(0, playbackSecondsB + dir * 0.5);
+      setPlaybackSecondsB(next);
+      sendPlayerCommand(iframeRefB.current, "seekTo", [next, true]);
     }
   };
 
@@ -332,6 +671,8 @@ export default function VirtualDjConsole({
       if (isPlayingA) {
         setIsPlayingA(false);
         setPlaybackSecondsA(cuePointA);
+        sendPlayerCommand(iframeRefA.current, "pauseVideo");
+        sendPlayerCommand(iframeRefA.current, "seekTo", [cuePointA, true]);
       } else {
         setCuePointA(playbackSecondsA);
         showFeedback("info", `Deck A CUE fijado en ${formatTime(playbackSecondsA)}`);
@@ -340,6 +681,8 @@ export default function VirtualDjConsole({
       if (isPlayingB) {
         setIsPlayingB(false);
         setPlaybackSecondsB(cuePointB);
+        sendPlayerCommand(iframeRefB.current, "pauseVideo");
+        sendPlayerCommand(iframeRefB.current, "seekTo", [cuePointB, true]);
       } else {
         setCuePointB(playbackSecondsB);
         showFeedback("info", `Deck B CUE fijado en ${formatTime(playbackSecondsB)}`);
@@ -353,9 +696,11 @@ export default function VirtualDjConsole({
     if (deck === "A") {
       const targetTime = hotCuesA[cueNum] ?? 0;
       setPlaybackSecondsA(targetTime);
+      sendPlayerCommand(iframeRefA.current, "seekTo", [targetTime, true]);
     } else {
       const targetTime = hotCuesB[cueNum] ?? 0;
       setPlaybackSecondsB(targetTime);
+      sendPlayerCommand(iframeRefB.current, "seekTo", [targetTime, true]);
     }
   };
 
@@ -368,12 +713,70 @@ export default function VirtualDjConsole({
       setActiveLoopB(activeLoopB === beats ? null : beats);
     }
   };
-
-  // Indicador de Beat Match (si ambos BPM están sincronizados en un margen de 0.3)
   const isBeatMatched = Math.abs(effectiveBpmA - effectiveBpmB) <= 0.3;
 
   return (
     <div className="space-y-4 select-none">
+      {/* ========================================================================= */}
+      {/* 0. CABINA MASTER AUDIO STATUS & QUICK GAIN BAR                            */}
+      {/* ========================================================================= */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-zinc-950 border border-zinc-800 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Headphones className="w-5 h-5 text-purple-400 animate-pulse" />
+            <span className="text-xs font-black uppercase tracking-wider text-white">
+              AUDIO CABINA PRO
+            </span>
+          </div>
+
+          <button
+            onClick={() => {
+              if (isMasterMuted) {
+                unlockAudio();
+              } else {
+                setIsMasterMuted(true);
+              }
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-md ${
+              isMasterMuted
+                ? "bg-red-600 hover:bg-red-500 text-white animate-pulse"
+                : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30"
+            }`}
+            title="Activa o silencia la salida de audio de cabina"
+          >
+            {isMasterMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            <span>{isMasterMuted ? "🔇 AUDIO MUTED (CLICK PARA ACTIVAR)" : "🔊 AUDIO CABINA: ACTIVO"}</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-4 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <span className="text-zinc-500 text-[11px] font-bold">MASTER:</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={masterVolume}
+              onChange={(e) => {
+                setMasterVolume(Number(e.target.value));
+                if (isMasterMuted) setIsMasterMuted(false);
+              }}
+              className="w-24 accent-purple-500 cursor-pointer h-1.5 bg-zinc-800 rounded"
+            />
+            <span className="text-zinc-300 font-bold">{masterVolume}%</span>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-2 text-[10px] text-zinc-400">
+            <span className="px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-800">
+              CH 1: {effectiveVolA}%
+            </span>
+            <span className="px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800">
+              CH 2: {effectiveVolB}%
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* ========================================================================= */}
       {/* 1. DUAL BEAT-WAVEFORM & PHASE METER (BPM & BEAT MATCHING GRID)            */}
       {/* ========================================================================= */}
@@ -523,12 +926,143 @@ export default function VirtualDjConsole({
               <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
                 Al Aire
               </span>
+              {trackA?.table && (
+                <span className="px-2 py-0.5 rounded bg-zinc-950 text-purple-300 border border-purple-500/30 text-xs font-bold">
+                  {trackA.table.label}
+                </span>
+              )}
             </div>
-            {trackA?.table && (
-              <span className="px-2 py-0.5 rounded bg-zinc-950 text-purple-300 border border-purple-500/30 text-xs font-bold">
-                {trackA.table.label}
-              </span>
-            )}
+
+            {/* Selector de Pista Dropdown Deck A */}
+            <div className="relative">
+              <button
+                onClick={() => setIsSelectorOpenA(!isSelectorOpenA)}
+                className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-purple-950/60 border border-zinc-800 hover:border-purple-500/40 text-purple-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <span>Cargar Pista</span>
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+
+              {isSelectorOpenA && (
+                <div className="absolute right-0 top-full mt-1.5 w-80 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-2.5 z-50 space-y-2 max-h-80 overflow-y-auto">
+                  {/* Búsqueda directa o pegado de YouTube */}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSearchYtA(searchQueryA);
+                    }}
+                    className="flex items-center gap-1.5"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Buscar en YouTube o pegar link..."
+                      value={searchQueryA}
+                      onChange={(e) => setSearchQueryA(e.target.value)}
+                      className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-hidden focus:border-purple-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSearchingA}
+                      className="px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {isSearchingA ? <Disc3 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                    </button>
+                  </form>
+
+                  {/* Resultados de búsqueda de YouTube */}
+                  {searchResultsA.length > 0 && (
+                    <div className="space-y-1 border-b border-zinc-800 pb-2">
+                      <div className="text-[10px] font-black uppercase text-purple-400 px-1">
+                        🎬 Resultados de YouTube:
+                      </div>
+                      {searchResultsA.map((yt) => (
+                        <button
+                          key={yt.id}
+                          onClick={() => {
+                            setVideoIdA(yt.id);
+                            setManualTrackA({
+                              id: `yt-${yt.id}`,
+                              status: "MANUAL",
+                              customTitle: yt.parsedTitle || yt.title,
+                              customArtist: yt.parsedArtist || yt.channelTitle,
+                              notes: `https://www.youtube.com/watch?v=${yt.id}`,
+                              createdAt: new Date().toISOString(),
+                              table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
+                              guestSession: null,
+                              song: {
+                                id: `yt-${yt.id}`,
+                                title: yt.parsedTitle || yt.title,
+                                durationSeconds: 210,
+                                genre: "YouTube",
+                                bpm: 124,
+                                key: "8A / Am",
+                                artist: { name: yt.parsedArtist || yt.channelTitle },
+                              },
+                              youtubeVideoId: yt.id,
+                            });
+                            setPlaybackSecondsA(0);
+                            setIsPlayingA(true);
+                            unlockAudio();
+                            setIsSelectorOpenA(false);
+                            setSearchResultsA([]);
+                            setSearchQueryA("");
+                            showFeedback("success", `🎬 Cargado "${yt.parsedTitle || yt.title}" en Deck A`);
+                          }}
+                          className="w-full text-left p-1.5 rounded-lg hover:bg-purple-950/60 transition-colors flex items-center gap-2 text-xs cursor-pointer border border-transparent hover:border-purple-800"
+                        >
+                          <Youtube className="w-4 h-4 text-red-500 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-white truncate text-[11px]">
+                              {yt.parsedTitle || yt.title}
+                            </div>
+                            <div className="text-[10px] text-zinc-400 truncate">
+                              {yt.parsedArtist || yt.channelTitle}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="text-[10px] font-black uppercase text-zinc-500 px-1 pt-1">
+                    Pistas en Cola ({queue.length})
+                  </div>
+                  {queue.length === 0 ? (
+                    <div className="text-xs text-zinc-500 p-2 text-center">
+                      No hay temas en cola
+                    </div>
+                  ) : (
+                    queue.map((entry, idx) => (
+                      <button
+                        key={entry.id}
+                        onClick={() => {
+                          setManualTrackA(entry.songRequest);
+                          setPlaybackSecondsA(0);
+                          setIsPlayingA(true);
+                          unlockAudio();
+                          setIsSelectorOpenA(false);
+                          showFeedback("success", `Cargado #${idx + 1} en Deck A`);
+                        }}
+                        className="w-full text-left p-2 rounded-lg hover:bg-purple-950/60 transition-colors flex items-center justify-between gap-2 border border-transparent hover:border-purple-800 text-xs cursor-pointer"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-bold text-white truncate">
+                            #{idx + 1} {entry.songRequest.song?.title || entry.songRequest.customTitle}
+                          </div>
+                          <div className="text-[11px] text-zinc-400 truncate">
+                            {entry.songRequest.table.label} &bull;{" "}
+                            {entry.songRequest.song?.bpm ? `${entry.songRequest.song.bpm} BPM` : "124 BPM"}
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-mono text-purple-400 shrink-0 font-bold">
+                          Cargar
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Información del Track A */}
@@ -554,6 +1088,50 @@ export default function VirtualDjConsole({
             <div className="py-4 text-center text-zinc-500 text-xs">Sin tema en Deck A</div>
           )}
 
+          {/* Monitor de Video & Audio YouTube Deck A */}
+          <div className="relative aspect-video max-h-36 w-full rounded-xl overflow-hidden border border-purple-500/40 bg-black shadow-inner">
+            {videoIdA ? (
+              <>
+                <iframe
+                  ref={iframeRefA}
+                  key={videoIdA}
+                  src={`https://www.youtube.com/embed/${videoIdA}?enablejsapi=1&autoplay=1&playsinline=1&controls=0&modestbranding=1&rel=0`}
+                  title="Deck A Audio Player"
+                  className="w-full h-full border-0 pointer-events-auto"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                />
+                <div className="absolute top-1.5 left-2 right-2 flex items-center justify-between pointer-events-none">
+                  <span className="px-2 py-0.5 rounded bg-black/80 text-purple-300 text-[9px] font-mono font-bold border border-purple-500/40 backdrop-blur-xs">
+                    CH 1 &bull; VOL: {effectiveVolA}%
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded text-[9px] font-bold backdrop-blur-xs ${
+                      isPlayingA
+                        ? "bg-emerald-950/80 text-emerald-400 border border-emerald-500/40"
+                        : "bg-zinc-900/80 text-zinc-400 border border-zinc-700"
+                    }`}
+                  >
+                    {isPlayingA ? "▶ PLAYING" : "⏸ PAUSED"}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center p-3 text-purple-400 bg-zinc-950/90 space-y-1 text-center">
+                {isLoadingVideoA ? (
+                  <>
+                    <Disc3 className="w-6 h-6 animate-spin text-purple-400" />
+                    <span className="text-[11px] font-bold">Buscando audio en YouTube...</span>
+                  </>
+                ) : (
+                  <>
+                    <Music className="w-6 h-6 text-zinc-600" />
+                    <span className="text-[11px] text-zinc-400">Sin pista de audio en Deck A</span>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Platter / Jogwheel Deck A & Pitch Fader */}
           <div className="flex items-center justify-around sm:justify-between gap-3 sm:gap-4 py-2 w-full">
             {/* Jogwheel Giratorio */}
@@ -562,7 +1140,10 @@ export default function VirtualDjConsole({
                 className={`w-36 h-36 rounded-full bg-black border-4 border-zinc-800 shadow-[0_0_25px_rgba(168,85,247,0.2)] flex items-center justify-center relative cursor-grab active:cursor-grabbing ${
                   isPlayingA ? "animate-spin [animation-duration:3s]" : ""
                 }`}
-                onClick={() => setIsPlayingA(!isPlayingA)}
+                onClick={() => {
+                  unlockAudio();
+                  setIsPlayingA(!isPlayingA);
+                }}
                 title="Jogwheel / Vinilo Deck A - Click para Play/Pausa"
               >
                 {/* Ranuras de vinilo */}
@@ -717,7 +1298,10 @@ export default function VirtualDjConsole({
               CUE
             </button>
             <button
-              onClick={() => setIsPlayingA(!isPlayingA)}
+              onClick={() => {
+                unlockAudio();
+                setIsPlayingA(!isPlayingA);
+              }}
               className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 ${
                 isPlayingA
                   ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-purple-600/30"
@@ -911,8 +1495,87 @@ export default function VirtualDjConsole({
               </button>
 
               {isSelectorOpenB && (
-                <div className="absolute right-0 top-full mt-1.5 w-72 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-2 z-50 space-y-1.5 max-h-60 overflow-y-auto">
-                  <div className="text-[10px] font-black uppercase text-zinc-500 px-2 pt-1">
+                <div className="absolute right-0 top-full mt-1.5 w-80 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-2.5 z-50 space-y-2 max-h-80 overflow-y-auto">
+                  {/* Búsqueda directa o pegado de YouTube */}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSearchYtB(searchQueryB);
+                    }}
+                    className="flex items-center gap-1.5"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Buscar en YouTube o pegar link..."
+                      value={searchQueryB}
+                      onChange={(e) => setSearchQueryB(e.target.value)}
+                      className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-hidden focus:border-cyan-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSearchingB}
+                      className="px-2.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {isSearchingB ? <Disc3 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                    </button>
+                  </form>
+
+                  {/* Resultados de búsqueda de YouTube */}
+                  {searchResultsB.length > 0 && (
+                    <div className="space-y-1 border-b border-zinc-800 pb-2">
+                      <div className="text-[10px] font-black uppercase text-cyan-400 px-1">
+                        🎬 Resultados de YouTube:
+                      </div>
+                      {searchResultsB.map((yt) => (
+                        <button
+                          key={yt.id}
+                          onClick={() => {
+                            setVideoIdB(yt.id);
+                            setManualTrackB({
+                              id: `yt-${yt.id}`,
+                              status: "MANUAL",
+                              customTitle: yt.parsedTitle || yt.title,
+                              customArtist: yt.parsedArtist || yt.channelTitle,
+                              notes: `https://www.youtube.com/watch?v=${yt.id}`,
+                              createdAt: new Date().toISOString(),
+                              table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
+                              guestSession: null,
+                              song: {
+                                id: `yt-${yt.id}`,
+                                title: yt.parsedTitle || yt.title,
+                                durationSeconds: 210,
+                                genre: "YouTube",
+                                bpm: 126,
+                                key: "9A / Em",
+                                artist: { name: yt.parsedArtist || yt.channelTitle },
+                              },
+                              youtubeVideoId: yt.id,
+                            });
+                            setPlaybackSecondsB(0);
+                            setIsPlayingB(false);
+                            unlockAudio();
+                            setIsSelectorOpenB(false);
+                            setSearchResultsB([]);
+                            setSearchQueryB("");
+                            showFeedback("success", `🎬 Cargado "${yt.parsedTitle || yt.title}" en Deck B`);
+                          }}
+                          className="w-full text-left p-1.5 rounded-lg hover:bg-cyan-950/60 transition-colors flex items-center gap-2 text-xs cursor-pointer border border-transparent hover:border-cyan-800"
+                        >
+                          <Youtube className="w-4 h-4 text-red-500 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-white truncate text-[11px]">
+                              {yt.parsedTitle || yt.title}
+                            </div>
+                            <div className="text-[10px] text-zinc-400 truncate">
+                              {yt.parsedArtist || yt.channelTitle}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="text-[10px] font-black uppercase text-zinc-500 px-1 pt-1">
                     Pistas en Cola ({queue.length})
                   </div>
                   {queue.length === 0 ? (
@@ -927,6 +1590,8 @@ export default function VirtualDjConsole({
                           setSelectedQueueIdB(entry.id);
                           setManualTrackB(null);
                           setPlaybackSecondsB(0);
+                          setIsPlayingB(false);
+                          unlockAudio();
                           setIsSelectorOpenB(false);
                           showFeedback("success", `Cargado #${idx + 1} en Deck B`);
                         }}
@@ -937,7 +1602,8 @@ export default function VirtualDjConsole({
                             #{idx + 1} {entry.songRequest.song?.title || entry.songRequest.customTitle}
                           </div>
                           <div className="text-[11px] text-zinc-400 truncate">
-                            {entry.songRequest.table.label} &bull; {entry.songRequest.song?.bpm ? `${entry.songRequest.song.bpm} BPM` : "126 BPM"}
+                            {entry.songRequest.table.label} &bull;{" "}
+                            {entry.songRequest.song?.bpm ? `${entry.songRequest.song.bpm} BPM` : "126 BPM"}
                           </div>
                         </div>
                         <span className="text-[10px] font-mono text-cyan-400 shrink-0 font-bold">
@@ -976,6 +1642,52 @@ export default function VirtualDjConsole({
             </div>
           )}
 
+          {/* Monitor de Video & Audio YouTube Deck B */}
+          <div className="relative aspect-video max-h-36 w-full rounded-xl overflow-hidden border border-cyan-500/40 bg-black shadow-inner">
+            {videoIdB ? (
+              <>
+                <iframe
+                  ref={iframeRefB}
+                  key={videoIdB}
+                  src={`https://www.youtube.com/embed/${videoIdB}?enablejsapi=1&autoplay=1&playsinline=1&controls=0&modestbranding=1&rel=0`}
+                  title="Deck B Audio Player"
+                  className="w-full h-full border-0 pointer-events-auto"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                />
+                <div className="absolute top-1.5 left-2 right-2 flex items-center justify-between pointer-events-none">
+                  <span className="px-2 py-0.5 rounded bg-black/80 text-cyan-300 text-[9px] font-mono font-bold border border-cyan-500/40 backdrop-blur-xs">
+                    CH 2 &bull; VOL: {effectiveVolB}%
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded text-[9px] font-bold backdrop-blur-xs ${
+                      isPlayingB
+                        ? "bg-cyan-950/80 text-cyan-400 border border-cyan-500/40"
+                        : "bg-zinc-900/80 text-zinc-400 border border-zinc-700"
+                    }`}
+                  >
+                    {isPlayingB ? "▶ PLAYING" : "⏸ PAUSED"}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center p-3 text-cyan-400 bg-zinc-950/90 space-y-1 text-center">
+                {isLoadingVideoB ? (
+                  <>
+                    <Disc3 className="w-6 h-6 animate-spin text-cyan-400" />
+                    <span className="text-[11px] font-bold">Buscando audio en YouTube...</span>
+                  </>
+                ) : (
+                  <>
+                    <Music className="w-6 h-6 text-zinc-600" />
+                    <span className="text-[11px] text-zinc-400">
+                      Carga una pista para reproducir en Deck B
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Platter / Jogwheel Deck B & Pitch Fader */}
           <div className="flex items-center justify-around sm:justify-between gap-3 sm:gap-4 py-2 w-full">
             {/* Pitch / Tempo Fader Vertical Deck B */}
@@ -1012,7 +1724,10 @@ export default function VirtualDjConsole({
                 className={`w-36 h-36 rounded-full bg-black border-4 border-zinc-800 shadow-[0_0_25px_rgba(6,182,212,0.2)] flex items-center justify-center relative cursor-grab active:cursor-grabbing ${
                   isPlayingB ? "animate-spin [animation-duration:3s]" : ""
                 }`}
-                onClick={() => setIsPlayingB(!isPlayingB)}
+                onClick={() => {
+                  unlockAudio();
+                  setIsPlayingB(!isPlayingB);
+                }}
                 title="Jogwheel / Vinilo Deck B - Click para Play/Pausa"
               >
                 {/* Ranuras de vinilo */}
@@ -1145,7 +1860,10 @@ export default function VirtualDjConsole({
               CUE
             </button>
             <button
-              onClick={() => setIsPlayingB(!isPlayingB)}
+              onClick={() => {
+                unlockAudio();
+                setIsPlayingB(!isPlayingB);
+              }}
               className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 ${
                 isPlayingB
                   ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-cyan-600/30"

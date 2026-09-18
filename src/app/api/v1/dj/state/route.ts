@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireTenantContext, requireRole } from "@/lib/auth/session";
 import { handleApiError } from "@/lib/errors";
+import { searchYouTube } from "@/lib/youtube/search";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
@@ -110,10 +113,10 @@ export async function GET(req: NextRequest) {
             },
           },
           orderBy: { updatedAt: "desc" },
-          take: 5,
+          take: 6,
         }),
 
-        // Conteos estadísticos
+        // Estadísticas agregadas
         prisma.songRequest.groupBy({
           by: ["status"],
           where: { tenantId, eventId },
@@ -131,6 +134,33 @@ export async function GET(req: NextRequest) {
     const statsMap = Object.fromEntries(
       statsCounts.map((s) => [s.status, s._count])
     );
+
+    // Pre-resolver videoId de YouTube para el tema al aire (Deck A / DJ Booth)
+    let currentPlayingWithYt: any = currentPlaying;
+    if (currentPlaying) {
+      const songTitle =
+        currentPlaying.songRequest.song?.title ||
+        currentPlaying.songRequest.customTitle ||
+        "";
+      const songArtist =
+        currentPlaying.songRequest.song?.artist?.name ||
+        currentPlaying.songRequest.customArtist ||
+        "";
+      const q = `${songTitle} ${songArtist}`.trim();
+      let youtubeVideoId: string | null = null;
+      if (q) {
+        try {
+          const yt = await searchYouTube(q, { isKaraoke: false, limit: 1 });
+          if (yt.length > 0) youtubeVideoId = yt[0].id;
+        } catch (e) {
+          console.warn("No se pudo pre-resolver video de YouTube en dj state:", e);
+        }
+      }
+      currentPlayingWithYt = {
+        ...currentPlaying,
+        youtubeVideoId,
+      };
+    }
 
     return NextResponse.json({
       success: true,
@@ -152,7 +182,7 @@ export async function GET(req: NextRequest) {
         })),
         pendingRequests,
         queue,
-        currentPlaying,
+        currentPlaying: currentPlayingWithYt,
         recentHistory,
         stats: {
           pending: statsMap["PENDING"] || 0,
