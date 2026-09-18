@@ -11,6 +11,11 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  // Si el usuario es DJ, enviarlo directamente a la Cabina del DJ
+  if (session.role === "DJ") {
+    redirect("/dashboard/dj");
+  }
+
   // Resolver tenantId contextualmente de forma segura
   let tenantId = session.tenantId;
   if (!tenantId && session.role === "SUPER_ADMIN") {

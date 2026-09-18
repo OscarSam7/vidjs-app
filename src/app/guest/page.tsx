@@ -876,6 +876,16 @@ function GuestContent() {
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <PwaInstallButton variant="guest" />
 
+            {/* Acceso directo a Cabina DJ */}
+            <a
+              href="/dj"
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-zinc-800/80 hover:bg-purple-950/60 text-zinc-400 hover:text-purple-300 border border-zinc-700/60 hover:border-purple-500/50 text-xs flex items-center gap-1 transition-colors shrink-0"
+              title="Acceso para el DJ o Personal de la Cabina"
+            >
+              <Disc3 className="w-3.5 h-3.5 text-purple-400" />
+              <span className="hidden sm:inline font-bold text-[11px]">DJ</span>
+            </a>
+
             <button
               onClick={() => setIsPhotoModalOpen(true)}
               className="p-1.5 sm:px-2 sm:py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-purple-300 border border-purple-500/30 text-xs flex items-center gap-1 cursor-pointer transition-colors shrink-0"
@@ -2054,10 +2064,39 @@ function GuestContent() {
                   )}
                 </button>
               </div>
+
+              {/* Opción 3: Acceso a Cabina DJ / Operador */}
+              <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-800/50 text-left space-y-2">
+                <div className="flex items-center gap-2">
+                  <Disc3 className="w-4 h-4 text-purple-400 shrink-0" />
+                  <span className="text-xs font-bold text-white">¿Eres el DJ o Administrador?</span>
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Si estás a cargo de la música o la animación de la noche, entra a la Cabina DJ con tus credenciales de operador.
+                </p>
+                <a
+                  href="/dj"
+                  className="w-full py-2 px-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                >
+                  <Disc3 className="w-3.5 h-3.5" />
+                  <span>Ingresar a la Cabina DJ / KJ</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Footer link to DJ / Staff Login */}
+      <footer className="py-6 text-center border-t border-zinc-900 mt-8 mb-4">
+        <a
+          href="/dj"
+          className="text-xs text-zinc-500 hover:text-purple-400 transition-colors inline-flex items-center gap-1.5 font-medium"
+        >
+          <Disc3 className="w-3.5 h-3.5 text-purple-400" />
+          <span>¿Eres el DJ o Personal de la Cabina? Ingresar aquí &rarr;</span>
+        </a>
+      </footer>
     </div>
   );
 }

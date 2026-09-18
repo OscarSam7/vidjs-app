@@ -27,8 +27,18 @@ export default function LoginPage() {
         throw new Error(data.error?.message || "Error al iniciar sesión");
       }
 
-      // Redirección inmediata al dashboard
-      window.location.href = "/dashboard";
+      // Redirección inteligente respetando callbackUrl y rol de usuario
+      const userRole = data.user?.role;
+      const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+      const callback = searchParams?.get("callbackUrl");
+
+      if (callback) {
+        window.location.href = callback;
+      } else if (userRole === "DJ") {
+        window.location.href = "/dashboard/dj";
+      } else {
+        window.location.href = "/dashboard";
+      }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);

@@ -4,8 +4,11 @@ import { getCurrentSession } from "@/lib/auth/session";
 export default async function HomePage() {
   const staffSession = await getCurrentSession();
 
-  // Si es personal del establecimiento (Owner, DJ, Manager, Super Admin) -> al Dashboard
+  // Si es personal del establecimiento (Owner, DJ, Manager, Super Admin)
   if (staffSession) {
+    if (staffSession.role === "DJ") {
+      redirect("/dashboard/dj");
+    }
     redirect("/dashboard");
   }
 
