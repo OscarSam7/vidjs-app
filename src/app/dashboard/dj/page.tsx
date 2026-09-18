@@ -717,29 +717,8 @@ export default function DjBoothPage() {
     }
   };
 
-  if (loading && !data) {
-    return (
-      <div className="p-16 text-center text-zinc-400 flex flex-col items-center justify-center gap-3">
-        <Disc3 className="w-8 h-8 animate-spin text-purple-400" />
-        <span className="text-xs">Conectando con la cabina del DJ en tiempo real...</span>
-      </div>
-    );
-  }
-
-  if (!data?.hasActiveEvent) {
-    return (
-      <div className="p-12 text-center bg-zinc-900/60 border border-zinc-800 rounded-2xl space-y-4">
-        <Radio className="w-12 h-12 text-zinc-600 mx-auto" />
-        <h2 className="text-xl font-bold text-white">No hay eventos en vivo</h2>
-        <p className="text-xs text-zinc-400">
-          Para utilizar la cabina del DJ, activa un evento desde la sección de Eventos.
-        </p>
-      </div>
-    );
-  }
-
-  const currentTrack = data.currentPlaying?.songRequest;
-  const nextTrack = data.queue[0]?.songRequest;
+  const currentTrack = data?.currentPlaying?.songRequest;
+  const nextTrack = data?.queue?.[0]?.songRequest;
   const trackDuration = currentTrack?.song?.durationSeconds || 210;
   const progressPercent = Math.min((playbackSeconds / trackDuration) * 100, 100);
 
@@ -819,13 +798,34 @@ export default function DjBoothPage() {
     }
   };
 
-  // Auto-búsqueda de pista en YouTube al cambiar de tema en Karaoke
+  // Auto-búsqueda de pista en YouTube al cambiar de tema en Karaoke (Hook placed unconditionally)
   useEffect(() => {
     if (queuePolicy.zone === "KARAOKE" && currentTrack) {
       setSelectedKaraokeVideoId(null);
       handleSearchKaraoke();
     }
   }, [currentTrack?.id, queuePolicy.zone]);
+
+  if (loading && !data) {
+    return (
+      <div className="p-16 text-center text-zinc-400 flex flex-col items-center justify-center gap-3">
+        <Disc3 className="w-8 h-8 animate-spin text-purple-400" />
+        <span className="text-xs">Conectando con la cabina del DJ en tiempo real...</span>
+      </div>
+    );
+  }
+
+  if (!data?.hasActiveEvent) {
+    return (
+      <div className="p-12 text-center bg-zinc-900/60 border border-zinc-800 rounded-2xl space-y-4">
+        <Radio className="w-12 h-12 text-zinc-600 mx-auto" />
+        <h2 className="text-xl font-bold text-white">No hay eventos en vivo</h2>
+        <p className="text-xs text-zinc-400">
+          Para utilizar la cabina del DJ, activa un evento desde la sección de Eventos.
+        </p>
+      </div>
+    );
+  }
 
   const suggestions: QueueSuggestion[] = data
     ? generateQueueIntelligence({
