@@ -174,6 +174,180 @@ class DjSoundEffectsEngine {
     noise.start(now);
     noise.stop(now + 0.35);
   }
+
+  /**
+   * 🔔 Campana de Escenario (Llamado a Cantantes al escenario)
+   */
+  public playStageChime() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const chimeNotes = [
+      { freq: 659.25, time: 0, duration: 0.8 },    // E5
+      { freq: 880.0, time: 0.18, duration: 1.2 },  // A5
+      { freq: 1046.5, time: 0.36, duration: 1.5 }, // C6
+    ];
+
+    chimeNotes.forEach(({ freq, time, duration }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, now + time);
+
+      gain.gain.setValueAtTime(0.35, now + time);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + time + duration);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + time);
+      osc.stop(now + time + duration);
+    });
+  }
+
+  /**
+   * 🥁 Redoble de Tambores y Platillazo (Momento de suspenso / Premiación)
+   */
+  public playDrumroll() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const rollDuration = 1.3;
+    const hitsCount = 24;
+
+    for (let i = 0; i < hitsCount; i++) {
+      const hitTime = now + (i / hitsCount) * rollDuration;
+      const hitOsc = ctx.createOscillator();
+      const hitGain = ctx.createGain();
+
+      hitOsc.type = "triangle";
+      hitOsc.frequency.setValueAtTime(120 + Math.random() * 40, hitTime);
+
+      const amp = 0.08 + (i / hitsCount) * 0.22;
+      hitGain.gain.setValueAtTime(amp, hitTime);
+      hitGain.gain.exponentialRampToValueAtTime(0.001, hitTime + 0.06);
+
+      hitOsc.connect(hitGain);
+      hitGain.connect(ctx.destination);
+
+      hitOsc.start(hitTime);
+      hitOsc.stop(hitTime + 0.06);
+    }
+
+    // Platillazo final al terminar el redoble
+    const cymbalTime = now + rollDuration;
+    const bufferSize = ctx.sampleRate * 0.8;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const cymbalNoise = ctx.createBufferSource();
+    cymbalNoise.buffer = buffer;
+
+    const cymbalFilter = ctx.createBiquadFilter();
+    cymbalFilter.type = "highpass";
+    cymbalFilter.frequency.value = 4500;
+
+    const cymbalGain = ctx.createGain();
+    cymbalGain.gain.setValueAtTime(0.4, cymbalTime);
+    cymbalGain.gain.exponentialRampToValueAtTime(0.001, cymbalTime + 0.8);
+
+    cymbalNoise.connect(cymbalFilter);
+    cymbalFilter.connect(cymbalGain);
+    cymbalGain.connect(ctx.destination);
+
+    cymbalNoise.start(cymbalTime);
+    cymbalNoise.stop(cymbalTime + 0.8);
+  }
+
+  /**
+   * 🎺 Trompeta de Pifia / Fail Horn (Comedia cuando alguien desafina)
+   */
+  public playFailHorn() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const notes = [
+      { freq: 293.66, dur: 0.28 }, // D4
+      { freq: 277.18, dur: 0.28 }, // C#4
+      { freq: 261.63, dur: 0.28 }, // C4
+      { freq: 233.08, dur: 0.7 },  // Bb3 con caída
+    ];
+
+    let offset = 0;
+    notes.forEach((n, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(n.freq, now + offset);
+
+      if (idx === notes.length - 1) {
+        // Deslizar tono hacia abajo al final
+        osc.frequency.linearRampToValueAtTime(n.freq - 35, now + offset + n.dur);
+      }
+
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(750, now + offset);
+
+      gain.gain.setValueAtTime(0.28, now + offset);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + offset + n.dur);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + offset);
+      osc.stop(now + offset + n.dur);
+
+      offset += n.dur * 0.95;
+    });
+  }
+
+  /**
+   * 🎉 Ovación y Vítores del Público (Canto estelar)
+   */
+  public playOvation() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const bufferSize = ctx.sampleRate * 2.0;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(1400, now);
+    filter.frequency.linearRampToValueAtTime(1800, now + 1.0);
+    filter.frequency.linearRampToValueAtTime(1000, now + 2.0);
+    filter.Q.value = 1.2;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.05, now);
+    gain.gain.linearRampToValueAtTime(0.45, now + 0.35);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 2.0);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    noise.start(now);
+    noise.stop(now + 2.0);
+  }
 }
 
 export const djSoundEffects = new DjSoundEffectsEngine();

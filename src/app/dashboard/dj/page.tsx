@@ -39,10 +39,12 @@ import {
   Share2,
   Copy,
   Send,
+  Megaphone,
+  ExternalLink,
 } from "lucide-react";
 import DjBridgeModal from "@/components/dj/DjBridgeModal";
 import DjSoundboard from "@/components/dj/DjSoundboard";
-import { calculateCrossfaderGains } from "@/lib/audio/dj-audio-engine";
+import { calculateCrossfaderGains, djSoundEffects } from "@/lib/audio/dj-audio-engine";
 import { generateQueueIntelligence, QueueSuggestion } from "@/lib/dj/queue-intelligence";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -394,6 +396,46 @@ export default function DjBoothPage() {
     }
   };
 
+  // 📢 Llamar al Escenario a un Cantante / Mesa (Karaoke Stage Call)
+  const handleCallSinger = async (requestOrEntry?: any) => {
+    const trackToCall =
+      requestOrEntry?.songRequest ||
+      requestOrEntry ||
+      data?.currentPlaying?.songRequest;
+    const eventId = selectedEventId || data?.event?.id;
+    if (!eventId || !trackToCall) {
+      showFeedback("error", "No hay ningún cantante o canción seleccionada para llamar");
+      return;
+    }
+    try {
+      djSoundEffects.playStageChime();
+      const res = await fetch("/api/v1/dj/interactive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "CALL_SINGER",
+          eventId,
+          targetTableLabel: trackToCall.table?.label,
+          singerName: trackToCall.guestSession?.guestName || null,
+          songTitle: trackToCall.song?.title || trackToCall.customTitle,
+          artist: trackToCall.song?.artist?.name || trackToCall.customArtist,
+        }),
+      });
+      if (res.ok) {
+        showFeedback(
+          "success",
+          `📢 ¡Llamando a ${
+            trackToCall.guestSession?.guestName || trackToCall.table?.label || "cantante"
+          } al escenario en la TV!`
+        );
+      } else {
+        showFeedback("error", "No se pudo emitir el llamado al escenario");
+      }
+    } catch {
+      showFeedback("error", "Error al emitir llamado de escenario");
+    }
+  };
+
   // Iniciar Duelo Musical en vivo
   const handleStartDuel = async () => {
     if (!data?.event?.id) return;
@@ -742,14 +784,34 @@ export default function DjBoothPage() {
       {/* 1. Header de Cabina & Selector de Evento */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl bg-zinc-950 border border-zinc-800">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-purple-600/20 border border-purple-500/30 text-purple-400 glow-purple">
-            <Disc3 className="w-6 h-6 animate-spin [animation-duration:8s]" />
+          <div
+            className={`p-2.5 rounded-xl border transition-all ${
+              queuePolicy.zone === "KARAOKE"
+                ? "bg-cyan-600/20 border-cyan-500/40 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                : "bg-purple-600/20 border-purple-500/30 text-purple-400 glow-purple"
+            }`}
+          >
+            {queuePolicy.zone === "KARAOKE" ? (
+              <Mic className="w-6 h-6 animate-pulse text-cyan-300" />
+            ) : (
+              <Disc3 className="w-6 h-6 animate-spin [animation-duration:8s]" />
+            )}
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                CABINA AL AIRE
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                  queuePolicy.zone === "KARAOKE"
+                    ? "bg-cyan-950 text-cyan-300 border-cyan-800"
+                    : "bg-emerald-950 text-emerald-300 border-emerald-800"
+                }`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    queuePolicy.zone === "KARAOKE" ? "bg-cyan-400" : "bg-emerald-400"
+                  } animate-pulse`}
+                />
+                {queuePolicy.zone === "KARAOKE" ? "CONSOLA KJ AL AIRE" : "CABINA DJ AL AIRE"}
               </span>
               {isRealtime && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800 text-[10px] font-bold">
@@ -832,13 +894,68 @@ export default function DjBoothPage() {
             <div className="text-base font-black text-amber-400">{data.stats.pending}</div>
           </div>
           <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-center">
-            <div className="text-[10px] text-zinc-400 font-bold uppercase">En Cola</div>
+            <div className="text-[10px] text-zinc-400 font-bold uppercase">
+              {queuePolicy.zone === "KARAOKE" ? "En Turno" : "En Cola"}
+            </div>
             <div className="text-base font-black text-purple-400">{data.stats.queued}</div>
           </div>
           <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-center">
-            <div className="text-[10px] text-zinc-400 font-bold uppercase">Tocadas</div>
+            <div className="text-[10px] text-zinc-400 font-bold uppercase">
+              {queuePolicy.zone === "KARAOKE" ? "Cantadas" : "Tocadas"}
+            </div>
             <div className="text-base font-black text-emerald-400">{data.stats.played}</div>
           </div>
+        </div>
+      </div>
+
+      {/* 🎛️ SELECTOR PRINCIPAL DE MODALIDAD: MODO DJ vs MODO KARAOKE */}
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950 border border-zinc-800 shadow-xl flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 w-full md:w-auto">
+          <span className="text-xs font-black uppercase tracking-wider text-zinc-400 shrink-0 flex items-center gap-1.5">
+            <Sliders className="w-3.5 h-3.5 text-purple-400" />
+            <span>Modalidad de Operación:</span>
+          </span>
+          <div className="inline-flex p-1 rounded-xl bg-zinc-900/90 border border-zinc-800">
+            <button
+              onClick={() => handleUpdatePolicy({ zone: "DJ" })}
+              disabled={policyLoading}
+              className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                queuePolicy.zone === "DJ"
+                  ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/40 scale-[1.02]"
+                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+              }`}
+            >
+              <Disc3 className={`w-4 h-4 ${queuePolicy.zone === "DJ" ? "animate-spin [animation-duration:4s]" : ""}`} />
+              <span>🎧 MODO DJ (Pista & Mezclas)</span>
+            </button>
+
+            <button
+              onClick={() => handleUpdatePolicy({ zone: "KARAOKE" })}
+              disabled={policyLoading}
+              className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                queuePolicy.zone === "KARAOKE"
+                  ? "bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-lg shadow-cyan-600/40 scale-[1.02]"
+                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+              }`}
+            >
+              <Mic className="w-4 h-4 text-cyan-200" />
+              <span>🎤 MODO KARAOKE (Escenario & Cantantes)</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs">
+          {queuePolicy.zone === "KARAOKE" ? (
+            <span className="px-3 py-1.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 font-semibold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span>Turnos &ldquo;Canta y Libera&rdquo; sincronizados con pantalla TV</span>
+            </span>
+          ) : (
+            <span className="px-3 py-1.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-700/60 font-semibold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+              <span>Pista de baile & Mezclas continuas en vivo</span>
+            </span>
+          )}
         </div>
       </div>
 
@@ -1402,229 +1519,504 @@ export default function DjBoothPage() {
         </div>
       )}
 
-      {/* 2. EL DOBLE DECK (Deck A, Crossfader, Deck B) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* DECK A: Canción Al Aire (Col 5) */}
-        <div className="lg:col-span-5 p-5 rounded-2xl bg-gradient-to-br from-zinc-900 via-zinc-900 to-purple-950/40 border-2 border-purple-500/40 shadow-2xl relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-md bg-purple-600 text-white text-[10px] font-black tracking-widest uppercase">
-                DECK A &bull; AL AIRE
-              </span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              {currentTrack?.tipAmountCents && currentTrack.tipAmountCents > 0 ? (
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-[10px] font-black">
-                  ⭐ VIP FAST-PASS (${(currentTrack.tipAmountCents / 100).toFixed(2)})
-                </span>
-              ) : null}
+      {/* 2. PANEL HERO CENTRAL: MODO KARAOKE (ESCENARIO) vs MODO DJ (DOBLE DECK & MEZCLAS) */}
+      {queuePolicy.zone === "KARAOKE" ? (
+        /* 🎤 CONSOLA DE ESCENARIO KARAOKE (KJ HOST CONSOLE) */
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* MONITOR PRINCIPAL DE ESCENARIO: Cantante al Aire (Col 7) */}
+            <div className="lg:col-span-7 p-6 rounded-2xl bg-gradient-to-br from-zinc-900 via-zinc-900 to-cyan-950/40 border-2 border-cyan-500/50 shadow-2xl relative overflow-hidden flex flex-col justify-between space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-lg bg-gradient-to-r from-cyan-600 to-teal-600 text-white text-xs font-black tracking-widest uppercase shadow-md shadow-cyan-600/30 flex items-center gap-1.5">
+                    <Mic className="w-3.5 h-3.5" />
+                    <span>AL AIRE &bull; EN ESCENARIO</span>
+                  </span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+                  {currentTrack?.tipAmountCents && currentTrack.tipAmountCents > 0 ? (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-[10px] font-black">
+                      ⭐ VIP FAST-PASS (${(currentTrack.tipAmountCents / 100).toFixed(2)})
+                    </span>
+                  ) : null}
+                </div>
+
+                {currentTrack?.table && (
+                  <span className="px-3 py-1 rounded-xl bg-zinc-950 text-cyan-300 border border-cyan-500/40 text-xs font-mono font-black">
+                    {currentTrack.table.label}
+                  </span>
+                )}
+              </div>
+
+              {currentTrack ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    {/* Spotlight Mic Visual */}
+                    <div className="relative shrink-0">
+                      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-teal-500/10 border-2 border-cyan-500/40 shadow-xl flex items-center justify-center">
+                        <Mic className="w-10 h-10 text-cyan-300 animate-bounce" />
+                      </div>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-black uppercase text-cyan-400 tracking-wider">
+                        {currentTrack.guestSession?.guestName
+                          ? `🎤 Cantante: ${currentTrack.guestSession.guestName}`
+                          : `🎤 Mesa: ${currentTrack.table?.label || "Sin mesa"}`}
+                      </div>
+                      <h2 className="text-xl sm:text-2xl font-black text-white truncate mt-0.5">
+                        {currentTrack.song?.title || currentTrack.customTitle}
+                      </h2>
+                      <p className="text-sm font-bold text-zinc-300 truncate">
+                        {currentTrack.song?.artist?.name || currentTrack.customArtist}
+                      </p>
+
+                      <div className="flex items-center gap-2 mt-2 text-[10px] font-mono flex-wrap">
+                        <span className="px-2 py-0.5 rounded bg-zinc-950 text-amber-300 border border-zinc-800 font-bold">
+                          TONO / KEY: {currentTrack.song?.key || "Original"}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-zinc-950 text-cyan-300 border border-zinc-800 font-bold">
+                          {currentTrack.song?.bpm ? `${currentTrack.song.bpm} BPM` : "120 BPM"}
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-zinc-950 text-purple-300 border border-zinc-800 font-bold">
+                          REGLA: Canta y Libera
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dedicatoria del Cantante */}
+                  {currentTrack.notes && (
+                    <div className="p-3 rounded-xl bg-cyan-950/50 border border-cyan-800/80 text-xs text-cyan-100 italic">
+                      &ldquo;{currentTrack.notes}&rdquo;
+                      {currentTrack.guestSession?.guestName && (
+                        <span className="block not-italic font-bold text-[10px] text-cyan-300 mt-1">
+                          &mdash; Dedicado por {currentTrack.guestSession.guestName}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Barra de Progreso */}
+                  <div className="space-y-1">
+                    <div className="w-full h-2.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+                      <div
+                        className="h-full bg-gradient-to-r from-cyan-500 to-teal-400 transition-all duration-1000"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[11px] font-mono text-zinc-400">
+                      <span>{formatTime(playbackSeconds)}</span>
+                      <span>{formatTime(trackDuration)}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-12 text-center text-zinc-500 space-y-2">
+                  <Mic className="w-12 h-12 mx-auto text-zinc-700" />
+                  <p className="text-sm font-bold text-zinc-300">El escenario está libre.</p>
+                  <p className="text-xs text-cyan-400">
+                    Carga un cantante de la cola para iluminar el escenario.
+                  </p>
+                </div>
+              )}
+
+              {/* BARRA DE ACCIONES RÁPIDAS DEL KJ HOST */}
+              <div className="pt-3 border-t border-zinc-800/80 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => handleCallSinger()}
+                    disabled={!currentTrack}
+                    className="px-3 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 shadow-md shadow-cyan-600/30"
+                    title="Alerta a la mesa y muestra en la TV gigante que suban a cantar"
+                  >
+                    <Megaphone className="w-3.5 h-3.5" />
+                    <span>📢 Llamar al Escenario</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (currentTrack) {
+                        setApplauseTarget(
+                          currentTrack.guestSession?.guestName
+                            ? `${currentTrack.guestSession.guestName} (${currentTrack.table?.label})`
+                            : currentTrack.table?.label || "Escenario"
+                        );
+                      }
+                      setIsApplauseModalOpen(true);
+                    }}
+                    disabled={!currentTrack || interactiveLoading}
+                    className="px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                    title="Lanzar aplausómetro para calificar la interpretación en la pantalla"
+                  >
+                    <span>👏</span>
+                    <span>Aplausómetro</span>
+                  </button>
+
+                  {currentTrack && (
+                    <a
+                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(
+                        `${currentTrack.song?.title || currentTrack.customTitle} ${
+                          currentTrack.song?.artist?.name || currentTrack.customArtist
+                        } karaoke con letra`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Buscar video de pista karaoke instrumental con letra"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-red-400" />
+                      <span>Pista en YouTube</span>
+                    </a>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsPlaying(!isPlaying)}
+                    disabled={!currentTrack}
+                    className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                  >
+                    {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                    <span>{isPlaying ? "Pausar" : "Seguir"}</span>
+                  </button>
+
+                  <button
+                    onClick={handleNextTrack}
+                    disabled={data.queue.length === 0}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 shadow-md shadow-emerald-600/30"
+                    title="Termina este turno, libera el cupo de la mesa (Canta y Libera) y sube al siguiente cantante"
+                  >
+                    <span>Ceder Micrófono &rarr;</span>
+                    <SkipForward className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {currentTrack?.table && (
-              <span className="px-2 py-0.5 rounded bg-zinc-950 text-purple-300 border border-purple-500/30 text-xs font-bold">
-                {currentTrack.table.label}
-              </span>
-            )}
-          </div>
+            {/* PRÓXIMOS CANTANTES EN ROTACIÓN (Col 5) */}
+            <div className="lg:col-span-5 p-5 rounded-2xl bg-zinc-900/90 border border-zinc-800 shadow-xl flex flex-col justify-between space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                    Próximos Turnos ({data.queue.length})
+                  </h3>
+                </div>
+                <button
+                  onClick={handleFairRotation}
+                  disabled={data.queue.length <= 1}
+                  className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold underline cursor-pointer flex items-center gap-1 disabled:opacity-40"
+                  title="Intercala turnos entre mesas para máxima equidad"
+                >
+                  <Shuffle className="w-3 h-3" />
+                  <span>Rotar Mesas</span>
+                </button>
+              </div>
 
-          {currentTrack ? (
-            <div className="my-4 space-y-3">
-              <div className="flex items-center gap-4">
-                {/* Vinilo Animado */}
-                <div className="relative shrink-0">
-                  <div
-                    className={`w-20 h-20 rounded-full bg-black border-4 border-zinc-800 shadow-xl flex items-center justify-center ${
-                      isPlaying ? "animate-spin [animation-duration:3s]" : ""
-                    }`}
-                  >
-                    <div className="w-8 h-8 rounded-full bg-purple-600 border-2 border-white flex items-center justify-center">
-                      <div className="w-2 h-2 rounded-full bg-black" />
+              {data.queue.length === 0 ? (
+                <div className="py-12 text-center text-zinc-500 space-y-1">
+                  <Music className="w-8 h-8 mx-auto text-zinc-700" />
+                  <p className="text-xs text-zinc-400">No hay más cantantes en espera.</p>
+                  <p className="text-[10px] text-zinc-500">
+                    Las mesas pueden pedir temas desde su celular.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 overflow-y-auto max-h-[340px] pr-1">
+                  {data.queue.map((entry, idx) => (
+                    <div
+                      key={entry.id}
+                      className={`p-3 rounded-xl border flex items-center justify-between gap-2.5 transition-all ${
+                        idx === 0
+                          ? "bg-gradient-to-r from-cyan-950/60 to-zinc-950 border-cyan-500/50 shadow-md shadow-cyan-950/50"
+                          : "bg-zinc-950/80 border-zinc-800 hover:border-zinc-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          className={`w-6 h-6 rounded-lg text-xs font-black flex items-center justify-center shrink-0 ${
+                            idx === 0
+                              ? "bg-cyan-500 text-black shadow-sm"
+                              : "bg-zinc-800 text-zinc-400"
+                          }`}
+                        >
+                          #{idx + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-bold text-white truncate">
+                              {entry.songRequest.song?.title || entry.songRequest.customTitle}
+                            </span>
+                            {entry.songRequest.tipAmountCents && entry.songRequest.tipAmountCents > 0 ? (
+                              <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-500 text-black">
+                                ⭐ VIP
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="text-[11px] text-zinc-400 truncate">
+                            {entry.songRequest.guestSession?.guestName
+                              ? `${entry.songRequest.guestSession.guestName} (${entry.songRequest.table?.label})`
+                              : entry.songRequest.table?.label || "Sin mesa"}
+                            {" • "}
+                            {entry.songRequest.song?.artist?.name || entry.songRequest.customArtist}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => handleCallSinger(entry)}
+                          className="p-1.5 rounded-lg bg-zinc-800 hover:bg-cyan-950 text-zinc-400 hover:text-cyan-300 border border-zinc-700 hover:border-cyan-700 transition-colors cursor-pointer"
+                          title="Llamar a esta mesa al escenario"
+                        >
+                          <Megaphone className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handlePlayQueueEntry(entry.id)}
+                          className="px-2.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Subir al escenario ahora"
+                        >
+                          <Play className="w-3 h-3" />
+                          <span>Subir</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
+                <span>Fair-Play activo: 1 turno por mesa</span>
+                <span className="font-mono text-cyan-400 font-bold">Canta y Libera</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* 🎧 CONSOLA DE CABINA DJ (DUAL DECKS & CROSSFADER) */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* DECK A: Canción Al Aire (Col 5) */}
+          <div className="lg:col-span-5 p-5 rounded-2xl bg-gradient-to-br from-zinc-900 via-zinc-900 to-purple-950/40 border-2 border-purple-500/40 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-md bg-purple-600 text-white text-[10px] font-black tracking-widest uppercase">
+                  DECK A &bull; AL AIRE
+                </span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                {currentTrack?.tipAmountCents && currentTrack.tipAmountCents > 0 ? (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-[10px] font-black">
+                    ⭐ VIP FAST-PASS (${(currentTrack.tipAmountCents / 100).toFixed(2)})
+                  </span>
+                ) : null}
+              </div>
+
+              {currentTrack?.table && (
+                <span className="px-2 py-0.5 rounded bg-zinc-950 text-purple-300 border border-purple-500/30 text-xs font-bold">
+                  {currentTrack.table.label}
+                </span>
+              )}
+            </div>
+
+            {currentTrack ? (
+              <div className="my-4 space-y-3">
+                <div className="flex items-center gap-4">
+                  {/* Vinilo Animado */}
+                  <div className="relative shrink-0">
+                    <div
+                      className={`w-20 h-20 rounded-full bg-black border-4 border-zinc-800 shadow-xl flex items-center justify-center ${
+                        isPlaying ? "animate-spin [animation-duration:3s]" : ""
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-purple-600 border-2 border-white flex items-center justify-center">
+                        <div className="w-2 h-2 rounded-full bg-black" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-lg font-black text-white truncate">
+                      {currentTrack.song?.title || currentTrack.customTitle}
+                    </h2>
+                    <p className="text-sm font-semibold text-purple-300 truncate">
+                      {currentTrack.song?.artist?.name || currentTrack.customArtist}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1.5 text-[10px] font-mono">
+                      <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-cyan-400 border border-zinc-800 font-bold">
+                        {currentTrack.song?.bpm ? `${currentTrack.song.bpm} BPM` : "124 BPM"}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
+                        KEY: {currentTrack.song?.key || "Am"}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-lg font-black text-white truncate">
-                    {currentTrack.song?.title || currentTrack.customTitle}
-                  </h2>
-                  <p className="text-sm font-semibold text-purple-300 truncate">
-                    {currentTrack.song?.artist?.name || currentTrack.customArtist}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1.5 text-[10px] font-mono">
-                    <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-cyan-400 border border-zinc-800 font-bold">
-                      {currentTrack.song?.bpm ? `${currentTrack.song.bpm} BPM` : "124 BPM"}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
-                      KEY: {currentTrack.song?.key || "Am"}
-                    </span>
+                {/* Dedicatoria del Comensal */}
+                {currentTrack.notes && (
+                  <div className="p-2.5 rounded-xl bg-purple-950/60 border border-purple-800/80 text-xs text-purple-200 italic">
+                    &ldquo;{currentTrack.notes}&rdquo;
+                    {currentTrack.guestSession?.guestName && (
+                      <span className="block not-italic font-bold text-[10px] text-purple-400 mt-1">
+                        &mdash; {currentTrack.guestSession.guestName}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Barra de Progreso y Tiempo */}
+                <div className="space-y-1">
+                  <div className="w-full h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+                    <div
+                      className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 transition-all duration-1000"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[11px] font-mono text-zinc-400">
+                    <span>{formatTime(playbackSeconds)}</span>
+                    <span>{formatTime(trackDuration)}</span>
                   </div>
                 </div>
               </div>
-
-              {/* Dedicatoria del Comensal */}
-              {currentTrack.notes && (
-                <div className="p-2.5 rounded-xl bg-purple-950/60 border border-purple-800/80 text-xs text-purple-200 italic">
-                  &ldquo;{currentTrack.notes}&rdquo;
-                  {currentTrack.guestSession?.guestName && (
-                    <span className="block not-italic font-bold text-[10px] text-purple-400 mt-1">
-                      &mdash; {currentTrack.guestSession.guestName}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Barra de Progreso y Tiempo */}
-              <div className="space-y-1">
-                <div className="w-full h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
-                  <div
-                    className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 transition-all duration-1000"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[11px] font-mono text-zinc-400">
-                  <span>{formatTime(playbackSeconds)}</span>
-                  <span>{formatTime(trackDuration)}</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="py-10 text-center text-zinc-500 space-y-2">
-              <Disc3 className="w-10 h-10 mx-auto text-zinc-700" />
-              <p className="text-xs">No hay ninguna canción sonando.</p>
-              <p className="text-[11px] text-purple-400 font-medium">
-                Carga un tema desde la cola para comenzar la fiesta.
-              </p>
-            </div>
-          )}
-
-          {/* Controles de Transporte Deck A */}
-          <div className="flex items-center justify-between pt-3 border-t border-zinc-800/80">
-            <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              disabled={!currentTrack}
-              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
-            >
-              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              <span>{isPlaying ? "Pausar" : "Reproducir"}</span>
-            </button>
-
-            <button
-              onClick={handleNextTrack}
-              disabled={data.queue.length === 0}
-              className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
-            >
-              <span>Siguiente</span>
-              <SkipForward className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* CROSSFADER CENTRAL (Col 2) */}
-        <div className="lg:col-span-2 p-4 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col items-center justify-between text-center">
-          <div className="flex items-center gap-1 text-[10px] uppercase font-bold text-zinc-400">
-            <Sliders className="w-3.5 h-3.5 text-purple-400" />
-            <span>Crossfader FX</span>
-          </div>
-
-          <div className="my-5 w-full space-y-2">
-            <input
-              type="range"
-              min={-100}
-              max={100}
-              value={crossfaderValue}
-              onChange={(e) => setCrossfaderValue(Number(e.target.value))}
-              className="w-full accent-purple-500 cursor-pointer h-2 bg-zinc-800 rounded-lg appearance-none"
-            />
-            <div className="flex justify-between text-[10px] font-mono text-zinc-400 font-bold px-1">
-              <span className={crossfaderValue < -20 ? "text-purple-400 font-black" : ""}>
-                A: {Math.round(crossfaderGains.gainA * 100)}%
-              </span>
-              <span className={crossfaderValue > 20 ? "text-cyan-400 font-black" : ""}>
-                B: {Math.round(crossfaderGains.gainB * 100)}%
-              </span>
-            </div>
-            <div className="text-[9px] font-mono text-zinc-600">Curva Potencia Constante</div>
-          </div>
-
-          <button
-            onClick={() => setCrossfaderValue(0)}
-            className="text-[10px] text-zinc-500 hover:text-zinc-300 font-mono underline cursor-pointer"
-          >
-            Centrar Mezcla
-          </button>
-        </div>
-
-        {/* DECK B: Próximo Tema Listo (Col 5) */}
-        <div className="lg:col-span-5 p-5 rounded-2xl bg-gradient-to-bl from-zinc-900 via-zinc-900 to-cyan-950/30 border border-cyan-500/30 shadow-xl flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-md bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 text-[10px] font-black tracking-widest uppercase">
-                DECK B &bull; EN ESPERA (#1)
-              </span>
-              {nextTrack?.tipAmountCents && nextTrack.tipAmountCents > 0 ? (
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-[10px] font-black">
-                  ⭐ VIP FAST-PASS
-                </span>
-              ) : null}
-            </div>
-
-            {nextTrack?.table && (
-              <span className="px-2 py-0.5 rounded bg-zinc-950 text-cyan-300 border border-zinc-800 text-xs font-bold">
-                {nextTrack.table.label}
-              </span>
-            )}
-          </div>
-
-          {nextTrack ? (
-            <div className="my-4 space-y-3">
-              <div>
-                <h2 className="text-base font-black text-white truncate">
-                  {nextTrack.song?.title || nextTrack.customTitle}
-                </h2>
-                <p className="text-xs font-semibold text-cyan-300 truncate">
-                  {nextTrack.song?.artist?.name || nextTrack.customArtist}
+            ) : (
+              <div className="py-10 text-center text-zinc-500 space-y-2">
+                <Disc3 className="w-10 h-10 mx-auto text-zinc-700" />
+                <p className="text-xs">No hay ninguna canción sonando.</p>
+                <p className="text-[11px] text-purple-400 font-medium">
+                  Carga un tema desde la cola para comenzar la fiesta.
                 </p>
-                <div className="flex items-center gap-2 mt-1.5 text-[10px] font-mono">
-                  <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-cyan-400 border border-zinc-800 font-bold">
-                    {nextTrack.song?.bpm ? `${nextTrack.song.bpm} BPM` : "126 BPM"}
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
-                    KEY: {nextTrack.song?.key || "Em"}
-                  </span>
-                  <span className="text-zinc-500">
-                    Duración: {formatTime(nextTrack.song?.durationSeconds || 210)}
-                  </span>
-                </div>
               </div>
+            )}
 
-              {nextTrack.notes && (
-                <div className="p-2 rounded-xl bg-cyan-950/40 border border-cyan-900/60 text-xs text-cyan-200 italic">
-                  &ldquo;{nextTrack.notes}&rdquo;
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="py-10 text-center text-zinc-500 space-y-2">
-              <Music className="w-10 h-10 mx-auto text-zinc-700" />
-              <p className="text-xs">No hay temas preparados en Deck B.</p>
-              <p className="text-[10px] text-zinc-600">Acepta solicitudes para alimentar la cola.</p>
-            </div>
-          )}
+            {/* Controles de Transporte Deck A */}
+            <div className="flex items-center justify-between pt-3 border-t border-zinc-800/80">
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                disabled={!currentTrack}
+                className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+              >
+                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                <span>{isPlaying ? "Pausar" : "Reproducir"}</span>
+              </button>
 
-          <div className="pt-3 border-t border-zinc-800/80">
+              <button
+                onClick={handleNextTrack}
+                disabled={data.queue.length === 0}
+                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+              >
+                <span>Siguiente</span>
+                <SkipForward className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* CROSSFADER CENTRAL (Col 2) */}
+          <div className="lg:col-span-2 p-4 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col items-center justify-between text-center">
+            <div className="flex items-center gap-1 text-[10px] uppercase font-bold text-zinc-400">
+              <Sliders className="w-3.5 h-3.5 text-purple-400" />
+              <span>Crossfader FX</span>
+            </div>
+
+            <div className="my-5 w-full space-y-2">
+              <input
+                type="range"
+                min={-100}
+                max={100}
+                value={crossfaderValue}
+                onChange={(e) => setCrossfaderValue(Number(e.target.value))}
+                className="w-full accent-purple-500 cursor-pointer h-2 bg-zinc-800 rounded-lg appearance-none"
+              />
+              <div className="flex justify-between text-[10px] font-mono text-zinc-400 font-bold px-1">
+                <span className={crossfaderValue < -20 ? "text-purple-400 font-black" : ""}>
+                  A: {Math.round(crossfaderGains.gainA * 100)}%
+                </span>
+                <span className={crossfaderValue > 20 ? "text-cyan-400 font-black" : ""}>
+                  B: {Math.round(crossfaderGains.gainB * 100)}%
+                </span>
+              </div>
+              <div className="text-[9px] font-mono text-zinc-600">Curva Potencia Constante</div>
+            </div>
+
             <button
-              onClick={() => handlePlayQueueEntry(data.queue[0].id)}
-              disabled={!nextTrack}
-              className="w-full py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-40 flex items-center justify-center gap-1.5"
+              onClick={() => setCrossfaderValue(0)}
+              className="text-[10px] text-zinc-500 hover:text-zinc-300 font-mono underline cursor-pointer"
             >
-              <Play className="w-3.5 h-3.5" />
-              <span>Cargar a Deck A & Poner al Aire</span>
+              Centrar Mezcla
             </button>
           </div>
+
+          {/* DECK B: Próximo Tema Listo (Col 5) */}
+          <div className="lg:col-span-5 p-5 rounded-2xl bg-gradient-to-bl from-zinc-900 via-zinc-900 to-cyan-950/30 border border-cyan-500/30 shadow-xl flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-md bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 text-[10px] font-black tracking-widest uppercase">
+                  DECK B &bull; EN ESPERA (#1)
+                </span>
+                {nextTrack?.tipAmountCents && nextTrack.tipAmountCents > 0 ? (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-[10px] font-black">
+                    ⭐ VIP FAST-PASS
+                  </span>
+                ) : null}
+              </div>
+
+              {nextTrack?.table && (
+                <span className="px-2 py-0.5 rounded bg-zinc-950 text-cyan-300 border border-zinc-800 text-xs font-bold">
+                  {nextTrack.table.label}
+                </span>
+              )}
+            </div>
+
+            {nextTrack ? (
+              <div className="my-4 space-y-3">
+                <div>
+                  <h2 className="text-base font-black text-white truncate">
+                    {nextTrack.song?.title || nextTrack.customTitle}
+                  </h2>
+                  <p className="text-xs font-semibold text-cyan-300 truncate">
+                    {nextTrack.song?.artist?.name || nextTrack.customArtist}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1.5 text-[10px] font-mono">
+                    <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-cyan-400 border border-zinc-800 font-bold">
+                      {nextTrack.song?.bpm ? `${nextTrack.song.bpm} BPM` : "126 BPM"}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
+                      KEY: {nextTrack.song?.key || "Em"}
+                    </span>
+                    <span className="text-zinc-500">
+                      Duración: {formatTime(nextTrack.song?.durationSeconds || 210)}
+                    </span>
+                  </div>
+                </div>
+
+                {nextTrack.notes && (
+                  <div className="p-2 rounded-xl bg-cyan-950/40 border border-cyan-900/60 text-xs text-cyan-200 italic">
+                    &ldquo;{nextTrack.notes}&rdquo;
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="py-10 text-center text-zinc-500 space-y-2">
+                <Music className="w-10 h-10 mx-auto text-zinc-700" />
+                <p className="text-xs">No hay temas preparados en Deck B.</p>
+                <p className="text-[10px] text-zinc-600">Acepta solicitudes para alimentar la cola.</p>
+              </div>
+            )}
+
+            <div className="pt-3 border-t border-zinc-800/80">
+              <button
+                onClick={() => handlePlayQueueEntry(data.queue[0].id)}
+                disabled={!nextTrack}
+                className="w-full py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-40 flex items-center justify-center gap-1.5"
+              >
+                <Play className="w-3.5 h-3.5" />
+                <span>Cargar a Deck A & Poner al Aire</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 2.5 SOUNDBOARD FX LAUNCHPAD */}
-      <DjSoundboard />
+      <DjSoundboard mode={queuePolicy.zone === "KARAOKE" ? "KARAOKE" : "DJ"} />
 
       {/* 3. COLUMNAS DIVIDIDAS: Bandeja de Moderación & Cola en Vivo */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1633,7 +2025,9 @@ export default function DjBoothPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Flame className="w-5 h-5 text-amber-400" />
-              <h2 className="text-base font-bold text-white">Solicitudes Entrantes</h2>
+              <h2 className="text-base font-bold text-white">
+                {queuePolicy.zone === "KARAOKE" ? "Solicitudes de Karaoke" : "Solicitudes Entrantes"}
+              </h2>
               <span className="px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800 text-[10px] font-bold">
                 {filteredPending.length}
               </span>
@@ -1643,7 +2037,9 @@ export default function DjBoothPage() {
                 </span>
               )}
             </div>
-            <span className="text-[11px] text-zinc-500">De las mesas al DJ</span>
+            <span className="text-[11px] text-zinc-500">
+              {queuePolicy.zone === "KARAOKE" ? "De las mesas al KJ" : "De las mesas al DJ"}
+            </span>
           </div>
 
           {filteredPending.length === 0 ? (
@@ -1706,23 +2102,42 @@ export default function DjBoothPage() {
                     )}
 
                     {/* Acciones de Moderación */}
-                    <div className="flex items-center gap-2 pt-1 border-t border-zinc-900">
-                      <button
-                        onClick={() => handleAccept(req.id)}
-                        disabled={isLoading}
-                        className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Aceptar a Cola</span>
-                      </button>
+                    <div className="flex items-center justify-between pt-1 border-t border-zinc-900">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleAccept(req.id)}
+                          disabled={isLoading}
+                          className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shadow-sm"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Aceptar</span>
+                        </button>
 
+                        <button
+                          onClick={() => handleReject(req.id)}
+                          disabled={isLoading}
+                          className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 text-xs font-medium transition-colors cursor-pointer disabled:opacity-40"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Rechazar</span>
+                        </button>
+                      </div>
+
+                      {/* Botón rápido Duelo con este tema */}
                       <button
-                        onClick={() => handleReject(req.id)}
-                        disabled={isLoading}
-                        className="px-3 py-2 rounded-lg bg-zinc-900 hover:bg-red-950/50 text-zinc-400 hover:text-red-300 border border-zinc-800 hover:border-red-900 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                        onClick={() => {
+                          setDuelTrackA({
+                            title: title || "Tema A",
+                            artist: artist || "Artista A",
+                            tableLabel: req.table.label,
+                          });
+                          setIsDuelModalOpen(true);
+                        }}
+                        className="text-[10px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
+                        title="Usar este tema para lanzar un duelo en vivo"
                       >
-                        <X className="w-3.5 h-3.5" />
-                        <span>Rechazar</span>
+                        <Swords className="w-3 h-3" />
+                        <span>Batalla VS</span>
                       </button>
                     </div>
                   </div>
@@ -1736,10 +2151,22 @@ export default function DjBoothPage() {
         <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Music className="w-5 h-5 text-purple-400" />
-              <h2 className="text-base font-bold text-white">Cola de Reproducción</h2>
-              <span className="px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800 text-[10px] font-bold">
-                {data.queue.length} en espera
+              {queuePolicy.zone === "KARAOKE" ? (
+                <Mic className="w-5 h-5 text-cyan-400" />
+              ) : (
+                <Music className="w-5 h-5 text-purple-400" />
+              )}
+              <h2 className="text-base font-bold text-white">
+                {queuePolicy.zone === "KARAOKE" ? "Turnos de Karaoke" : "Cola de Reproducción"}
+              </h2>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                  queuePolicy.zone === "KARAOKE"
+                    ? "bg-cyan-950 text-cyan-300 border-cyan-800"
+                    : "bg-purple-950 text-purple-300 border-purple-800"
+                }`}
+              >
+                {data.queue.length} {queuePolicy.zone === "KARAOKE" ? "en turno" : "en cola"}
               </span>
             </div>
 
@@ -1751,14 +2178,22 @@ export default function DjBoothPage() {
               className="px-2.5 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
             >
               <Shuffle className="w-3.5 h-3.5 text-purple-400" />
-              <span>Rotación Justa (Fair-Play)</span>
+              <span>Rotación Justa</span>
             </button>
           </div>
 
           {data.queue.length === 0 ? (
             <div className="p-12 text-center text-zinc-500 space-y-2">
-              <Disc3 className="w-8 h-8 mx-auto text-zinc-700" />
-              <p className="text-xs">La cola está vacía.</p>
+              {queuePolicy.zone === "KARAOKE" ? (
+                <Mic className="w-8 h-8 mx-auto text-zinc-700" />
+              ) : (
+                <Disc3 className="w-8 h-8 mx-auto text-zinc-700" />
+              )}
+              <p className="text-xs">
+                {queuePolicy.zone === "KARAOKE"
+                  ? "No hay cantantes en espera de turno."
+                  : "La cola de reproducción está vacía."}
+              </p>
               <p className="text-[10px] text-zinc-600">
                 Acepta canciones de las mesas para ordenarlas aquí.
               </p>
@@ -1794,15 +2229,34 @@ export default function DjBoothPage() {
                             </span>
                           ) : null}
                         </div>
-                        <p className="text-[11px] text-zinc-400 truncate">{artist}</p>
+                        <p className="text-[11px] text-zinc-400 truncate">
+                          {entry.songRequest.guestSession?.guestName
+                            ? `${entry.songRequest.guestSession.guestName} • `
+                            : ""}
+                          {artist}
+                        </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
+                      {queuePolicy.zone === "KARAOKE" && (
+                        <button
+                          onClick={() => handleCallSinger(entry)}
+                          title="Llamar a esta mesa al escenario (alerta en TV)"
+                          className="p-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white transition-colors cursor-pointer"
+                        >
+                          <Megaphone className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
                       <button
                         onClick={() => handlePlayQueueEntry(entry.id)}
-                        title="Cargar a Deck A"
-                        className="p-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white transition-colors cursor-pointer"
+                        title={queuePolicy.zone === "KARAOKE" ? "Subir al escenario ahora" : "Cargar a Deck A"}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                          queuePolicy.zone === "KARAOKE"
+                            ? "bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white"
+                            : "bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white"
+                        }`}
                       >
                         <Play className="w-3.5 h-3.5" />
                       </button>

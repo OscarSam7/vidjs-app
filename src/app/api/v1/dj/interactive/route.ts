@@ -7,9 +7,18 @@ import { handleApiError, NotFoundError, AppError } from "@/lib/errors";
 import { realtimeBus } from "@/lib/realtime/event-bus";
 
 const interactiveActionSchema = z.object({
-  action: z.enum(["START_APPLAUSE", "TICK_APPLAUSE", "END_APPLAUSE", "SPIN_ROULETTE"]),
+  action: z.enum([
+    "START_APPLAUSE",
+    "TICK_APPLAUSE",
+    "END_APPLAUSE",
+    "SPIN_ROULETTE",
+    "CALL_SINGER",
+  ]),
   eventId: z.string().min(1, "eventId es obligatorio"),
   targetTableLabel: z.string().optional(),
+  singerName: z.string().optional(),
+  songTitle: z.string().optional(),
+  artist: z.string().optional(),
   durationSeconds: z.number().int().min(5).max(60).optional(),
   prizeTitle: z.string().optional(),
 });
@@ -109,6 +118,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         message: `¡Ruleta girando en la pantalla gigante! Ganadora: ${winner}`,
+        data: payload,
+      });
+    }
+
+    if (data.action === "CALL_SINGER") {
+      const payload = {
+        tableLabel: data.targetTableLabel || "Mesa de Karaoke",
+        singerName: data.singerName || null,
+        songTitle: data.songTitle || null,
+        artist: data.artist || null,
+        timestamp: Date.now(),
+      };
+
+      realtimeBus.broadcast(event.id, "SINGER_CALLED", payload);
+
+      return NextResponse.json({
+        success: true,
+        message: `📢 ¡Llamando a ${data.singerName ? `${data.singerName} (${payload.tableLabel})` : payload.tableLabel} al escenario!`,
         data: payload,
       });
     }

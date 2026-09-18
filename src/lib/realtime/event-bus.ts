@@ -21,6 +21,7 @@ export type RealtimeEventType =
   | "APPLAUSE_END"
   | "ROULETTE_SPIN"
   | "ROULETTE_RESULT"
+  | "SINGER_CALLED"
   | "PULSE_UPDATE";
 
 export interface RealtimeMessage<T = any> {

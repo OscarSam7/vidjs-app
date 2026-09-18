@@ -13,6 +13,7 @@ import {
   Flame,
   Swords,
   Camera,
+  Mic,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -134,6 +135,14 @@ interface DisplayState {
   };
 }
 
+interface SingerCallState {
+  tableLabel: string;
+  singerName: string | null;
+  songTitle: string | null;
+  artist: string | null;
+  timestamp: number;
+}
+
 export default function PublicDisplayScreenPage({
   params,
 }: {
@@ -167,6 +176,9 @@ export default function PublicDisplayScreenPage({
 
   // 🎰 Ruleta de la Suerte de Mesas
   const [roulette, setRoulette] = useState<RouletteState | null>(null);
+
+  // 🎤 Llamado a Cantante al Escenario (Karaoke Stage Call)
+  const [singerCall, setSingerCall] = useState<SingerCallState | null>(null);
 
   // Simulación de tiempo transcurrido de la canción
   const [elapsedSeconds, setElapsedSeconds] = useState(15);
@@ -264,6 +276,17 @@ export default function PublicDisplayScreenPage({
         setTimeout(() => {
           setRoulette(null);
         }, spinDuration + 9000);
+      } else if (type === "SINGER_CALLED") {
+        setSingerCall({
+          tableLabel: payload.tableLabel || "Mesa de Karaoke",
+          singerName: payload.singerName || null,
+          songTitle: payload.songTitle || null,
+          artist: payload.artist || null,
+          timestamp: Date.now(),
+        });
+        setTimeout(() => {
+          setSingerCall((prev) => (prev && Date.now() - prev.timestamp >= 9500 ? null : prev));
+        }, 10000);
       } else if (type === "PHOTO_FIT_MODE") {
         if (payload?.photoFitMode) {
           setPhotoFitMode(payload.photoFitMode);
@@ -1153,6 +1176,50 @@ export default function PublicDisplayScreenPage({
                 <span>🔥🔥 ¡FIESTA TOTAL!</span>
                 <span>💥💥 ¡LEGENDARIO!</span>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🎤 Banner de Llamado a Cantante al Escenario (Karaoke Stage Call) */}
+      {singerCall && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fadeIn">
+          <div className="max-w-2xl w-full bg-gradient-to-b from-cyan-950/95 via-zinc-950 to-zinc-950 border-4 border-cyan-400 rounded-3xl p-8 space-y-6 shadow-[0_0_80px_rgba(6,182,212,0.5)] text-center relative overflow-hidden">
+            <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400 text-sm font-black tracking-widest uppercase animate-bounce">
+              <Mic className="w-5 h-5 text-cyan-400" />
+              <span>🎤 ¡ATENCIÓN: AL ESCENARIO A CANTAR! 🎤</span>
+              <Mic className="w-5 h-5 text-cyan-400" />
+            </div>
+
+            <div className="space-y-3">
+              <div className="text-4xl sm:text-6xl font-black text-white tracking-tight drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]">
+                {singerCall.singerName ? singerCall.singerName : singerCall.tableLabel}
+              </div>
+              {singerCall.singerName && (
+                <div className="inline-block px-3 py-1 rounded-xl bg-cyan-950 border border-cyan-700 text-cyan-300 font-mono text-sm font-bold">
+                  {singerCall.tableLabel}
+                </div>
+              )}
+            </div>
+
+            {singerCall.songTitle && (
+              <div className="p-5 rounded-2xl bg-zinc-900/90 border border-cyan-500/40 shadow-inner space-y-1">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold">
+                  Tema a Interpretar:
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-black text-amber-300">
+                  {singerCall.songTitle}
+                </h3>
+                {singerCall.artist && (
+                  <p className="text-base text-zinc-300 font-semibold">{singerCall.artist}</p>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center justify-center gap-2 text-xs font-bold text-cyan-300 animate-pulse">
+              <span>🎙️</span>
+              <span>El micrófono está listo para ti en el escenario. ¡A romperla!</span>
+              <span>🌟</span>
             </div>
           </div>
         </div>
