@@ -129,6 +129,15 @@ export async function GET(req: NextRequest) {
                   currentPlaying.songRequest.song?.durationSeconds || 210,
                 bpm: currentPlaying.songRequest.song?.bpm,
                 key: currentPlaying.songRequest.song?.key,
+                youtubeSearchQuery: `${
+                  currentPlaying.songRequest.song?.title ||
+                  currentPlaying.songRequest.customTitle ||
+                  ""
+                } ${
+                  currentPlaying.songRequest.song?.artist?.name ||
+                  currentPlaying.songRequest.customArtist ||
+                  ""
+                } karaoke`.trim(),
               },
               table: currentPlaying.songRequest.table,
               guestName: currentPlaying.songRequest.guestSession?.guestName,

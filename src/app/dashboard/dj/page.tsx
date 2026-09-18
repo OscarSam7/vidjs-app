@@ -42,11 +42,14 @@ import {
   Megaphone,
   ExternalLink,
   PlusCircle,
+  Tv,
+  Youtube,
 } from "lucide-react";
 import DjBridgeModal from "@/components/dj/DjBridgeModal";
 import DjSoundboard from "@/components/dj/DjSoundboard";
 import ManualRequestModal from "@/components/dj/ManualRequestModal";
 import VirtualDjConsole from "@/components/dj/VirtualDjConsole";
+import KaraokeVideoModal from "@/components/dj/KaraokeVideoModal";
 import { calculateCrossfaderGains, djSoundEffects } from "@/lib/audio/dj-audio-engine";
 import { generateQueueIntelligence, QueueSuggestion } from "@/lib/dj/queue-intelligence";
 import { useRealtime } from "@/hooks/use-realtime";
@@ -218,6 +221,14 @@ export default function DjBoothPage() {
 
   // ➕ Carga Manual de Pedidos (Fuera de App / QR)
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+
+  // 🎤 Control de Video de Karaoke (YouTube Player & TV Broadcast)
+  const [isKaraokeModalOpen, setIsKaraokeModalOpen] = useState(false);
+  const [karaokeResults, setKaraokeResults] = useState<any[]>([]);
+  const [selectedKaraokeVideoId, setSelectedKaraokeVideoId] = useState<string | null>(null);
+  const [isTvVideoEnabled, setIsTvVideoEnabled] = useState(true);
+  const [isSearchingKaraoke, setIsSearchingKaraoke] = useState(false);
+  const [customKaraokeQuery, setCustomKaraokeQuery] = useState("");
 
   // Cargar estado de la cabina
   const fetchDjState = async (eventId?: string) => {
@@ -737,6 +748,84 @@ export default function DjBoothPage() {
     const s = Math.floor(secs % 60);
     return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
+
+  // 🎤 Búsqueda y gestión de pistas de Karaoke en YouTube
+  const handleSearchKaraoke = async (queryText?: string) => {
+    const q =
+      queryText ||
+      (currentTrack
+        ? `${currentTrack.song?.title || currentTrack.customTitle || ""} ${
+            currentTrack.song?.artist?.name || currentTrack.customArtist || ""
+          }`.trim()
+        : "");
+    if (!q) return;
+    setIsSearchingKaraoke(true);
+    try {
+      const res = await fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(q)}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          setKaraokeResults(json.data.results || []);
+          if (json.data.recommended?.id && !selectedKaraokeVideoId) {
+            setSelectedKaraokeVideoId(json.data.recommended.id);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Error searching karaoke:", err);
+    } finally {
+      setIsSearchingKaraoke(false);
+    }
+  };
+
+  const handleSelectAndBroadcastVideo = async (videoId: string, title?: string) => {
+    setSelectedKaraokeVideoId(videoId);
+    const eventId = selectedEventId || data?.event?.id;
+    if (!eventId) return;
+    try {
+      await fetch("/api/v1/karaoke/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId,
+          videoId,
+          videoTitle: title,
+          isVideoEnabled: isTvVideoEnabled,
+        }),
+      });
+      showFeedback("success", "🎬 Video de Karaoke proyectado en la TV");
+    } catch (err) {
+      console.error("Error broadcasting karaoke video:", err);
+    }
+  };
+
+  const handleToggleTvVideo = async (enabled: boolean) => {
+    setIsTvVideoEnabled(enabled);
+    const eventId = selectedEventId || data?.event?.id;
+    if (!eventId) return;
+    try {
+      await fetch("/api/v1/karaoke/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId,
+          videoId: selectedKaraokeVideoId,
+          isVideoEnabled: enabled,
+        }),
+      });
+      showFeedback("info", enabled ? "📺 Video Karaoke activado en la TV" : "📺 Modo vinilo en la TV");
+    } catch (err) {
+      console.error("Error toggling TV video:", err);
+    }
+  };
+
+  // Auto-búsqueda de pista en YouTube al cambiar de tema en Karaoke
+  useEffect(() => {
+    if (queuePolicy.zone === "KARAOKE" && currentTrack) {
+      setSelectedKaraokeVideoId(null);
+      handleSearchKaraoke();
+    }
+  }, [currentTrack?.id, queuePolicy.zone]);
 
   const suggestions: QueueSuggestion[] = data
     ? generateQueueIntelligence({
@@ -1638,6 +1727,44 @@ export default function DjBoothPage() {
                       <span>{formatTime(trackDuration)}</span>
                     </div>
                   </div>
+                  {/* Preview de YouTube en Cabina (si el video está activo) */}
+                  {isTvVideoEnabled && (
+                    <div className="p-2.5 rounded-xl bg-zinc-950/90 border border-cyan-500/30 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-cyan-300 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                          <span>Pista proyectada en TV (YouTube):</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsKaraokeModalOpen(true);
+                            handleSearchKaraoke();
+                          }}
+                          className="text-[11px] text-cyan-400 hover:text-cyan-200 underline font-bold cursor-pointer"
+                        >
+                          Cambiar Pista ({karaokeResults.length || "Buscar"}) ▾
+                        </button>
+                      </div>
+                      <div className="relative aspect-video max-h-44 w-full rounded-lg overflow-hidden border border-zinc-800 bg-black">
+                        <iframe
+                          key={selectedKaraokeVideoId || currentTrack.id}
+                          src={
+                            selectedKaraokeVideoId
+                              ? `https://www.youtube.com/embed/${selectedKaraokeVideoId}?enablejsapi=1`
+                              : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(
+                                  `${currentTrack.song?.title || currentTrack.customTitle} ${
+                                    currentTrack.song?.artist?.name || currentTrack.customArtist || ""
+                                  } karaoke`
+                                )}`
+                          }
+                          title="Karaoke Booth Preview"
+                          className="w-full h-full border-0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="py-12 text-center text-zinc-500 space-y-2">
@@ -1681,21 +1808,35 @@ export default function DjBoothPage() {
                     <span>Aplausómetro</span>
                   </button>
 
+                  {/* Selector de Pistas de Karaoke YouTube */}
                   {currentTrack && (
-                    <a
-                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(
-                        `${currentTrack.song?.title || currentTrack.customTitle} ${
-                          currentTrack.song?.artist?.name || currentTrack.customArtist
-                        } karaoke con letra`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                      title="Buscar video de pista karaoke instrumental con letra"
+                    <button
+                      onClick={() => {
+                        setIsKaraokeModalOpen(true);
+                        handleSearchKaraoke();
+                      }}
+                      className="px-3 py-2 rounded-xl bg-gradient-to-r from-red-600/30 to-pink-600/30 hover:from-red-600/40 hover:to-pink-600/40 border border-red-500/40 text-red-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Buscar o seleccionar versión de karaoke en YouTube"
                     >
-                      <ExternalLink className="w-3.5 h-3.5 text-red-400" />
-                      <span>Pista en YouTube</span>
-                    </a>
+                      <Youtube className="w-3.5 h-3.5 text-red-400" />
+                      <span>Pistas YouTube ({karaokeResults.length || "Buscar"})</span>
+                    </button>
+                  )}
+
+                  {/* Toggle de Video en TV */}
+                  {currentTrack && (
+                    <button
+                      onClick={() => handleToggleTvVideo(!isTvVideoEnabled)}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                        isTvVideoEnabled
+                          ? "bg-cyan-600/20 hover:bg-cyan-600/30 border-cyan-500/50 text-cyan-200"
+                          : "bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-400"
+                      }`}
+                      title="Alternar entre video de YouTube y visualizador clásico en la TV"
+                    >
+                      <Tv className="w-3.5 h-3.5" />
+                      <span>Video TV: {isTvVideoEnabled ? "ON" : "OFF"}</span>
+                    </button>
                   )}
                 </div>
 
@@ -2507,6 +2648,24 @@ export default function DjBoothPage() {
           showFeedback("success", "¡Pedido manual cargado con éxito!");
           fetchDjState();
         }}
+      />
+
+      {/* 7. MODAL SELECCIÓN Y PROYECCIÓN DE PISTAS KARAOKE YOUTUBE */}
+      <KaraokeVideoModal
+        isOpen={isKaraokeModalOpen}
+        onClose={() => setIsKaraokeModalOpen(false)}
+        currentSongTitle={currentTrack?.song?.title || currentTrack?.customTitle || ""}
+        currentSongArtist={currentTrack?.song?.artist?.name || currentTrack?.customArtist || ""}
+        results={karaokeResults}
+        selectedVideoId={selectedKaraokeVideoId}
+        onSelectVideo={(vid, title) => {
+          handleSelectAndBroadcastVideo(vid, title);
+          setIsKaraokeModalOpen(false);
+        }}
+        onSearch={(customQ) => handleSearchKaraoke(customQ)}
+        isSearching={isSearchingKaraoke}
+        isTvVideoEnabled={isTvVideoEnabled}
+        onToggleTvVideo={handleToggleTvVideo}
       />
     </div>
   );

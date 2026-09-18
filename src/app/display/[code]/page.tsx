@@ -85,6 +85,7 @@ interface DisplayState {
       durationSeconds: number;
       bpm: number | null;
       key: string | null;
+      youtubeSearchQuery?: string;
     };
     table: { id: string; number: number; label: string };
     guestName?: string | null;
@@ -179,6 +180,10 @@ export default function PublicDisplayScreenPage({
 
   // 🎤 Llamado a Cantante al Escenario (Karaoke Stage Call)
   const [singerCall, setSingerCall] = useState<SingerCallState | null>(null);
+
+  // 📺 Video de Karaoke (YouTube IFrame Embed sincronizado con cabina DJ)
+  const [karaokeVideoId, setKaraokeVideoId] = useState<string | null>(null);
+  const [isKaraokeVideoEnabled, setIsKaraokeVideoEnabled] = useState<boolean>(true);
 
   // Simulación de tiempo transcurrido de la canción
   const [elapsedSeconds, setElapsedSeconds] = useState(15);
@@ -291,6 +296,13 @@ export default function PublicDisplayScreenPage({
         if (payload?.photoFitMode) {
           setPhotoFitMode(payload.photoFitMode);
         }
+      } else if (type === "KARAOKE_VIDEO_UPDATE") {
+        if (payload?.videoId !== undefined) {
+          setKaraokeVideoId(payload.videoId);
+        }
+        if (payload?.isVideoEnabled !== undefined) {
+          setIsKaraokeVideoEnabled(payload.isVideoEnabled);
+        }
       } else if (
         type === "TRACK_CHANGE" ||
         type === "QUEUE_UPDATE" ||
@@ -301,6 +313,7 @@ export default function PublicDisplayScreenPage({
         if (type === "QUEUE_POLICY_UPDATED" && payload?.policy?.photoFitMode) {
           setPhotoFitMode(payload.policy.photoFitMode);
         }
+        setKaraokeVideoId(null);
         fetchDisplayState();
       }
     },
@@ -726,9 +739,81 @@ export default function PublicDisplayScreenPage({
             </div>
           </div>
         ) : track ? (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center max-w-6xl mx-auto w-full px-2">
-            {/* Vinilo Giratorio Proporcional a la TV (Col 4) */}
-            <div className="lg:col-span-4 flex justify-center">
+          isKaraoke && isKaraokeVideoEnabled ? (
+            /* REPRODUCTOR DE VIDEO KARAOKE EN VIVO (YOUTUBE EMBED) */
+            <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center space-y-3 z-20 animate-fadeIn px-2">
+              {/* Barra Superior de Identificación del Cantante */}
+              <div className="w-full flex items-center justify-between px-2 text-xs">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-3.5 py-1.5 rounded-full bg-cyan-950/90 text-cyan-300 border border-cyan-500/60 font-black tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.35)]">
+                    <Mic className="w-4 h-4 text-cyan-400 animate-pulse" />
+                    <span>
+                      🎤 EN ESCENARIO:{" "}
+                      {track.guestName
+                        ? `${track.guestName} (${track.table.label})`
+                        : track.table.label}
+                    </span>
+                  </span>
+                  {track.isFastPass && (
+                    <span className="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-[10px] font-black">
+                      ⭐ VIP FAST-PASS
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setIsKaraokeVideoEnabled(false)}
+                  className="text-[11px] text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 transition-colors cursor-pointer flex items-center gap-1.5"
+                  title="Cambiar a visualizador clásico con vinilo"
+                >
+                  <Disc3 className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Modo Vinilo</span>
+                </button>
+              </div>
+
+              {/* Marco Widescreen 16:9 del Video de YouTube */}
+              <div className="w-full relative aspect-video rounded-3xl overflow-hidden border-2 sm:border-4 border-cyan-500/60 shadow-[0_0_50px_rgba(6,182,212,0.3)] bg-black">
+                <iframe
+                  key={karaokeVideoId || track.id}
+                  src={
+                    karaokeVideoId
+                      ? `https://www.youtube.com/embed/${karaokeVideoId}?autoplay=1&enablejsapi=1`
+                      : `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(
+                          track.song.youtubeSearchQuery ||
+                            `${track.song.title} ${track.song.artist} karaoke`
+                        )}&autoplay=1`
+                  }
+                  title={`Karaoke: ${track.song.title}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="w-full h-full border-0"
+                />
+
+                {/* Dedicatoria Flotante si existe */}
+                {track.notes && (
+                  <div className="absolute bottom-3 left-3 right-3 sm:left-4 sm:right-4 bg-zinc-950/85 backdrop-blur-md px-4 py-2 rounded-2xl border border-cyan-500/40 text-cyan-200 text-xs sm:text-sm font-medium italic shadow-2xl pointer-events-none flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+                    <span className="truncate">&ldquo;{track.notes}&rdquo;</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Subbarra con información del tema y llamada a la acción */}
+              <div className="w-full flex items-center justify-between px-3 text-[11px] text-zinc-400 flex-wrap gap-2">
+                <div className="flex items-center gap-2 truncate">
+                  <span className="font-black text-white text-xs sm:text-sm">{track.song.title}</span>
+                  <span>&bull;</span>
+                  <span className="text-cyan-300 font-bold">{track.song.artist}</span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 text-[10px] font-mono text-zinc-500">
+                  <span>📲 Escanea el código en pantalla para pedir tu canción</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center max-w-6xl mx-auto w-full px-2">
+              {/* Vinilo Giratorio Proporcional a la TV (Col 4) */}
+              <div className="lg:col-span-4 flex justify-center">
               <div className="relative">
                 <div className="w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-full bg-black border-6 sm:border-8 border-zinc-900 shadow-2xl flex items-center justify-center animate-spin [animation-duration:5s]">
                   {/* Surcos del Vinilo */}
@@ -776,6 +861,16 @@ export default function PublicDisplayScreenPage({
                     <Sparkles className="w-3 h-3 text-amber-400" />
                     <span>⭐ VIP FAST-PASS</span>
                   </div>
+                )}
+                {isKaraoke && (
+                  <button
+                    onClick={() => setIsKaraokeVideoEnabled(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/90 text-cyan-300 border border-cyan-500/50 text-xs font-bold hover:bg-cyan-900 transition-colors cursor-pointer shadow-sm"
+                    title="Activar video de YouTube con letra en la TV"
+                  >
+                    <Mic className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>📺 Ver Video Karaoke</span>
+                  </button>
                 )}
               </div>
 
@@ -846,6 +941,7 @@ export default function PublicDisplayScreenPage({
               </div>
             </div>
           </div>
+          )
         ) : (
           /* MODO INTERMEDIO (IDLE): Widescreen 16:9 con QR Central Proporcional */
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-10 items-center max-w-5xl mx-auto w-full px-4">
