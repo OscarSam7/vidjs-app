@@ -379,8 +379,8 @@ export default function VirtualDjConsole({
       {/* ========================================================================= */}
       <div className="p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800 shadow-2xl relative overflow-hidden">
         {/* Barra superior de métricas de fase */}
-        <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-900 text-xs font-mono">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pb-2 mb-2 border-b border-zinc-900 text-xs font-mono text-center">
+          <div className="flex items-center justify-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse" />
             <span className="font-bold text-purple-300">DECK A:</span>
             <span className="text-white font-black">{effectiveBpmA} BPM</span>
@@ -388,7 +388,7 @@ export default function VirtualDjConsole({
           </div>
 
           {/* Central Beat Alignment Indicator */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
             <div className="flex items-center gap-1">
               {[1, 2, 3, 4].map((beat) => (
                 <span
@@ -415,7 +415,7 @@ export default function VirtualDjConsole({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <span className="font-bold text-cyan-300">DECK B:</span>
             <span className="text-white font-black">{effectiveBpmB} BPM</span>
             <span className="text-[10px] text-zinc-500">({pitchB >= 0 ? `+${pitchB}` : pitchB}%)</span>
@@ -424,7 +424,7 @@ export default function VirtualDjConsole({
         </div>
 
         {/* Formas de Onda Duales Estilo VirtualDJ */}
-        <div className="grid grid-cols-2 gap-2 relative">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 relative">
           {/* Waveform Deck A */}
           <div className="h-12 bg-gradient-to-r from-purple-950/40 via-purple-900/30 to-zinc-950 rounded-xl border border-purple-900/50 relative overflow-hidden flex items-center px-2">
             {/* Playhead vertical */}
@@ -512,7 +512,7 @@ export default function VirtualDjConsole({
         {/* ========================================== */}
         {/* DECK A (Canal 1 - Violeta / Púrpura)       */}
         {/* ========================================== */}
-        <div className="lg:col-span-5 p-5 rounded-2xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-purple-950/30 border-2 border-purple-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative">
+        <div className="lg:col-span-5 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-purple-950/30 border-2 border-purple-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative w-full max-w-full overflow-hidden">
           {/* Header de Deck A */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -555,7 +555,7 @@ export default function VirtualDjConsole({
           )}
 
           {/* Platter / Jogwheel Deck A & Pitch Fader */}
-          <div className="flex items-center justify-between gap-4 py-2">
+          <div className="flex items-center justify-around sm:justify-between gap-3 sm:gap-4 py-2 w-full">
             {/* Jogwheel Giratorio */}
             <div className="relative shrink-0 mx-auto">
               <div
@@ -740,7 +740,7 @@ export default function VirtualDjConsole({
         {/* ========================================== */}
         {/* MIXER CENTRAL & MOTOR DE ENGANCHE (Col 2)   */}
         {/* ========================================== */}
-        <div className="lg:col-span-2 p-4 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col justify-between items-center text-center space-y-4">
+        <div className="lg:col-span-2 p-4 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col justify-between items-center text-center space-y-4 w-full max-w-full overflow-hidden">
           <div className="w-full pb-2 border-b border-zinc-900">
             <span className="text-[10px] uppercase font-black tracking-widest text-zinc-400 flex items-center justify-center gap-1">
               <Sliders className="w-3.5 h-3.5 text-purple-400" />
@@ -883,7 +883,7 @@ export default function VirtualDjConsole({
         {/* ========================================== */}
         {/* DECK B (Canal 2 - Cian Eléctrico)          */}
         {/* ========================================== */}
-        <div className="lg:col-span-5 p-5 rounded-2xl bg-gradient-to-bl from-zinc-950 via-zinc-900 to-cyan-950/30 border-2 border-cyan-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative">
+        <div className="lg:col-span-5 p-4 sm:p-5 rounded-2xl bg-gradient-to-bl from-zinc-950 via-zinc-900 to-cyan-950/30 border-2 border-cyan-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative w-full max-w-full overflow-hidden">
           {/* Header de Deck B con Selector de Pista */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -977,7 +977,7 @@ export default function VirtualDjConsole({
           )}
 
           {/* Platter / Jogwheel Deck B & Pitch Fader */}
-          <div className="flex items-center justify-between gap-4 py-2">
+          <div className="flex items-center justify-around sm:justify-between gap-3 sm:gap-4 py-2 w-full">
             {/* Pitch / Tempo Fader Vertical Deck B */}
             <div className="flex flex-col items-center justify-between h-40 bg-zinc-950/80 p-2 rounded-xl border border-zinc-800">
               <span className="text-[9px] font-mono text-zinc-400 font-bold">+8%</span>

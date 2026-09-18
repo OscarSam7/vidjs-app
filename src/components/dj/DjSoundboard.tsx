@@ -128,9 +128,9 @@ export default function DjSoundboard({ mode = "DJ" }: DjSoundboardProps) {
   const currentPads = activeTab === "KARAOKE" ? karaokePads : djPads;
 
   return (
-    <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800/80">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
-        <div className="flex items-center gap-2">
+    <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800/80 w-full max-w-full overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3 text-center sm:text-left">
+        <div className="flex items-center justify-center sm:justify-start gap-2">
           <div
             className={`p-1 rounded-md ${
               activeTab === "KARAOKE"
@@ -147,7 +147,7 @@ export default function DjSoundboard({ mode = "DJ" }: DjSoundboardProps) {
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-center sm:justify-end gap-1.5">
           <div className="flex items-center p-0.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[10px] font-bold">
             <button
               onClick={() => setActiveTab("DJ")}

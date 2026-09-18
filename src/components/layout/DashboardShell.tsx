@@ -41,7 +41,7 @@ export function DashboardShell({ children, user, tenantName }: DashboardShellPro
           tenantName={tenantName}
           onToggleSidebar={() => setMobileMenuOpen((prev) => !prev)}
         />
-        <main className="flex-1 p-3 sm:p-5 md:p-8 max-w-7xl w-full mx-auto overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-5 md:p-8 max-w-7xl w-full mx-auto overflow-y-auto overflow-x-hidden max-w-full">
           {children}
         </main>
       </div>

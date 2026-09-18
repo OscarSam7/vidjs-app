@@ -786,12 +786,12 @@ export default function DjBoothPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-hidden mx-auto">
       {/* 1. Header de Cabina & Selector de Evento */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl bg-zinc-950 border border-zinc-800">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col lg:flex-row items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-zinc-950 border border-zinc-800 text-center lg:text-left w-full max-w-full">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
           <div
-            className={`p-2.5 rounded-xl border transition-all ${
+            className={`p-2.5 rounded-xl border transition-all shrink-0 ${
               queuePolicy.zone === "KARAOKE"
                 ? "bg-cyan-600/20 border-cyan-500/40 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
                 : "bg-purple-600/20 border-purple-500/30 text-purple-400 glow-purple"
@@ -803,8 +803,8 @@ export default function DjBoothPage() {
               <Disc3 className="w-6 h-6 animate-spin [animation-duration:8s]" />
             )}
           </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="min-w-0">
+            <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap">
               <span
                 className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                   queuePolicy.zone === "KARAOKE"
@@ -826,6 +826,9 @@ export default function DjBoothPage() {
                 </span>
               )}
               <span className="text-xs font-mono text-zinc-500">CÓDIGO: {data.event?.code}</span>
+            </div>
+
+            <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap mt-2">
               {data.event && (
                 <>
                   <a
@@ -870,14 +873,14 @@ export default function DjBoothPage() {
                     title="Cargar manualmente pedidos recibidos de palabra o fuera de la app"
                   >
                     <PlusCircle className="w-3.5 h-3.5" />
-                    <span>{queuePolicy.zone === "KARAOKE" ? "➕ Cargar Cantante" : "➕ Cargar Pedido"}</span>
+                    <span>{queuePolicy.zone === "KARAOKE" ? "➕ Cantante" : "➕ Pedido"}</span>
                   </button>
 
                   <PwaInstallButton variant="dj" />
                 </>
               )}
             </div>
-            <h1 className="text-xl font-black text-white tracking-tight mt-0.5">
+            <h1 className="text-xl font-black text-white tracking-tight mt-1">
               {data.event?.name}
             </h1>
             <p className="text-xs text-zinc-400">{data.event?.venueName}</p>
@@ -907,7 +910,7 @@ export default function DjBoothPage() {
         )}
 
         {/* Métricas Rápidas */}
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-3 gap-2 w-full lg:w-auto shrink-0">
           <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-center">
             <div className="text-[10px] text-zinc-400 font-bold uppercase">Pendientes</div>
             <div className="text-base font-black text-amber-400">{data.stats.pending}</div>
@@ -928,61 +931,61 @@ export default function DjBoothPage() {
       </div>
 
       {/* 🎛️ SELECTOR PRINCIPAL DE MODALIDAD: MODO DJ vs MODO KARAOKE */}
-      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950 border border-zinc-800 shadow-xl flex flex-col md:flex-row items-center justify-between gap-3">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 w-full md:w-auto">
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950 border border-zinc-800 shadow-xl flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left w-full max-w-full">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 w-full md:w-auto">
           <span className="text-xs font-black uppercase tracking-wider text-zinc-400 shrink-0 flex items-center gap-1.5">
             <Sliders className="w-3.5 h-3.5 text-purple-400" />
-            <span>Modalidad de Operación:</span>
+            <span>Modalidad:</span>
           </span>
-          <div className="inline-flex p-1 rounded-xl bg-zinc-900/90 border border-zinc-800">
+          <div className="grid grid-cols-2 p-1 rounded-xl bg-zinc-900/90 border border-zinc-800 w-full sm:w-auto gap-1">
             <button
               onClick={() => handleUpdatePolicy({ zone: "DJ" })}
               disabled={policyLoading}
-              className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 queuePolicy.zone === "DJ"
-                  ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/40 scale-[1.02]"
+                  ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/40"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               }`}
             >
-              <Disc3 className={`w-4 h-4 ${queuePolicy.zone === "DJ" ? "animate-spin [animation-duration:4s]" : ""}`} />
-              <span>🎧 MODO DJ (Pista & Mezclas)</span>
+              <Disc3 className={`w-4 h-4 shrink-0 ${queuePolicy.zone === "DJ" ? "animate-spin [animation-duration:4s]" : ""}`} />
+              <span className="truncate">🎧 Modo DJ</span>
             </button>
 
             <button
               onClick={() => handleUpdatePolicy({ zone: "KARAOKE" })}
               disabled={policyLoading}
-              className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 queuePolicy.zone === "KARAOKE"
-                  ? "bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-lg shadow-cyan-600/40 scale-[1.02]"
+                  ? "bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-lg shadow-cyan-600/40"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               }`}
             >
-              <Mic className="w-4 h-4 text-cyan-200" />
-              <span>🎤 MODO KARAOKE (Escenario & Cantantes)</span>
+              <Mic className="w-4 h-4 text-cyan-200 shrink-0" />
+              <span className="truncate">🎤 Modo Karaoke</span>
             </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center justify-center gap-2 text-xs w-full md:w-auto">
           {queuePolicy.zone === "KARAOKE" ? (
-            <span className="px-3 py-1.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 font-semibold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span>Turnos &ldquo;Canta y Libera&rdquo; sincronizados con pantalla TV</span>
+            <span className="px-3 py-1.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 font-semibold flex items-center justify-center gap-1.5 text-[11px] sm:text-xs">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
+              <span>Turnos &ldquo;Canta y Libera&rdquo; sincronizados con TV</span>
             </span>
           ) : (
-            <span className="px-3 py-1.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-700/60 font-semibold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-              <span>Pista de baile & Mezclas continuas en vivo</span>
+            <span className="px-3 py-1.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-700/60 font-semibold flex items-center justify-center gap-1.5 text-[11px] sm:text-xs">
+              <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse shrink-0" />
+              <span>Pista de baile & Mezclas continuas</span>
             </span>
           )}
         </div>
       </div>
 
       {/* 1.5. BARRA DE ACCIONES RÁPIDAS & NIGHT MOMENTS */}
-      <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800/90 space-y-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800/90 space-y-3 w-full max-w-full overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 w-full max-w-full">
           {/* Night Moments Switcher */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none text-xs">
+          <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 scrollbar-none text-xs">
             <span className="text-[10px] uppercase font-bold text-zinc-500 mr-1 flex items-center gap-1 shrink-0">
               <Sparkles className="w-3 h-3 text-purple-400" />
               <span>Momento:</span>
@@ -998,7 +1001,7 @@ export default function DjBoothPage() {
               <button
                 key={m.id}
                 onClick={() => setNightMoment(m.id as any)}
-                className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer whitespace-nowrap text-[11px] ${
+                className={`px-3 py-1 rounded-full font-bold transition-all cursor-pointer whitespace-nowrap text-[11px] shrink-0 ${
                   nightMoment === m.id
                     ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
                     : "bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800"
@@ -1010,10 +1013,10 @@ export default function DjBoothPage() {
           </div>
 
           {/* Quick Action Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-2 scrollbar-none flex-nowrap lg:flex-wrap lg:justify-end w-full lg:w-auto">
             <button
               onClick={() => setIsManualModalOpen(true)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border shrink-0 ${
                 queuePolicy.zone === "KARAOKE"
                   ? "bg-cyan-600/30 hover:bg-cyan-600/40 border-cyan-500/50 text-cyan-200"
                   : "bg-purple-600/30 hover:bg-purple-600/40 border-purple-500/50 text-purple-200"
@@ -1021,12 +1024,12 @@ export default function DjBoothPage() {
               title="Cargar un pedido pedido verbalmente o fuera del código QR"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>{queuePolicy.zone === "KARAOKE" ? "➕ Cargar Cantante" : "➕ Cargar Pedido"}</span>
+              <span>{queuePolicy.zone === "KARAOKE" ? "➕ Cantante" : "➕ Pedido"}</span>
             </button>
 
             <button
               onClick={() => setIsDuelModalOpen(true)}
-              className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
               title="Lanzar un duelo musical para que la sala vote en tiempo real"
             >
               <Swords className="w-3.5 h-3.5 text-amber-400" />
@@ -1035,7 +1038,7 @@ export default function DjBoothPage() {
 
             <button
               onClick={() => setShowPhotoDrawer(!showPhotoDrawer)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border shrink-0 ${
                 pendingPhotos.length > 0
                   ? "bg-pink-600/30 hover:bg-pink-600/40 border-pink-500/50 text-pink-300 animate-pulse"
                   : "bg-zinc-950 hover:bg-zinc-900 border-zinc-800 text-zinc-300"
@@ -1054,7 +1057,7 @@ export default function DjBoothPage() {
             <button
               onClick={handleFairRotation}
               disabled={data.queue.length <= 1}
-              className="px-3 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+              className="px-3 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shrink-0"
               title="Intercala mesas automáticamente para balance"
             >
               <Shuffle className="w-3.5 h-3.5 text-purple-400" />
@@ -1063,7 +1066,7 @@ export default function DjBoothPage() {
 
             <button
               onClick={handlePrioritizeCelebrations}
-              className="px-3 py-1.5 rounded-xl bg-fuchsia-600/20 hover:bg-fuchsia-600/30 border border-fuchsia-500/30 text-fuchsia-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-fuchsia-600/20 hover:bg-fuchsia-600/30 border border-fuchsia-500/30 text-fuchsia-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
               title="Acepta y sube a la cola pedidos de cumpleaños"
             >
               <Cake className="w-3.5 h-3.5 text-fuchsia-400" />
@@ -1073,7 +1076,7 @@ export default function DjBoothPage() {
             <button
               onClick={() => setIsApplauseModalOpen(true)}
               disabled={interactiveLoading}
-              className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+              className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shrink-0"
               title="Activar Aplausómetro en la TV para calificar show o mesa"
             >
               <span>👏</span>
@@ -1083,7 +1086,7 @@ export default function DjBoothPage() {
             <button
               onClick={handleSpinRoulette}
               disabled={interactiveLoading}
-              className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+              className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shrink-0"
               title="Girar ruleta de mesas en la TV para sortear tragos"
             >
               <Dices className="w-3.5 h-3.5 text-emerald-400" />
@@ -1127,14 +1130,14 @@ export default function DjBoothPage() {
       </div>
 
       {/* 1.6 CONTROL FAIR-PLAY & ROTACIÓN DE TURNOS ("CANTA Y LIBERA") */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-zinc-950 via-purple-950/20 to-zinc-950 border border-purple-500/30 space-y-3 shadow-lg">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30">
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-zinc-950 via-purple-950/20 to-zinc-950 border border-purple-500/30 space-y-3 shadow-lg w-full max-w-full overflow-hidden">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-3 text-center lg:text-left">
+          <div className="flex flex-col sm:flex-row items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30 shrink-0">
               <Scale className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
                 <span className="text-xs font-black text-white uppercase tracking-wider">
                   Fair-Play & Rotación de Turnos
                 </span>
@@ -1151,15 +1154,15 @@ export default function DjBoothPage() {
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-zinc-400">
+              <p className="text-[11px] text-zinc-400 mt-1">
                 Regla &ldquo;Canta y Libera&rdquo;: cuando la mesa termina su turno, el sistema desbloquea su cupo automáticamente para volver a pedir.
               </p>
             </div>
           </div>
 
           {/* Selectores rápidos de política en vivo */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] uppercase font-bold text-zinc-500 mr-1">Cupo por Mesa:</span>
+          <div className="flex flex-wrap items-center justify-center lg:justify-end gap-2 w-full lg:w-auto">
+            <span className="text-[10px] uppercase font-bold text-zinc-500 mr-1">Cupo:</span>
 
             <button
               onClick={() => handleUpdatePolicy({ maxActivePerTable: 1 })}
@@ -1171,7 +1174,7 @@ export default function DjBoothPage() {
               }`}
               title="1 tema activo por mesa a la vez (ideal Karaoke)"
             >
-              <span>1 Tema (Estricto)</span>
+              <span>1 Tema</span>
             </button>
 
             <button
@@ -1184,7 +1187,7 @@ export default function DjBoothPage() {
               }`}
               title="Hasta 2 temas por mesa simultáneos"
             >
-              <span>2 Temas (Moderado)</span>
+              <span>2 Temas</span>
             </button>
 
             <button
@@ -1210,21 +1213,16 @@ export default function DjBoothPage() {
                   ? "bg-red-600 text-white border-red-400 animate-pulse shadow-md shadow-red-600/30"
                   : "bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border-emerald-800"
               }`}
-              title={
-                queuePolicy.queuePaused
-                  ? "Reanudar recepción de pedidos"
-                  : "Pausar recepción de pedidos si la sala está colmada"
-              }
             >
               {queuePolicy.queuePaused ? (
                 <>
                   <PlayCircle className="w-3.5 h-3.5" />
-                  <span>Reanudar Pedidos</span>
+                  <span>Reanudar</span>
                 </>
               ) : (
                 <>
                   <PauseCircle className="w-3.5 h-3.5" />
-                  <span>Pausar Pedidos</span>
+                  <span>Pausar</span>
                 </>
               )}
             </button>
@@ -1237,7 +1235,6 @@ export default function DjBoothPage() {
               }
               disabled={policyLoading}
               className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Alternar entre modo Karaoke y modo DJ"
             >
               <Mic className="w-3.5 h-3.5 text-cyan-400" />
               <span>Zona: {queuePolicy.zone}</span>
