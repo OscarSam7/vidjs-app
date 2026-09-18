@@ -32,6 +32,9 @@ import {
   Mic,
   PauseCircle,
   PlayCircle,
+  Trash2,
+  Dices,
+  Trophy,
 } from "lucide-react";
 import DjBridgeModal from "@/components/dj/DjBridgeModal";
 import DjSoundboard from "@/components/dj/DjSoundboard";
@@ -123,6 +126,8 @@ interface QueuePolicyState {
   rotationMode: "ROUND_ROBIN" | "FIFO";
   zone: "DJ" | "KARAOKE" | "MAIN";
   avgSongDurationMinutes: number;
+  photosAllowed?: boolean;
+  photoRotationSeconds?: number;
 }
 
 export default function DjBoothPage() {
@@ -138,6 +143,8 @@ export default function DjBoothPage() {
     rotationMode: "ROUND_ROBIN",
     zone: "KARAOKE",
     avgSongDurationMinutes: 4,
+    photosAllowed: true,
+    photoRotationSeconds: 8,
   });
   const [policyLoading, setPolicyLoading] = useState(false);
 
@@ -177,7 +184,14 @@ export default function DjBoothPage() {
 
   // 📸 Fotos de Mesas State
   const [pendingPhotos, setPendingPhotos] = useState<PhotoItem[]>([]);
+  const [approvedPhotos, setApprovedPhotos] = useState<PhotoItem[]>([]);
+  const [photoTab, setPhotoTab] = useState<"PENDING" | "LIVE">("PENDING");
   const [showPhotoDrawer, setShowPhotoDrawer] = useState(false);
+
+  // 👏 Aplausómetro & Ruleta Interactive State
+  const [isApplauseModalOpen, setIsApplauseModalOpen] = useState(false);
+  const [applauseTarget, setApplauseTarget] = useState("");
+  const [interactiveLoading, setInteractiveLoading] = useState(false);
 
   // Cargar estado de la cabina
   const fetchDjState = async (eventId?: string) => {
@@ -211,6 +225,14 @@ export default function DjBoothPage() {
             .then((r) => r.json())
             .then((pj) => {
               if (pj.success && pj.data?.photos) setPendingPhotos(pj.data.photos);
+            })
+            .catch(() => {});
+
+          // Consultar fotos al aire (aprobadas)
+          fetch(`/api/v1/photos?eventId=${currentId}&status=APPROVED`)
+            .then((r) => r.json())
+            .then((pj) => {
+              if (pj.success && pj.data?.photos) setApprovedPhotos(pj.data.photos);
             })
             .catch(() => {});
 
@@ -258,8 +280,11 @@ export default function DjBoothPage() {
     }
   };
 
-  // Moderación rápida de fotos de mesas
-  const handleModeratePhoto = async (photoId: string, action: "APPROVE" | "REJECT") => {
+  // Moderación rápida y control de fotos de mesas
+  const handleModeratePhoto = async (
+    photoId: string,
+    action: "APPROVE" | "REJECT" | "REMOVE" | "FEATURE"
+  ) => {
     setActionLoading(photoId);
     try {
       const res = await fetch(`/api/v1/photos/${photoId}/action`, {
@@ -267,14 +292,87 @@ export default function DjBoothPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
       });
+      const json = await res.json();
       if (res.ok) {
-        showFeedback("success", action === "APPROVE" ? "Foto aprobada para proyectar en TV" : "Foto rechazada");
-        setPendingPhotos((prev) => prev.filter((p) => p.id !== photoId));
+        if (action === "APPROVE") {
+          showFeedback("success", "¡Foto aprobada para proyectar en TV!");
+          const target = pendingPhotos.find((p) => p.id === photoId);
+          setPendingPhotos((prev) => prev.filter((p) => p.id !== photoId));
+          if (target) setApprovedPhotos((prev) => [target, ...prev]);
+        } else if (action === "REJECT") {
+          showFeedback("info", "Foto rechazada");
+          setPendingPhotos((prev) => prev.filter((p) => p.id !== photoId));
+        } else if (action === "REMOVE") {
+          showFeedback("success", "Foto retirada de la pantalla de TV");
+          setApprovedPhotos((prev) => prev.filter((p) => p.id !== photoId));
+        } else if (action === "FEATURE") {
+          showFeedback("success", "⭐ ¡Foto proyectándose destacada en pantalla gigante!");
+        }
+      } else {
+        showFeedback("error", json.error?.message || "Error al procesar foto");
       }
     } catch {
       showFeedback("error", "Error al procesar foto");
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  // 👏 Iniciar Aplausómetro
+  const handleStartApplause = async (target?: string) => {
+    const eventId = selectedEventId || data?.event?.id;
+    if (!eventId) return;
+    setInteractiveLoading(true);
+    try {
+      const res = await fetch("/api/v1/dj/interactive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "START_APPLAUSE",
+          eventId,
+          targetTableLabel: target || applauseTarget.trim() || undefined,
+          durationSeconds: 15,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        showFeedback("success", "👏 ¡Aplausómetro activo en la pantalla gigante!");
+        setIsApplauseModalOpen(false);
+      } else {
+        showFeedback("error", json.error?.message || "Error al iniciar aplausómetro");
+      }
+    } catch {
+      showFeedback("error", "Error al comunicar con el servidor");
+    } finally {
+      setInteractiveLoading(false);
+    }
+  };
+
+  // 🎰 Girar Ruleta de Mesas
+  const handleSpinRoulette = async () => {
+    const eventId = selectedEventId || data?.event?.id;
+    if (!eventId) return;
+    setInteractiveLoading(true);
+    try {
+      const res = await fetch("/api/v1/dj/interactive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "SPIN_ROULETTE",
+          eventId,
+          prizeTitle: "¡Ronda de Shots de la Casa! 🍹",
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        showFeedback("success", `🎰 ¡Ruleta girando en la TV! Ganador: ${json.data?.winner}`);
+      } else {
+        showFeedback("error", json.error?.message || "Error al girar ruleta");
+      }
+    } catch {
+      showFeedback("error", "Error al comunicar con el servidor");
+    } finally {
+      setInteractiveLoading(false);
     }
   };
 
@@ -790,6 +888,26 @@ export default function DjBoothPage() {
               <Cake className="w-3.5 h-3.5 text-fuchsia-400" />
               <span>Priorizar Festejos</span>
             </button>
+
+            <button
+              onClick={() => setIsApplauseModalOpen(true)}
+              disabled={interactiveLoading}
+              className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+              title="Activar Aplausómetro en la TV para calificar show o mesa"
+            >
+              <span>👏</span>
+              <span>Aplausómetro</span>
+            </button>
+
+            <button
+              onClick={handleSpinRoulette}
+              disabled={interactiveLoading}
+              className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+              title="Girar ruleta de mesas en la TV para sortear tragos"
+            >
+              <Dices className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Ruleta Sorteo</span>
+            </button>
           </div>
         </div>
 
@@ -992,80 +1110,236 @@ export default function DjBoothPage() {
         </div>
       )}
 
-      {/* 📸 Cajón de Moderación de Fotos de Mesas */}
+      {/* 📸 Cajón de Moderación y Control de Fotos en Pantalla */}
       {showPhotoDrawer && (
         <div className="p-5 rounded-2xl bg-zinc-950 border border-pink-500/30 space-y-4 shadow-2xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+            <div className="flex items-center gap-2.5">
               <Camera className="w-5 h-5 text-pink-400" />
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                Muro de Fotos & Social Lounge &bull; Moderación de Mesas
-              </h3>
-              <span className="px-2 py-0.5 rounded-full bg-pink-950 text-pink-300 border border-pink-800 text-[10px] font-bold">
-                {pendingPhotos.length} pendientes
-              </span>
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                  Muro de Fotos & Social Lounge &bull; Control de Pantalla
+                </h3>
+                <p className="text-[11px] text-zinc-400">
+                  Modera las fotos entrantes o retira de inmediato fotos proyectadas al aire
+                </p>
+              </div>
             </div>
+
+            {/* Controles de Política de Fotos */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Switch Permitir / Pausar Fotos */}
+              <button
+                type="button"
+                onClick={() =>
+                  handleUpdatePolicy({
+                    photosAllowed: queuePolicy.photosAllowed === false ? true : false,
+                  })
+                }
+                disabled={policyLoading}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
+                  queuePolicy.photosAllowed !== false
+                    ? "bg-emerald-950/80 text-emerald-300 border-emerald-700 hover:bg-emerald-900"
+                    : "bg-red-950/80 text-red-300 border-red-700 hover:bg-red-900 animate-pulse"
+                }`}
+                title="Pausar o permitir que los clientes suban fotos desde el QR"
+              >
+                <span className={`w-2 h-2 rounded-full ${queuePolicy.photosAllowed !== false ? "bg-emerald-400" : "bg-red-400"}`} />
+                <span>{queuePolicy.photosAllowed !== false ? "Subida: Habilitada" : "Subida: Pausada"}</span>
+              </button>
+
+              {/* Selector de Rotación en TV */}
+              <div className="flex items-center gap-1 bg-zinc-900 p-0.5 rounded-xl border border-zinc-800 text-[11px]">
+                <span className="px-2 text-zinc-500 font-bold">Rotación TV:</span>
+                {[5, 8, 15].map((sec) => (
+                  <button
+                    key={sec}
+                    type="button"
+                    onClick={() => handleUpdatePolicy({ photoRotationSeconds: sec })}
+                    disabled={policyLoading}
+                    className={`px-2 py-0.5 rounded-lg font-mono font-bold cursor-pointer transition-all ${
+                      (queuePolicy.photoRotationSeconds || 8) === sec
+                        ? "bg-pink-600 text-white"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    {sec}s
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setShowPhotoDrawer(false)}
+                className="text-zinc-500 hover:text-zinc-300 text-xs font-bold px-2 py-1 cursor-pointer"
+              >
+                Cerrar &times;
+              </button>
+            </div>
+          </div>
+
+          {/* Pestañas de Fotos: Pendientes vs Al Aire */}
+          <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-2">
             <button
-              onClick={() => setShowPhotoDrawer(false)}
-              className="text-zinc-500 hover:text-zinc-300 text-xs font-bold cursor-pointer"
+              type="button"
+              onClick={() => setPhotoTab("PENDING")}
+              className={`px-4 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                photoTab === "PENDING"
+                  ? "bg-pink-600 text-white shadow-lg shadow-pink-600/30"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800"
+              }`}
             >
-              Cerrar panel &times;
+              <span>📥 Pendientes de Aprobación</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono">
+                {pendingPhotos.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPhotoTab("LIVE")}
+              className={`px-4 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                photoTab === "LIVE"
+                  ? "bg-cyan-600 text-white shadow-lg shadow-cyan-600/30"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800"
+              }`}
+            >
+              <span>📺 Fotos al Aire en TV</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono">
+                {approvedPhotos.length}
+              </span>
             </button>
           </div>
 
-          {pendingPhotos.length === 0 ? (
-            <div className="p-8 text-center text-zinc-500 text-xs space-y-1">
-              <p>No hay fotos pendientes de moderación.</p>
-              <p className="text-[10px] text-zinc-600">
-                Las fotos que envíen los clientes desde sus mesas vía QR aparecerán aquí para tu aprobación antes de proyectarse en la TV.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {pendingPhotos.map((photo) => (
-                <div
-                  key={photo.id}
-                  className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-pink-500/40 space-y-2.5 transition-all shadow-lg"
-                >
-                  <div className="aspect-square rounded-lg overflow-hidden bg-black relative border border-zinc-800">
-                    <img
-                      src={photo.imageUrl}
-                      alt={photo.caption || "Foto de mesa"}
-                      className="w-full h-full object-cover"
-                    />
-                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-pink-300 border border-pink-500/30 text-[10px] font-mono font-bold">
-                      {photo.table.label}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-white truncate">
-                      de {photo.guestName}
-                    </div>
-                    {photo.caption && (
-                      <p className="text-[11px] text-zinc-300 italic line-clamp-2 mt-0.5">
-                        &ldquo;{photo.caption}&rdquo;
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 pt-1 border-t border-zinc-800">
-                    <button
-                      onClick={() => handleModeratePhoto(photo.id, "APPROVE")}
-                      disabled={actionLoading === photo.id}
-                      className="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      <Check className="w-3 h-3" />
-                      <span>Aprobar TV</span>
-                    </button>
-                    <button
-                      onClick={() => handleModeratePhoto(photo.id, "REJECT")}
-                      disabled={actionLoading === photo.id}
-                      className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-red-950/60 text-zinc-400 hover:text-red-300 border border-zinc-700 hover:border-red-800 text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
+          {/* CONTENIDO PESTAÑA PENDIENTES */}
+          {photoTab === "PENDING" && (
+            <div>
+              {pendingPhotos.length === 0 ? (
+                <div className="p-8 text-center text-zinc-500 text-xs space-y-1">
+                  <p>No hay fotos pendientes de moderación.</p>
+                  <p className="text-[10px] text-zinc-600">
+                    Las fotos que envíen los clientes desde sus mesas vía QR aparecerán aquí para tu aprobación antes de proyectarse en la TV.
+                  </p>
                 </div>
-              ))}
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {pendingPhotos.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-pink-500/40 space-y-2.5 transition-all shadow-lg"
+                    >
+                      <div className="aspect-square rounded-lg overflow-hidden bg-black relative border border-zinc-800">
+                        <img
+                          src={photo.imageUrl}
+                          alt={photo.caption || "Foto de mesa"}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-pink-300 border border-pink-500/30 text-[10px] font-mono font-bold">
+                          {photo.table.label}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white truncate">
+                          de {photo.guestName}
+                        </div>
+                        {photo.caption && (
+                          <p className="text-[11px] text-zinc-300 italic line-clamp-2 mt-0.5">
+                            &ldquo;{photo.caption}&rdquo;
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 pt-1 border-t border-zinc-800">
+                        <button
+                          onClick={() => handleModeratePhoto(photo.id, "APPROVE")}
+                          disabled={actionLoading === photo.id}
+                          className="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          <Check className="w-3 h-3" />
+                          <span>Aprobar TV</span>
+                        </button>
+                        <button
+                          onClick={() => handleModeratePhoto(photo.id, "REJECT")}
+                          disabled={actionLoading === photo.id}
+                          className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-red-950/60 text-zinc-400 hover:text-red-300 border border-zinc-700 hover:border-red-800 text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                          title="Rechazar foto"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CONTENIDO PESTAÑA AL AIRE */}
+          {photoTab === "LIVE" && (
+            <div>
+              {approvedPhotos.length === 0 ? (
+                <div className="p-8 text-center text-zinc-500 text-xs space-y-1">
+                  <p>No hay fotos proyectándose actualmente en la TV.</p>
+                  <p className="text-[10px] text-zinc-600">
+                    Aprueba fotos desde la pestaña &ldquo;Pendientes&rdquo; para que roten en la pantalla pública.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {approvedPhotos.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="p-3 rounded-xl bg-zinc-900 border border-cyan-500/30 hover:border-cyan-400/60 space-y-2.5 transition-all shadow-lg relative"
+                    >
+                      <div className="aspect-square rounded-lg overflow-hidden bg-black relative border border-zinc-800">
+                        <img
+                          src={photo.imageUrl}
+                          alt={photo.caption || "Foto en TV"}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-cyan-950/90 backdrop-blur-md text-cyan-300 border border-cyan-500/40 text-[10px] font-mono font-bold">
+                          {photo.table.label}
+                        </span>
+                        <span className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-emerald-400 border border-emerald-500/30 text-[9px] font-bold flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span>EN TV</span>
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white truncate">
+                          de {photo.guestName}
+                        </div>
+                        {photo.caption && (
+                          <p className="text-[11px] text-zinc-300 italic line-clamp-2 mt-0.5">
+                            &ldquo;{photo.caption}&rdquo;
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Botones de Acción al Aire: Destacar 12s vs Sacar de TV */}
+                      <div className="flex items-center gap-2 pt-1 border-t border-zinc-800">
+                        <button
+                          type="button"
+                          onClick={() => handleModeratePhoto(photo.id, "FEATURE")}
+                          disabled={actionLoading === photo.id}
+                          className="flex-1 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black text-[11px] font-black flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50 shadow-md shadow-amber-500/20"
+                          title="Proyectar en pantalla completa durante 12 segundos"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>Destacar 12s</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleModeratePhoto(photo.id, "REMOVE")}
+                          disabled={actionLoading === photo.id}
+                          className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-red-950 text-zinc-400 hover:text-red-300 border border-zinc-700 hover:border-red-800 text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                          title="Sacar de la pantalla de TV inmediatamente"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1647,6 +1921,69 @@ export default function DjBoothPage() {
               >
                 <Swords className="w-4 h-4" />
                 <span>{duelLoading ? "Lanzando..." : "🔥 Lanzar Duelo al Aire"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 👏 Modal de Lanzamiento de Aplausómetro */}
+      {isApplauseModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-zinc-950 border border-amber-500/40 rounded-3xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">👏</span>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                    Lanzar Aplausómetro a la TV
+                  </h3>
+                  <p className="text-[11px] text-zinc-400">
+                    Los clientes tocarán sus celulares a toda velocidad para subir la barra de aplausos
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsApplauseModalOpen(false)}
+                className="text-zinc-500 hover:text-white text-xs font-bold cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-zinc-300">
+                ¿A quién van dirigidos los aplausos? (Opcional)
+              </label>
+              <input
+                type="text"
+                placeholder="Ej: Mesa 3, ¡Show de María!, ¡Dueto de la noche!"
+                value={applauseTarget}
+                onChange={(e) => setApplauseTarget(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
+              />
+              <p className="text-[10px] text-zinc-500">
+                Si lo dejas vacío, el aplausómetro dirá &ldquo;¡A TODOS LOS ARTISTAS!&rdquo;
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setIsApplauseModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 text-xs font-bold cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleStartApplause()}
+                disabled={interactiveLoading}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black text-xs font-black flex items-center gap-2 cursor-pointer shadow-lg shadow-amber-500/20 disabled:opacity-50"
+              >
+                <span>👏</span>
+                <span>{interactiveLoading ? "Activando..." : "¡Iniciar en Pantalla (15s)!"}</span>
               </button>
             </div>
           </div>

@@ -11,6 +11,8 @@ export interface QueuePolicy {
   queuePaused: boolean;
   rotationMode: "ROUND_ROBIN" | "FIFO";
   avgSongDurationMinutes: number;
+  photosAllowed: boolean;
+  photoRotationSeconds: number;
 }
 
 export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
@@ -21,12 +23,15 @@ export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
       queuePaused: false,
       rotationMode: "ROUND_ROBIN",
       avgSongDurationMinutes: 4,
+      photosAllowed: true,
+      photoRotationSeconds: 8,
     };
   }
   try {
     const parsed = JSON.parse(settingsJson);
     const rawLimit = typeof parsed.maxActivePerTable === "number" ? parsed.maxActivePerTable : 1;
     const rawDuration = typeof parsed.avgSongDurationMinutes === "number" ? parsed.avgSongDurationMinutes : 4;
+    const rawPhotoRot = typeof parsed.photoRotationSeconds === "number" ? parsed.photoRotationSeconds : 8;
 
     return {
       zone: parsed.zone === "DJ" || parsed.zone === "MAIN" ? parsed.zone : "KARAOKE",
@@ -34,6 +39,8 @@ export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
       queuePaused: Boolean(parsed.queuePaused),
       rotationMode: parsed.rotationMode === "FIFO" ? "FIFO" : "ROUND_ROBIN",
       avgSongDurationMinutes: Math.max(1, Math.min(15, rawDuration)),
+      photosAllowed: parsed.photosAllowed !== undefined ? Boolean(parsed.photosAllowed) : true,
+      photoRotationSeconds: Math.max(3, Math.min(60, rawPhotoRot)),
     };
   } catch {
     return {
@@ -42,6 +49,8 @@ export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
       queuePaused: false,
       rotationMode: "ROUND_ROBIN",
       avgSongDurationMinutes: 4,
+      photosAllowed: true,
+      photoRotationSeconds: 8,
     };
   }
 }

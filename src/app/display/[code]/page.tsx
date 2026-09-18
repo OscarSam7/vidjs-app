@@ -35,6 +35,34 @@ interface PhotoPostItem {
   createdAt: string;
 }
 
+interface FloatingReaction {
+  id: string;
+  reaction: string;
+  tableLabel?: string;
+  xPercent: number;
+}
+
+interface ApplauseState {
+  targetTableLabel: string;
+  durationSeconds: number;
+  endsAt: string;
+  score: number;
+  active: boolean;
+}
+
+interface RouletteState {
+  tables: string[];
+  winner: string;
+  prize: string;
+  spinning: boolean;
+  currentIndex: number;
+  finished: boolean;
+}
+
+interface FeaturedPhotoState {
+  photo: PhotoPostItem;
+}
+
 interface DisplayState {
   event: {
     id: string;
@@ -84,6 +112,8 @@ interface DisplayState {
     maxActivePerTable: number;
     queuePaused: boolean;
     rotationMode: string;
+    photosAllowed?: boolean;
+    photoRotationSeconds?: number;
   };
   qr: {
     scanUrl: string;
@@ -122,6 +152,18 @@ export default function PublicDisplayScreenPage({
   const [approvedPhotos, setApprovedPhotos] = useState<PhotoPostItem[]>([]);
   const [currentPhotoIdx, setCurrentPhotoIdx] = useState(0);
 
+  // ⭐ Foto Destacada en Pantalla Completa (Spotlight Fullscreen 12s)
+  const [featuredPhoto, setFeaturedPhoto] = useState<FeaturedPhotoState | null>(null);
+
+  // 🚀 Reacciones y Emojis Flotantes en Vivo (Efecto TikTok)
+  const [reactions, setReactions] = useState<FloatingReaction[]>([]);
+
+  // 👏 Aplausómetro Digital
+  const [applause, setApplause] = useState<ApplauseState | null>(null);
+
+  // 🎰 Ruleta de la Suerte de Mesas
+  const [roulette, setRoulette] = useState<RouletteState | null>(null);
+
   // Simulación de tiempo transcurrido de la canción
   const [elapsedSeconds, setElapsedSeconds] = useState(15);
 
@@ -143,7 +185,7 @@ export default function PublicDisplayScreenPage({
     }
   };
 
-  // Conexión Realtime nativa SSE (0 ms) para duelos, fotos y cambios de track
+  // Conexión Realtime nativa SSE (0 ms) para duelos, fotos, reacciones y juegos
   const { isConnected: isRealtime } = useRealtime({
     code,
     onEvent: (type: RealtimeEventType, payload: any) => {
@@ -154,31 +196,106 @@ export default function PublicDisplayScreenPage({
           payload,
           ...prev.filter((p) => p.id !== payload.id),
         ]);
+      } else if (type === "PHOTO_REMOVED") {
+        setApprovedPhotos((prev) => prev.filter((p) => p.id !== payload?.id));
+        setFeaturedPhoto((curr) => (curr?.photo.id === payload?.id ? null : curr));
+      } else if (type === "PHOTO_FEATURED") {
+        if (payload?.photo) {
+          setFeaturedPhoto({ photo: payload.photo });
+          setTimeout(() => {
+            setFeaturedPhoto((curr) => (curr?.photo.id === payload.photo.id ? null : curr));
+          }, (payload.durationSeconds || 12) * 1000);
+        }
+      } else if (type === "REACTION_BURST") {
+        const rx: FloatingReaction = {
+          id: payload.id || Math.random().toString(),
+          reaction: payload.reaction || "🔥",
+          tableLabel: payload.tableLabel,
+          xPercent: Math.floor(Math.random() * 80) + 10,
+        };
+        setReactions((prev) => [...prev.slice(-20), rx]);
+        setTimeout(() => {
+          setReactions((prev) => prev.filter((r) => r.id !== rx.id));
+        }, 3800);
+      } else if (type === "APPLAUSE_START") {
+        setApplause({
+          targetTableLabel: payload.targetTableLabel || "¡A TODOS LOS ARTISTAS!",
+          durationSeconds: payload.durationSeconds || 15,
+          endsAt: payload.endsAt,
+          score: 15,
+          active: true,
+        });
+      } else if (type === "APPLAUSE_TICK") {
+        setApplause((prev) =>
+          prev && prev.active
+            ? { ...prev, score: Math.min(100, prev.score + 4.5) }
+            : prev
+        );
+      } else if (type === "APPLAUSE_END") {
+        setTimeout(() => setApplause(null), 3000);
+      } else if (type === "ROULETTE_SPIN") {
+        const spinDuration = payload.spinDurationMs || 6000;
+        setRoulette({
+          tables: payload.tables || ["Mesa 1", "Mesa 2", "Mesa 3"],
+          winner: payload.winner || "Mesa 1",
+          prize: payload.prize || "¡Ronda de Shots Gratis!",
+          spinning: true,
+          currentIndex: 0,
+          finished: false,
+        });
+
+        const spinInterval = setInterval(() => {
+          setRoulette((curr) =>
+            curr && curr.spinning
+              ? { ...curr, currentIndex: (curr.currentIndex + 1) % curr.tables.length }
+              : curr
+          );
+        }, 120);
+
+        setTimeout(() => {
+          clearInterval(spinInterval);
+          setRoulette((curr) => (curr ? { ...curr, spinning: false, finished: true } : null));
+        }, spinDuration);
+
+        setTimeout(() => {
+          setRoulette(null);
+        }, spinDuration + 9000);
       } else if (
         type === "TRACK_CHANGE" ||
         type === "QUEUE_UPDATE" ||
         type === "QUEUE_POLICY_UPDATED" ||
-        type === "QUEUE_SLOT_UNLOCKED"
+        type === "QUEUE_SLOT_UNLOCKED" ||
+        type === "TABLE_RELEASED"
       ) {
         fetchDisplayState();
       }
     },
   });
 
-  // Polling de respaldo resiliente (cada 15 segundos) en caso de microcortes de red
+  // Temporizador para finalizar el aplausómetro
+  useEffect(() => {
+    if (!applause || !applause.active) return;
+    const timer = setInterval(() => {
+      if (new Date() >= new Date(applause.endsAt)) {
+        setApplause((prev) => (prev ? { ...prev, active: false } : null));
+        setTimeout(() => setApplause(null), 3500);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [applause?.endsAt, applause?.active]);
+
+  // Carga inicial y polling de respaldo resiliente (cada 15 segundos)
   useEffect(() => {
     fetchDisplayState();
 
     const fetchExtraState = async () => {
       try {
-        // Consultar duelo activo
         const duelRes = await fetch(`/api/v1/duel/state?code=${code}`);
         if (duelRes.ok) {
           const dj = await duelRes.json();
           setActiveDuel(dj.data || null);
         }
 
-        // Consultar fotos aprobadas del muro
         const photoRes = await fetch(`/api/v1/photos?code=${code}&status=APPROVED`);
         if (photoRes.ok) {
           const pj = await photoRes.json();
@@ -197,14 +314,15 @@ export default function PublicDisplayScreenPage({
     return () => clearInterval(interval);
   }, [code]);
 
-  // Rotación de fotos del Social Lounge en pantalla cada 8 segundos
+  // Rotación de fotos del Social Lounge en pantalla según la política del DJ (default 8s)
   useEffect(() => {
     if (approvedPhotos.length <= 1) return;
+    const intervalSec = data?.policy?.photoRotationSeconds || 8;
     const photoTimer = setInterval(() => {
       setCurrentPhotoIdx((prev) => (prev + 1) % approvedPhotos.length);
-    }, 8000);
+    }, intervalSec * 1000);
     return () => clearInterval(photoTimer);
-  }, [approvedPhotos.length]);
+  }, [approvedPhotos.length, data?.policy?.photoRotationSeconds]);
 
   // Temporizador visual de progreso
   useEffect(() => {
@@ -803,6 +921,151 @@ export default function PublicDisplayScreenPage({
           </div>
         )}
       </footer>
+
+      {/* 🚀 Capa de Reacciones Flotantes en Vivo (SSE 0ms) */}
+      <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden">
+        {reactions.map((rx) => (
+          <div
+            key={rx.id}
+            className="absolute bottom-0 flex flex-col items-center animate-reactionFloat"
+            style={{
+              left: `${rx.xPercent}%`,
+            }}
+          >
+            <span className="text-4xl sm:text-5xl filter drop-shadow-[0_0_12px_rgba(255,255,255,0.8)] select-none">
+              {rx.reaction}
+            </span>
+            {rx.tableLabel && (
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-black/80 text-zinc-200 border border-white/20 mt-1 whitespace-nowrap shadow-lg">
+                {rx.tableLabel}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ⭐ Spotlight de Foto Destacada en Pantalla Gigante (12s) */}
+      {featuredPhoto && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fadeIn">
+          <div className="max-w-2xl w-full bg-gradient-to-b from-amber-950/90 via-zinc-950 to-zinc-950 border-4 border-amber-500 rounded-3xl p-6 sm:p-8 space-y-6 shadow-[0_0_70px_rgba(245,158,11,0.5)] text-center relative overflow-hidden">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-xs sm:text-sm font-black tracking-widest uppercase animate-bounce">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>⭐ MOMENTO DESTACADO DE LA NOCHE ⭐</span>
+              <Sparkles className="w-4 h-4 text-amber-400" />
+            </div>
+
+            <div className="aspect-square max-h-[55vh] mx-auto rounded-2xl overflow-hidden bg-black border-2 border-amber-500/40 shadow-2xl relative">
+              <img
+                src={featuredPhoto.photo.imageUrl}
+                alt="Foto Destacada"
+                className="w-full h-full object-contain"
+              />
+              <div className="absolute top-3 left-3 px-3 py-1 rounded-xl bg-black/80 backdrop-blur-md text-amber-300 border border-amber-500/50 text-xs font-mono font-bold">
+                {featuredPhoto.photo.table.label}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {featuredPhoto.photo.caption && (
+                <p className="text-xl sm:text-2xl font-black text-white italic drop-shadow-md">
+                  &ldquo;{featuredPhoto.photo.caption}&rdquo;
+                </p>
+              )}
+              <p className="text-sm font-bold text-amber-300">
+                de {featuredPhoto.photo.guestName}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 👏 Aplausómetro Gigante en Pantalla */}
+      {applause && applause.active && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fadeIn">
+          <div className="max-w-2xl w-full bg-zinc-950 border-4 border-amber-500 rounded-3xl p-8 space-y-6 shadow-[0_0_70px_rgba(245,158,11,0.4)] text-center relative overflow-hidden">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/50 text-xs sm:text-sm font-black tracking-widest uppercase animate-bounce">
+                <span>👏 APLAUSÓMETRO EN VIVO</span>
+              </div>
+              <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+                ¡CALIFIQUEN A: {applause.targetTableLabel}!
+              </h2>
+              <p className="text-sm sm:text-base text-zinc-300 font-medium">
+                ¡Toca repetidamente el botón de aplausos en tu celular para subir la barra!
+              </p>
+            </div>
+
+            {/* Barra Medidora Gigante */}
+            <div className="space-y-2">
+              <div className="w-full h-12 sm:h-16 bg-zinc-900 rounded-2xl overflow-hidden border-2 border-zinc-800 p-1.5 relative">
+                <div
+                  className="h-full rounded-xl bg-gradient-to-r from-yellow-500 via-amber-500 to-red-500 transition-all duration-300 shadow-[0_0_20px_rgba(245,158,11,0.6)]"
+                  style={{ width: `${applause.score}%` }}
+                />
+                <span className="absolute inset-0 flex items-center justify-center font-black font-mono text-xl sm:text-2xl text-white drop-shadow-md">
+                  {Math.round(applause.score)}% DE HYPE
+                </span>
+              </div>
+              <div className="flex justify-between text-xs sm:text-sm font-black text-amber-400">
+                <span>🔥 TIBIO</span>
+                <span>🔥🔥 ¡FIESTA TOTAL!</span>
+                <span>💥💥 ¡LEGENDARIO!</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🎰 Ruleta de la Suerte de Mesas */}
+      {roulette && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fadeIn">
+          <div className="max-w-xl w-full bg-gradient-to-b from-emerald-950/90 via-zinc-950 to-zinc-950 border-4 border-emerald-500 rounded-3xl p-8 space-y-6 shadow-[0_0_70px_rgba(16,185,129,0.5)] text-center relative overflow-hidden">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 text-xs sm:text-sm font-black tracking-widest uppercase animate-bounce">
+                <span>🎰 RULETA DE LA SUERTE</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-black text-white">
+                {roulette.spinning ? "¡SORTEANDO ENTRE LAS MESAS...!" : "🎉 ¡TENEMOS MESA GANADORA! 🎉"}
+              </h2>
+            </div>
+
+            {/* Display de la Ruleta */}
+            <div className="p-8 rounded-2xl bg-zinc-900 border-2 border-emerald-500/50 shadow-inner flex flex-col items-center justify-center min-h-[160px]">
+              <span
+                className={`text-4xl sm:text-6xl font-black tracking-wider transition-all duration-100 ${
+                  roulette.spinning
+                    ? "text-emerald-400 scale-105"
+                    : "text-amber-300 scale-125 animate-bounce drop-shadow-[0_0_25px_rgba(245,158,11,0.8)]"
+                }`}
+              >
+                {roulette.spinning
+                  ? roulette.tables[roulette.currentIndex % roulette.tables.length]
+                  : roulette.winner}
+              </span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-black/60 border border-emerald-500/30">
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Premio:</p>
+              <p className="text-base sm:text-lg font-black text-emerald-300 mt-0.5">
+                {roulette.prize}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Estilos de animación para reacciones flotantes */}
+      <style jsx global>{`
+        @keyframes reactionFloat {
+          0% { transform: translateY(0) scale(0.6); opacity: 0; }
+          15% { opacity: 1; transform: translateY(-15vh) scale(1.2); }
+          85% { opacity: 1; transform: translateY(-75vh) scale(1); }
+          100% { transform: translateY(-95vh) scale(0.8); opacity: 0; }
+        }
+        .animate-reactionFloat {
+          animation: reactionFloat 3.8s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 }

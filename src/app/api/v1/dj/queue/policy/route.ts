@@ -13,6 +13,8 @@ const updatePolicySchema = z.object({
   rotationMode: z.enum(["ROUND_ROBIN", "FIFO"]).optional(),
   zone: z.enum(["DJ", "KARAOKE", "MAIN"]).optional(),
   avgSongDurationMinutes: z.number().int().min(1).max(15).optional(),
+  photosAllowed: z.boolean().optional(),
+  photoRotationSeconds: z.number().int().min(3).max(60).optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -74,6 +76,8 @@ export async function PATCH(req: NextRequest) {
       ...(data.rotationMode !== undefined && { rotationMode: data.rotationMode }),
       ...(data.zone !== undefined && { zone: data.zone }),
       ...(data.avgSongDurationMinutes !== undefined && { avgSongDurationMinutes: data.avgSongDurationMinutes }),
+      ...(data.photosAllowed !== undefined && { photosAllowed: data.photosAllowed }),
+      ...(data.photoRotationSeconds !== undefined && { photoRotationSeconds: data.photoRotationSeconds }),
     };
 
     // Combinar con otras configuraciones existentes del evento si las hubiera

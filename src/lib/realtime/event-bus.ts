@@ -12,6 +12,14 @@ export type RealtimeEventType =
   | "PHOTO_NEW"
   | "PHOTO_APPROVED"
   | "PHOTO_REJECTED"
+  | "PHOTO_REMOVED"
+  | "PHOTO_FEATURED"
+  | "REACTION_BURST"
+  | "APPLAUSE_START"
+  | "APPLAUSE_TICK"
+  | "APPLAUSE_END"
+  | "ROULETTE_SPIN"
+  | "ROULETTE_RESULT"
   | "PULSE_UPDATE";
 
 export interface RealtimeMessage<T = any> {

@@ -146,6 +146,14 @@ const CELEBRATION_TAGS = [
   { label: "🎉 Brindis", note: "🎉 ¡Un brindis por esta gran noche!" },
 ];
 
+const PHOTO_FRAMES = [
+  { id: "NONE", label: "Normal", icon: "🖼️", border: "border-zinc-700", text: "" },
+  { id: "BIRTHDAY", label: "Cumpleaños", icon: "🎂", border: "border-pink-500", text: "🎂 ¡Cumpleaños Feliz!" },
+  { id: "CHEERS", label: "Amigos", icon: "🍻", border: "border-amber-500", text: "🍻 ¡Salud con todos!" },
+  { id: "KARAOKE", label: "Karaoke", icon: "🎤", border: "border-cyan-500", text: "🎤 ¡Voz de Oro!" },
+  { id: "PARTY", label: "Fiesta", icon: "🔥", border: "border-rose-500", text: "🔥 ¡Modo Fiesta!" },
+];
+
 function GuestContent() {
   const searchParams = useSearchParams();
   const errorParam = searchParams.get("error");
@@ -187,13 +195,22 @@ function GuestContent() {
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Modal de Subida de Fotos
+  // Modal de Subida de Fotos y Marcos
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoCaption, setPhotoCaption] = useState("");
+  const [selectedFrame, setSelectedFrame] = useState<string>("NONE");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoSuccess, setPhotoSuccess] = useState(false);
   const [manualCode, setManualCode] = useState("");
+
+  // 🚀 Reacciones en Vivo & Aplausómetro
+  const [lastReactionSent, setLastReactionSent] = useState<string | null>(null);
+  const [activeApplause, setActiveApplause] = useState<{
+    targetTableLabel: string;
+    endsAt: string;
+  } | null>(null);
+  const [applauseCount, setApplauseCount] = useState<number>(0);
 
   const [isManageTableOpen, setIsManageTableOpen] = useState(false);
   const [leavingTable, setLeavingTable] = useState(false);
@@ -357,6 +374,14 @@ function GuestContent() {
     onEvent: async (type: RealtimeEventType, payload: any) => {
       if (type === "DUEL_UPDATE") {
         setActiveDuel(payload || null);
+      } else if (type === "APPLAUSE_START") {
+        setActiveApplause({
+          targetTableLabel: payload.targetTableLabel || "¡A TODOS!",
+          endsAt: payload.endsAt,
+        });
+        setApplauseCount(0);
+      } else if (type === "APPLAUSE_END") {
+        setActiveApplause(null);
       } else if (type === "QUEUE_SLOT_UNLOCKED") {
         // Desbloqueo en tiempo real: avisar al comensal si es su mesa
         await loadSessionAndRequests();
@@ -386,6 +411,48 @@ function GuestContent() {
       }
     },
   });
+
+  // Temporizador para finalizar el aplausómetro en el móvil
+  useEffect(() => {
+    if (!activeApplause) return;
+    const interval = setInterval(() => {
+      if (new Date() >= new Date(activeApplause.endsAt)) {
+        setActiveApplause(null);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [activeApplause]);
+
+  // Enviar reacción de emoji flotante a la Smart TV
+  const handleSendReaction = async (reaction: string) => {
+    setLastReactionSent(reaction);
+    try {
+      await fetch("/api/v1/guest/reactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reaction }),
+      });
+    } catch {}
+    setTimeout(() => {
+      setLastReactionSent((prev) => (prev === reaction ? null : prev));
+    }, 1000);
+  };
+
+  // Enviar tick de aplausos desde el celular
+  const handleSendApplauseTick = async () => {
+    if (!session?.event?.id) return;
+    setApplauseCount((prev) => prev + 1);
+    try {
+      await fetch("/api/v1/dj/interactive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "TICK_APPLAUSE",
+          eventId: session.event.id,
+        }),
+      });
+    } catch {}
+  };
 
   // Polling de respaldo resiliente cada 15 segundos
   useEffect(() => {
@@ -510,12 +577,17 @@ function GuestContent() {
     if (!photoPreview) return;
     setUploadingPhoto(true);
     try {
+      const frameObj = PHOTO_FRAMES.find((f) => f.id === selectedFrame);
+      const finalCaption = frameObj?.text
+        ? `${frameObj.text} ${photoCaption.trim() ? `• "${photoCaption.trim()}"` : ""}`
+        : photoCaption.trim() || null;
+
       const res = await fetch("/api/v1/photos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           imageUrl: photoPreview,
-          caption: photoCaption,
+          caption: finalCaption,
           guestName,
         }),
       });
@@ -523,6 +595,7 @@ function GuestContent() {
         setPhotoSuccess(true);
         setPhotoPreview(null);
         setPhotoCaption("");
+        setSelectedFrame("NONE");
         setTimeout(() => {
           setIsPhotoModalOpen(false);
           setPhotoSuccess(false);
@@ -928,6 +1001,74 @@ function GuestContent() {
         {/* PESTAÑA 1: "MI NOCHE" (WELCOME HUB) */}
         {activeTab === "hub" && (
           <div className="space-y-4 w-full">
+            {/* 👏 Aplausómetro en Vivo para Comensales */}
+            {activeApplause && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/90 via-zinc-950 to-orange-950/90 border-2 border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.3)] space-y-3 animate-pulse">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">👏</span>
+                    <div>
+                      <span className="text-xs font-black uppercase text-amber-300 tracking-wider block">
+                        ¡Aplausómetro al Aire en Pantalla!
+                      </span>
+                      <p className="text-[11px] text-zinc-300">
+                        Califica a: <strong>{activeApplause.targetTableLabel}</strong>
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono font-black text-amber-400 bg-black/60 px-2.5 py-1 rounded-xl border border-amber-500/40">
+                    +{applauseCount}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSendApplauseTick}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-black font-black text-sm tracking-wider uppercase shadow-xl hover:scale-[1.02] active:scale-95 transition-transform flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span className="text-2xl">👏</span>
+                  <span>¡TOCA PARA APLAUDIR! (+1)</span>
+                </button>
+              </div>
+            )}
+
+            {/* 🚀 Barra de Reacciones en Vivo a la Smart TV */}
+            <div className="p-3.5 rounded-2xl bg-zinc-900/90 border border-purple-500/30 shadow-lg space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">🔥</span>
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Reaccionar en Vivo a la Pantalla
+                  </span>
+                </div>
+                {lastReactionSent && (
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800 animate-bounce">
+                    ¡{lastReactionSent} enviado a la TV!
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-6 gap-2">
+                {[
+                  { emoji: "🔥", label: "Fuego" },
+                  { emoji: "❤️", label: "Amor" },
+                  { emoji: "👏", label: "Bravo" },
+                  { emoji: "🍻", label: "Salud" },
+                  { emoji: "💃", label: "Baile" },
+                  { emoji: "🎤", label: "Canto" },
+                ].map((item) => (
+                  <button
+                    key={item.emoji}
+                    type="button"
+                    onClick={() => handleSendReaction(item.emoji)}
+                    className="py-2.5 rounded-xl bg-zinc-950 hover:bg-purple-950/40 border border-zinc-800 hover:border-purple-500/50 flex flex-col items-center justify-center gap-1 active:scale-90 transition-all cursor-pointer shadow-sm"
+                  >
+                    <span className="text-xl sm:text-2xl">{item.emoji}</span>
+                    <span className="text-[9px] text-zinc-400 font-semibold">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Promo Flash Deal de Barra (Pulse) */}
             {flashDeal && (
               <div
@@ -1573,17 +1714,48 @@ function GuestContent() {
                 <p className="text-xs text-zinc-400">El DJ la proyectará en pantalla en unos momentos.</p>
               </div>
             ) : (
-              <form onSubmit={handleUploadPhoto} className="space-y-3">
+              <form onSubmit={handleUploadPhoto} className="space-y-3.5">
                 {photoPreview ? (
-                  <div className="relative rounded-xl overflow-hidden border border-zinc-700 max-h-56 flex items-center justify-center bg-black">
-                    <img src={photoPreview} alt="Preview" className="max-h-56 object-contain" />
-                    <button
-                      type="button"
-                      onClick={() => setPhotoPreview(null)}
-                      className="absolute top-2 right-2 p-1 rounded-full bg-black/70 text-white hover:bg-black"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                  <div className="space-y-3">
+                    <div className="relative rounded-xl overflow-hidden border border-zinc-700 max-h-56 flex items-center justify-center bg-black">
+                      <img src={photoPreview} alt="Preview" className="max-h-56 object-contain" />
+                      {selectedFrame !== "NONE" && (
+                        <div className="absolute top-2 left-2 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-sm text-xs font-bold text-white border border-white/20 flex items-center gap-1">
+                          <span>{PHOTO_FRAMES.find((f) => f.id === selectedFrame)?.text}</span>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setPhotoPreview(null)}
+                        className="absolute top-2 right-2 p-1 rounded-full bg-black/70 text-white hover:bg-black cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Selector de Marcos y Stickers Temáticos */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] font-bold text-zinc-300">
+                        Elige un Marco o Sticker para tu Foto:
+                      </label>
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {PHOTO_FRAMES.map((frame) => (
+                          <button
+                            key={frame.id}
+                            type="button"
+                            onClick={() => setSelectedFrame(frame.id)}
+                            className={`p-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                              selectedFrame === frame.id
+                                ? `${frame.border} bg-cyan-950/70 text-white shadow-md shadow-cyan-950/40`
+                                : "border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:text-white"
+                            }`}
+                          >
+                            <span className="text-lg">{frame.icon}</span>
+                            <span className="text-[9px] font-bold truncate w-full">{frame.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <label className="border-2 border-dashed border-zinc-700 hover:border-cyan-500 rounded-xl p-8 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors bg-zinc-950/60">

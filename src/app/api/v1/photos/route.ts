@@ -3,8 +3,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getCurrentGuestSession } from "@/lib/auth/guest-session";
 import { getCurrentSession } from "@/lib/auth/session";
-import { handleApiError, UnauthorizedError, AppError } from "@/lib/errors";
+import { handleApiError, UnauthorizedError, ForbiddenError, AppError } from "@/lib/errors";
 import { realtimeBus } from "@/lib/realtime/event-bus";
+import { parseQueuePolicy } from "@/lib/dj/rotation";
 
 const createPhotoSchema = z.object({
   imageUrl: z.string().min(10, "La imagen es requerida"),
@@ -17,6 +18,16 @@ export async function POST(req: NextRequest) {
     const guestSession = await getCurrentGuestSession();
     if (!guestSession) {
       throw new UnauthorizedError("Debes escanear el QR de tu mesa para subir fotos al muro de la pantalla.");
+    }
+
+    const event = await prisma.event.findUnique({
+      where: { id: guestSession.eventId },
+      select: { settings: true },
+    });
+
+    const policy = parseQueuePolicy(event?.settings);
+    if (!policy.photosAllowed) {
+      throw new ForbiddenError("La subida de fotos al muro está pausada momentáneamente por la cabina del DJ.");
     }
 
     const body = await req.json();
