@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Music,
@@ -154,6 +154,46 @@ const PHOTO_FRAMES = [
   { id: "PARTY", label: "Fiesta", icon: "🔥", border: "border-rose-500", text: "🔥 ¡Modo Fiesta!" },
 ];
 
+/**
+ * Comprime y redimensiona fotos tomadas con el celular antes de subirlas
+ * Evita exceder límites de carga (413), acelera el envío a 100ms y optimiza memoria en la Smart TV
+ */
+function compressImageFile(file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.8): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (readerEvent) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(readerEvent.target?.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedBase64 = canvas.toDataURL("image/jpeg", quality);
+        resolve(compressedBase64);
+      };
+      img.onerror = () => resolve(readerEvent.target?.result as string);
+      img.src = readerEvent.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function GuestContent() {
   const searchParams = useSearchParams();
   const errorParam = searchParams.get("error");
@@ -201,8 +241,13 @@ function GuestContent() {
   const [photoCaption, setPhotoCaption] = useState("");
   const [selectedFrame, setSelectedFrame] = useState<string>("NONE");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [compressingPhoto, setCompressingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [photoSuccess, setPhotoSuccess] = useState(false);
   const [manualCode, setManualCode] = useState("");
+
+  const instantCameraInputRef = useRef<HTMLInputElement | null>(null);
+  const fileGalleryInputRef = useRef<HTMLInputElement | null>(null);
 
   // 🚀 Reacciones en Vivo & Aplausómetro
   const [lastReactionSent, setLastReactionSent] = useState<string | null>(null);
@@ -567,21 +612,31 @@ function GuestContent() {
     }
   };
 
-  // Subir Foto al Muro Social
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Subir Foto al Muro Social con compresión automática
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPhotoPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    setPhotoError(null);
+    setCompressingPhoto(true);
+    try {
+      const compressed = await compressImageFile(file, 1200, 1200, 0.8);
+      setPhotoPreview(compressed);
+    } catch (err) {
+      console.error("Error al procesar foto:", err);
+      const reader = new FileReader();
+      reader.onload = () => setPhotoPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    } finally {
+      setCompressingPhoto(false);
+      e.target.value = "";
+    }
   };
 
   const handleUploadPhoto = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!photoPreview) return;
     setUploadingPhoto(true);
+    setPhotoError(null);
     try {
       const frameObj = PHOTO_FRAMES.find((f) => f.id === selectedFrame);
       const finalCaption = frameObj?.text
@@ -594,9 +649,10 @@ function GuestContent() {
         body: JSON.stringify({
           imageUrl: photoPreview,
           caption: finalCaption,
-          guestName,
+          guestName: guestName.trim() || session?.guestName || "Mesa",
         }),
       });
+      const data = await res.json();
       if (res.ok) {
         setPhotoSuccess(true);
         setPhotoPreview(null);
@@ -605,13 +661,12 @@ function GuestContent() {
         setTimeout(() => {
           setIsPhotoModalOpen(false);
           setPhotoSuccess(false);
-        }, 2000);
+        }, 2500);
       } else {
-        const err = await res.json();
-        alert(err.error?.message || "Error al enviar la foto");
+        setPhotoError(data.error?.message || "Error al enviar la foto a la cabina");
       }
     } catch {
-      alert("Error de conexión");
+      setPhotoError("Error de conexión al enviar la foto");
     } finally {
       setUploadingPhoto(false);
     }
@@ -1721,7 +1776,38 @@ function GuestContent() {
               </div>
             ) : (
               <form onSubmit={handleUploadPhoto} className="space-y-3.5">
-                {photoPreview ? (
+                {/* Alerta de error si falla la subida */}
+                {photoError && (
+                  <div className="p-3 rounded-xl bg-red-950/80 border border-red-800 text-red-200 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                    <span>{photoError}</span>
+                  </div>
+                )}
+
+                {/* Inputs invisibles para Cámara Instantánea y Galería */}
+                <input
+                  ref={instantCameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handlePhotoSelect}
+                  className="hidden"
+                />
+                <input
+                  ref={fileGalleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoSelect}
+                  className="hidden"
+                />
+
+                {compressingPhoto ? (
+                  <div className="py-10 text-center space-y-2.5 bg-zinc-950/60 rounded-2xl border border-cyan-500/30">
+                    <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin mx-auto" />
+                    <div className="text-xs font-bold text-white">Optimizando foto para la pantalla...</div>
+                    <div className="text-[10px] text-zinc-400">Ajustando calidad para transmisión instantánea</div>
+                  </div>
+                ) : photoPreview ? (
                   <div className="space-y-3">
                     <div className="relative rounded-xl overflow-hidden border border-zinc-700 max-h-56 flex items-center justify-center bg-black">
                       <img src={photoPreview} alt="Preview" className="max-h-56 object-contain" />
@@ -1733,7 +1819,8 @@ function GuestContent() {
                       <button
                         type="button"
                         onClick={() => setPhotoPreview(null)}
-                        className="absolute top-2 right-2 p-1 rounded-full bg-black/70 text-white hover:bg-black cursor-pointer"
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 hover:bg-red-600 text-white cursor-pointer transition-colors"
+                        title="Eliminar y elegir otra"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -1764,17 +1851,37 @@ function GuestContent() {
                     </div>
                   </div>
                 ) : (
-                  <label className="border-2 border-dashed border-zinc-700 hover:border-cyan-500 rounded-xl p-8 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors bg-zinc-950/60">
-                    <Camera className="w-8 h-8 text-cyan-400" />
-                    <span className="text-xs font-bold text-white">Tomar o Seleccionar Foto</span>
-                    <span className="text-[10px] text-zinc-500">De tu mesa o grupo de amigos</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoSelect}
-                      className="hidden"
-                    />
-                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Opción 1: Sacar Foto Instantánea con Cámara */}
+                    <button
+                      type="button"
+                      onClick={() => instantCameraInputRef.current?.click()}
+                      className="p-5 rounded-2xl border-2 border-dashed border-cyan-500/50 hover:border-cyan-400 bg-cyan-950/20 hover:bg-cyan-950/40 flex flex-col items-center justify-center gap-2.5 transition-all group cursor-pointer text-center"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Camera className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-black text-white block">📸 Sacar Foto Ahora</span>
+                        <span className="text-[10px] text-zinc-400">Abre la cámara del celular al instante</span>
+                      </div>
+                    </button>
+
+                    {/* Opción 2: Subir de Archivos / Galería */}
+                    <button
+                      type="button"
+                      onClick={() => fileGalleryInputRef.current?.click()}
+                      className="p-5 rounded-2xl border-2 border-dashed border-purple-500/50 hover:border-purple-400 bg-purple-950/20 hover:bg-purple-950/40 flex flex-col items-center justify-center gap-2.5 transition-all group cursor-pointer text-center"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <ImageIcon className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-black text-white block">📁 Elegir de Archivos</span>
+                        <span className="text-[10px] text-zinc-400">Selecciona fotos de tu galería</span>
+                      </div>
+                    </button>
+                  </div>
                 )}
 
                 <div>
@@ -1792,7 +1899,7 @@ function GuestContent() {
 
                 <button
                   type="submit"
-                  disabled={!photoPreview || uploadingPhoto}
+                  disabled={!photoPreview || uploadingPhoto || compressingPhoto}
                   className="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40"
                 >
                   {uploadingPhoto ? (

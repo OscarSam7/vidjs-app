@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 
 export class AppError extends Error {
   public readonly statusCode: number;
@@ -57,6 +58,20 @@ export function handleApiError(error: unknown) {
         },
       },
       { status: error.statusCode }
+    );
+  }
+
+  if (error instanceof ZodError) {
+    const issues = error.errors.map((e) => `${e.path.join(".") || "campo"}: ${e.message}`).join(", ");
+    return NextResponse.json(
+      {
+        error: {
+          code: "VALIDATION_ERROR",
+          message: `Error de validación: ${issues}`,
+          details: error.errors,
+        },
+      },
+      { status: 400 }
     );
   }
 

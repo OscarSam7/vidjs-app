@@ -3,25 +3,50 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getCurrentGuestSession } from "@/lib/auth/guest-session";
 import { getCurrentSession } from "@/lib/auth/session";
-import { handleApiError, UnauthorizedError, ForbiddenError, AppError } from "@/lib/errors";
+import { handleApiError, UnauthorizedError, ForbiddenError, BadRequestError, AppError } from "@/lib/errors";
 import { realtimeBus } from "@/lib/realtime/event-bus";
 import { parseQueuePolicy } from "@/lib/dj/rotation";
 
 const createPhotoSchema = z.object({
   imageUrl: z.string().min(10, "La imagen es requerida"),
-  caption: z.string().max(160).optional(),
-  guestName: z.string().max(60).optional(),
+  caption: z.string().max(500).optional().nullable(),
+  guestName: z.string().max(100).optional().nullable(),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const guestSession = await getCurrentGuestSession();
-    if (!guestSession) {
-      throw new UnauthorizedError("Debes escanear el QR de tu mesa para subir fotos al muro de la pantalla.");
+    let tenantId: string;
+    let eventId: string;
+    let tableId: string;
+    let defaultGuestName: string;
+
+    if (guestSession) {
+      tenantId = guestSession.tenantId;
+      eventId = guestSession.eventId;
+      tableId = guestSession.tableId;
+      defaultGuestName = guestSession.guestName || guestSession.table?.label || "Mesa";
+    } else {
+      // Permitir también a personal del local (DJ, Staff) subir fotos
+      const staffSession = await getCurrentSession();
+      if (!staffSession || !staffSession.tenantId) {
+        throw new UnauthorizedError("Debes escanear el QR de tu mesa para subir fotos al muro de la pantalla.");
+      }
+      tenantId = staffSession.tenantId;
+      const activeEvent = await prisma.event.findFirst({
+        where: { tenantId, status: "ACTIVE" },
+        include: { venue: { include: { tables: { take: 1 } } } },
+      });
+      if (!activeEvent || !activeEvent.venue.tables[0]) {
+        throw new BadRequestError("No hay evento activo o mesas registradas en este local.");
+      }
+      eventId = activeEvent.id;
+      tableId = activeEvent.venue.tables[0].id;
+      defaultGuestName = staffSession.name || "Cabina DJ";
     }
 
     const event = await prisma.event.findUnique({
-      where: { id: guestSession.eventId },
+      where: { id: eventId },
       select: { settings: true },
     });
 
@@ -35,10 +60,10 @@ export async function POST(req: NextRequest) {
 
     const post = await prisma.photoPost.create({
       data: {
-        tenantId: guestSession.tenantId,
-        eventId: guestSession.eventId,
-        tableId: guestSession.tableId,
-        guestName: data.guestName?.trim() || guestSession.guestName || "Mesa",
+        tenantId,
+        eventId,
+        tableId,
+        guestName: data.guestName?.trim() || defaultGuestName,
         imageUrl: data.imageUrl,
         caption: data.caption?.trim() || null,
         status: "PENDING", // Pasa a moderación del DJ
@@ -49,7 +74,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Notificar a la cabina del DJ en tiempo real
-    realtimeBus.broadcast(guestSession.eventId, "PHOTO_NEW", post);
+    realtimeBus.broadcast(eventId, "PHOTO_NEW", post);
 
     return NextResponse.json({
       success: true,
