@@ -15,6 +15,7 @@ const updatePolicySchema = z.object({
   avgSongDurationMinutes: z.number().int().min(1).max(15).optional(),
   photosAllowed: z.boolean().optional(),
   photoRotationSeconds: z.number().int().min(3).max(60).optional(),
+  photoFitMode: z.enum(["BLUR_FILL", "CONTAIN", "COVER"]).optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -78,6 +79,7 @@ export async function PATCH(req: NextRequest) {
       ...(data.avgSongDurationMinutes !== undefined && { avgSongDurationMinutes: data.avgSongDurationMinutes }),
       ...(data.photosAllowed !== undefined && { photosAllowed: data.photosAllowed }),
       ...(data.photoRotationSeconds !== undefined && { photoRotationSeconds: data.photoRotationSeconds }),
+      ...(data.photoFitMode !== undefined && { photoFitMode: data.photoFitMode }),
     };
 
     // Combinar con otras configuraciones existentes del evento si las hubiera
@@ -115,6 +117,13 @@ export async function PATCH(req: NextRequest) {
       eventId: event.id,
       policy: updatedPolicy,
     });
+
+    if (data.photoFitMode !== undefined) {
+      realtimeBus.broadcast(event.id, "PHOTO_FIT_MODE", {
+        eventId: event.id,
+        photoFitMode: updatedPolicy.photoFitMode,
+      });
+    }
 
     return NextResponse.json({
       success: true,

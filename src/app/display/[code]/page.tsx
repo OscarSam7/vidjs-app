@@ -114,6 +114,7 @@ interface DisplayState {
     rotationMode: string;
     photosAllowed?: boolean;
     photoRotationSeconds?: number;
+    photoFitMode?: "BLUR_FILL" | "CONTAIN" | "COVER";
   };
   qr: {
     scanUrl: string;
@@ -144,6 +145,9 @@ export default function PublicDisplayScreenPage({
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
+
+  // 📸 Modo de Ajuste de Fotos en Pantalla (Cine Blur, Contener, Llenar)
+  const [photoFitMode, setPhotoFitMode] = useState<"BLUR_FILL" | "CONTAIN" | "COVER">("BLUR_FILL");
 
   // ⚔️ Duelo Musical en TV
   const [activeDuel, setActiveDuel] = useState<LiveDuelData | null>(null);
@@ -260,6 +264,10 @@ export default function PublicDisplayScreenPage({
         setTimeout(() => {
           setRoulette(null);
         }, spinDuration + 9000);
+      } else if (type === "PHOTO_FIT_MODE") {
+        if (payload?.photoFitMode) {
+          setPhotoFitMode(payload.photoFitMode);
+        }
       } else if (
         type === "TRACK_CHANGE" ||
         type === "QUEUE_UPDATE" ||
@@ -267,6 +275,9 @@ export default function PublicDisplayScreenPage({
         type === "QUEUE_SLOT_UNLOCKED" ||
         type === "TABLE_RELEASED"
       ) {
+        if (type === "QUEUE_POLICY_UPDATED" && payload?.policy?.photoFitMode) {
+          setPhotoFitMode(payload.policy.photoFitMode);
+        }
         fetchDisplayState();
       }
     },
@@ -323,6 +334,27 @@ export default function PublicDisplayScreenPage({
     }, intervalSec * 1000);
     return () => clearInterval(photoTimer);
   }, [approvedPhotos.length, data?.policy?.photoRotationSeconds]);
+
+  // Sincronizar modo de ajuste de foto con la política del evento
+  useEffect(() => {
+    if (data?.policy?.photoFitMode) {
+      setPhotoFitMode(data.policy.photoFitMode);
+    }
+  }, [data?.policy?.photoFitMode]);
+
+  const handleToggleFitMode = (mode: "BLUR_FILL" | "CONTAIN" | "COVER") => {
+    setPhotoFitMode(mode);
+    if (data?.event?.id) {
+      fetch("/api/v1/dj/queue/policy", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: data.event.id,
+          photoFitMode: mode,
+        }),
+      }).catch(() => {});
+    }
+  };
 
   // Temporizador visual de progreso
   useEffect(() => {
@@ -412,18 +444,59 @@ export default function PublicDisplayScreenPage({
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none" />
 
-      {/* Botón de Pantalla Completa Flotante (auto-ocultable) */}
+      {/* Botones de Control Flotante (auto-ocultables en Smart TV) */}
       <div
-        className={`fixed top-4 right-4 z-50 transition-opacity duration-300 ${
+        className={`fixed top-4 right-4 z-50 flex items-center gap-2 transition-opacity duration-300 ${
           showControls ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
+        {/* Selector de Modo de Ajuste de Foto en TV */}
+        <div className="flex items-center bg-zinc-900/90 border border-zinc-700/80 rounded-xl p-1 backdrop-blur-md shadow-2xl text-xs">
+          <span className="text-[10px] uppercase font-bold text-zinc-400 px-2 flex items-center gap-1">
+            <Camera className="w-3 h-3 text-pink-400" />
+            <span className="hidden sm:inline">Foto TV:</span>
+          </span>
+          <button
+            onClick={() => handleToggleFitMode("BLUR_FILL")}
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+              photoFitMode === "BLUR_FILL"
+                ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
+                : "text-zinc-400 hover:text-white"
+            }`}
+            title="Cine Blur: Fondo ambiental desenfocado cinemático, foto original completa sin cortar caras"
+          >
+            ✨ Cine Blur
+          </button>
+          <button
+            onClick={() => handleToggleFitMode("CONTAIN")}
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+              photoFitMode === "CONTAIN"
+                ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
+                : "text-zinc-400 hover:text-white"
+            }`}
+            title="Contener: Ajuste exacto en caja con marco oscuro"
+          >
+            🔳 Contener
+          </button>
+          <button
+            onClick={() => handleToggleFitMode("COVER")}
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+              photoFitMode === "COVER"
+                ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
+                : "text-zinc-400 hover:text-white"
+            }`}
+            title="Llenar: Foto cubre todo el espacio del contenedor"
+          >
+            🔲 Llenar
+          </button>
+        </div>
+
         <button
           onClick={toggleFullscreen}
-          className="p-3 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/80 text-zinc-300 hover:text-white backdrop-blur-md shadow-2xl flex items-center gap-2 text-xs font-semibold cursor-pointer"
+          className="p-2.5 sm:p-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700/80 text-zinc-300 hover:text-white backdrop-blur-md shadow-2xl flex items-center gap-2 text-xs font-semibold cursor-pointer"
         >
           {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          <span>{isFullscreen ? "Salir" : "Pantalla Completa (F11)"}</span>
+          <span className="hidden sm:inline">{isFullscreen ? "Salir" : "Pantalla Completa (F11)"}</span>
         </button>
       </div>
 
@@ -799,7 +872,10 @@ export default function PublicDisplayScreenPage({
 
         {/* Floating Social Lounge Polaroid Showcase */}
         {approvedPhotos.length > 0 && (
-          <div className="hidden xl:block absolute -bottom-4 right-0 z-20 w-60 bg-zinc-950/95 border-2 border-pink-500/40 rounded-2xl p-3 shadow-2xl shadow-pink-500/20 rotate-1 hover:rotate-0 transition-all animate-fadeIn">
+          <div
+            key={approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.id || currentPhotoIdx}
+            className="hidden xl:block absolute -bottom-4 right-0 z-20 w-64 bg-zinc-950/95 border-2 border-pink-500/40 rounded-2xl p-3 shadow-2xl shadow-pink-500/20 rotate-1 hover:rotate-0 transition-all animate-fadeIn"
+          >
             <div className="flex items-center justify-between text-[10px] font-bold text-pink-400 uppercase mb-2">
               <span className="flex items-center gap-1">
                 <Camera className="w-3 h-3" />
@@ -809,12 +885,33 @@ export default function PublicDisplayScreenPage({
                 {approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.table.label}
               </span>
             </div>
-            <div className="aspect-square rounded-xl overflow-hidden bg-black border border-zinc-800">
-              <img
-                src={approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.imageUrl}
-                alt="Foto del público"
-                className="w-full h-full object-cover"
-              />
+            <div className="aspect-square rounded-xl overflow-hidden bg-black border border-zinc-800 relative">
+              {photoFitMode === "BLUR_FILL" ? (
+                <>
+                  {/* Fondo ambiental difuminado cinemático para Smart TV */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.imageUrl}
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute inset-0 w-full h-full object-cover blur-xl opacity-50 scale-125 pointer-events-none"
+                  />
+                  {/* Foto original nítida centrada con proporción intacta */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.imageUrl}
+                    alt="Foto del público"
+                    className="relative z-10 w-full h-full object-contain drop-shadow-md"
+                  />
+                </>
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.imageUrl}
+                  alt="Foto del público"
+                  className={`w-full h-full ${photoFitMode === "CONTAIN" ? "object-contain" : "object-cover"}`}
+                />
+              )}
             </div>
             <div className="mt-2 text-center">
               {approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.caption && (
@@ -955,12 +1052,33 @@ export default function PublicDisplayScreenPage({
             </div>
 
             <div className="aspect-square max-h-[55vh] mx-auto rounded-2xl overflow-hidden bg-black border-2 border-amber-500/40 shadow-2xl relative">
-              <img
-                src={featuredPhoto.photo.imageUrl}
-                alt="Foto Destacada"
-                className="w-full h-full object-contain"
-              />
-              <div className="absolute top-3 left-3 px-3 py-1 rounded-xl bg-black/80 backdrop-blur-md text-amber-300 border border-amber-500/50 text-xs font-mono font-bold">
+              {photoFitMode === "BLUR_FILL" ? (
+                <>
+                  {/* Fondo ambiental difuminado para no tener bordes vacíos en TV */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={featuredPhoto.photo.imageUrl}
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-50 scale-125 pointer-events-none"
+                  />
+                  {/* Foto original nítida centrada completa sin recortes */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={featuredPhoto.photo.imageUrl}
+                    alt="Foto Destacada"
+                    className="relative z-10 w-full h-full object-contain drop-shadow-2xl"
+                  />
+                </>
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={featuredPhoto.photo.imageUrl}
+                  alt="Foto Destacada"
+                  className={`w-full h-full ${photoFitMode === "CONTAIN" ? "object-contain" : "object-cover"}`}
+                />
+              )}
+              <div className="absolute top-3 left-3 z-20 px-3 py-1 rounded-xl bg-black/80 backdrop-blur-md text-amber-300 border border-amber-500/50 text-xs font-mono font-bold">
                 {featuredPhoto.photo.table.label}
               </div>
             </div>

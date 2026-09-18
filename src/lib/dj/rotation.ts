@@ -13,6 +13,7 @@ export interface QueuePolicy {
   avgSongDurationMinutes: number;
   photosAllowed: boolean;
   photoRotationSeconds: number;
+  photoFitMode: "BLUR_FILL" | "CONTAIN" | "COVER";
 }
 
 export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
@@ -25,6 +26,7 @@ export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
       avgSongDurationMinutes: 4,
       photosAllowed: true,
       photoRotationSeconds: 8,
+      photoFitMode: "BLUR_FILL",
     };
   }
   try {
@@ -32,6 +34,10 @@ export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
     const rawLimit = typeof parsed.maxActivePerTable === "number" ? parsed.maxActivePerTable : 1;
     const rawDuration = typeof parsed.avgSongDurationMinutes === "number" ? parsed.avgSongDurationMinutes : 4;
     const rawPhotoRot = typeof parsed.photoRotationSeconds === "number" ? parsed.photoRotationSeconds : 8;
+    const validModes = ["BLUR_FILL", "CONTAIN", "COVER"];
+    const rawFit = typeof parsed.photoFitMode === "string" && validModes.includes(parsed.photoFitMode)
+      ? (parsed.photoFitMode as "BLUR_FILL" | "CONTAIN" | "COVER")
+      : "BLUR_FILL";
 
     return {
       zone: parsed.zone === "DJ" || parsed.zone === "MAIN" ? parsed.zone : "KARAOKE",
@@ -41,6 +47,7 @@ export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
       avgSongDurationMinutes: Math.max(1, Math.min(15, rawDuration)),
       photosAllowed: parsed.photosAllowed !== undefined ? Boolean(parsed.photosAllowed) : true,
       photoRotationSeconds: Math.max(3, Math.min(60, rawPhotoRot)),
+      photoFitMode: rawFit,
     };
   } catch {
     return {
@@ -51,6 +58,7 @@ export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
       avgSongDurationMinutes: 4,
       photosAllowed: true,
       photoRotationSeconds: 8,
+      photoFitMode: "BLUR_FILL",
     };
   }
 }

@@ -139,6 +139,7 @@ interface QueuePolicyState {
   avgSongDurationMinutes: number;
   photosAllowed?: boolean;
   photoRotationSeconds?: number;
+  photoFitMode?: "BLUR_FILL" | "CONTAIN" | "COVER";
 }
 
 export default function DjBoothPage() {
@@ -156,6 +157,7 @@ export default function DjBoothPage() {
     avgSongDurationMinutes: 4,
     photosAllowed: true,
     photoRotationSeconds: 8,
+    photoFitMode: "BLUR_FILL",
   });
   const [policyLoading, setPolicyLoading] = useState(false);
 
@@ -1194,6 +1196,31 @@ export default function DjBoothPage() {
                     }`}
                   >
                     {sec}s
+                  </button>
+                ))}
+              </div>
+
+              {/* Selector de Ajuste en Pantalla TV (photoFitMode) */}
+              <div className="flex items-center gap-1 bg-zinc-900 p-0.5 rounded-xl border border-zinc-800 text-[11px]">
+                <span className="px-2 text-zinc-500 font-bold">Ajuste TV:</span>
+                {[
+                  { mode: "BLUR_FILL", label: "✨ Cine Blur", desc: "Fondo ambiental desenfocado cinemático (sin cortar caras ni bandas negras)" },
+                  { mode: "CONTAIN", label: "🔳 Contener", desc: "Ajuste exacto en caja con marco oscuro" },
+                  { mode: "COVER", label: "🔲 Llenar", desc: "Cubre todo el marco (recorte proporcional)" },
+                ].map((item) => (
+                  <button
+                    key={item.mode}
+                    type="button"
+                    onClick={() => handleUpdatePolicy({ photoFitMode: item.mode as any })}
+                    disabled={policyLoading}
+                    title={item.desc}
+                    className={`px-2.5 py-0.5 rounded-lg font-bold cursor-pointer transition-all ${
+                      (queuePolicy.photoFitMode || "BLUR_FILL") === item.mode
+                        ? "bg-purple-600 text-white shadow-sm"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    {item.label}
                   </button>
                 ))}
               </div>

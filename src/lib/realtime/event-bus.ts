@@ -14,6 +14,7 @@ export type RealtimeEventType =
   | "PHOTO_REJECTED"
   | "PHOTO_REMOVED"
   | "PHOTO_FEATURED"
+  | "PHOTO_FIT_MODE"
   | "REACTION_BURST"
   | "APPLAUSE_START"
   | "APPLAUSE_TICK"
