@@ -363,8 +363,6 @@ export default function VirtualDjConsole({
   // Refs para recordar la pista activa y evitar recargas o reinicios no deseados entre bandejas
   const prevCurrentPlayingIdRef = useRef<string | null>(currentPlaying?.id || null);
   const prevTrackBKeyRef = useRef<string | null>(null);
-  const loadedTrackKeyARef = useRef<string | null>(null);
-  const loadedTrackKeyBRef = useRef<string | null>(null);
 
   // Reset de reproducción al cambiar tema en Deck A (solo cuando llega un nuevo tema genuino del servidor)
   useEffect(() => {
@@ -374,6 +372,7 @@ export default function VirtualDjConsole({
       if (!manualTrackA && !isEjectedA) {
         setPlaybackSecondsA(0);
         setIsPlayingA(true);
+        setVideoIdA(null);
       }
     }
   }, [currentPlaying?.id, manualTrackA, isEjectedA]);
@@ -397,32 +396,27 @@ export default function VirtualDjConsole({
 
   // Resolución de video de YouTube para DECK A
   useEffect(() => {
-    if (isEjectedA || !trackA) {
-      loadedTrackKeyARef.current = null;
+    if (isEjectedA) {
       if (videoIdA) setVideoIdA(null);
       return;
     }
+
+    // AISLAMIENTO TOTAL: Si Deck A ya tiene un video cargado (videoIdA no es nulo),
+    // NUNCA detener la reproducción, desmontar el iframe ni reiniciar la búsqueda
+    // ante cambios de estado de Deck B ni re-renderizados.
+    if (videoIdA) {
+      return;
+    }
+
+    if (!trackA) return;
+
     const explicitId =
       (!manualTrackA && currentPlaying?.youtubeVideoId) ||
       trackA.youtubeVideoId ||
       extractYoutubeId(trackA.notes);
 
-    const currentKeyA = getTrackKey(trackA, explicitId);
-
-    // GUARD: Si la pista actual ya está resuelta y montada en Deck A, NUNCA reiniciar ni desmontar
-    if (videoIdA && loadedTrackKeyARef.current === currentKeyA) {
-      return;
-    }
-
     if (explicitId) {
-      if (videoIdA !== explicitId) {
-        if (iframeRefA.current) {
-          sendPlayerCommand(iframeRefA.current, "stopVideo");
-          sendPlayerCommand(iframeRefA.current, "pauseVideo");
-        }
-        loadedTrackKeyARef.current = currentKeyA;
-        setVideoIdA(explicitId);
-      }
+      setVideoIdA(explicitId);
       return;
     }
 
@@ -431,17 +425,7 @@ export default function VirtualDjConsole({
     const query = `${title} ${artist}`.trim();
     if (!query) return;
 
-    if (videoIdA && loadedTrackKeyARef.current === currentKeyA) {
-      return;
-    }
-
-    loadedTrackKeyARef.current = currentKeyA;
     const reqId = ++searchRequestIdA.current;
-    if (iframeRefA.current) {
-      sendPlayerCommand(iframeRefA.current, "stopVideo");
-      sendPlayerCommand(iframeRefA.current, "pauseVideo");
-    }
-    setVideoIdA(null);
     setIsLoadingVideoA(true);
 
     fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query)}&isKaraoke=false`)
@@ -460,6 +444,7 @@ export default function VirtualDjConsole({
       });
   }, [
     isEjectedA,
+    videoIdA,
     trackA?.id,
     trackA?.song?.id,
     trackA?.song?.title,
@@ -467,37 +452,31 @@ export default function VirtualDjConsole({
     manualTrackA?.customTitle,
     currentPlaying?.id,
     currentPlaying?.youtubeVideoId,
-    videoIdA,
   ]);
 
   // Resolución de video de YouTube para DECK B
   useEffect(() => {
-    if (isEjectedB || !trackB) {
-      loadedTrackKeyBRef.current = null;
+    if (isEjectedB) {
       if (videoIdB) setVideoIdB(null);
       return;
     }
+
+    // AISLAMIENTO TOTAL: Si Deck B ya tiene un video cargado (videoIdB no es nulo),
+    // NUNCA detener la reproducción, desmontar el iframe ni reiniciar la búsqueda
+    // ante cambios de estado de Deck A ni re-renderizados.
+    if (videoIdB) {
+      return;
+    }
+
+    if (!trackB) return;
+
     const explicitId =
       (!manualTrackB && effectiveQueueEntryB?.youtubeVideoId) ||
       trackB.youtubeVideoId ||
       extractYoutubeId(trackB.notes);
 
-    const currentKeyB = getTrackKey(trackB, explicitId);
-
-    // GUARD: Si la pista actual ya está resuelta y montada en Deck B, NUNCA reiniciar ni desmontar
-    if (videoIdB && loadedTrackKeyBRef.current === currentKeyB) {
-      return;
-    }
-
     if (explicitId) {
-      if (videoIdB !== explicitId) {
-        if (iframeRefB.current) {
-          sendPlayerCommand(iframeRefB.current, "stopVideo");
-          sendPlayerCommand(iframeRefB.current, "pauseVideo");
-        }
-        loadedTrackKeyBRef.current = currentKeyB;
-        setVideoIdB(explicitId);
-      }
+      setVideoIdB(explicitId);
       return;
     }
 
@@ -506,17 +485,7 @@ export default function VirtualDjConsole({
     const query = `${title} ${artist}`.trim();
     if (!query) return;
 
-    if (videoIdB && loadedTrackKeyBRef.current === currentKeyB) {
-      return;
-    }
-
-    loadedTrackKeyBRef.current = currentKeyB;
     const reqId = ++searchRequestIdB.current;
-    if (iframeRefB.current) {
-      sendPlayerCommand(iframeRefB.current, "stopVideo");
-      sendPlayerCommand(iframeRefB.current, "pauseVideo");
-    }
-    setVideoIdB(null);
     setIsLoadingVideoB(true);
 
     fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query)}&isKaraoke=false`)
@@ -535,6 +504,7 @@ export default function VirtualDjConsole({
       });
   }, [
     isEjectedB,
+    videoIdB,
     trackB?.id,
     trackB?.song?.id,
     trackB?.song?.title,
@@ -542,7 +512,6 @@ export default function VirtualDjConsole({
     manualTrackB?.customTitle,
     effectiveQueueEntryB?.id,
     effectiveQueueEntryB?.youtubeVideoId,
-    videoIdB,
   ]);
 
   // Sincronización de volumen y mute en Deck A
@@ -675,7 +644,6 @@ export default function VirtualDjConsole({
     }
     // Evitar que el efecto de cambio de track reactive Deck A con el tema del servidor
     prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
-    loadedTrackKeyARef.current = null;
     setIsEjectedA(true);
     setManualTrackA(null);
     setVideoIdA(null);
@@ -693,7 +661,6 @@ export default function VirtualDjConsole({
       sendPlayerCommand(iframeRefB.current, "stopVideo");
       sendPlayerCommand(iframeRefB.current, "pauseVideo");
     }
-    loadedTrackKeyBRef.current = null;
     prevTrackBKeyRef.current = null;
     setIsEjectedB(true);
     setManualTrackB(null);
@@ -720,7 +687,6 @@ export default function VirtualDjConsole({
       explicitVideoId ||
       track.youtubeVideoId ||
       extractYoutubeId(track.notes);
-    loadedTrackKeyARef.current = getTrackKey(track, directId);
     setVideoIdA(null);
     setIsPlayingA(false);
     setPlaybackSecondsA(0);
@@ -784,7 +750,6 @@ export default function VirtualDjConsole({
       track.youtubeVideoId ||
       extractYoutubeId(track.notes);
     const trackKey = getTrackKey(track, directId);
-    loadedTrackKeyBRef.current = trackKey;
     prevTrackBKeyRef.current = trackKey;
     setVideoIdB(null);
     setIsPlayingB(false);
