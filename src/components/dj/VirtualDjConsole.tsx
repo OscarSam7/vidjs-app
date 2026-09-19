@@ -79,6 +79,36 @@ interface DeckPlayerProps {
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
 }
 
+interface StableIframeProps {
+  deckId: "A" | "B";
+  videoId: string | null;
+  iframeRef: React.RefObject<HTMLIFrameElement | null>;
+}
+
+// Iframe inmutable: NUNCA se re-renderiza a menos que su propio videoId cambie genuinamente.
+// Aislamiento físico absoluto a nivel de DOM.
+const StableIframe = memo(
+  function StableIframe({ deckId, videoId, iframeRef }: StableIframeProps) {
+    const src = videoId
+      ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&playsinline=1&controls=0&modestbranding=1&rel=0`
+      : "about:blank";
+
+    return (
+      <iframe
+        ref={iframeRef}
+        id={`deck-${deckId.toLowerCase()}-iframe`}
+        src={src}
+        title={`Deck ${deckId} Audio Player`}
+        className={`w-full h-full border-0 pointer-events-auto transition-opacity duration-200 ${
+          videoId ? "opacity-100 relative z-0" : "opacity-0 pointer-events-none absolute inset-0 -z-10"
+        }`}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      />
+    );
+  },
+  (prev, next) => prev.deckId === next.deckId && prev.videoId === next.videoId
+);
+
 // Componente de reproductor 100% aislado y memoizado.
 // Evita de raíz que la recarga, desmontaje o limpieza de una bandeja afecte a la otra.
 const DeckPlayer = memo(
@@ -100,27 +130,11 @@ const DeckPlayer = memo(
       : "Bandeja B vacía — Lista para cargar";
     const chLabel = isA ? "CH 1" : "CH 2";
 
-    // URL estable: se calcula ÚNICAMENTE cuando cambia el videoId, jamás en re-renders
-    const iframeSrc = useMemo(() => {
-      if (!videoId) return "about:blank";
-      return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&playsinline=1&controls=0&modestbranding=1&rel=0`;
-    }, [videoId]);
-
     return (
       <div
         className={`relative aspect-video max-h-36 w-full rounded-xl overflow-hidden border ${borderColor} bg-black shadow-inner`}
       >
-        {/* El iframe permanece SIEMPRE montado para evitar destrucción y recreación de contexto DOM y streams */}
-        <iframe
-          ref={iframeRef}
-          id={`deck-${deckId.toLowerCase()}-iframe`}
-          src={iframeSrc}
-          title={`Deck ${deckId} Audio Player`}
-          className={`w-full h-full border-0 pointer-events-auto transition-opacity duration-200 ${
-            videoId ? "opacity-100 relative z-0" : "opacity-0 pointer-events-none absolute inset-0 -z-10"
-          }`}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        />
+        <StableIframe deckId={deckId} videoId={videoId} iframeRef={iframeRef} />
 
         {/* Overlay HUD cuando hay pista activa */}
         {videoId && (
@@ -197,6 +211,7 @@ export default function VirtualDjConsole({
 
   // ==================== DECK A STATE ====================
   const [isEjectedA, setIsEjectedA] = useState(false);
+  const [deckTrackA, setDeckTrackA] = useState<SongRequestData | null>(() => currentPlaying?.songRequest || null);
   const [manualTrackA, setManualTrackA] = useState<SongRequestData | null>(null);
   const [isPlayingA, setIsPlayingA] = useState(Boolean(currentPlaying));
   const [playbackSecondsA, setPlaybackSecondsA] = useState(0);
@@ -224,6 +239,8 @@ export default function VirtualDjConsole({
   // ==================== DECK B STATE ====================
   const [isEjectedB, setIsEjectedB] = useState(false);
   const [selectedQueueIdB, setSelectedQueueIdB] = useState<string | null>(null);
+  const [deckTrackB, setDeckTrackB] = useState<SongRequestData | null>(() => queue?.[0]?.songRequest || null);
+  const [deckQueueEntryIdB, setDeckQueueEntryIdB] = useState<string | null>(() => queue?.[0]?.id || null);
   const [manualTrackB, setManualTrackB] = useState<SongRequestData | null>(null);
   const [isPlayingB, setIsPlayingB] = useState(false);
   const [playbackSecondsB, setPlaybackSecondsB] = useState(0);
@@ -259,20 +276,20 @@ export default function VirtualDjConsole({
   // ==================== BEAT TICK ANIMATION & PHASE ====================
   const [beatPhase, setBeatPhase] = useState(1); // 1, 2, 3, 4
 
-  // Determinar Track A
-  const trackA = isEjectedA ? null : (manualTrackA || currentPlaying?.songRequest || null);
+  // Determinar Track A (aislado por estado explícito)
+  const trackA = isEjectedA ? null : (deckTrackA || manualTrackA || null);
   const trackADuration = trackA?.song?.durationSeconds || 210;
   const baseBpmA = trackA?.song?.bpm || 124;
   const effectiveBpmA = Number((baseBpmA * (1 + pitchA / 100)).toFixed(1));
 
-  // Determinar Track B (de la cola seleccionada o por defecto queue[0])
+  // Determinar Track B (aislado por estado explícito, sin saltos sorpresivos)
   const effectiveQueueEntryB =
     isEjectedB || selectedQueueIdB === "EMPTY"
       ? null
       : selectedQueueIdB
       ? queue.find((q) => q.id === selectedQueueIdB) || null
       : queue[0] || null;
-  const trackB = isEjectedB ? null : (manualTrackB || effectiveQueueEntryB?.songRequest || null);
+  const trackB = isEjectedB ? null : (deckTrackB || manualTrackB || null);
   const trackBDuration = trackB?.song?.durationSeconds || 210;
   const baseBpmB = trackB?.song?.bpm || 126;
   const effectiveBpmB = Number((baseBpmB * (1 + pitchB / 100)).toFixed(1));
@@ -478,20 +495,220 @@ export default function VirtualDjConsole({
   const activeVideoIdARef = useRef<string | null>(null);
   const activeVideoIdBRef = useRef<string | null>(null);
 
-  // Reset de reproducción al cambiar tema en Deck A (solo cuando llega un nuevo tema genuino del servidor y Deck A no tiene pista activa)
+  // Cargar pista en DECK A de forma completamente aislada
+  const loadTrackIntoDeckA = async (track: SongRequestData, explicitVideoId?: string | null) => {
+    searchRequestIdA.current++;
+    const reqId = searchRequestIdA.current;
+    if (iframeRefA.current) {
+      sendPlayerCommand(iframeRefA.current, "stopVideo");
+      sendPlayerCommand(iframeRefA.current, "pauseVideo");
+    }
+    prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
+    const directId =
+      explicitVideoId ||
+      track.youtubeVideoId ||
+      extractYoutubeId(track.notes);
+    activeVideoIdARef.current = null;
+    setVideoIdA(null);
+    setIsPlayingA(false);
+    setPlaybackSecondsA(0);
+    setActiveLoopA(null);
+    setIsEjectedA(false);
+    setDeckTrackA(track);
+    setManualTrackA(track);
+
+    if (directId) {
+      activeVideoIdARef.current = directId;
+      setVideoIdA(directId);
+      setIsLoadingVideoA(false);
+      setIsPlayingA(true);
+      unlockAudioA();
+      showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A`);
+      return;
+    }
+
+    const title = track.song?.title || track.customTitle || "";
+    const artist = track.song?.artist?.name || track.customArtist || "";
+    const query = `${title} ${artist}`.trim();
+
+    if (!query) {
+      setIsLoadingVideoA(false);
+      return;
+    }
+
+    setIsLoadingVideoA(true);
+    try {
+      const res = await fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query)}&isKaraoke=false`);
+      const data = await res.json();
+      if (searchRequestIdA.current === reqId) {
+        if (data.success && data.data?.results?.length > 0) {
+          const resolvedId = data.data.results[0].id;
+          activeVideoIdARef.current = resolvedId;
+          setVideoIdA(resolvedId);
+          setIsPlayingA(true);
+          unlockAudioA();
+          showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A`);
+        } else {
+          showFeedback("error", `No se encontró audio en YouTube para "${title}"`);
+        }
+      }
+    } catch {
+      if (searchRequestIdA.current === reqId) {
+        showFeedback("error", "Error buscando audio para Deck A");
+      }
+    } finally {
+      if (searchRequestIdA.current === reqId) {
+        setIsLoadingVideoA(false);
+      }
+    }
+  };
+
+  // Cargar pista en DECK B de forma completamente aislada
+  const loadTrackIntoDeckB = async (track: SongRequestData, queueEntryId?: string | null, explicitVideoId?: string | null) => {
+    searchRequestIdB.current++;
+    const reqId = searchRequestIdB.current;
+    if (iframeRefB.current) {
+      sendPlayerCommand(iframeRefB.current, "stopVideo");
+      sendPlayerCommand(iframeRefB.current, "pauseVideo");
+    }
+    const directId =
+      explicitVideoId ||
+      track.youtubeVideoId ||
+      extractYoutubeId(track.notes);
+    const trackKey = getTrackKey(track, directId);
+    prevTrackBKeyRef.current = trackKey;
+    activeVideoIdBRef.current = null;
+    setVideoIdB(null);
+    setIsPlayingB(false);
+    setPlaybackSecondsB(0);
+    setActiveLoopB(null);
+    setIsEjectedB(false);
+    setDeckTrackB(track);
+    setDeckQueueEntryIdB(queueEntryId || null);
+
+    if (queueEntryId) {
+      setSelectedQueueIdB(queueEntryId);
+      setManualTrackB(null);
+    } else {
+      setSelectedQueueIdB(null);
+      setManualTrackB(track);
+    }
+
+    if (directId) {
+      activeVideoIdBRef.current = directId;
+      setVideoIdB(directId);
+      setIsLoadingVideoB(false);
+      setIsPlayingB(true);
+      unlockAudioB();
+      showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B`);
+      return;
+    }
+
+    const title = track.song?.title || track.customTitle || "";
+    const artist = track.song?.artist?.name || track.customArtist || "";
+    const query = `${title} ${artist}`.trim();
+
+    if (!query) {
+      setIsLoadingVideoB(false);
+      return;
+    }
+
+    setIsLoadingVideoB(true);
+    try {
+      const res = await fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query)}&isKaraoke=false`);
+      const data = await res.json();
+      if (searchRequestIdB.current === reqId) {
+        if (data.success && data.data?.results?.length > 0) {
+          const resolvedId = data.data.results[0].id;
+          activeVideoIdBRef.current = resolvedId;
+          setVideoIdB(resolvedId);
+          setIsPlayingB(true);
+          unlockAudioB();
+          showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B`);
+        } else {
+          showFeedback("error", `No se encontró audio en YouTube para "${title}"`);
+        }
+      }
+    } catch {
+      if (searchRequestIdB.current === reqId) {
+        showFeedback("error", "Error buscando audio para Deck B");
+      }
+    } finally {
+      if (searchRequestIdB.current === reqId) {
+        setIsLoadingVideoB(false);
+      }
+    }
+  };
+
+  // Limpiar / Expulsar pista de DECK A (aislamiento físico total: Deck B NUNCA es afectada)
+  const handleClearDeckA = () => {
+    searchRequestIdA.current++;
+    if (iframeRefA.current) {
+      sendPlayerCommand(iframeRefA.current, "stopVideo");
+      sendPlayerCommand(iframeRefA.current, "pauseVideo");
+    }
+    prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
+    activeVideoIdARef.current = null;
+    setIsEjectedA(true);
+    setDeckTrackA(null);
+    setManualTrackA(null);
+    setVideoIdA(null);
+    setIsPlayingA(false);
+    setPlaybackSecondsA(0);
+    setActiveLoopA(null);
+    setIsLoadingVideoA(false);
+  };
+
+  // Limpiar / Expulsar pista de DECK B (aislamiento físico total: Deck A NUNCA es afectada)
+  const handleClearDeckB = () => {
+    searchRequestIdB.current++;
+    if (iframeRefB.current) {
+      sendPlayerCommand(iframeRefB.current, "stopVideo");
+      sendPlayerCommand(iframeRefB.current, "pauseVideo");
+    }
+    prevTrackBKeyRef.current = null;
+    activeVideoIdBRef.current = null;
+    setIsEjectedB(true);
+    setDeckTrackB(null);
+    setDeckQueueEntryIdB(null);
+    setManualTrackB(null);
+    setSelectedQueueIdB("EMPTY");
+    setVideoIdB(null);
+    setIsPlayingB(false);
+    setPlaybackSecondsB(0);
+    setActiveLoopB(null);
+    setIsLoadingVideoB(false);
+    setIsSyncedB(false);
+  };
+
+  // Carga inicial no reactiva: Solo monta los temas iniciales si las bandejas están vacías y no expulsadas
+  const initialLoadedA = useRef(false);
+  const initialLoadedB = useRef(false);
+
+  useEffect(() => {
+    if (!initialLoadedA.current && currentPlaying?.songRequest && !isEjectedA && !deckTrackA) {
+      initialLoadedA.current = true;
+      loadTrackIntoDeckA(currentPlaying.songRequest, currentPlaying.youtubeVideoId);
+    }
+  }, [currentPlaying?.id, isEjectedA]);
+
+  useEffect(() => {
+    if (!initialLoadedB.current && queue?.[0]?.songRequest && !isEjectedB && !deckTrackB) {
+      initialLoadedB.current = true;
+      loadTrackIntoDeckB(queue[0].songRequest, queue[0].id, queue[0].youtubeVideoId);
+    }
+  }, [queue?.[0]?.id, isEjectedB]);
+
+  // Avance de tema del servidor: solo si Deck A no tiene pista activa y no fue expulsada manualmente
   useEffect(() => {
     const currentId = currentPlaying?.id || null;
     if (currentId && currentId !== prevCurrentPlayingIdRef.current) {
       prevCurrentPlayingIdRef.current = currentId;
-      // NUNCA interrumpir, reiniciar ni recargar Deck A si ya tiene un video cargado o reproduciéndose
-      if (!manualTrackA && !isEjectedA && !activeVideoIdARef.current && !videoIdA && !isPlayingA) {
-        setPlaybackSecondsA(0);
-        setIsPlayingA(true);
-        activeVideoIdARef.current = null;
-        setVideoIdA(null);
+      if (!deckTrackA && !isEjectedA && currentPlaying?.songRequest) {
+        loadTrackIntoDeckA(currentPlaying.songRequest, currentPlaying.youtubeVideoId);
       }
     }
-  }, [currentPlaying?.id, manualTrackA, isEjectedA, videoIdA, isPlayingA]);
+  }, [currentPlaying?.id, deckTrackA, isEjectedA]);
 
   // Detección inteligente de dirección para Auto-Enganche según la bandeja que está al aire
   useEffect(() => {
@@ -502,153 +719,6 @@ export default function VirtualDjConsole({
       setEngancheDirection("B_TO_A");
     }
   }, [isPlayingA, isPlayingB, crossfaderValue, isEnganchando]);
-
-  // Reset de reproducción al cambiar tema en Deck B (solo cuando es una pista genuinamente diferente)
-  useEffect(() => {
-    const key = trackB ? getTrackKey(trackB) : null;
-    if (key && key !== prevTrackBKeyRef.current) {
-      prevTrackBKeyRef.current = key;
-      if (!isEjectedB) {
-        setPlaybackSecondsB(0);
-      }
-    }
-  }, [
-    isEjectedB,
-    trackB?.id,
-    trackB?.song?.id,
-    trackB?.song?.title,
-    trackB?.customTitle,
-  ]);
-
-  // Resolución de video de YouTube para DECK A
-  useEffect(() => {
-    if (isEjectedA) {
-      if (videoIdA || activeVideoIdARef.current) {
-        activeVideoIdARef.current = null;
-        setVideoIdA(null);
-      }
-      return;
-    }
-
-    // AISLAMIENTO TOTAL: Si Deck A ya tiene un video cargado (por ref o state),
-    // NUNCA detener la reproducción, desmontar el iframe ni reiniciar la búsqueda.
-    if (activeVideoIdARef.current || videoIdA) {
-      return;
-    }
-
-    if (!trackA) return;
-
-    const explicitId =
-      (!manualTrackA && currentPlaying?.youtubeVideoId) ||
-      trackA.youtubeVideoId ||
-      extractYoutubeId(trackA.notes);
-
-    if (explicitId) {
-      activeVideoIdARef.current = explicitId;
-      setVideoIdA(explicitId);
-      return;
-    }
-
-    const title = trackA.song?.title || trackA.customTitle || "";
-    const artist = trackA.song?.artist?.name || trackA.customArtist || "";
-    const query = `${title} ${artist}`.trim();
-    if (!query) return;
-
-    const reqId = ++searchRequestIdA.current;
-    setIsLoadingVideoA(true);
-
-    fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query)}&isKaraoke=false`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (searchRequestIdA.current !== reqId) return;
-        if (data.success && data.data?.results?.length > 0) {
-          const resolvedId = data.data.results[0].id;
-          activeVideoIdARef.current = resolvedId;
-          setVideoIdA(resolvedId);
-        }
-      })
-      .catch((err) => console.warn("Error resolviendo video Deck A:", err))
-      .finally(() => {
-        if (searchRequestIdA.current === reqId) {
-          setIsLoadingVideoA(false);
-        }
-      });
-  }, [
-    isEjectedA,
-    videoIdA,
-    trackA?.id,
-    trackA?.song?.id,
-    trackA?.song?.title,
-    trackA?.customTitle,
-    manualTrackA?.customTitle,
-    currentPlaying?.id,
-    currentPlaying?.youtubeVideoId,
-  ]);
-
-  // Resolución de video de YouTube para DECK B
-  useEffect(() => {
-    if (isEjectedB) {
-      if (videoIdB || activeVideoIdBRef.current) {
-        activeVideoIdBRef.current = null;
-        setVideoIdB(null);
-      }
-      return;
-    }
-
-    // AISLAMIENTO TOTAL: Si Deck B ya tiene un video cargado (por ref o state),
-    // NUNCA detener la reproducción, desmontar el iframe ni reiniciar la búsqueda.
-    if (activeVideoIdBRef.current || videoIdB) {
-      return;
-    }
-
-    if (!trackB) return;
-
-    const explicitId =
-      (!manualTrackB && effectiveQueueEntryB?.youtubeVideoId) ||
-      trackB.youtubeVideoId ||
-      extractYoutubeId(trackB.notes);
-
-    if (explicitId) {
-      activeVideoIdBRef.current = explicitId;
-      setVideoIdB(explicitId);
-      return;
-    }
-
-    const title = trackB.song?.title || trackB.customTitle || "";
-    const artist = trackB.song?.artist?.name || trackB.customArtist || "";
-    const query = `${title} ${artist}`.trim();
-    if (!query) return;
-
-    const reqId = ++searchRequestIdB.current;
-    setIsLoadingVideoB(true);
-
-    fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query)}&isKaraoke=false`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (searchRequestIdB.current !== reqId) return;
-        if (data.success && data.data?.results?.length > 0) {
-          const resolvedId = data.data.results[0].id;
-          activeVideoIdBRef.current = resolvedId;
-          setVideoIdB(resolvedId);
-        }
-      })
-      .catch((err) => console.warn("Error resolviendo video Deck B:", err))
-      .finally(() => {
-        if (searchRequestIdB.current === reqId) {
-          setIsLoadingVideoB(false);
-        }
-      });
-  }, [
-    isEjectedB,
-    videoIdB,
-    trackB?.id,
-    trackB?.song?.id,
-    trackB?.song?.title,
-    trackB?.customTitle,
-    manualTrackB?.customTitle,
-    effectiveQueueEntryB?.id,
-    effectiveQueueEntryB?.youtubeVideoId,
-  ]);
 
   // Sincronización de volumen y mute en Deck A
   useEffect(() => {
@@ -770,187 +840,7 @@ export default function VirtualDjConsole({
     }
   };
 
-  // ==================== LIMPIEZA & CARGA DE BANDEJAS ====================
-  // Limpiar / Expulsar pista de DECK A (detiene audio, desmonta iframe y libera memoria silenciosamente)
-  const handleClearDeckA = () => {
-    searchRequestIdA.current++;
-    if (iframeRefA.current) {
-      sendPlayerCommand(iframeRefA.current, "stopVideo");
-      sendPlayerCommand(iframeRefA.current, "pauseVideo");
-    }
-    // Evitar que el efecto de cambio de track reactive Deck A con el tema del servidor
-    prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
-    activeVideoIdARef.current = null;
-    setIsEjectedA(true);
-    setManualTrackA(null);
-    setVideoIdA(null);
-    setIsPlayingA(false);
-    setPlaybackSecondsA(0);
-    setActiveLoopA(null);
-    setIsLoadingVideoA(false);
-  };
 
-  // Limpiar / Expulsar pista de DECK B (detiene audio, desmonta iframe y libera memoria silenciosamente)
-  const handleClearDeckB = () => {
-    searchRequestIdB.current++;
-    if (iframeRefB.current) {
-      sendPlayerCommand(iframeRefB.current, "stopVideo");
-      sendPlayerCommand(iframeRefB.current, "pauseVideo");
-    }
-    prevTrackBKeyRef.current = null;
-    activeVideoIdBRef.current = null;
-    setIsEjectedB(true);
-    setManualTrackB(null);
-    setSelectedQueueIdB("EMPTY");
-    setVideoIdB(null);
-    setIsPlayingB(false);
-    setPlaybackSecondsB(0);
-    setActiveLoopB(null);
-    setIsLoadingVideoB(false);
-    setIsSyncedB(false);
-  };
-
-  // Cargar pista en DECK A con desmontaje y limpieza previa inmediata
-  const loadTrackIntoDeckA = async (track: SongRequestData, explicitVideoId?: string | null) => {
-    searchRequestIdA.current++;
-    const reqId = searchRequestIdA.current;
-    if (iframeRefA.current) {
-      sendPlayerCommand(iframeRefA.current, "stopVideo");
-      sendPlayerCommand(iframeRefA.current, "pauseVideo");
-    }
-    prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
-    const directId =
-      explicitVideoId ||
-      track.youtubeVideoId ||
-      extractYoutubeId(track.notes);
-    activeVideoIdARef.current = null;
-    setVideoIdA(null);
-    setIsPlayingA(false);
-    setPlaybackSecondsA(0);
-    setActiveLoopA(null);
-    setIsEjectedA(false);
-    setManualTrackA(track);
-
-    if (directId) {
-      activeVideoIdARef.current = directId;
-      setVideoIdA(directId);
-      setIsLoadingVideoA(false);
-      setIsPlayingA(true);
-      unlockAudioA();
-      showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A`);
-      return;
-    }
-
-    const title = track.song?.title || track.customTitle || "";
-    const artist = track.song?.artist?.name || track.customArtist || "";
-    const query = `${title} ${artist}`.trim();
-
-    if (!query) {
-      setIsLoadingVideoA(false);
-      return;
-    }
-
-    setIsLoadingVideoA(true);
-    try {
-      const res = await fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query)}&isKaraoke=false`);
-      const data = await res.json();
-      if (searchRequestIdA.current === reqId) {
-        if (data.success && data.data?.results?.length > 0) {
-          const resolvedId = data.data.results[0].id;
-          activeVideoIdARef.current = resolvedId;
-          setVideoIdA(resolvedId);
-          setIsPlayingA(true);
-          unlockAudioA();
-          showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A`);
-        } else {
-          showFeedback("error", `No se encontró audio en YouTube para "${title}"`);
-        }
-      }
-    } catch {
-      if (searchRequestIdA.current === reqId) {
-        showFeedback("error", "Error buscando audio para Deck A");
-      }
-    } finally {
-      if (searchRequestIdA.current === reqId) {
-        setIsLoadingVideoA(false);
-      }
-    }
-  };
-
-  // Cargar pista en DECK B con desmontaje y limpieza previa inmediata
-  const loadTrackIntoDeckB = async (track: SongRequestData, queueEntryId?: string | null, explicitVideoId?: string | null) => {
-    searchRequestIdB.current++;
-    const reqId = searchRequestIdB.current;
-    if (iframeRefB.current) {
-      sendPlayerCommand(iframeRefB.current, "stopVideo");
-      sendPlayerCommand(iframeRefB.current, "pauseVideo");
-    }
-    const directId =
-      explicitVideoId ||
-      track.youtubeVideoId ||
-      extractYoutubeId(track.notes);
-    const trackKey = getTrackKey(track, directId);
-    prevTrackBKeyRef.current = trackKey;
-    activeVideoIdBRef.current = null;
-    setVideoIdB(null);
-    setIsPlayingB(false);
-    setPlaybackSecondsB(0);
-    setActiveLoopB(null);
-    setIsEjectedB(false);
-
-    if (queueEntryId) {
-      setSelectedQueueIdB(queueEntryId);
-      setManualTrackB(null);
-    } else {
-      setSelectedQueueIdB(null);
-      setManualTrackB(track);
-    }
-
-    if (directId) {
-      activeVideoIdBRef.current = directId;
-      setVideoIdB(directId);
-      setIsLoadingVideoB(false);
-      setIsPlayingB(true);
-      unlockAudioB();
-      showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B`);
-      return;
-    }
-
-    const title = track.song?.title || track.customTitle || "";
-    const artist = track.song?.artist?.name || track.customArtist || "";
-    const query = `${title} ${artist}`.trim();
-
-    if (!query) {
-      setIsLoadingVideoB(false);
-      return;
-    }
-
-    setIsLoadingVideoB(true);
-    try {
-      const res = await fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query)}&isKaraoke=false`);
-      const data = await res.json();
-      if (searchRequestIdB.current === reqId) {
-        if (data.success && data.data?.results?.length > 0) {
-          const resolvedId = data.data.results[0].id;
-          activeVideoIdBRef.current = resolvedId;
-          setVideoIdB(resolvedId);
-          setIsPlayingB(true);
-          unlockAudioB();
-          showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B`);
-        } else {
-          showFeedback("error", `No se encontró audio en YouTube para "${title}"`);
-        }
-      }
-    } catch {
-      if (searchRequestIdB.current === reqId) {
-        showFeedback("error", "Error buscando audio para Deck B");
-      }
-    } finally {
-      if (searchRequestIdB.current === reqId) {
-        setIsLoadingVideoB(false);
-      }
-    }
-  };
 
   // ==================== MOTOR DE AUTO-ENGANCHE BIDIRECCIONAL ====================
   const handleStartAutoEnganche = () => {
