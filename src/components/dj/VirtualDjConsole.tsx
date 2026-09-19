@@ -234,6 +234,17 @@ export default function VirtualDjConsole({
     return match && match[2].length === 11 ? match[2] : null;
   };
 
+  // Clave representativa única de un track para evitar resoluciones y recargas no deseadas
+  const getTrackKey = (track: SongRequestData | null, explicitId?: string | null): string | null => {
+    if (!track) return null;
+    const id = track.id || "";
+    const songId = track.song?.id || "";
+    const title = track.song?.title || track.customTitle || "";
+    const artist = track.song?.artist?.name || track.customArtist || "";
+    const ytId = explicitId || track.youtubeVideoId || extractYoutubeId(track.notes) || "";
+    return `${id}::${songId}::${title}::${artist}::${ytId}`;
+  };
+
   // Desbloquear audio del navegador
   const unlockAudioA = () => {
     setAudioUnlocked(true);
@@ -349,8 +360,11 @@ export default function VirtualDjConsole({
     showFeedback("success", `⚡ Deck A sincronizado a ${effectiveBpmB} BPM`);
   };
 
-  // Ref para recordar el ID de la canción en reproducción y evitar rearmado no deseado al limpiar Deck A
+  // Refs para recordar la pista activa y evitar recargas o reinicios no deseados entre bandejas
   const prevCurrentPlayingIdRef = useRef<string | null>(currentPlaying?.id || null);
+  const prevTrackBKeyRef = useRef<string | null>(null);
+  const loadedTrackKeyARef = useRef<string | null>(null);
+  const loadedTrackKeyBRef = useRef<string | null>(null);
 
   // Reset de reproducción al cambiar tema en Deck A (solo cuando llega un nuevo tema genuino del servidor)
   useEffect(() => {
@@ -364,14 +378,27 @@ export default function VirtualDjConsole({
     }
   }, [currentPlaying?.id, manualTrackA, isEjectedA]);
 
-  // Reset de reproducción al cambiar tema en Deck B
+  // Reset de reproducción al cambiar tema en Deck B (solo cuando es una pista genuinamente diferente)
   useEffect(() => {
-    setPlaybackSecondsB(0);
-  }, [trackB?.id, trackB?.customTitle]);
+    const key = trackB ? getTrackKey(trackB) : null;
+    if (key && key !== prevTrackBKeyRef.current) {
+      prevTrackBKeyRef.current = key;
+      if (!isEjectedB) {
+        setPlaybackSecondsB(0);
+      }
+    }
+  }, [
+    isEjectedB,
+    trackB?.id,
+    trackB?.song?.id,
+    trackB?.song?.title,
+    trackB?.customTitle,
+  ]);
 
   // Resolución de video de YouTube para DECK A
   useEffect(() => {
     if (isEjectedA || !trackA) {
+      loadedTrackKeyARef.current = null;
       if (videoIdA) setVideoIdA(null);
       return;
     }
@@ -380,12 +407,20 @@ export default function VirtualDjConsole({
       trackA.youtubeVideoId ||
       extractYoutubeId(trackA.notes);
 
+    const currentKeyA = getTrackKey(trackA, explicitId);
+
+    // GUARD: Si la pista actual ya está resuelta y montada en Deck A, NUNCA reiniciar ni desmontar
+    if (videoIdA && loadedTrackKeyARef.current === currentKeyA) {
+      return;
+    }
+
     if (explicitId) {
       if (videoIdA !== explicitId) {
         if (iframeRefA.current) {
           sendPlayerCommand(iframeRefA.current, "stopVideo");
           sendPlayerCommand(iframeRefA.current, "pauseVideo");
         }
+        loadedTrackKeyARef.current = currentKeyA;
         setVideoIdA(explicitId);
       }
       return;
@@ -396,6 +431,11 @@ export default function VirtualDjConsole({
     const query = `${title} ${artist}`.trim();
     if (!query) return;
 
+    if (videoIdA && loadedTrackKeyARef.current === currentKeyA) {
+      return;
+    }
+
+    loadedTrackKeyARef.current = currentKeyA;
     const reqId = ++searchRequestIdA.current;
     if (iframeRefA.current) {
       sendPlayerCommand(iframeRefA.current, "stopVideo");
@@ -421,15 +461,19 @@ export default function VirtualDjConsole({
   }, [
     isEjectedA,
     trackA?.id,
+    trackA?.song?.id,
+    trackA?.song?.title,
     trackA?.customTitle,
     manualTrackA?.customTitle,
     currentPlaying?.id,
     currentPlaying?.youtubeVideoId,
+    videoIdA,
   ]);
 
   // Resolución de video de YouTube para DECK B
   useEffect(() => {
     if (isEjectedB || !trackB) {
+      loadedTrackKeyBRef.current = null;
       if (videoIdB) setVideoIdB(null);
       return;
     }
@@ -438,12 +482,20 @@ export default function VirtualDjConsole({
       trackB.youtubeVideoId ||
       extractYoutubeId(trackB.notes);
 
+    const currentKeyB = getTrackKey(trackB, explicitId);
+
+    // GUARD: Si la pista actual ya está resuelta y montada en Deck B, NUNCA reiniciar ni desmontar
+    if (videoIdB && loadedTrackKeyBRef.current === currentKeyB) {
+      return;
+    }
+
     if (explicitId) {
       if (videoIdB !== explicitId) {
         if (iframeRefB.current) {
           sendPlayerCommand(iframeRefB.current, "stopVideo");
           sendPlayerCommand(iframeRefB.current, "pauseVideo");
         }
+        loadedTrackKeyBRef.current = currentKeyB;
         setVideoIdB(explicitId);
       }
       return;
@@ -454,6 +506,11 @@ export default function VirtualDjConsole({
     const query = `${title} ${artist}`.trim();
     if (!query) return;
 
+    if (videoIdB && loadedTrackKeyBRef.current === currentKeyB) {
+      return;
+    }
+
+    loadedTrackKeyBRef.current = currentKeyB;
     const reqId = ++searchRequestIdB.current;
     if (iframeRefB.current) {
       sendPlayerCommand(iframeRefB.current, "stopVideo");
@@ -479,10 +536,13 @@ export default function VirtualDjConsole({
   }, [
     isEjectedB,
     trackB?.id,
+    trackB?.song?.id,
+    trackB?.song?.title,
     trackB?.customTitle,
     manualTrackB?.customTitle,
     effectiveQueueEntryB?.id,
     effectiveQueueEntryB?.youtubeVideoId,
+    videoIdB,
   ]);
 
   // Sincronización de volumen y mute en Deck A
@@ -615,6 +675,7 @@ export default function VirtualDjConsole({
     }
     // Evitar que el efecto de cambio de track reactive Deck A con el tema del servidor
     prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
+    loadedTrackKeyARef.current = null;
     setIsEjectedA(true);
     setManualTrackA(null);
     setVideoIdA(null);
@@ -632,6 +693,8 @@ export default function VirtualDjConsole({
       sendPlayerCommand(iframeRefB.current, "stopVideo");
       sendPlayerCommand(iframeRefB.current, "pauseVideo");
     }
+    loadedTrackKeyBRef.current = null;
+    prevTrackBKeyRef.current = null;
     setIsEjectedB(true);
     setManualTrackB(null);
     setSelectedQueueIdB("EMPTY");
@@ -653,17 +716,17 @@ export default function VirtualDjConsole({
       sendPlayerCommand(iframeRefA.current, "pauseVideo");
     }
     prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
+    const directId =
+      explicitVideoId ||
+      track.youtubeVideoId ||
+      extractYoutubeId(track.notes);
+    loadedTrackKeyARef.current = getTrackKey(track, directId);
     setVideoIdA(null);
     setIsPlayingA(false);
     setPlaybackSecondsA(0);
     setActiveLoopA(null);
     setIsEjectedA(false);
     setManualTrackA(track);
-
-    const directId =
-      explicitVideoId ||
-      track.youtubeVideoId ||
-      extractYoutubeId(track.notes);
 
     if (directId) {
       setVideoIdA(directId);
@@ -716,6 +779,13 @@ export default function VirtualDjConsole({
       sendPlayerCommand(iframeRefB.current, "stopVideo");
       sendPlayerCommand(iframeRefB.current, "pauseVideo");
     }
+    const directId =
+      explicitVideoId ||
+      track.youtubeVideoId ||
+      extractYoutubeId(track.notes);
+    const trackKey = getTrackKey(track, directId);
+    loadedTrackKeyBRef.current = trackKey;
+    prevTrackBKeyRef.current = trackKey;
     setVideoIdB(null);
     setIsPlayingB(false);
     setPlaybackSecondsB(0);
@@ -729,11 +799,6 @@ export default function VirtualDjConsole({
       setSelectedQueueIdB(null);
       setManualTrackB(track);
     }
-
-    const directId =
-      explicitVideoId ||
-      track.youtubeVideoId ||
-      extractYoutubeId(track.notes);
 
     if (directId) {
       setVideoIdB(directId);
