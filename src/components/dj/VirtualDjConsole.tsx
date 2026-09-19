@@ -363,6 +363,8 @@ export default function VirtualDjConsole({
   // Refs para recordar la pista activa y evitar recargas o reinicios no deseados entre bandejas
   const prevCurrentPlayingIdRef = useRef<string | null>(currentPlaying?.id || null);
   const prevTrackBKeyRef = useRef<string | null>(null);
+  const activeVideoIdARef = useRef<string | null>(null);
+  const activeVideoIdBRef = useRef<string | null>(null);
 
   // Reset de reproducción al cambiar tema en Deck A (solo cuando llega un nuevo tema genuino del servidor)
   useEffect(() => {
@@ -372,6 +374,7 @@ export default function VirtualDjConsole({
       if (!manualTrackA && !isEjectedA) {
         setPlaybackSecondsA(0);
         setIsPlayingA(true);
+        activeVideoIdARef.current = null;
         setVideoIdA(null);
       }
     }
@@ -397,14 +400,16 @@ export default function VirtualDjConsole({
   // Resolución de video de YouTube para DECK A
   useEffect(() => {
     if (isEjectedA) {
-      if (videoIdA) setVideoIdA(null);
+      if (videoIdA || activeVideoIdARef.current) {
+        activeVideoIdARef.current = null;
+        setVideoIdA(null);
+      }
       return;
     }
 
-    // AISLAMIENTO TOTAL: Si Deck A ya tiene un video cargado (videoIdA no es nulo),
-    // NUNCA detener la reproducción, desmontar el iframe ni reiniciar la búsqueda
-    // ante cambios de estado de Deck B ni re-renderizados.
-    if (videoIdA) {
+    // AISLAMIENTO TOTAL: Si Deck A ya tiene un video cargado (por ref o state),
+    // NUNCA detener la reproducción, desmontar el iframe ni reiniciar la búsqueda.
+    if (activeVideoIdARef.current || videoIdA) {
       return;
     }
 
@@ -416,6 +421,7 @@ export default function VirtualDjConsole({
       extractYoutubeId(trackA.notes);
 
     if (explicitId) {
+      activeVideoIdARef.current = explicitId;
       setVideoIdA(explicitId);
       return;
     }
@@ -433,7 +439,9 @@ export default function VirtualDjConsole({
       .then((data) => {
         if (searchRequestIdA.current !== reqId) return;
         if (data.success && data.data?.results?.length > 0) {
-          setVideoIdA(data.data.results[0].id);
+          const resolvedId = data.data.results[0].id;
+          activeVideoIdARef.current = resolvedId;
+          setVideoIdA(resolvedId);
         }
       })
       .catch((err) => console.warn("Error resolviendo video Deck A:", err))
@@ -457,14 +465,16 @@ export default function VirtualDjConsole({
   // Resolución de video de YouTube para DECK B
   useEffect(() => {
     if (isEjectedB) {
-      if (videoIdB) setVideoIdB(null);
+      if (videoIdB || activeVideoIdBRef.current) {
+        activeVideoIdBRef.current = null;
+        setVideoIdB(null);
+      }
       return;
     }
 
-    // AISLAMIENTO TOTAL: Si Deck B ya tiene un video cargado (videoIdB no es nulo),
-    // NUNCA detener la reproducción, desmontar el iframe ni reiniciar la búsqueda
-    // ante cambios de estado de Deck A ni re-renderizados.
-    if (videoIdB) {
+    // AISLAMIENTO TOTAL: Si Deck B ya tiene un video cargado (por ref o state),
+    // NUNCA detener la reproducción, desmontar el iframe ni reiniciar la búsqueda.
+    if (activeVideoIdBRef.current || videoIdB) {
       return;
     }
 
@@ -476,6 +486,7 @@ export default function VirtualDjConsole({
       extractYoutubeId(trackB.notes);
 
     if (explicitId) {
+      activeVideoIdBRef.current = explicitId;
       setVideoIdB(explicitId);
       return;
     }
@@ -493,7 +504,9 @@ export default function VirtualDjConsole({
       .then((data) => {
         if (searchRequestIdB.current !== reqId) return;
         if (data.success && data.data?.results?.length > 0) {
-          setVideoIdB(data.data.results[0].id);
+          const resolvedId = data.data.results[0].id;
+          activeVideoIdBRef.current = resolvedId;
+          setVideoIdB(resolvedId);
         }
       })
       .catch((err) => console.warn("Error resolviendo video Deck B:", err))
@@ -644,6 +657,7 @@ export default function VirtualDjConsole({
     }
     // Evitar que el efecto de cambio de track reactive Deck A con el tema del servidor
     prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
+    activeVideoIdARef.current = null;
     setIsEjectedA(true);
     setManualTrackA(null);
     setVideoIdA(null);
@@ -651,7 +665,6 @@ export default function VirtualDjConsole({
     setPlaybackSecondsA(0);
     setActiveLoopA(null);
     setIsLoadingVideoA(false);
-    showFeedback("info", "🗑️ Bandeja A limpiada y memoria liberada");
   };
 
   // Limpiar / Expulsar pista de DECK B (detiene audio, desmonta iframe y libera memoria silenciosamente)
@@ -662,6 +675,7 @@ export default function VirtualDjConsole({
       sendPlayerCommand(iframeRefB.current, "pauseVideo");
     }
     prevTrackBKeyRef.current = null;
+    activeVideoIdBRef.current = null;
     setIsEjectedB(true);
     setManualTrackB(null);
     setSelectedQueueIdB("EMPTY");
@@ -671,7 +685,6 @@ export default function VirtualDjConsole({
     setActiveLoopB(null);
     setIsLoadingVideoB(false);
     setIsSyncedB(false);
-    showFeedback("info", "🗑️ Bandeja B limpiada y memoria liberada");
   };
 
   // Cargar pista en DECK A con desmontaje y limpieza previa inmediata
@@ -687,6 +700,7 @@ export default function VirtualDjConsole({
       explicitVideoId ||
       track.youtubeVideoId ||
       extractYoutubeId(track.notes);
+    activeVideoIdARef.current = null;
     setVideoIdA(null);
     setIsPlayingA(false);
     setPlaybackSecondsA(0);
@@ -695,6 +709,7 @@ export default function VirtualDjConsole({
     setManualTrackA(track);
 
     if (directId) {
+      activeVideoIdARef.current = directId;
       setVideoIdA(directId);
       setIsLoadingVideoA(false);
       setIsPlayingA(true);
@@ -718,7 +733,9 @@ export default function VirtualDjConsole({
       const data = await res.json();
       if (searchRequestIdA.current === reqId) {
         if (data.success && data.data?.results?.length > 0) {
-          setVideoIdA(data.data.results[0].id);
+          const resolvedId = data.data.results[0].id;
+          activeVideoIdARef.current = resolvedId;
+          setVideoIdA(resolvedId);
           setIsPlayingA(true);
           unlockAudioA();
           showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A`);
@@ -751,6 +768,7 @@ export default function VirtualDjConsole({
       extractYoutubeId(track.notes);
     const trackKey = getTrackKey(track, directId);
     prevTrackBKeyRef.current = trackKey;
+    activeVideoIdBRef.current = null;
     setVideoIdB(null);
     setIsPlayingB(false);
     setPlaybackSecondsB(0);
@@ -766,6 +784,7 @@ export default function VirtualDjConsole({
     }
 
     if (directId) {
+      activeVideoIdBRef.current = directId;
       setVideoIdB(directId);
       setIsLoadingVideoB(false);
       unlockAudioB();
@@ -788,7 +807,9 @@ export default function VirtualDjConsole({
       const data = await res.json();
       if (searchRequestIdB.current === reqId) {
         if (data.success && data.data?.results?.length > 0) {
-          setVideoIdB(data.data.results[0].id);
+          const resolvedId = data.data.results[0].id;
+          activeVideoIdBRef.current = resolvedId;
+          setVideoIdB(resolvedId);
           unlockAudioB();
           showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B`);
         } else {
@@ -1203,7 +1224,12 @@ export default function VirtualDjConsole({
             <div className="flex items-center gap-1.5">
               {trackA && (
                 <button
-                  onClick={handleClearDeckA}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleClearDeckA();
+                  }}
                   className="px-2.5 py-1 rounded-lg bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 hover:border-red-600 text-red-300 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
                   title="Limpiar bandeja A (Detener audio, desmontar y liberar memoria)"
                 >
@@ -1215,6 +1241,7 @@ export default function VirtualDjConsole({
               {/* Selector de Pista Dropdown Deck A */}
               <div className="relative">
                 <button
+                  type="button"
                   onClick={() => setIsSelectorOpenA(!isSelectorOpenA)}
                   className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-purple-950/60 border border-zinc-800 hover:border-purple-500/40 text-purple-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
@@ -1227,7 +1254,10 @@ export default function VirtualDjConsole({
                     {/* Botón rápido para limpiar bandeja */}
                     {trackA && (
                       <button
-                        onClick={() => {
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           handleClearDeckA();
                           setIsSelectorOpenA(false);
                         }}
@@ -1786,7 +1816,12 @@ export default function VirtualDjConsole({
             <div className="flex items-center gap-1.5">
               {trackB && (
                 <button
-                  onClick={handleClearDeckB}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleClearDeckB();
+                  }}
                   className="px-2.5 py-1 rounded-lg bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 hover:border-red-600 text-red-300 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
                   title="Limpiar bandeja B (Detener audio, desmontar y liberar memoria)"
                 >
@@ -1798,6 +1833,7 @@ export default function VirtualDjConsole({
               {/* Selector de Pista Dropdown */}
               <div className="relative">
                 <button
+                  type="button"
                   onClick={() => setIsSelectorOpenB(!isSelectorOpenB)}
                   className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-cyan-950/60 border border-zinc-800 hover:border-cyan-500/40 text-cyan-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
@@ -1810,7 +1846,10 @@ export default function VirtualDjConsole({
                     {/* Botón rápido para limpiar bandeja */}
                     {trackB && (
                       <button
-                        onClick={() => {
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           handleClearDeckB();
                           setIsSelectorOpenB(false);
                         }}

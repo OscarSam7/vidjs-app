@@ -7,7 +7,7 @@
  * - Bypass estricto para Server-Sent Events (SSE /api/v1/realtime) y mutaciones
  */
 
-const CACHE_NAME = "vidjs-pwa-v1";
+const CACHE_NAME = "vidjs-pwa-v2";
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_ASSETS = [
@@ -82,28 +82,34 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 4. Estrategia para Recursos Estáticos (Iconos, CSS, JS) - Cache-First con actualización de fondo
+  // 4. Estrategia para Scripts de Aplicación Next.js (Network-First para evitar código obsoleto)
+  if (url.pathname.startsWith("/_next/static/") || url.pathname.endsWith(".js")) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // 4.5. Recursos Estáticos Inmutables (Iconos, CSS, Imágenes) - Cache-First
   if (
     url.pathname.startsWith("/icons/") ||
-    url.pathname.startsWith("/_next/static/") ||
     url.pathname.endsWith(".png") ||
     url.pathname.endsWith(".svg") ||
-    url.pathname.endsWith(".css") ||
-    url.pathname.endsWith(".js")
+    url.pathname.endsWith(".css")
   ) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
         if (cachedResponse) {
-          // Devolver del cache y revalidar en segundo plano
-          fetch(event.request)
-            .then((networkResponse) => {
-              if (networkResponse && networkResponse.status === 200) {
-                caches.open(CACHE_NAME).then((cache) => {
-                  cache.put(event.request, networkResponse);
-                });
-              }
-            })
-            .catch(() => {});
           return cachedResponse;
         }
 
