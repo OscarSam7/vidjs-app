@@ -25,8 +25,10 @@ import {
   Youtube,
   ExternalLink,
   Trash2,
+  Upload,
+  FileAudio,
 } from "lucide-react";
-import { calculateCrossfaderGains, djSoundEffects } from "@/lib/audio/dj-audio-engine";
+import { calculateCrossfaderGains, djSoundEffects, webDjEngine, AudioLevels } from "@/lib/audio/dj-audio-engine";
 
 interface SongRequestData {
   id: string;
@@ -77,6 +79,8 @@ interface DeckPlayerProps {
   pitch: number;
   isLoading: boolean;
   isEjected: boolean;
+  deckMode: "youtube" | "native";
+  localFileName?: string | null;
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
 }
 
@@ -86,6 +90,37 @@ interface StableIframeProps {
   isEjected: boolean;
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
 }
+
+// Barra LED de Vúmetro de alta fidelidad para el mezclador de cabina
+const VuMeterBar = memo(function VuMeterBar({
+  peak,
+  rms,
+  channelColor = "purple",
+}: {
+  peak: number;
+  rms: number;
+  channelColor?: "purple" | "cyan" | "emerald";
+}) {
+  const segments = 10;
+  const activeCount = Math.min(segments, Math.round(Math.max(peak, rms) * segments));
+
+  return (
+    <div className="flex flex-col-reverse gap-0.5 h-20 w-2.5 bg-zinc-950 p-0.5 rounded border border-zinc-800 shadow-inner">
+      {Array.from({ length: segments }).map((_, idx) => {
+        const isActive = idx < activeCount;
+        let colorClass = "bg-zinc-800/40";
+        if (isActive) {
+          if (idx >= 8) colorClass = "bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.9)]";
+          else if (idx >= 6) colorClass = "bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.8)]";
+          else if (channelColor === "cyan") colorClass = "bg-cyan-400 shadow-[0_0_4px_rgba(34,211,238,0.7)]";
+          else if (channelColor === "emerald") colorClass = "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.7)]";
+          else colorClass = "bg-purple-500 shadow-[0_0_4px_rgba(168,85,247,0.7)]";
+        }
+        return <div key={idx} className={`w-full flex-1 rounded-[1px] ${colorClass} transition-all duration-75`} />;
+      })}
+    </div>
+  );
+});
 
 // Iframe inmutable: NUNCA se navega a about:blank durante la sesión para no reiniciar el pipeline de audio del navegador
 const StableIframe = memo(
@@ -113,7 +148,7 @@ const StableIframe = memo(
 );
 
 // Componente de reproductor 100% aislado y memoizado.
-// Evita de raíz que la recarga, desmontaje o limpieza de una bandeja afecte a la otra.
+// Soporta tanto reproducción nativa Web Audio API como YouTube con cero interferencias cruzadas.
 const DeckPlayer = memo(
   function DeckPlayer({
     deckId,
@@ -123,6 +158,8 @@ const DeckPlayer = memo(
     pitch,
     isLoading,
     isEjected,
+    deckMode,
+    localFileName,
     iframeRef,
   }: DeckPlayerProps) {
     const isA = deckId === "A";
@@ -130,16 +167,72 @@ const DeckPlayer = memo(
     const textColor = isA ? "text-purple-300" : "text-cyan-300";
     const spinnerColor = isA ? "text-purple-400" : "text-cyan-400";
     const emptyText = isA
-      ? "Bandeja A vacía — Lista para cargar"
-      : "Bandeja B vacía — Lista para cargar";
+      ? "Bandeja A vacía — Carga desde cola, YouTube o arrastra MP3"
+      : "Bandeja B vacía — Carga desde cola, YouTube o arrastra MP3";
     const chLabel = isA ? "CH 1" : "CH 2";
-    const hasActiveTrack = Boolean(videoId) && !isEjected;
+    const hasActiveTrack = (deckMode === "native" || Boolean(videoId)) && !isEjected;
 
     return (
       <div
         className={`relative aspect-video max-h-36 w-full rounded-xl overflow-hidden border ${borderColor} bg-black shadow-inner`}
       >
-        <StableIframe deckId={deckId} videoId={videoId} isEjected={isEjected} iframeRef={iframeRef} />
+        {deckMode === "native" && hasActiveTrack ? (
+          /* Visualizador de Alta Fidelidad Nativo Web Audio API */
+          <div className="w-full h-full flex flex-col items-center justify-center p-3 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black relative overflow-hidden select-none">
+            {/* Anillos giratorios de vinilo digital */}
+            <div className="absolute inset-0 opacity-20 flex items-center justify-center pointer-events-none">
+              <div
+                className={`w-40 h-40 rounded-full border border-dashed ${borderColor} ${
+                  isPlaying ? "animate-spin [animation-duration:8s]" : ""
+                }`}
+              />
+              <div
+                className={`absolute w-24 h-24 rounded-full border ${borderColor} ${
+                  isPlaying ? "animate-pulse" : ""
+                }`}
+              />
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center gap-1.5 text-center px-4 w-full">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                    isA
+                      ? "bg-purple-950 text-purple-300 border border-purple-800"
+                      : "bg-cyan-950 text-cyan-300 border border-cyan-800"
+                  }`}
+                >
+                  <Zap className="w-2.5 h-2.5" />
+                  WEB AUDIO API 44.1kHz
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-zinc-800/80 text-emerald-400 text-[9px] font-mono font-bold border border-zinc-700">
+                  0 LATENCIA
+                </span>
+              </div>
+              <p className="text-xs font-bold text-white truncate max-w-[220px]">
+                {localFileName || "Pista Local (Web Audio)"}
+              </p>
+              {/* Espectro de barras animado */}
+              <div className="flex items-end justify-center gap-1 h-4 mt-0.5">
+                {Array.from({ length: 16 }).map((_, i) => {
+                  const barH = isPlaying ? Math.max(3, (Math.sin(i * 0.5 + 1) + 1) * 6 + 3) : 2;
+                  return (
+                    <div
+                      key={i}
+                      style={{ height: `${barH}px` }}
+                      className={`w-1 rounded-full ${
+                        isA ? "bg-purple-400" : "bg-cyan-400"
+                      } transition-all duration-75`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Iframe aislado de YouTube */
+          <StableIframe deckId={deckId} videoId={videoId} isEjected={isEjected} iframeRef={iframeRef} />
+        )}
 
         {/* Overlay HUD cuando hay pista activa */}
         {hasActiveTrack && (
@@ -187,7 +280,6 @@ const DeckPlayer = memo(
     );
   },
   (prev, next) => {
-    // Si ninguna de las propiedades exclusivas de esta bandeja cambió, NO re-renderizar
     return (
       prev.deckId === next.deckId &&
       prev.videoId === next.videoId &&
@@ -195,7 +287,9 @@ const DeckPlayer = memo(
       prev.effectiveVol === next.effectiveVol &&
       prev.pitch === next.pitch &&
       prev.isLoading === next.isLoading &&
-      prev.isEjected === next.isEjected
+      prev.isEjected === next.isEjected &&
+      prev.deckMode === next.deckMode &&
+      prev.localFileName === next.localFileName
     );
   }
 );
@@ -271,6 +365,25 @@ export default function VirtualDjConsole({
   const [searchResultsB, setSearchResultsB] = useState<any[]>([]);
   const [isSearchingB, setIsSearchingB] = useState(false);
   const searchRequestIdB = useRef(0);
+
+  // ==================== NATIVE WEB AUDIO API ENGINE ====================
+  const [deckModeA, setDeckModeA] = useState<"youtube" | "native">("youtube");
+  const [deckModeB, setDeckModeB] = useState<"youtube" | "native">("youtube");
+  const [localAudioUrlA, setLocalAudioUrlA] = useState<string | null>(null);
+  const [localAudioUrlB, setLocalAudioUrlB] = useState<string | null>(null);
+  const [localAudioNameA, setLocalAudioNameA] = useState<string | null>(null);
+  const [localAudioNameB, setLocalAudioNameB] = useState<string | null>(null);
+  const [isDraggingA, setIsDraggingA] = useState(false);
+  const [isDraggingB, setIsDraggingB] = useState(false);
+  const audioRefA = useRef<HTMLAudioElement | null>(null);
+  const audioRefB = useRef<HTMLAudioElement | null>(null);
+  const fileInputRefA = useRef<HTMLInputElement | null>(null);
+  const fileInputRefB = useRef<HTMLInputElement | null>(null);
+
+  // Vúmetros estéreo en tiempo real
+  const [vuLevelsA, setVuLevelsA] = useState<AudioLevels>({ peak: 0, rms: 0 });
+  const [vuLevelsB, setVuLevelsB] = useState<AudioLevels>({ peak: 0, rms: 0 });
+  const [vuLevelsMaster, setVuLevelsMaster] = useState<AudioLevels>({ peak: 0, rms: 0 });
 
   // ==================== AUTO-ENGANCHE / TRANSITION ENGINE ====================
   const [isEnganchando, setIsEnganchando] = useState(false);
@@ -384,6 +497,7 @@ export default function VirtualDjConsole({
   const unlockAudioA = () => {
     setAudioUnlocked(true);
     setIsMasterMuted(false);
+    webDjEngine.unlock();
     if (iframeRefA.current) {
       sendPlayerCommand(iframeRefA.current, "unMute");
       sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
@@ -394,6 +508,7 @@ export default function VirtualDjConsole({
   const unlockAudioB = () => {
     setAudioUnlocked(true);
     setIsMasterMuted(false);
+    webDjEngine.unlock();
     if (iframeRefB.current) {
       sendPlayerCommand(iframeRefB.current, "unMute");
       sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
@@ -404,6 +519,7 @@ export default function VirtualDjConsole({
   const unlockAudio = () => {
     setAudioUnlocked(true);
     setIsMasterMuted(false);
+    webDjEngine.unlock();
     if (iframeRefA.current) {
       sendPlayerCommand(iframeRefA.current, "unMute");
       sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
@@ -413,6 +529,265 @@ export default function VirtualDjConsole({
       sendPlayerCommand(iframeRefB.current, "unMute");
       sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
       if (isPlayingB) sendPlayerCommand(iframeRefB.current, "playVideo");
+    }
+  };
+
+  // Neutralizar secuestro de MediaSession por parte de YouTube para evitar interrupciones entre bandejas
+  useEffect(() => {
+    if (typeof window !== "undefined" && "mediaSession" in navigator) {
+      try {
+        Object.defineProperty(navigator.mediaSession, "playbackState", {
+          get: () => "playing",
+          set: () => {},
+          configurable: true,
+        });
+      } catch {
+        // Silencioso si el navegador restringe la modificación
+      }
+    }
+  }, []);
+
+  // Conectar elementos de audio nativo al grafo de Web Audio API
+  useEffect(() => {
+    if (audioRefA.current) {
+      webDjEngine.attachAudioElement("A", audioRefA.current);
+    }
+  }, [audioRefA.current]);
+
+  useEffect(() => {
+    if (audioRefB.current) {
+      webDjEngine.attachAudioElement("B", audioRefB.current);
+    }
+  }, [audioRefB.current]);
+
+  // Sincronizar parámetros en tiempo real con Web Audio API
+  useEffect(() => {
+    webDjEngine.setChannelVolume("A", effectiveVolA);
+  }, [effectiveVolA]);
+
+  useEffect(() => {
+    webDjEngine.setChannelVolume("B", effectiveVolB);
+  }, [effectiveVolB]);
+
+  useEffect(() => {
+    webDjEngine.setEq("A", eqLowA, eqMidA, eqHiA);
+  }, [eqLowA, eqMidA, eqHiA]);
+
+  useEffect(() => {
+    webDjEngine.setEq("B", eqLowB, eqMidB, eqHiB);
+  }, [eqLowB, eqMidB, eqHiB]);
+
+  useEffect(() => {
+    webDjEngine.setBassKill("A", bassKillA);
+  }, [bassKillA]);
+
+  useEffect(() => {
+    webDjEngine.setBassKill("B", bassKillB);
+  }, [bassKillB]);
+
+  useEffect(() => {
+    webDjEngine.setCrossfader(crossfaderValue);
+  }, [crossfaderValue]);
+
+  useEffect(() => {
+    webDjEngine.setMasterVolume(isMasterMuted ? 0 : masterVolume);
+  }, [masterVolume, isMasterMuted]);
+
+  // Loop de animación para Vúmetros estéreo en tiempo real (Peak & RMS)
+  useEffect(() => {
+    let animId: number;
+    const tickVuMeters = () => {
+      if (isPlayingA || isPlayingB) {
+        const aLevels = webDjEngine.getChannelLevels("A");
+        const bLevels = webDjEngine.getChannelLevels("B");
+        const mLevels = webDjEngine.getMasterLevels();
+
+        // Si es modo YouTube y está reproduciendo, sintetizar actividad de vúmetro en base al volumen
+        const finalA = deckModeA === "native" && aLevels.peak > 0
+          ? aLevels
+          : isPlayingA && effectiveVolA > 0
+          ? { peak: (effectiveVolA / 100) * (0.6 + Math.random() * 0.35), rms: (effectiveVolA / 100) * 0.6 }
+          : { peak: 0, rms: 0 };
+
+        const finalB = deckModeB === "native" && bLevels.peak > 0
+          ? bLevels
+          : isPlayingB && effectiveVolB > 0
+          ? { peak: (effectiveVolB / 100) * (0.6 + Math.random() * 0.35), rms: (effectiveVolB / 100) * 0.6 }
+          : { peak: 0, rms: 0 };
+
+        const finalM = mLevels.peak > 0
+          ? mLevels
+          : { peak: Math.max(finalA.peak, finalB.peak), rms: Math.max(finalA.rms, finalB.rms) };
+
+        setVuLevelsA(finalA);
+        setVuLevelsB(finalB);
+        setVuLevelsMaster(finalM);
+      } else {
+        setVuLevelsA({ peak: 0, rms: 0 });
+        setVuLevelsB({ peak: 0, rms: 0 });
+        setVuLevelsMaster({ peak: 0, rms: 0 });
+      }
+      animId = requestAnimationFrame(tickVuMeters);
+    };
+
+    animId = requestAnimationFrame(tickVuMeters);
+    return () => cancelAnimationFrame(animId);
+  }, [isPlayingA, isPlayingB, effectiveVolA, effectiveVolB, deckModeA, deckModeB]);
+
+  // Sincronizar Pitch en audio nativo Web Audio
+  useEffect(() => {
+    if (deckModeA === "native" && audioRefA.current) {
+      const rate = Math.max(0.5, Math.min(2.0, 1 + pitchA / 100));
+      audioRefA.current.playbackRate = rate;
+      (audioRefA.current as any).preservesPitch = isKeyLockA;
+    }
+  }, [pitchA, isKeyLockA, deckModeA]);
+
+  useEffect(() => {
+    if (deckModeB === "native" && audioRefB.current) {
+      const rate = Math.max(0.5, Math.min(2.0, 1 + pitchB / 100));
+      audioRefB.current.playbackRate = rate;
+      (audioRefB.current as any).preservesPitch = isKeyLockB;
+    }
+  }, [pitchB, isKeyLockB, deckModeB]);
+
+  // Controladores de carga de archivos locales MP3 / WAV
+  const handleLoadLocalFileA = (file: File) => {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setLocalAudioUrlA(url);
+    const cleanName = file.name.replace(/\.[^/.]+$/, "");
+    setLocalAudioNameA(cleanName);
+    setDeckModeA("native");
+    setIsEjectedA(false);
+
+    const syntheticTrack: SongRequestData = {
+      id: `local-a-${Date.now()}`,
+      status: "PLAYING",
+      customTitle: cleanName,
+      customArtist: "Pista Local (Web Audio)",
+      notes: null,
+      createdAt: new Date().toISOString(),
+      table: { id: "local", number: 0, label: "Cabina DJ" },
+      guestSession: null,
+      song: {
+        id: `local-song-${Date.now()}`,
+        title: cleanName,
+        durationSeconds: 240,
+        genre: "DJ Mix",
+        bpm: 126,
+        key: "8A / Am",
+        artist: { name: "Pista Local (Web Audio)" },
+      },
+    };
+
+    setDeckTrackA(syntheticTrack);
+    setManualTrackA(syntheticTrack);
+    setPlaybackSecondsA(0);
+    setIsPlayingA(true);
+    webDjEngine.unlock();
+
+    if (audioRefA.current) {
+      audioRefA.current.src = url;
+      audioRefA.current.currentTime = 0;
+      audioRefA.current.play().catch(() => {});
+    }
+
+    showFeedback("success", `📁 Pista local cargada en Deck A: "${cleanName}"`);
+  };
+
+  const handleLoadLocalFileB = (file: File) => {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setLocalAudioUrlB(url);
+    const cleanName = file.name.replace(/\.[^/.]+$/, "");
+    setLocalAudioNameB(cleanName);
+    setDeckModeB("native");
+    setIsEjectedB(false);
+
+    const syntheticTrack: SongRequestData = {
+      id: `local-b-${Date.now()}`,
+      status: "PLAYING",
+      customTitle: cleanName,
+      customArtist: "Pista Local (Web Audio)",
+      notes: null,
+      createdAt: new Date().toISOString(),
+      table: { id: "local", number: 0, label: "Cabina DJ" },
+      guestSession: null,
+      song: {
+        id: `local-song-b-${Date.now()}`,
+        title: cleanName,
+        durationSeconds: 240,
+        genre: "DJ Mix",
+        bpm: 128,
+        key: "9A / Em",
+        artist: { name: "Pista Local (Web Audio)" },
+      },
+    };
+
+    setDeckTrackB(syntheticTrack);
+    setManualTrackB(syntheticTrack);
+    setPlaybackSecondsB(0);
+    setIsPlayingB(true);
+    webDjEngine.unlock();
+
+    if (audioRefB.current) {
+      audioRefB.current.src = url;
+      audioRefB.current.currentTime = 0;
+      audioRefB.current.play().catch(() => {});
+    }
+
+    showFeedback("success", `📁 Pista local cargada en Deck B: "${cleanName}"`);
+  };
+
+  // Play / Pause toggles con soporte dual Web Audio / YouTube
+  const togglePlayA = () => {
+    webDjEngine.unlock();
+    if (isEjectedA || !trackA) return;
+
+    if (deckModeA === "native" && audioRefA.current) {
+      if (isPlayingA) {
+        audioRefA.current.pause();
+        setIsPlayingA(false);
+      } else {
+        audioRefA.current.play().catch(() => {});
+        setIsPlayingA(true);
+      }
+      return;
+    }
+
+    if (isPlayingA) {
+      if (iframeRefA.current) sendPlayerCommand(iframeRefA.current, "pauseVideo");
+      setIsPlayingA(false);
+    } else {
+      unlockAudioA();
+      if (iframeRefA.current) sendPlayerCommand(iframeRefA.current, "playVideo");
+      setIsPlayingA(true);
+    }
+  };
+
+  const togglePlayB = () => {
+    webDjEngine.unlock();
+    if (isEjectedB || !trackB) return;
+
+    if (deckModeB === "native" && audioRefB.current) {
+      if (isPlayingB) {
+        audioRefB.current.pause();
+        setIsPlayingB(false);
+      } else {
+        audioRefB.current.play().catch(() => {});
+        setIsPlayingB(true);
+      }
+      return;
+    }
+
+    if (isPlayingB) {
+      if (iframeRefB.current) sendPlayerCommand(iframeRefB.current, "pauseVideo");
+      setIsPlayingB(false);
+    } else {
+      unlockAudioB();
+      if (iframeRefB.current) sendPlayerCommand(iframeRefB.current, "playVideo");
+      setIsPlayingB(true);
     }
   };
 
@@ -509,6 +884,14 @@ export default function VirtualDjConsole({
       sendPlayerCommand(iframeRefA.current, "stopVideo");
       sendPlayerCommand(iframeRefA.current, "pauseVideo");
     }
+    setDeckModeA("youtube");
+    if (audioRefA.current) {
+      audioRefA.current.pause();
+      audioRefA.current.currentTime = 0;
+      audioRefA.current.src = "";
+    }
+    setLocalAudioUrlA(null);
+    setLocalAudioNameA(null);
     prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
     const directId =
       explicitVideoId ||
@@ -577,6 +960,14 @@ export default function VirtualDjConsole({
       sendPlayerCommand(iframeRefB.current, "stopVideo");
       sendPlayerCommand(iframeRefB.current, "pauseVideo");
     }
+    setDeckModeB("youtube");
+    if (audioRefB.current) {
+      audioRefB.current.pause();
+      audioRefB.current.currentTime = 0;
+      audioRefB.current.src = "";
+    }
+    setLocalAudioUrlB(null);
+    setLocalAudioNameB(null);
     const directId =
       explicitVideoId ||
       track.youtubeVideoId ||
@@ -646,10 +1037,16 @@ export default function VirtualDjConsole({
     }
   };
 
-  // Limpiar / Expulsar pista de DECK A (congelamiento silencioso sin recarga de DOM)
+  // Limpiar / Expulsar pista de DECK A (Aislamiento Total: Deck B NUNCA es afectada)
   const handleClearDeckA = () => {
     searchRequestIdA.current++;
-    if (iframeRefA.current) {
+    if (deckModeA === "native" && audioRefA.current) {
+      audioRefA.current.pause();
+      audioRefA.current.currentTime = 0;
+      audioRefA.current.src = "";
+      setLocalAudioUrlA(null);
+      setLocalAudioNameA(null);
+    } else if (iframeRefA.current) {
       sendPlayerCommand(iframeRefA.current, "pauseVideo");
       sendPlayerCommand(iframeRefA.current, "mute");
     }
@@ -664,10 +1061,16 @@ export default function VirtualDjConsole({
     setIsLoadingVideoA(false);
   };
 
-  // Limpiar / Expulsar pista de DECK B (congelamiento silencioso sin recarga de DOM)
+  // Limpiar / Expulsar pista de DECK B (Aislamiento Total: Deck A NUNCA es afectada)
   const handleClearDeckB = () => {
     searchRequestIdB.current++;
-    if (iframeRefB.current) {
+    if (deckModeB === "native" && audioRefB.current) {
+      audioRefB.current.pause();
+      audioRefB.current.currentTime = 0;
+      audioRefB.current.src = "";
+      setLocalAudioUrlB(null);
+      setLocalAudioNameB(null);
+    } else if (iframeRefB.current) {
       sendPlayerCommand(iframeRefB.current, "pauseVideo");
       sendPlayerCommand(iframeRefB.current, "mute");
     }
@@ -1355,6 +1758,22 @@ export default function VirtualDjConsole({
                       </button>
                     )}
 
+                    {/* Botón para subir archivo MP3/WAV local (Web Audio API) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        fileInputRefA.current?.click();
+                        setIsSelectorOpenA(false);
+                      }}
+                      className="w-full text-left p-2 rounded-lg bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/60 text-purple-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
+                    >
+                      <Upload className="w-4 h-4 text-purple-400 shrink-0" />
+                      <div className="flex flex-col">
+                        <span>📁 Subir MP3 / Archivo local</span>
+                        <span className="text-[10px] text-purple-400 font-normal">Motor Web Audio API &bull; 0 Latencia &bull; Offline</span>
+                      </div>
+                    </button>
+
                     {/* Búsqueda directa o pegado de YouTube */}
                     <form
                       onSubmit={(e) => {
@@ -1507,23 +1926,36 @@ export default function VirtualDjConsole({
             pitch={pitchA}
             isLoading={isLoadingVideoA}
             isEjected={isEjectedA}
+            deckMode={deckModeA}
+            localFileName={localAudioNameA}
             iframeRef={iframeRefA}
           />
 
           {/* Platter / Jogwheel Deck A & Pitch Fader */}
           <div className="flex items-center justify-around sm:justify-between gap-3 sm:gap-4 py-2 w-full">
-            {/* Jogwheel Giratorio */}
-            <div className="relative shrink-0 mx-auto">
+            {/* Jogwheel Giratorio con soporte Drag & Drop */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDraggingA(true);
+              }}
+              onDragLeave={() => setIsDraggingA(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDraggingA(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) handleLoadLocalFileA(file);
+              }}
+              className="relative shrink-0 mx-auto"
+            >
               <div
-                className={`w-36 h-36 rounded-full bg-black border-4 border-zinc-800 shadow-[0_0_25px_rgba(168,85,247,0.2)] flex items-center justify-center relative cursor-grab active:cursor-grabbing ${
+                className={`w-36 h-36 rounded-full bg-black border-4 ${
+                  isDraggingA ? "border-purple-400 scale-105" : "border-zinc-800"
+                } shadow-[0_0_25px_rgba(168,85,247,0.2)] flex items-center justify-center relative cursor-grab active:cursor-grabbing transition-all ${
                   isPlayingA ? "animate-spin [animation-duration:3s]" : ""
                 }`}
-                onClick={() => {
-                  if (!trackA) return;
-                  unlockAudioA();
-                  setIsPlayingA(!isPlayingA);
-                }}
-                title="Jogwheel / Vinilo Deck A - Click para Play/Pausa"
+                onClick={togglePlayA}
+                title="Jogwheel / Vinilo Deck A - Click para Play/Pausa o arrastra un MP3 aquí"
               >
                 {/* Ranuras de vinilo */}
                 <div className="w-28 h-28 rounded-full border border-zinc-800 flex items-center justify-center">
@@ -1678,11 +2110,7 @@ export default function VirtualDjConsole({
               CUE
             </button>
             <button
-              onClick={() => {
-                if (!trackA) return;
-                unlockAudioA();
-                setIsPlayingA(!isPlayingA);
-              }}
+              onClick={togglePlayA}
               disabled={!trackA}
               className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 ${
                 isPlayingA
@@ -1867,6 +2295,22 @@ export default function VirtualDjConsole({
             </button>
           </div>
 
+          {/* VÚMETROS ESTÉREO LED DE CABINA (CH 1 / MASTER / CH 2) */}
+          <div className="w-full py-2 px-3 rounded-xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-around shadow-inner">
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-[8px] font-mono text-purple-400 font-bold">CH 1</span>
+              <VuMeterBar peak={vuLevelsA.peak} rms={vuLevelsA.rms} channelColor="purple" />
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-[8px] font-mono text-emerald-400 font-bold">MASTER</span>
+              <VuMeterBar peak={vuLevelsMaster.peak} rms={vuLevelsMaster.rms} channelColor="emerald" />
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-[8px] font-mono text-cyan-400 font-bold">CH 2</span>
+              <VuMeterBar peak={vuLevelsB.peak} rms={vuLevelsB.rms} channelColor="cyan" />
+            </div>
+          </div>
+
           {/* CROSSFADER SLIDER */}
           <div className="w-full space-y-1.5 pt-2 border-t border-zinc-900">
             <span className="text-[9px] uppercase font-bold text-zinc-500">Crossfader</span>
@@ -1963,6 +2407,22 @@ export default function VirtualDjConsole({
                         <span>⏹ Limpiar bandeja (Expulsar pista actual)</span>
                       </button>
                     )}
+
+                    {/* Botón para subir archivo MP3/WAV local (Web Audio API) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        fileInputRefB.current?.click();
+                        setIsSelectorOpenB(false);
+                      }}
+                      className="w-full text-left p-2 rounded-lg bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/60 text-cyan-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
+                    >
+                      <Upload className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <div className="flex flex-col">
+                        <span>📁 Subir MP3 / Archivo local</span>
+                        <span className="text-[10px] text-cyan-400 font-normal">Motor Web Audio API &bull; 0 Latencia &bull; Offline</span>
+                      </div>
+                    </button>
 
                     {/* Búsqueda directa o pegado de YouTube */}
                     <form
@@ -2117,6 +2577,8 @@ export default function VirtualDjConsole({
             pitch={pitchB}
             isLoading={isLoadingVideoB}
             isEjected={isEjectedB}
+            deckMode={deckModeB}
+            localFileName={localAudioNameB}
             iframeRef={iframeRefB}
           />
 
@@ -2150,18 +2612,29 @@ export default function VirtualDjConsole({
               </button>
             </div>
 
-            {/* Jogwheel Giratorio Deck B */}
-            <div className="relative shrink-0 mx-auto">
+            {/* Jogwheel Giratorio Deck B con soporte Drag & Drop */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDraggingB(true);
+              }}
+              onDragLeave={() => setIsDraggingB(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDraggingB(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) handleLoadLocalFileB(file);
+              }}
+              className="relative shrink-0 mx-auto"
+            >
               <div
-                className={`w-36 h-36 rounded-full bg-black border-4 border-zinc-800 shadow-[0_0_25px_rgba(6,182,212,0.2)] flex items-center justify-center relative cursor-grab active:cursor-grabbing ${
+                className={`w-36 h-36 rounded-full bg-black border-4 ${
+                  isDraggingB ? "border-cyan-400 scale-105" : "border-zinc-800"
+                } shadow-[0_0_25px_rgba(6,182,212,0.2)] flex items-center justify-center relative cursor-grab active:cursor-grabbing transition-all ${
                   isPlayingB ? "animate-spin [animation-duration:3s]" : ""
                 }`}
-                onClick={() => {
-                  if (!trackB) return;
-                  unlockAudioB();
-                  setIsPlayingB(!isPlayingB);
-                }}
-                title="Jogwheel / Vinilo Deck B - Click para Play/Pausa"
+                onClick={togglePlayB}
+                title="Jogwheel / Vinilo Deck B - Click para Play/Pausa o arrastra un MP3 aquí"
               >
                 {/* Ranuras de vinilo */}
                 <div className="w-28 h-28 rounded-full border border-zinc-800 flex items-center justify-center">
@@ -2294,11 +2767,7 @@ export default function VirtualDjConsole({
               CUE
             </button>
             <button
-              onClick={() => {
-                if (!trackB) return;
-                unlockAudioB();
-                setIsPlayingB(!isPlayingB);
-              }}
+              onClick={togglePlayB}
               disabled={!trackB}
               className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 ${
                 isPlayingB
@@ -2324,6 +2793,64 @@ export default function VirtualDjConsole({
           </div>
         </div>
       </div>
+
+      {/* Elementos de Audio Nativo Web Audio API (conectados al grafo de 44.1kHz) */}
+      <audio
+        ref={audioRefA}
+        crossOrigin="anonymous"
+        onTimeUpdate={() => {
+          if (audioRefA.current && deckModeA === "native") {
+            setPlaybackSecondsA(Math.floor(audioRefA.current.currentTime));
+          }
+        }}
+        onEnded={() => {
+          setIsPlayingA(false);
+          if (engancheDirection === "A_TO_B" && !isEjectedB && trackB) {
+            handleStartAutoEnganche();
+          }
+        }}
+        className="hidden"
+      />
+      <audio
+        ref={audioRefB}
+        crossOrigin="anonymous"
+        onTimeUpdate={() => {
+          if (audioRefB.current && deckModeB === "native") {
+            setPlaybackSecondsB(Math.floor(audioRefB.current.currentTime));
+          }
+        }}
+        onEnded={() => {
+          setIsPlayingB(false);
+          if (engancheDirection === "B_TO_A" && !isEjectedA && trackA) {
+            handleStartAutoEnganche();
+          }
+        }}
+        className="hidden"
+      />
+
+      {/* Selectores de archivo ocultos para carga de MP3 / WAV local */}
+      <input
+        type="file"
+        ref={fileInputRefA}
+        accept="audio/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleLoadLocalFileA(file);
+          e.target.value = "";
+        }}
+      />
+      <input
+        type="file"
+        ref={fileInputRefB}
+        accept="audio/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleLoadLocalFileB(file);
+          e.target.value = "";
+        }}
+      />
     </div>
   );
 }

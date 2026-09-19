@@ -21,22 +21,314 @@ export function calculateCrossfaderGains(sliderValue: number) {
   };
 }
 
-// Clase de sintetizador de efectos para el navegador
-class DjSoundEffectsEngine {
-  private ctx: AudioContext | null = null;
+export interface DeckChannelNodes {
+  audioElement: HTMLAudioElement | null;
+  sourceNode: MediaElementAudioSourceNode | null;
+  eqLow: BiquadFilterNode;
+  eqMid: BiquadFilterNode;
+  eqHi: BiquadFilterNode;
+  channelGain: GainNode;
+  crossfaderGain: GainNode;
+  analyser: AnalyserNode;
+  isBassKillActive: boolean;
+  baseEqLow: number;
+}
 
-  private getContext(): AudioContext | null {
+export interface AudioLevels {
+  peak: number; // 0.0 a 1.0
+  rms: number;  // 0.0 a 1.0
+}
+
+class WebDjAudioEngine {
+  private ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
+  private masterLimiter: DynamicsCompressorNode | null = null;
+  private masterAnalyser: AnalyserNode | null = null;
+  private channels: { A: DeckChannelNodes | null; B: DeckChannelNodes | null } = { A: null, B: null };
+  private connectedElements = new WeakMap<HTMLAudioElement, MediaElementAudioSourceNode>();
+  private isUnlocked = false;
+
+  public getContext(): AudioContext | null {
     if (typeof window === "undefined") return null;
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioCtx) {
-        this.ctx = new AudioCtx();
+        this.ctx = new AudioCtx({ sampleRate: 44100 });
       }
     }
-    if (this.ctx && this.ctx.state === "suspended") {
-      this.ctx.resume();
-    }
     return this.ctx;
+  }
+
+  /**
+   * Desbloquea el AudioContext ante el primer clic o interacción del usuario
+   */
+  public async unlock(): Promise<boolean> {
+    const ctx = this.getContext();
+    if (!ctx) return false;
+
+    if (ctx.state === "suspended") {
+      try {
+        await ctx.resume();
+      } catch {
+        // Silencioso si el navegador aún no permite reanudar
+      }
+    }
+
+    this.ensureMasterBus();
+    this.isUnlocked = ctx.state === "running";
+    return this.isUnlocked;
+  }
+
+  /**
+   * Inicializa el bus Master con limitador dinámico y analizador
+   */
+  private ensureMasterBus() {
+    const ctx = this.getContext();
+    if (!ctx || this.masterGain) return;
+
+    this.masterGain = ctx.createGain();
+    this.masterGain.gain.setValueAtTime(1.0, ctx.currentTime);
+
+    // Limitador suave tipo discoteca (evita clipping si ambos decks suenan al 100%)
+    this.masterLimiter = ctx.createDynamicsCompressor();
+    this.masterLimiter.threshold.setValueAtTime(-1.0, ctx.currentTime);
+    this.masterLimiter.knee.setValueAtTime(6.0, ctx.currentTime);
+    this.masterLimiter.ratio.setValueAtTime(12.0, ctx.currentTime);
+    this.masterLimiter.attack.setValueAtTime(0.003, ctx.currentTime);
+    this.masterLimiter.release.setValueAtTime(0.15, ctx.currentTime);
+
+    this.masterAnalyser = ctx.createAnalyser();
+    this.masterAnalyser.fftSize = 128;
+    this.masterAnalyser.smoothingTimeConstant = 0.8;
+
+    this.masterGain.connect(this.masterLimiter);
+    this.masterLimiter.connect(this.masterAnalyser);
+    this.masterAnalyser.connect(ctx.destination);
+  }
+
+  /**
+   * Configura o retorna la cadena de procesamiento para una bandeja
+   */
+  public getOrCreateChannel(deckId: "A" | "B"): DeckChannelNodes | null {
+    const ctx = this.getContext();
+    if (!ctx) return null;
+    this.ensureMasterBus();
+
+    if (this.channels[deckId]) {
+      return this.channels[deckId];
+    }
+
+    // Filtros de ecualización analógicos de 3 bandas
+    const eqLow = ctx.createBiquadFilter();
+    eqLow.type = "lowshelf";
+    eqLow.frequency.setValueAtTime(250, ctx.currentTime);
+    eqLow.gain.setValueAtTime(0, ctx.currentTime);
+
+    const eqMid = ctx.createBiquadFilter();
+    eqMid.type = "peaking";
+    eqMid.frequency.setValueAtTime(1000, ctx.currentTime);
+    eqMid.Q.setValueAtTime(1.0, ctx.currentTime);
+    eqMid.gain.setValueAtTime(0, ctx.currentTime);
+
+    const eqHi = ctx.createBiquadFilter();
+    eqHi.type = "highshelf";
+    eqHi.frequency.setValueAtTime(4000, ctx.currentTime);
+    eqHi.gain.setValueAtTime(0, ctx.currentTime);
+
+    // Ganancias de canal y crossfader
+    const channelGain = ctx.createGain();
+    channelGain.gain.setValueAtTime(1.0, ctx.currentTime);
+
+    const crossfaderGain = ctx.createGain();
+    const initialGains = calculateCrossfaderGains(0);
+    crossfaderGain.gain.setValueAtTime(deckId === "A" ? initialGains.gainA : initialGains.gainB, ctx.currentTime);
+
+    // Analizador de canal para vúmetro LED estéreo
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 64;
+    analyser.smoothingTimeConstant = 0.75;
+
+    // Enrutamiento del canal:
+    // eqLow -> eqMid -> eqHi -> channelGain -> crossfaderGain -> analyser -> masterGain
+    eqLow.connect(eqMid);
+    eqMid.connect(eqHi);
+    eqHi.connect(channelGain);
+    channelGain.connect(crossfaderGain);
+    crossfaderGain.connect(analyser);
+
+    if (this.masterGain) {
+      crossfaderGain.connect(this.masterGain);
+    }
+
+    const channel: DeckChannelNodes = {
+      audioElement: null,
+      sourceNode: null,
+      eqLow,
+      eqMid,
+      eqHi,
+      channelGain,
+      crossfaderGain,
+      analyser,
+      isBassKillActive: false,
+      baseEqLow: 0,
+    };
+
+    this.channels[deckId] = channel;
+    return channel;
+  }
+
+  /**
+   * Conecta un elemento HTMLAudioElement a la cadena de audio de la bandeja
+   */
+  public attachAudioElement(deckId: "A" | "B", audioEl: HTMLAudioElement) {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const channel = this.getOrCreateChannel(deckId);
+    if (!channel) return;
+
+    if (channel.audioElement === audioEl && channel.sourceNode) {
+      return; // Ya conectado
+    }
+
+    channel.audioElement = audioEl;
+
+    let source = this.connectedElements.get(audioEl);
+    if (!source) {
+      try {
+        source = ctx.createMediaElementSource(audioEl);
+        this.connectedElements.set(audioEl, source);
+      } catch (err) {
+        console.warn(`Error attaching audio element to Deck ${deckId}:`, err);
+        return;
+      }
+    }
+
+    channel.sourceNode = source;
+    try {
+      source.disconnect();
+    } catch {
+      // Si no estaba conectado
+    }
+    source.connect(channel.eqLow);
+  }
+
+  /**
+   * Ajusta el volumen del canal de la bandeja (0 a 100)
+   */
+  public setChannelVolume(deckId: "A" | "B", vol: number) {
+    const channel = this.channels[deckId];
+    const ctx = this.getContext();
+    if (!channel || !ctx) return;
+
+    const normalized = Math.max(0, Math.min(100, vol)) / 100;
+    channel.channelGain.gain.setTargetAtTime(normalized, ctx.currentTime, 0.015);
+  }
+
+  /**
+   * Ajusta la ecualización analógica de 3 bandas en dB (-24dB a +6dB)
+   */
+  public setEq(deckId: "A" | "B", low: number, mid: number, hi: number) {
+    const channel = this.channels[deckId];
+    const ctx = this.getContext();
+    if (!channel || !ctx) return;
+
+    channel.baseEqLow = low;
+
+    // Si el Bass Kill está activo, forzamos -40dB en Low
+    const effectiveLow = channel.isBassKillActive ? -40 : Math.max(-24, Math.min(6, low));
+    const effectiveMid = Math.max(-24, Math.min(6, mid));
+    const effectiveHi = Math.max(-24, Math.min(6, hi));
+
+    channel.eqLow.gain.setTargetAtTime(effectiveLow, ctx.currentTime, 0.02);
+    channel.eqMid.gain.setTargetAtTime(effectiveMid, ctx.currentTime, 0.02);
+    channel.eqHi.gain.setTargetAtTime(effectiveHi, ctx.currentTime, 0.02);
+  }
+
+  /**
+   * Activa o desactiva el corte instantáneo de bajos (Bass Kill)
+   */
+  public setBassKill(deckId: "A" | "B", active: boolean) {
+    const channel = this.channels[deckId];
+    const ctx = this.getContext();
+    if (!channel || !ctx) return;
+
+    channel.isBassKillActive = active;
+    const targetGain = active ? -45 : channel.baseEqLow;
+    channel.eqLow.gain.setTargetAtTime(targetGain, ctx.currentTime, 0.01);
+  }
+
+  /**
+   * Ajusta la posición del Crossfader (-100 a +100) aplicando potencia constante
+   */
+  public setCrossfader(sliderValue: number) {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const gains = calculateCrossfaderGains(sliderValue);
+
+    if (this.channels.A) {
+      this.channels.A.crossfaderGain.gain.setTargetAtTime(gains.gainA, ctx.currentTime, 0.015);
+    }
+    if (this.channels.B) {
+      this.channels.B.crossfaderGain.gain.setTargetAtTime(gains.gainB, ctx.currentTime, 0.015);
+    }
+  }
+
+  /**
+   * Ajusta el volumen Master (0 a 100)
+   */
+  public setMasterVolume(vol: number) {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    this.ensureMasterBus();
+    if (this.masterGain) {
+      const normalized = Math.max(0, Math.min(100, vol)) / 100;
+      this.masterGain.gain.setTargetAtTime(normalized, ctx.currentTime, 0.015);
+    }
+  }
+
+  /**
+   * Obtiene los niveles de audio en tiempo real para vúmetros LED (Peak & RMS)
+   */
+  public getLevels(analyser: AnalyserNode | null): AudioLevels {
+    if (!analyser) return { peak: 0, rms: 0 };
+
+    const buffer = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteTimeDomainData(buffer);
+
+    let sumSquares = 0;
+    let peak = 0;
+
+    for (let i = 0; i < buffer.length; i++) {
+      const norm = (buffer[i] - 128) / 128;
+      const abs = Math.abs(norm);
+      if (abs > peak) peak = abs;
+      sumSquares += norm * norm;
+    }
+
+    const rms = Math.sqrt(sumSquares / buffer.length);
+    return {
+      peak: Math.min(1, peak),
+      rms: Math.min(1, rms * 1.6),
+    };
+  }
+
+  public getChannelLevels(deckId: "A" | "B"): AudioLevels {
+    const channel = this.channels[deckId];
+    return this.getLevels(channel?.analyser || null);
+  }
+
+  public getMasterLevels(): AudioLevels {
+    return this.getLevels(this.masterAnalyser);
+  }
+}
+
+export const webDjEngine = new WebDjAudioEngine();
+
+// Clase de sintetizador de efectos para el navegador
+class DjSoundEffectsEngine {
+  private getContext(): AudioContext | null {
+    return webDjEngine.getContext();
   }
 
   /**
