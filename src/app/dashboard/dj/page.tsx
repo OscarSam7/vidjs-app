@@ -153,6 +153,7 @@ interface QueuePolicyState {
   photosAllowed?: boolean;
   photoRotationSeconds?: number;
   photoFitMode?: "BLUR_FILL" | "CONTAIN" | "COVER";
+  nightMode?: "KARAOKE_ONLY" | "DJ_ONLY" | "HYBRID";
 }
 
 export default function DjBoothPage() {
@@ -299,6 +300,7 @@ export default function DjBoothPage() {
   const handleUpdatePolicy = async (patch: Partial<QueuePolicyState>) => {
     const eventId = selectedEventId || data?.event?.id;
     if (!eventId) return;
+    setQueuePolicy((prev) => ({ ...prev, ...patch }));
     setPolicyLoading(true);
     try {
       const res = await fetch("/api/v1/dj/queue/policy", {
@@ -1039,7 +1041,7 @@ export default function DjBoothPage() {
           </span>
           <div className="grid grid-cols-2 p-1 rounded-xl bg-zinc-900/90 border border-zinc-800 w-full sm:w-auto gap-1">
             <button
-              onClick={() => handleUpdatePolicy({ zone: "DJ" })}
+              onClick={() => handleUpdatePolicy({ zone: "DJ", nightMode: "DJ_ONLY" })}
               disabled={policyLoading}
               className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 queuePolicy.zone === "DJ"
@@ -1052,7 +1054,7 @@ export default function DjBoothPage() {
             </button>
 
             <button
-              onClick={() => handleUpdatePolicy({ zone: "KARAOKE" })}
+              onClick={() => handleUpdatePolicy({ zone: "KARAOKE", nightMode: "HYBRID" })}
               disabled={policyLoading}
               className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 queuePolicy.zone === "KARAOKE"

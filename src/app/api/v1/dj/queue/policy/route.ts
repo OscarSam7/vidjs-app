@@ -92,22 +92,33 @@ export async function PATCH(req: NextRequest) {
 
     const currentPolicy = parseQueuePolicy(event.settings);
 
-    // Resolver nuevo nightMode si se especifica o deducir
-    const nextNightMode = data.nightMode ?? currentPolicy.nightMode;
+    // Resolver nuevo nightMode si se especifica o deducir coherentemente
+    let nextNightMode = data.nightMode;
+    if (!nextNightMode) {
+      if (data.zone === "KARAOKE" && currentPolicy.nightMode === "DJ_ONLY") {
+        nextNightMode = "HYBRID";
+      } else if (data.zone === "DJ" && currentPolicy.nightMode === "KARAOKE_ONLY") {
+        nextNightMode = "HYBRID";
+      } else {
+        nextNightMode = currentPolicy.nightMode;
+      }
+    }
+
+    const nextZone = data.zone ?? (nextNightMode === "DJ_ONLY" ? "DJ" : nextNightMode === "KARAOKE_ONLY" ? "KARAOKE" : currentPolicy.zone);
 
     const updatedDj = {
       ...currentPolicy.dj,
       ...(data.dj || {}),
-      ...(data.zone === "DJ" && data.maxActivePerTable !== undefined ? { maxActivePerTable: data.maxActivePerTable } : {}),
-      ...(data.zone === "DJ" && data.queuePaused !== undefined ? { queuePaused: data.queuePaused } : {}),
+      ...(nextZone === "DJ" && data.maxActivePerTable !== undefined ? { maxActivePerTable: data.maxActivePerTable } : {}),
+      ...(nextZone === "DJ" && data.queuePaused !== undefined ? { queuePaused: data.queuePaused } : {}),
       ...(data.nightMode ? { enabled: data.nightMode !== "KARAOKE_ONLY" } : {}),
     };
 
     const updatedKaraoke = {
       ...currentPolicy.karaoke,
       ...(data.karaoke || {}),
-      ...(data.zone === "KARAOKE" && data.maxActivePerTable !== undefined ? { maxActivePerTable: data.maxActivePerTable } : {}),
-      ...(data.zone === "KARAOKE" && data.queuePaused !== undefined ? { queuePaused: data.queuePaused } : {}),
+      ...(nextZone === "KARAOKE" && data.maxActivePerTable !== undefined ? { maxActivePerTable: data.maxActivePerTable } : {}),
+      ...(nextZone === "KARAOKE" && data.queuePaused !== undefined ? { queuePaused: data.queuePaused } : {}),
       ...(data.rotationMode !== undefined ? { fairPlayMode: data.rotationMode } : {}),
       ...(data.avgSongDurationMinutes !== undefined ? { avgSongDurationMinutes: data.avgSongDurationMinutes } : {}),
       ...(data.nightMode ? { enabled: data.nightMode !== "DJ_ONLY" } : {}),
@@ -121,9 +132,9 @@ export async function PATCH(req: NextRequest) {
       ...(data.photosAllowed !== undefined && { photosAllowed: data.photosAllowed }),
       ...(data.photoRotationSeconds !== undefined && { photoRotationSeconds: data.photoRotationSeconds }),
       ...(data.photoFitMode !== undefined && { photoFitMode: data.photoFitMode }),
-      ...(data.zone !== undefined && { zone: data.zone }),
-      maxActivePerTable: data.maxActivePerTable ?? (data.zone === "DJ" ? updatedDj.maxActivePerTable : updatedKaraoke.maxActivePerTable),
-      queuePaused: data.queuePaused ?? (data.zone === "DJ" ? updatedDj.queuePaused : updatedKaraoke.queuePaused),
+      zone: nextZone,
+      maxActivePerTable: data.maxActivePerTable ?? (nextZone === "DJ" ? updatedDj.maxActivePerTable : updatedKaraoke.maxActivePerTable),
+      queuePaused: data.queuePaused ?? (nextZone === "DJ" ? updatedDj.queuePaused : updatedKaraoke.queuePaused),
       rotationMode: data.rotationMode ?? updatedKaraoke.fairPlayMode,
       avgSongDurationMinutes: data.avgSongDurationMinutes ?? updatedKaraoke.avgSongDurationMinutes,
     };

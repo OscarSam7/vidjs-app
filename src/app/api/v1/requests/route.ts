@@ -200,8 +200,15 @@ export async function GET() {
       ["PENDING", "ACCEPTED", "PLAYING"].includes(r.status)
     ).length;
 
-    const tableZone = (guestSession.table as any).zone || policy.zone || "MAIN";
-    const isDjZone = tableZone === "DJ" || policy.nightMode === "DJ_ONLY";
+    const explicitTableZone = (guestSession.table as any).zone;
+    const isDjZone = explicitTableZone === "DJ" || policy.nightMode === "DJ_ONLY";
+    const isKaraokeZone = explicitTableZone === "KARAOKE" || policy.nightMode === "KARAOKE_ONLY";
+    const computedZone: "DJ" | "KARAOKE" | "MAIN" = isDjZone
+      ? "DJ"
+      : isKaraokeZone
+      ? "KARAOKE"
+      : "MAIN";
+
     const effectiveMax = isDjZone ? policy.dj.maxActivePerTable : policy.karaoke.maxActivePerTable;
     const effectivePaused = isDjZone ? policy.dj.queuePaused : policy.karaoke.queuePaused;
 
@@ -210,7 +217,7 @@ export async function GET() {
       maxSlots: effectiveMax,
       isLocked: activeRequestsCount >= effectiveMax,
       queuePaused: effectivePaused,
-      zone: isDjZone ? "DJ" : tableZone === "KARAOKE" || policy.nightMode === "KARAOKE_ONLY" ? "KARAOKE" : "MAIN",
+      zone: computedZone,
       nightMode: policy.nightMode,
       djQueuePaused: policy.dj.queuePaused,
       karaokeQueuePaused: policy.karaoke.queuePaused,

@@ -205,9 +205,30 @@ function GuestContent() {
   const tableParam = searchParams.get("table");
 
   const modeParam = searchParams.get("mode")?.toUpperCase();
-  const [activeMode, setActiveMode] = useState<"DJ" | "KARAOKE">(
-    modeParam === "DJ" ? "DJ" : "KARAOKE"
-  );
+  const [activeMode, setActiveMode] = useState<"DJ" | "KARAOKE">(() => {
+    if (modeParam === "DJ" || modeParam === "KARAOKE") {
+      return modeParam as "DJ" | "KARAOKE";
+    }
+    if (typeof window !== "undefined") {
+      try {
+        const saved = sessionStorage.getItem("vidjs_guest_active_mode");
+        if (saved === "DJ" || saved === "KARAOKE") return saved as "DJ" | "KARAOKE";
+      } catch {}
+    }
+    return "KARAOKE";
+  });
+
+  const userModeChoiceRef = useRef<"DJ" | "KARAOKE" | null>(null);
+
+  const handleSelectMode = (mode: "DJ" | "KARAOKE") => {
+    userModeChoiceRef.current = mode;
+    setActiveMode(mode);
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem("vidjs_guest_active_mode", mode);
+      } catch {}
+    }
+  };
 
   const [activeTab, setActiveTab] = useState<"hub" | "catalog" | "my-requests">("hub");
   const [session, setSession] = useState<GuestSessionInfo | null>(null);
@@ -360,17 +381,23 @@ function GuestContent() {
         }
         if (data.data.tableAllowance) {
           setTableAllowance(data.data.tableAllowance);
-          if (!modeParam) {
-            if (
-              data.data.tableAllowance.nightMode === "DJ_ONLY" ||
-              data.data.tableAllowance.zone === "DJ"
-            ) {
-              setActiveMode("DJ");
-            } else if (
-              data.data.tableAllowance.nightMode === "KARAOKE_ONLY" ||
-              data.data.tableAllowance.zone === "KARAOKE"
-            ) {
-              setActiveMode("KARAOKE");
+          const nightMode = data.data.tableAllowance.nightMode;
+          const tableZone = data.data.tableAllowance.zone;
+
+          // Solo forzar modo si la noche o la mesa son exclusivamente DJ o Karaoke
+          if (nightMode === "DJ_ONLY" || tableZone === "DJ") {
+            setActiveMode("DJ");
+          } else if (nightMode === "KARAOKE_ONLY" || tableZone === "KARAOKE") {
+            setActiveMode("KARAOKE");
+          } else if (!userModeChoiceRef.current && !modeParam) {
+            // Noche híbrida: si el usuario no ha elegido manualmente, chequear si había preferencia en sessionStorage
+            if (typeof window !== "undefined") {
+              try {
+                const saved = sessionStorage.getItem("vidjs_guest_active_mode");
+                if (saved === "DJ" || saved === "KARAOKE") {
+                  setActiveMode(saved as "DJ" | "KARAOKE");
+                }
+              } catch {}
             }
           }
         }
@@ -1421,7 +1448,7 @@ function GuestContent() {
               <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-950/90 rounded-2xl border border-zinc-800 shadow-sm">
                 <button
                   type="button"
-                  onClick={() => setActiveMode("DJ")}
+                  onClick={() => handleSelectMode("DJ")}
                   className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     activeMode === "DJ"
                       ? "bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow-md shadow-amber-500/20"
@@ -1433,7 +1460,7 @@ function GuestContent() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveMode("KARAOKE")}
+                  onClick={() => handleSelectMode("KARAOKE")}
                   className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     activeMode === "KARAOKE"
                       ? "bg-gradient-to-r from-cyan-400 to-teal-400 text-black shadow-md shadow-cyan-400/20"
