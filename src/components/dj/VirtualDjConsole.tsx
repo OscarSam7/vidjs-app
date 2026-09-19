@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, memo } from "react";
 import {
   Play,
   Pause,
@@ -68,6 +68,111 @@ interface VirtualDjConsoleProps {
   crossfaderValue: number;
   setCrossfaderValue: (val: number) => void;
 }
+
+interface DeckPlayerProps {
+  deckId: "A" | "B";
+  videoId: string | null;
+  isPlaying: boolean;
+  effectiveVol: number;
+  pitch: number;
+  isLoading: boolean;
+  iframeRef: React.RefObject<HTMLIFrameElement | null>;
+}
+
+// Componente de reproductor 100% aislado y memoizado.
+// Evita de raíz que la recarga, desmontaje o limpieza de una bandeja afecte a la otra.
+const DeckPlayer = memo(
+  function DeckPlayer({
+    deckId,
+    videoId,
+    isPlaying,
+    effectiveVol,
+    pitch,
+    isLoading,
+    iframeRef,
+  }: DeckPlayerProps) {
+    const isA = deckId === "A";
+    const borderColor = isA ? "border-purple-500/40" : "border-cyan-500/40";
+    const textColor = isA ? "text-purple-300" : "text-cyan-300";
+    const spinnerColor = isA ? "text-purple-400" : "text-cyan-400";
+    const emptyText = isA
+      ? "Bandeja A vacía — Lista para cargar"
+      : "Bandeja B vacía — Lista para cargar";
+    const chLabel = isA ? "CH 1" : "CH 2";
+
+    // URL estable: se calcula ÚNICAMENTE cuando cambia el videoId, jamás en re-renders
+    const iframeSrc = useMemo(() => {
+      if (!videoId) return "";
+      return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&playsinline=1&controls=0&modestbranding=1&rel=0`;
+    }, [videoId]);
+
+    return (
+      <div
+        className={`relative aspect-video max-h-36 w-full rounded-xl overflow-hidden border ${borderColor} bg-black shadow-inner`}
+      >
+        {videoId ? (
+          <>
+            <iframe
+              ref={iframeRef}
+              id={`deck-${deckId.toLowerCase()}-iframe`}
+              src={iframeSrc}
+              title={`Deck ${deckId} Audio Player`}
+              className="w-full h-full border-0 pointer-events-auto"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            />
+            <div className="absolute top-1.5 left-2 right-2 flex items-center justify-between pointer-events-none">
+              <span
+                className={`px-2 py-0.5 rounded bg-black/80 ${textColor} text-[9px] font-mono font-bold border ${borderColor} backdrop-blur-xs`}
+              >
+                {chLabel} &bull; VOL: {effectiveVol}%
+              </span>
+              <span
+                className={`px-2 py-0.5 rounded text-[9px] font-bold backdrop-blur-xs ${
+                  isPlaying
+                    ? isA
+                      ? "bg-emerald-950/80 text-emerald-400 border border-emerald-500/40"
+                      : "bg-cyan-950/80 text-cyan-400 border border-cyan-500/40"
+                    : "bg-zinc-900/80 text-zinc-400 border border-zinc-700"
+                }`}
+              >
+                {isPlaying ? "▶ PLAYING" : "⏸ PAUSED"}
+              </span>
+            </div>
+          </>
+        ) : (
+          <div
+            className={`w-full h-full flex flex-col items-center justify-center p-3 ${spinnerColor} bg-zinc-950/90 space-y-1 text-center`}
+          >
+            {isLoading ? (
+              <>
+                <Disc3 className={`w-6 h-6 animate-spin ${spinnerColor}`} />
+                <span className="text-[11px] font-bold">
+                  {isA ? "Buscando audio en YouTube..." : "Cargando audio desde YouTube..."}
+                </span>
+              </>
+            ) : (
+              <>
+                <Music className="w-6 h-6 text-zinc-600" />
+                <span className="text-[11px] text-zinc-400">{emptyText}</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  },
+  (prev, next) => {
+    // Si ninguna de las propiedades exclusivas de esta bandeja cambió, NO re-renderizar
+    return (
+      prev.deckId === next.deckId &&
+      prev.videoId === next.videoId &&
+      prev.isPlaying === next.isPlaying &&
+      prev.effectiveVol === next.effectiveVol &&
+      prev.pitch === next.pitch &&
+      prev.isLoading === next.isLoading
+    );
+  }
+);
 
 export default function VirtualDjConsole({
   currentPlaying,
@@ -1464,76 +1569,44 @@ export default function VirtualDjConsole({
             </div>
           </div>
 
-          {/* Información del Track A */}
-          {trackA ? (
-            <div className="space-y-1">
-              <h3 className="text-base font-black text-white truncate">
-                {trackA.song?.title || trackA.customTitle}
-              </h3>
-              <p className="text-xs font-semibold text-purple-300 truncate">
-                {trackA.song?.artist?.name || trackA.customArtist}
-              </p>
-              <div className="flex items-center gap-2 mt-1 text-[10px] font-mono text-zinc-400">
-                <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
-                  KEY: {trackA.song?.key || "8A / Am"}
-                </span>
-                <span>Dur: {formatTime(trackADuration)}</span>
-                <span className="text-purple-400 font-bold">
-                  {formatRemaining(playbackSecondsA, trackADuration)}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="py-3 px-3 rounded-xl bg-zinc-950/60 border border-dashed border-purple-900/40 text-center text-zinc-400 text-xs">
-              <span className="font-bold text-zinc-300">Bandeja A vacía</span>
-              <p className="text-[11px] text-zinc-500 mt-0.5">Usa &quot;Cargar Pista&quot; para subir un tema o buscar en YouTube</p>
-            </div>
-          )}
-
-          {/* Monitor de Video & Audio YouTube Deck A */}
-          <div className="relative aspect-video max-h-36 w-full rounded-xl overflow-hidden border border-purple-500/40 bg-black shadow-inner">
-            {videoIdA ? (
-              <>
-                <iframe
-                  ref={iframeRefA}
-                  key={`deck-a-${videoIdA}`}
-                  id="deck-a-iframe"
-                  src={`https://www.youtube.com/embed/${videoIdA}?enablejsapi=1&autoplay=1&playsinline=1&controls=0&modestbranding=1&rel=0`}
-                  title="Deck A Audio Player"
-                  className="w-full h-full border-0 pointer-events-auto"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                />
-                <div className="absolute top-1.5 left-2 right-2 flex items-center justify-between pointer-events-none">
-                  <span className="px-2 py-0.5 rounded bg-black/80 text-purple-300 text-[9px] font-mono font-bold border border-purple-500/40 backdrop-blur-xs">
-                    CH 1 &bull; VOL: {effectiveVolA}%
+          {/* Información del Track A con altura estable */}
+          <div className="min-h-[64px] flex flex-col justify-center">
+            {trackA ? (
+              <div className="space-y-0.5">
+                <h3 className="text-sm font-black text-white truncate">
+                  {trackA.song?.title || trackA.customTitle}
+                </h3>
+                <p className="text-xs font-semibold text-purple-300 truncate">
+                  {trackA.song?.artist?.name || trackA.customArtist}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-zinc-400">
+                  <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
+                    KEY: {trackA.song?.key || "8A / Am"}
                   </span>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[9px] font-bold backdrop-blur-xs ${
-                      isPlayingA
-                        ? "bg-emerald-950/80 text-emerald-400 border border-emerald-500/40"
-                        : "bg-zinc-900/80 text-zinc-400 border border-zinc-700"
-                    }`}
-                  >
-                    {isPlayingA ? "▶ PLAYING" : "⏸ PAUSED"}
+                  <span>Dur: {formatTime(trackADuration)}</span>
+                  <span className="text-purple-400 font-bold">
+                    {formatRemaining(playbackSecondsA, trackADuration)}
                   </span>
                 </div>
-              </>
+              </div>
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center p-3 text-purple-400 bg-zinc-950/90 space-y-1 text-center">
-                {isLoadingVideoA ? (
-                  <>
-                    <Disc3 className="w-6 h-6 animate-spin text-purple-400" />
-                    <span className="text-[11px] font-bold">Buscando audio en YouTube...</span>
-                  </>
-                ) : (
-                  <>
-                    <Music className="w-6 h-6 text-zinc-600" />
-                    <span className="text-[11px] text-zinc-400">Bandeja A vacía — Lista para cargar</span>
-                  </>
-                )}
+              <div className="py-2.5 px-3 rounded-xl bg-zinc-950/60 border border-dashed border-purple-900/40 text-center text-zinc-400 text-xs">
+                <span className="font-bold text-zinc-300">Bandeja A vacía</span>
+                <p className="text-[10px] text-zinc-500 mt-0.5">Usa &quot;Cargar Pista&quot; para subir un tema o buscar en YouTube</p>
               </div>
             )}
           </div>
+
+          {/* Monitor de Video & Audio YouTube Deck A (Memoized & Totalmente Aislado) */}
+          <DeckPlayer
+            deckId="A"
+            videoId={videoIdA}
+            isPlaying={isPlayingA}
+            effectiveVol={effectiveVolA}
+            pitch={pitchA}
+            isLoading={isLoadingVideoA}
+            iframeRef={iframeRefA}
+          />
 
           {/* Platter / Jogwheel Deck A & Pitch Fader */}
           <div className="flex items-center justify-around sm:justify-between gap-3 sm:gap-4 py-2 w-full">
@@ -2105,78 +2178,44 @@ export default function VirtualDjConsole({
             </div>
           </div>
 
-          {/* Información del Track B */}
-          {trackB ? (
-            <div className="space-y-1">
-              <h3 className="text-base font-black text-white truncate">
-                {trackB.song?.title || trackB.customTitle}
-              </h3>
-              <p className="text-xs font-semibold text-cyan-300 truncate">
-                {trackB.song?.artist?.name || trackB.customArtist}
-              </p>
-              <div className="flex items-center gap-2 mt-1 text-[10px] font-mono text-zinc-400">
-                <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
-                  KEY: {trackB.song?.key || "9A / Em"}
-                </span>
-                <span>Dur: {formatTime(trackBDuration)}</span>
-                <span className="text-cyan-400 font-bold">
-                  {formatRemaining(playbackSecondsB, trackBDuration)}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="py-3 px-3 rounded-xl bg-zinc-950/60 border border-dashed border-cyan-900/40 text-center text-zinc-400 text-xs">
-              <span className="font-bold text-zinc-300">Bandeja B vacía</span>
-              <p className="text-[11px] text-zinc-500 mt-0.5">Usa &quot;Cargar Pista&quot; para preparar el siguiente tema</p>
-            </div>
-          )}
-
-          {/* Monitor de Video & Audio YouTube Deck B */}
-          <div className="relative aspect-video max-h-36 w-full rounded-xl overflow-hidden border border-cyan-500/40 bg-black shadow-inner">
-            {videoIdB ? (
-              <>
-                <iframe
-                  ref={iframeRefB}
-                  key={`deck-b-${videoIdB}`}
-                  id="deck-b-iframe"
-                  src={`https://www.youtube.com/embed/${videoIdB}?enablejsapi=1&autoplay=1&playsinline=1&controls=0&modestbranding=1&rel=0`}
-                  title="Deck B Audio Player"
-                  className="w-full h-full border-0 pointer-events-auto"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                />
-                <div className="absolute top-1.5 left-2 right-2 flex items-center justify-between pointer-events-none">
-                  <span className="px-2 py-0.5 rounded bg-black/80 text-cyan-300 text-[9px] font-mono font-bold border border-cyan-500/40 backdrop-blur-xs">
-                    CH 2 &bull; VOL: {effectiveVolB}%
+          {/* Información del Track B con altura estable */}
+          <div className="min-h-[64px] flex flex-col justify-center">
+            {trackB ? (
+              <div className="space-y-0.5">
+                <h3 className="text-sm font-black text-white truncate">
+                  {trackB.song?.title || trackB.customTitle}
+                </h3>
+                <p className="text-xs font-semibold text-cyan-300 truncate">
+                  {trackB.song?.artist?.name || trackB.customArtist}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-zinc-400">
+                  <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
+                    KEY: {trackB.song?.key || "9A / Em"}
                   </span>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[9px] font-bold backdrop-blur-xs ${
-                      isPlayingB
-                        ? "bg-cyan-950/80 text-cyan-400 border border-cyan-500/40"
-                        : "bg-zinc-900/80 text-zinc-400 border border-zinc-700"
-                    }`}
-                  >
-                    {isPlayingB ? "▶ PLAYING" : "⏸ PAUSED"}
+                  <span>Dur: {formatTime(trackBDuration)}</span>
+                  <span className="text-cyan-400 font-bold">
+                    {formatRemaining(playbackSecondsB, trackBDuration)}
                   </span>
                 </div>
-              </>
+              </div>
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center p-3 text-cyan-400 bg-zinc-950/90 space-y-1 text-center">
-                {isLoadingVideoB ? (
-                  <>
-                    <Disc3 className="w-6 h-6 animate-spin text-cyan-400" />
-                    <span className="text-[11px] font-bold">Cargando audio desde YouTube...</span>
-                  </>
-                ) : (
-                  <>
-                    <Music className="w-6 h-6 text-zinc-600" />
-                    <span className="text-[11px] text-zinc-400">
-                      Bandeja B vacía — Lista para cargar
-                    </span>
-                  </>
-                )}
+              <div className="py-2.5 px-3 rounded-xl bg-zinc-950/60 border border-dashed border-cyan-900/40 text-center text-zinc-400 text-xs">
+                <span className="font-bold text-zinc-300">Bandeja B vacía</span>
+                <p className="text-[10px] text-zinc-500 mt-0.5">Usa &quot;Cargar Pista&quot; para preparar el siguiente tema</p>
               </div>
             )}
           </div>
+
+          {/* Monitor de Video & Audio YouTube Deck B (Memoized & Totalmente Aislado) */}
+          <DeckPlayer
+            deckId="B"
+            videoId={videoIdB}
+            isPlaying={isPlayingB}
+            effectiveVol={effectiveVolB}
+            pitch={pitchB}
+            isLoading={isLoadingVideoB}
+            iframeRef={iframeRefB}
+          />
 
           {/* Platter / Jogwheel Deck B & Pitch Fader */}
           <div className="flex items-center justify-around sm:justify-between gap-3 sm:gap-4 py-2 w-full">
