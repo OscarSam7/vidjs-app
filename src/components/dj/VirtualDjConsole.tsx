@@ -76,22 +76,25 @@ interface DeckPlayerProps {
   effectiveVol: number;
   pitch: number;
   isLoading: boolean;
+  isEjected: boolean;
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
 }
 
 interface StableIframeProps {
   deckId: "A" | "B";
   videoId: string | null;
+  isEjected: boolean;
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
 }
 
-// Iframe inmutable: NUNCA se re-renderiza a menos que su propio videoId cambie genuinamente.
-// Aislamiento físico absoluto a nivel de DOM.
+// Iframe inmutable: NUNCA se navega a about:blank durante la sesión para no reiniciar el pipeline de audio del navegador
 const StableIframe = memo(
-  function StableIframe({ deckId, videoId, iframeRef }: StableIframeProps) {
+  function StableIframe({ deckId, videoId, isEjected, iframeRef }: StableIframeProps) {
     const src = videoId
-      ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&playsinline=1&controls=0&modestbranding=1&rel=0`
+      ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&playsinline=1&controls=0&modestbranding=1&rel=0&widgetid=${deckId === "A" ? 1 : 2}`
       : "about:blank";
+
+    const isVisible = Boolean(videoId) && !isEjected;
 
     return (
       <iframe
@@ -100,13 +103,13 @@ const StableIframe = memo(
         src={src}
         title={`Deck ${deckId} Audio Player`}
         className={`w-full h-full border-0 pointer-events-auto transition-opacity duration-200 ${
-          videoId ? "opacity-100 relative z-0" : "opacity-0 pointer-events-none absolute inset-0 -z-10"
+          isVisible ? "opacity-100 relative z-0" : "opacity-0 pointer-events-none absolute inset-0 -z-10"
         }`}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       />
     );
   },
-  (prev, next) => prev.deckId === next.deckId && prev.videoId === next.videoId
+  (prev, next) => prev.deckId === next.deckId && prev.videoId === next.videoId && prev.isEjected === next.isEjected
 );
 
 // Componente de reproductor 100% aislado y memoizado.
@@ -119,6 +122,7 @@ const DeckPlayer = memo(
     effectiveVol,
     pitch,
     isLoading,
+    isEjected,
     iframeRef,
   }: DeckPlayerProps) {
     const isA = deckId === "A";
@@ -129,15 +133,16 @@ const DeckPlayer = memo(
       ? "Bandeja A vacía — Lista para cargar"
       : "Bandeja B vacía — Lista para cargar";
     const chLabel = isA ? "CH 1" : "CH 2";
+    const hasActiveTrack = Boolean(videoId) && !isEjected;
 
     return (
       <div
         className={`relative aspect-video max-h-36 w-full rounded-xl overflow-hidden border ${borderColor} bg-black shadow-inner`}
       >
-        <StableIframe deckId={deckId} videoId={videoId} iframeRef={iframeRef} />
+        <StableIframe deckId={deckId} videoId={videoId} isEjected={isEjected} iframeRef={iframeRef} />
 
         {/* Overlay HUD cuando hay pista activa */}
-        {videoId && (
+        {hasActiveTrack && (
           <div className="absolute top-1.5 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
             <span
               className={`px-2 py-0.5 rounded bg-black/80 ${textColor} text-[9px] font-mono font-bold border ${borderColor} backdrop-blur-xs`}
@@ -159,7 +164,7 @@ const DeckPlayer = memo(
         )}
 
         {/* Overlay cuando está vacía o cargando */}
-        {!videoId && (
+        {!hasActiveTrack && (
           <div
             className={`absolute inset-0 z-10 flex flex-col items-center justify-center p-3 ${spinnerColor} bg-zinc-950/90 space-y-1 text-center`}
           >
@@ -189,7 +194,8 @@ const DeckPlayer = memo(
       prev.isPlaying === next.isPlaying &&
       prev.effectiveVol === next.effectiveVol &&
       prev.pitch === next.pitch &&
-      prev.isLoading === next.isLoading
+      prev.isLoading === next.isLoading &&
+      prev.isEjected === next.isEjected
     );
   }
 );
@@ -640,31 +646,30 @@ export default function VirtualDjConsole({
     }
   };
 
-  // Limpiar / Expulsar pista de DECK A (aislamiento físico total: Deck B NUNCA es afectada)
+  // Limpiar / Expulsar pista de DECK A (congelamiento silencioso sin recarga de DOM)
   const handleClearDeckA = () => {
     searchRequestIdA.current++;
     if (iframeRefA.current) {
-      sendPlayerCommand(iframeRefA.current, "stopVideo");
       sendPlayerCommand(iframeRefA.current, "pauseVideo");
+      sendPlayerCommand(iframeRefA.current, "mute");
     }
     prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
     activeVideoIdARef.current = null;
     setIsEjectedA(true);
     setDeckTrackA(null);
     setManualTrackA(null);
-    setVideoIdA(null);
     setIsPlayingA(false);
     setPlaybackSecondsA(0);
     setActiveLoopA(null);
     setIsLoadingVideoA(false);
   };
 
-  // Limpiar / Expulsar pista de DECK B (aislamiento físico total: Deck A NUNCA es afectada)
+  // Limpiar / Expulsar pista de DECK B (congelamiento silencioso sin recarga de DOM)
   const handleClearDeckB = () => {
     searchRequestIdB.current++;
     if (iframeRefB.current) {
-      sendPlayerCommand(iframeRefB.current, "stopVideo");
       sendPlayerCommand(iframeRefB.current, "pauseVideo");
+      sendPlayerCommand(iframeRefB.current, "mute");
     }
     prevTrackBKeyRef.current = null;
     activeVideoIdBRef.current = null;
@@ -673,7 +678,6 @@ export default function VirtualDjConsole({
     setDeckQueueEntryIdB(null);
     setManualTrackB(null);
     setSelectedQueueIdB("EMPTY");
-    setVideoIdB(null);
     setIsPlayingB(false);
     setPlaybackSecondsB(0);
     setActiveLoopB(null);
@@ -1502,6 +1506,7 @@ export default function VirtualDjConsole({
             effectiveVol={effectiveVolA}
             pitch={pitchA}
             isLoading={isLoadingVideoA}
+            isEjected={isEjectedA}
             iframeRef={iframeRefA}
           />
 
@@ -2111,6 +2116,7 @@ export default function VirtualDjConsole({
             effectiveVol={effectiveVolB}
             pitch={pitchB}
             isLoading={isLoadingVideoB}
+            isEjected={isEjectedB}
             iframeRef={iframeRefB}
           />
 
