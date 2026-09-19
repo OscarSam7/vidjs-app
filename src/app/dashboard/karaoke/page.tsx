@@ -28,6 +28,7 @@ import {
   Share2,
   Copy,
   Check,
+  X,
   Disc3,
   Youtube,
   Send,
@@ -234,7 +235,12 @@ export default function KaraokeBoothPage() {
       const res = await fetch(`/api/v1/photos?eventId=${eventId}`);
       if (res.ok) {
         const json = await res.json();
-        setPhotos(json.data || []);
+        const photosList = Array.isArray(json.data?.photos)
+          ? json.data.photos
+          : Array.isArray(json.data)
+          ? json.data
+          : [];
+        setPhotos(photosList);
       }
     } catch {
       // Silencioso
@@ -543,6 +549,37 @@ export default function KaraokeBoothPage() {
     }
   };
 
+  // Moderación rápida de fotos de mesas
+  const handleModeratePhoto = async (
+    photoId: string,
+    action: "APPROVE" | "REJECT" | "REMOVE"
+  ) => {
+    setActionLoading(photoId);
+    try {
+      const res = await fetch(`/api/v1/photos/${photoId}/action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) {
+        if (action === "APPROVE") {
+          showFeedback("success", "¡Foto aprobada para TV!");
+        } else if (action === "REJECT") {
+          showFeedback("info", "Foto rechazada");
+        } else if (action === "REMOVE") {
+          showFeedback("success", "Foto retirada de TV");
+        }
+        fetchPhotos();
+      } else {
+        showFeedback("error", "No se pudo actualizar la foto");
+      }
+    } catch {
+      showFeedback("error", "Error al procesar la foto");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   // Formateador de tiempo
   const formatTime = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
@@ -844,7 +881,7 @@ export default function KaraokeBoothPage() {
               <button
                 type="button"
                 onClick={handleNextSinger}
-                disabled={data?.queue.length === 0 || actionLoading === "next"}
+                disabled={!data?.queue || data.queue.length === 0 || actionLoading === "next"}
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 shadow-md shadow-emerald-600/30"
                 title="Termina este turno, libera el cupo de la mesa (Canta y Libera) y sube al siguiente cantante"
               >
@@ -861,7 +898,7 @@ export default function KaraokeBoothPage() {
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                Próximos Turnos ({data?.queue.length || 0})
+                Próximos Turnos ({data?.queue?.length || 0})
               </h3>
             </div>
             <button
@@ -1038,7 +1075,7 @@ export default function KaraokeBoothPage() {
               <Camera className="w-5 h-5 text-pink-400" />
               <h2 className="text-base font-bold text-white">Muro de Fotos en Pantalla TV</h2>
               <span className="px-2 py-0.5 rounded-full bg-pink-950 text-pink-300 border border-pink-800 text-[10px] font-bold">
-                {photos.length}
+                {(Array.isArray(photos) ? photos : []).length}
               </span>
             </div>
             <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
@@ -1067,7 +1104,7 @@ export default function KaraokeBoothPage() {
             </div>
           </div>
 
-          {photos.filter((p) => p.status === activePhotoTab).length === 0 ? (
+          {(Array.isArray(photos) ? photos : []).filter((p) => p.status === activePhotoTab).length === 0 ? (
             <div className="p-12 text-center text-zinc-500 space-y-2">
               <Camera className="w-8 h-8 mx-auto text-zinc-700" />
               <p className="text-xs text-zinc-400">
@@ -1078,31 +1115,69 @@ export default function KaraokeBoothPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 overflow-y-auto max-h-[460px]">
-              {photos
+              {(Array.isArray(photos) ? photos : [])
                 .filter((p) => p.status === activePhotoTab)
                 .map((photo) => (
                   <div
                     key={photo.id}
-                    className="p-2.5 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-2"
+                    className="p-2.5 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-2 flex flex-col justify-between"
                   >
-                    <div className="aspect-square rounded-xl overflow-hidden bg-black border border-zinc-800 relative">
-                      <img
-                        src={photo.imageUrl}
-                        alt={photo.caption || "Foto"}
-                        className="w-full h-full object-cover"
-                      />
-                      <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur text-pink-300 font-mono text-[9px] font-bold">
-                        {photo.table.label}
-                      </span>
+                    <div>
+                      <div className="aspect-square rounded-xl overflow-hidden bg-black border border-zinc-800 relative">
+                        <img
+                          src={photo.imageUrl}
+                          alt={photo.caption || "Foto"}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur text-pink-300 font-mono text-[9px] font-bold">
+                          {photo.table.label}
+                        </span>
+                      </div>
+                      <div className="text-xs text-white font-bold truncate mt-1">
+                        de {photo.guestName}
+                      </div>
+                      {photo.caption && (
+                        <p className="text-[10px] text-zinc-400 italic line-clamp-1">
+                          &ldquo;{photo.caption}&rdquo;
+                        </p>
+                      )}
                     </div>
-                    <div className="text-xs text-white font-bold truncate">
-                      de {photo.guestName}
+
+                    {/* Botones de Moderación Rápida */}
+                    <div className="flex items-center gap-1.5 pt-1.5 border-t border-zinc-800/80">
+                      {photo.status === "PENDING" ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleModeratePhoto(photo.id, "APPROVE")}
+                            disabled={actionLoading === photo.id}
+                            className="flex-1 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            <Check className="w-3 h-3" />
+                            <span>Aprobar TV</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleModeratePhoto(photo.id, "REJECT")}
+                            disabled={actionLoading === photo.id}
+                            className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-red-950/60 text-zinc-400 hover:text-red-300 border border-zinc-700 hover:border-red-800 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                            title="Rechazar foto"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleModeratePhoto(photo.id, "REMOVE")}
+                          disabled={actionLoading === photo.id}
+                          className="w-full py-1 rounded-lg bg-zinc-800 hover:bg-red-950/60 text-zinc-400 hover:text-red-300 border border-zinc-700 hover:border-red-800 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Quitar de TV</span>
+                        </button>
+                      )}
                     </div>
-                    {photo.caption && (
-                      <p className="text-[10px] text-zinc-400 italic line-clamp-1">
-                        &ldquo;{photo.caption}&rdquo;
-                      </p>
-                    )}
                   </div>
                 ))}
             </div>
