@@ -140,6 +140,7 @@ export default function VirtualDjConsole({
 
   // ==================== AUTO-ENGANCHE / TRANSITION ENGINE ====================
   const [isEnganchando, setIsEnganchando] = useState(false);
+  const [engancheDirection, setEngancheDirection] = useState<"A_TO_B" | "B_TO_A">("A_TO_B");
   const [transitionDuration, setTransitionDuration] = useState<4 | 8 | 16>(8); // beats (aprox 3s, 6s, 12s)
   const [transitionProgress, setTransitionProgress] = useState(0); // 0 a 100%
   const engancheIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -366,19 +367,30 @@ export default function VirtualDjConsole({
   const activeVideoIdARef = useRef<string | null>(null);
   const activeVideoIdBRef = useRef<string | null>(null);
 
-  // Reset de reproducción al cambiar tema en Deck A (solo cuando llega un nuevo tema genuino del servidor)
+  // Reset de reproducción al cambiar tema en Deck A (solo cuando llega un nuevo tema genuino del servidor y Deck A no tiene pista activa)
   useEffect(() => {
     const currentId = currentPlaying?.id || null;
     if (currentId && currentId !== prevCurrentPlayingIdRef.current) {
       prevCurrentPlayingIdRef.current = currentId;
-      if (!manualTrackA && !isEjectedA) {
+      // NUNCA interrumpir, reiniciar ni recargar Deck A si ya tiene un video cargado o reproduciéndose
+      if (!manualTrackA && !isEjectedA && !activeVideoIdARef.current && !videoIdA && !isPlayingA) {
         setPlaybackSecondsA(0);
         setIsPlayingA(true);
         activeVideoIdARef.current = null;
         setVideoIdA(null);
       }
     }
-  }, [currentPlaying?.id, manualTrackA, isEjectedA]);
+  }, [currentPlaying?.id, manualTrackA, isEjectedA, videoIdA, isPlayingA]);
+
+  // Detección inteligente de dirección para Auto-Enganche según la bandeja que está al aire
+  useEffect(() => {
+    if (isEnganchando) return;
+    if (isPlayingA && !isPlayingB && crossfaderValue <= 0) {
+      setEngancheDirection("A_TO_B");
+    } else if (isPlayingB && !isPlayingA && crossfaderValue >= 0) {
+      setEngancheDirection("B_TO_A");
+    }
+  }, [isPlayingA, isPlayingB, crossfaderValue, isEnganchando]);
 
   // Reset de reproducción al cambiar tema en Deck B (solo cuando es una pista genuinamente diferente)
   useEffect(() => {
@@ -676,6 +688,7 @@ export default function VirtualDjConsole({
     }
     prevTrackBKeyRef.current = null;
     activeVideoIdBRef.current = null;
+    prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
     setIsEjectedB(true);
     setManualTrackB(null);
     setSelectedQueueIdB("EMPTY");
@@ -827,74 +840,122 @@ export default function VirtualDjConsole({
     }
   };
 
-  // ==================== MOTOR DE AUTO-ENGANCHE ====================
+  // ==================== MOTOR DE AUTO-ENGANCHE BIDIRECCIONAL ====================
   const handleStartAutoEnganche = () => {
-    if (!trackB) {
-      showFeedback("error", "No hay tema cargado en Deck B para enganchar");
-      return;
-    }
     if (isEnganchando) return;
 
-    // 1. Desbloquear audio, iniciar Deck B y sincronizarlo
-    unlockAudioB();
-    setIsPlayingB(true);
-    handleSyncDeckB();
-    setIsEnganchando(true);
-    setTransitionProgress(0);
-    showFeedback("info", `⚡ Auto-Enganche iniciado (${transitionDuration} compases)`);
-
-    // Duración total en milisegundos: 4 beats ~ 2.5s, 8 beats ~ 5s, 16 beats ~ 10s
-    const totalDurationMs = transitionDuration === 4 ? 3000 : transitionDuration === 8 ? 6000 : 12000;
-    const stepIntervalMs = 50;
-    const totalSteps = totalDurationMs / stepIntervalMs;
-    let step = 0;
-
-    const startXfader = crossfaderValue;
-    const targetXfader = 100; // Full Deck B
-
-    if (engancheIntervalRef.current) clearInterval(engancheIntervalRef.current);
-
-    engancheIntervalRef.current = setInterval(() => {
-      step++;
-      const progressRatio = step / totalSteps;
-      setTransitionProgress(Math.round(progressRatio * 100));
-
-      // Mover crossfader suavemente
-      const currentVal = startXfader + (targetXfader - startXfader) * progressRatio;
-      setCrossfaderValue(Math.round(currentVal));
-
-      // BASS SWAP al 50% de la transición (Corte de bajo Deck A, entra bajo Deck B)
-      if (progressRatio >= 0.5 && !bassKillA) {
-        setBassKillA(true);
-        setBassKillB(false);
+    if (engancheDirection === "A_TO_B") {
+      if (!trackB) {
+        showFeedback("error", "No hay tema cargado en Deck B para enganchar");
+        return;
       }
 
-      // Culminación del enganche
-      if (step >= totalSteps) {
-        if (engancheIntervalRef.current) clearInterval(engancheIntervalRef.current);
-        setIsEnganchando(false);
-        setCrossfaderValue(100);
-        setTransitionProgress(100);
-        setIsPlayingA(false); // Detener Deck A
-        djSoundEffects.playVinylBrake();
+      unlockAudioB();
+      setIsPlayingB(true);
+      handleSyncDeckB();
+      setIsEnganchando(true);
+      setTransitionProgress(0);
+      showFeedback("info", `⚡ Auto-Enganche A ➔ B iniciado (${transitionDuration} compases)`);
 
-        // Notificar al servidor que el track de Deck B ahora está al aire
-        const queueEntryId = effectiveQueueEntryB?.id;
-        if (queueEntryId) {
-          onPlayQueueEntry(queueEntryId).then(() => {
-            showFeedback("success", `🎉 ¡Enganche completado! "${trackB.song?.title || trackB.customTitle}" al aire`);
-            // Restablecer crossfader para la siguiente mezcla
-            setTimeout(() => {
-              setCrossfaderValue(0);
-              setBassKillA(false);
-              setBassKillB(false);
-            }, 1000);
-          });
-        } else {
-          showFeedback("success", `🎉 ¡Enganche completado con éxito!`);
+      const totalDurationMs = transitionDuration === 4 ? 3000 : transitionDuration === 8 ? 6000 : 12000;
+      const stepIntervalMs = 50;
+      const totalSteps = totalDurationMs / stepIntervalMs;
+      let step = 0;
+
+      const startXfader = crossfaderValue;
+      const targetXfader = 100; // Full Deck B
+
+      if (engancheIntervalRef.current) clearInterval(engancheIntervalRef.current);
+
+      engancheIntervalRef.current = setInterval(() => {
+        step++;
+        const progressRatio = step / totalSteps;
+        setTransitionProgress(Math.round(progressRatio * 100));
+
+        // Mover crossfader suavemente hacia B
+        const currentVal = startXfader + (targetXfader - startXfader) * progressRatio;
+        setCrossfaderValue(Math.round(currentVal));
+
+        // BASS SWAP al 50% de la transición (Corte de bajo Deck A, entra bajo Deck B)
+        if (progressRatio >= 0.5 && !bassKillA) {
+          setBassKillA(true);
+          setBassKillB(false);
         }
+
+        // Culminación del enganche A -> B
+        if (step >= totalSteps) {
+          if (engancheIntervalRef.current) clearInterval(engancheIntervalRef.current);
+          setIsEnganchando(false);
+          setCrossfaderValue(100);
+          setTransitionProgress(100);
+          setIsPlayingA(false); // Detener Deck A
+          djSoundEffects.playVinylBrake();
+          setEngancheDirection("B_TO_A");
+
+          const queueEntryId = effectiveQueueEntryB?.id;
+          if (queueEntryId) {
+            prevCurrentPlayingIdRef.current = queueEntryId;
+            onPlayQueueEntry(queueEntryId).then(() => {
+              showFeedback("success", `🎉 ¡Enganche A ➔ B completado! "${trackB.song?.title || trackB.customTitle}" al aire`);
+            });
+          } else {
+            showFeedback("success", `🎉 ¡Enganche A ➔ B completado! Deck B al aire`);
+          }
+        }
+      }, stepIntervalMs);
+    } else {
+      // B_TO_A
+      if (!trackA) {
+        showFeedback("error", "No hay tema cargado en Deck A para enganchar");
+        return;
       }
-    }, stepIntervalMs);
+
+      unlockAudioA();
+      setIsPlayingA(true);
+      handleSyncDeckA();
+      setIsEnganchando(true);
+      setTransitionProgress(0);
+      showFeedback("info", `⚡ Auto-Enganche B ➔ A iniciado (${transitionDuration} compases)`);
+
+      const totalDurationMs = transitionDuration === 4 ? 3000 : transitionDuration === 8 ? 6000 : 12000;
+      const stepIntervalMs = 50;
+      const totalSteps = totalDurationMs / stepIntervalMs;
+      let step = 0;
+
+      const startXfader = crossfaderValue;
+      const targetXfader = -100; // Full Deck A
+
+      if (engancheIntervalRef.current) clearInterval(engancheIntervalRef.current);
+
+      engancheIntervalRef.current = setInterval(() => {
+        step++;
+        const progressRatio = step / totalSteps;
+        setTransitionProgress(Math.round(progressRatio * 100));
+
+        // Mover crossfader suavemente hacia A
+        const currentVal = startXfader + (targetXfader - startXfader) * progressRatio;
+        setCrossfaderValue(Math.round(currentVal));
+
+        // BASS SWAP al 50% de la transición (Corte de bajo Deck B, entra bajo Deck A)
+        if (progressRatio >= 0.5 && !bassKillB) {
+          setBassKillB(true);
+          setBassKillA(false);
+        }
+
+        // Culminación del enganche B -> A
+        if (step >= totalSteps) {
+          if (engancheIntervalRef.current) clearInterval(engancheIntervalRef.current);
+          setIsEnganchando(false);
+          setCrossfaderValue(-100);
+          setTransitionProgress(100);
+          setIsPlayingB(false); // Detener Deck B
+          djSoundEffects.playVinylBrake();
+          setEngancheDirection("A_TO_B");
+
+          showFeedback("success", `🎉 ¡Enganche B ➔ A completado! "${trackA.song?.title || trackA.customTitle}" al aire`);
+        }
+      }, stepIntervalMs);
+    }
   };
 
   // Cancelar Enganche en curso
@@ -904,20 +965,40 @@ export default function VirtualDjConsole({
     showFeedback("info", "Auto-Enganche cancelado");
   };
 
-  // Corte directo (Hard Drop)
+  // Corte directo bidireccional (Hard Drop)
   const handleInstantDropCut = () => {
-    if (!trackB) return;
-    unlockAudioB();
-    djSoundEffects.playScratch();
-    setCrossfaderValue(100);
-    setIsPlayingA(false);
-    setIsPlayingB(true);
-    const queueEntryId = effectiveQueueEntryB?.id;
-    if (queueEntryId) {
-      onPlayQueueEntry(queueEntryId).then(() => {
-        showFeedback("success", `⚡ ¡Corte Directo! Tema en Deck B al aire`);
-        setTimeout(() => setCrossfaderValue(0), 800);
-      });
+    if (engancheDirection === "A_TO_B") {
+      if (!trackB) {
+        showFeedback("error", "No hay tema cargado en Deck B para cortar");
+        return;
+      }
+      unlockAudioB();
+      djSoundEffects.playScratch();
+      setCrossfaderValue(100);
+      setIsPlayingA(false);
+      setIsPlayingB(true);
+      setEngancheDirection("B_TO_A");
+      const queueEntryId = effectiveQueueEntryB?.id;
+      if (queueEntryId) {
+        prevCurrentPlayingIdRef.current = queueEntryId;
+        onPlayQueueEntry(queueEntryId).then(() => {
+          showFeedback("success", `⚡ ¡Corte Directo A ➔ B! Deck B al aire`);
+        });
+      } else {
+        showFeedback("success", `⚡ ¡Corte Directo A ➔ B! Deck B al aire`);
+      }
+    } else {
+      if (!trackA) {
+        showFeedback("error", "No hay tema cargado en Deck A para cortar");
+        return;
+      }
+      unlockAudioA();
+      djSoundEffects.playScratch();
+      setCrossfaderValue(-100);
+      setIsPlayingB(false);
+      setIsPlayingA(true);
+      setEngancheDirection("A_TO_B");
+      showFeedback("success", `⚡ ¡Corte Directo B ➔ A! Deck A al aire`);
     }
   };
 
@@ -1713,8 +1794,40 @@ export default function VirtualDjConsole({
             </div>
           </div>
 
-          {/* ⚡ BOTÓN PRINCIPAL: AUTO-ENGANCHE AUTOMIX */}
+          {/* ⚡ BOTÓN PRINCIPAL: AUTO-ENGANCHE AUTOMIX BIDIRECCIONAL */}
           <div className="w-full space-y-2">
+            {/* Selector de Dirección de Enganche */}
+            <div className="flex items-center justify-center gap-1 p-1 rounded-xl bg-zinc-950 border border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setEngancheDirection("A_TO_B")}
+                className={`flex-1 py-1 px-1.5 rounded-lg text-[9px] font-black tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  engancheDirection === "A_TO_B"
+                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/30"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+                title="Enganchar de Bandeja A hacia Bandeja B"
+              >
+                <span>A</span>
+                <span>➔</span>
+                <span>B</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setEngancheDirection("B_TO_A")}
+                className={`flex-1 py-1 px-1.5 rounded-lg text-[9px] font-black tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  engancheDirection === "B_TO_A"
+                    ? "bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-md shadow-cyan-600/30"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+                title="Enganchar de Bandeja B hacia Bandeja A"
+              >
+                <span>B</span>
+                <span>➔</span>
+                <span>A</span>
+              </button>
+            </div>
+
             <div className="flex items-center justify-between text-[9px] font-bold text-zinc-500">
               <span>Compases:</span>
               <div className="flex gap-1">
@@ -1724,7 +1837,9 @@ export default function VirtualDjConsole({
                     onClick={() => setTransitionDuration(beats as any)}
                     className={`px-1.5 py-0.5 rounded text-[8px] font-bold transition-all cursor-pointer ${
                       transitionDuration === beats
-                        ? "bg-purple-600 text-white"
+                        ? engancheDirection === "A_TO_B"
+                          ? "bg-purple-600 text-white"
+                          : "bg-cyan-600 text-white"
                         : "bg-zinc-900 text-zinc-400 hover:text-white"
                     }`}
                   >
@@ -1744,22 +1859,36 @@ export default function VirtualDjConsole({
             ) : (
               <button
                 onClick={handleStartAutoEnganche}
-                disabled={!trackB}
-                className="w-full py-2.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white text-xs font-black rounded-xl transition-all cursor-pointer shadow-lg shadow-purple-600/30 active:scale-95 disabled:opacity-40 flex items-center justify-center gap-1.5"
-                title="Inicia la transición y mezcla suave de Deck A hacia Deck B"
+                disabled={engancheDirection === "A_TO_B" ? !trackB : !trackA}
+                className={`w-full py-2.5 text-white text-xs font-black rounded-xl transition-all cursor-pointer shadow-lg active:scale-95 disabled:opacity-40 flex items-center justify-center gap-1.5 ${
+                  engancheDirection === "A_TO_B"
+                    ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 shadow-purple-600/30"
+                    : "bg-gradient-to-r from-cyan-600 via-teal-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 shadow-cyan-600/30"
+                }`}
+                title={
+                  engancheDirection === "A_TO_B"
+                    ? "Inicia la transición y mezcla suave de Deck A hacia Deck B"
+                    : "Inicia la transición y mezcla suave de Deck B hacia Deck A"
+                }
               >
                 <Zap className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
-                <span>AUTO-ENGANCHE</span>
+                <span>
+                  {engancheDirection === "A_TO_B" ? "ENGANCHAR A ➔ B" : "ENGANCHAR B ➔ A"}
+                </span>
               </button>
             )}
 
             <button
               onClick={handleInstantDropCut}
-              disabled={!trackB}
+              disabled={engancheDirection === "A_TO_B" ? !trackB : !trackA}
               className="w-full py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-40"
-              title="Corte instantáneo al golpe hacia Deck B"
+              title={
+                engancheDirection === "A_TO_B"
+                  ? "Corte instantáneo al golpe hacia Deck B"
+                  : "Corte instantáneo al golpe hacia Deck A"
+              }
             >
-              CORTE AL GOLPE (DROP)
+              {engancheDirection === "A_TO_B" ? "CORTE DROP A ➔ B" : "CORTE DROP B ➔ A"}
             </button>
           </div>
 
