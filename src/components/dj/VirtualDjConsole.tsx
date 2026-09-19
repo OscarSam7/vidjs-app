@@ -235,6 +235,26 @@ export default function VirtualDjConsole({
   };
 
   // Desbloquear audio del navegador
+  const unlockAudioA = () => {
+    setAudioUnlocked(true);
+    setIsMasterMuted(false);
+    if (iframeRefA.current) {
+      sendPlayerCommand(iframeRefA.current, "unMute");
+      sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+      if (isPlayingA) sendPlayerCommand(iframeRefA.current, "playVideo");
+    }
+  };
+
+  const unlockAudioB = () => {
+    setAudioUnlocked(true);
+    setIsMasterMuted(false);
+    if (iframeRefB.current) {
+      sendPlayerCommand(iframeRefB.current, "unMute");
+      sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+      if (isPlayingB) sendPlayerCommand(iframeRefB.current, "playVideo");
+    }
+  };
+
   const unlockAudio = () => {
     setAudioUnlocked(true);
     setIsMasterMuted(false);
@@ -329,14 +349,20 @@ export default function VirtualDjConsole({
     showFeedback("success", `⚡ Deck A sincronizado a ${effectiveBpmB} BPM`);
   };
 
-  // Reset de reproducción al cambiar tema en Deck A
+  // Ref para recordar el ID de la canción en reproducción y evitar rearmado no deseado al limpiar Deck A
+  const prevCurrentPlayingIdRef = useRef<string | null>(currentPlaying?.id || null);
+
+  // Reset de reproducción al cambiar tema en Deck A (solo cuando llega un nuevo tema genuino del servidor)
   useEffect(() => {
-    if (currentPlaying?.songRequest?.id && !manualTrackA) {
-      setIsEjectedA(false);
-      setPlaybackSecondsA(0);
-      setIsPlayingA(true);
+    const currentId = currentPlaying?.id || null;
+    if (currentId && currentId !== prevCurrentPlayingIdRef.current) {
+      prevCurrentPlayingIdRef.current = currentId;
+      if (!manualTrackA && !isEjectedA) {
+        setPlaybackSecondsA(0);
+        setIsPlayingA(true);
+      }
     }
-  }, [currentPlaying?.id, currentPlaying?.songRequest?.id, manualTrackA]);
+  }, [currentPlaying?.id, manualTrackA, isEjectedA]);
 
   // Reset de reproducción al cambiar tema en Deck B
   useEffect(() => {
@@ -580,13 +606,15 @@ export default function VirtualDjConsole({
   };
 
   // ==================== LIMPIEZA & CARGA DE BANDEJAS ====================
-  // Limpiar / Expulsar pista de DECK A (detiene audio, desmonta iframe y libera memoria)
+  // Limpiar / Expulsar pista de DECK A (detiene audio, desmonta iframe y libera memoria silenciosamente)
   const handleClearDeckA = () => {
     searchRequestIdA.current++;
     if (iframeRefA.current) {
       sendPlayerCommand(iframeRefA.current, "stopVideo");
       sendPlayerCommand(iframeRefA.current, "pauseVideo");
     }
+    // Evitar que el efecto de cambio de track reactive Deck A con el tema del servidor
+    prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
     setIsEjectedA(true);
     setManualTrackA(null);
     setVideoIdA(null);
@@ -594,11 +622,10 @@ export default function VirtualDjConsole({
     setPlaybackSecondsA(0);
     setActiveLoopA(null);
     setIsLoadingVideoA(false);
-    djSoundEffects.playVinylBrake();
     showFeedback("info", "🗑️ Bandeja A limpiada y memoria liberada");
   };
 
-  // Limpiar / Expulsar pista de DECK B (detiene audio, desmonta iframe y libera memoria)
+  // Limpiar / Expulsar pista de DECK B (detiene audio, desmonta iframe y libera memoria silenciosamente)
   const handleClearDeckB = () => {
     searchRequestIdB.current++;
     if (iframeRefB.current) {
@@ -613,7 +640,7 @@ export default function VirtualDjConsole({
     setPlaybackSecondsB(0);
     setActiveLoopB(null);
     setIsLoadingVideoB(false);
-    djSoundEffects.playVinylBrake();
+    setIsSyncedB(false);
     showFeedback("info", "🗑️ Bandeja B limpiada y memoria liberada");
   };
 
@@ -625,6 +652,7 @@ export default function VirtualDjConsole({
       sendPlayerCommand(iframeRefA.current, "stopVideo");
       sendPlayerCommand(iframeRefA.current, "pauseVideo");
     }
+    prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
     setVideoIdA(null);
     setIsPlayingA(false);
     setPlaybackSecondsA(0);
@@ -641,7 +669,7 @@ export default function VirtualDjConsole({
       setVideoIdA(directId);
       setIsLoadingVideoA(false);
       setIsPlayingA(true);
-      unlockAudio();
+      unlockAudioA();
       showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A`);
       return;
     }
@@ -663,7 +691,7 @@ export default function VirtualDjConsole({
         if (data.success && data.data?.results?.length > 0) {
           setVideoIdA(data.data.results[0].id);
           setIsPlayingA(true);
-          unlockAudio();
+          unlockAudioA();
           showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A`);
         } else {
           showFeedback("error", `No se encontró audio en YouTube para "${title}"`);
@@ -710,7 +738,7 @@ export default function VirtualDjConsole({
     if (directId) {
       setVideoIdB(directId);
       setIsLoadingVideoB(false);
-      unlockAudio();
+      unlockAudioB();
       showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B`);
       return;
     }
@@ -731,7 +759,7 @@ export default function VirtualDjConsole({
       if (searchRequestIdB.current === reqId) {
         if (data.success && data.data?.results?.length > 0) {
           setVideoIdB(data.data.results[0].id);
-          unlockAudio();
+          unlockAudioB();
           showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B`);
         } else {
           showFeedback("error", `No se encontró audio en YouTube para "${title}"`);
@@ -757,7 +785,7 @@ export default function VirtualDjConsole({
     if (isEnganchando) return;
 
     // 1. Desbloquear audio, iniciar Deck B y sincronizarlo
-    unlockAudio();
+    unlockAudioB();
     setIsPlayingB(true);
     handleSyncDeckB();
     setIsEnganchando(true);
@@ -828,7 +856,7 @@ export default function VirtualDjConsole({
   // Corte directo (Hard Drop)
   const handleInstantDropCut = () => {
     if (!trackB) return;
-    unlockAudio();
+    unlockAudioB();
     djSoundEffects.playScratch();
     setCrossfaderValue(100);
     setIsPlayingA(false);
@@ -1327,7 +1355,8 @@ export default function VirtualDjConsole({
               <>
                 <iframe
                   ref={iframeRefA}
-                  key={videoIdA}
+                  key={`deck-a-${videoIdA}`}
+                  id="deck-a-iframe"
                   src={`https://www.youtube.com/embed/${videoIdA}?enablejsapi=1&autoplay=1&playsinline=1&controls=0&modestbranding=1&rel=0`}
                   title="Deck A Audio Player"
                   className="w-full h-full border-0 pointer-events-auto"
@@ -1375,7 +1404,7 @@ export default function VirtualDjConsole({
                 }`}
                 onClick={() => {
                   if (!trackA) return;
-                  unlockAudio();
+                  unlockAudioA();
                   setIsPlayingA(!isPlayingA);
                 }}
                 title="Jogwheel / Vinilo Deck A - Click para Play/Pausa"
@@ -1535,7 +1564,7 @@ export default function VirtualDjConsole({
             <button
               onClick={() => {
                 if (!trackA) return;
-                unlockAudio();
+                unlockAudioA();
                 setIsPlayingA(!isPlayingA);
               }}
               disabled={!trackA}
@@ -1910,7 +1939,8 @@ export default function VirtualDjConsole({
               <>
                 <iframe
                   ref={iframeRefB}
-                  key={videoIdB}
+                  key={`deck-b-${videoIdB}`}
+                  id="deck-b-iframe"
                   src={`https://www.youtube.com/embed/${videoIdB}?enablejsapi=1&autoplay=1&playsinline=1&controls=0&modestbranding=1&rel=0`}
                   title="Deck B Audio Player"
                   className="w-full h-full border-0 pointer-events-auto"
@@ -1988,7 +2018,7 @@ export default function VirtualDjConsole({
                 }`}
                 onClick={() => {
                   if (!trackB) return;
-                  unlockAudio();
+                  unlockAudioB();
                   setIsPlayingB(!isPlayingB);
                 }}
                 title="Jogwheel / Vinilo Deck B - Click para Play/Pausa"
@@ -2126,7 +2156,7 @@ export default function VirtualDjConsole({
             <button
               onClick={() => {
                 if (!trackB) return;
-                unlockAudio();
+                unlockAudioB();
                 setIsPlayingB(!isPlayingB);
               }}
               disabled={!trackB}
