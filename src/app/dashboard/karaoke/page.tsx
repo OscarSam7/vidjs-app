@@ -36,6 +36,7 @@ import KaraokeVideoModal from "@/components/dj/KaraokeVideoModal";
 import DjSoundboard from "@/components/dj/DjSoundboard";
 import ManualRequestModal from "@/components/dj/ManualRequestModal";
 import ModeSettingsModal from "@/components/dashboard/ModeSettingsModal";
+import TvDisplayConnectModal from "@/components/dashboard/TvDisplayConnectModal";
 import { djSoundEffects } from "@/lib/audio/dj-audio-engine";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -136,6 +137,7 @@ export default function KaraokeBoothPage() {
   // Política Fair-Play y Modos
   const [policy, setPolicy] = useState<QueuePolicy>(parseQueuePolicy(null));
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isTvModalOpen, setIsTvModalOpen] = useState(false);
 
   // Reproductor / Progreso del cantante al aire
   const [isPlaying, setIsPlaying] = useState(true);
@@ -637,18 +639,17 @@ export default function KaraokeBoothPage() {
               <span>Configuración</span>
             </button>
 
-            {/* Pantalla TV */}
+            {/* Pantalla TV & Multipantalla (Smart TV / 3ra Pantalla) */}
             {data?.event?.code && (
-              <a
-                href={`/display/${data.event.code}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-cyan-500/40 text-cyan-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+              <button
+                type="button"
+                onClick={() => setIsTvModalOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-950 to-zinc-900 hover:from-cyan-900/60 hover:to-zinc-800 border-2 border-cyan-500/50 text-cyan-300 text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/20 group"
+                title="Conectar Smart TV desde celular o 3ra Pantalla desde PC"
               >
-                <Tv className="w-4 h-4 text-cyan-400 shrink-0" />
-                <span>TV Letras</span>
-                <ExternalLink className="w-3 h-3 opacity-60" />
-              </a>
+                <Tv className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform shrink-0" />
+                <span>Pantalla TV & Multipantalla</span>
+              </button>
             )}
 
             <PwaInstallButton
@@ -1147,6 +1148,16 @@ export default function KaraokeBoothPage() {
             setPolicy(newPolicy);
             showFeedback("success", "Configuración de modos actualizada");
           }}
+        />
+      )}
+
+      {data?.event && (
+        <TvDisplayConnectModal
+          isOpen={isTvModalOpen}
+          onClose={() => setIsTvModalOpen(false)}
+          eventCode={data.event.code}
+          eventName={data.event.name}
+          venueName={data.event.venueName}
         />
       )}
     </div>

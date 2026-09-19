@@ -34,6 +34,7 @@ import {
 import NightPulseBadge from "@/components/dashboard/NightPulseBadge";
 import RoomMapMini, { RoomTableItem } from "@/components/dashboard/RoomMapMini";
 import ModeSettingsModal from "@/components/dashboard/ModeSettingsModal";
+import TvDisplayConnectModal from "@/components/dashboard/TvDisplayConnectModal";
 import { NightPulseResult } from "@/lib/pulse/night-pulse";
 import { NightReport } from "@/lib/analytics/night-report";
 import { QueuePolicy } from "@/lib/dj/rotation";
@@ -129,6 +130,7 @@ export default function NightControlDashboard({
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isTvModalOpen, setIsTvModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "night-control" | "analytics" | "administration"
   >("night-control");
@@ -270,16 +272,15 @@ export default function NightControlDashboard({
             )}
 
             {data?.event?.code && (
-              <a
-                href={`/display/${data.event.code}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-cyan-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+              <button
+                type="button"
+                onClick={() => setIsTvModalOpen(true)}
+                className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-cyan-500/40 text-cyan-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-cyan-500/10"
+                title="Conectar Smart TV desde celular o 3ra Pantalla desde PC"
               >
                 <Tv className="w-4 h-4 text-cyan-400 shrink-0" />
-                <span>Pantalla TV</span>
-                <ArrowUpRight className="w-3 h-3 opacity-60" />
-              </a>
+                <span>Pantalla TV & Smart TV</span>
+              </button>
             )}
 
             <Link
@@ -989,6 +990,17 @@ export default function NightControlDashboard({
           onPolicyUpdated={(newPolicy) => {
             setData((prev) => (prev ? { ...prev, policy: newPolicy } : null));
           }}
+        />
+      )}
+
+      {/* Modal de Conexión de Smart TV & 3ra Pantalla */}
+      {data?.event && (
+        <TvDisplayConnectModal
+          isOpen={isTvModalOpen}
+          onClose={() => setIsTvModalOpen(false)}
+          eventCode={data.event.code}
+          eventName={data.event.name}
+          venueName={data.event.venueName}
         />
       )}
     </div>
