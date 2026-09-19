@@ -34,6 +34,7 @@ import {
   ArrowLeftRight,
   LogOut,
   Mic,
+  Headphones,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -203,6 +204,11 @@ function GuestContent() {
   const venueParam = searchParams.get("venue");
   const tableParam = searchParams.get("table");
 
+  const modeParam = searchParams.get("mode")?.toUpperCase();
+  const [activeMode, setActiveMode] = useState<"DJ" | "KARAOKE">(
+    modeParam === "DJ" ? "DJ" : "KARAOKE"
+  );
+
   const [activeTab, setActiveTab] = useState<"hub" | "catalog" | "my-requests">("hub");
   const [session, setSession] = useState<GuestSessionInfo | null>(null);
   const [tableAllowance, setTableAllowance] = useState<TableAllowanceInfo | null>(null);
@@ -267,8 +273,9 @@ function GuestContent() {
 
   const handleJoinByCode = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualCode.trim()) return;
-    window.location.href = `/display/${manualCode.trim().toUpperCase()}/tables`;
+    const clean = manualCode.trim().toUpperCase().replace(/\s+/g, "");
+    if (!clean) return;
+    window.location.href = `/display/${clean}/tables`;
   };
 
   useEffect(() => {
@@ -353,6 +360,19 @@ function GuestContent() {
         }
         if (data.data.tableAllowance) {
           setTableAllowance(data.data.tableAllowance);
+          if (!modeParam) {
+            if (
+              data.data.tableAllowance.nightMode === "DJ_ONLY" ||
+              data.data.tableAllowance.zone === "DJ"
+            ) {
+              setActiveMode("DJ");
+            } else if (
+              data.data.tableAllowance.nightMode === "KARAOKE_ONLY" ||
+              data.data.tableAllowance.zone === "KARAOKE"
+            ) {
+              setActiveMode("KARAOKE");
+            }
+          }
         }
         if (data.data.session.guestName) {
           setGuestName(data.data.session.guestName);
@@ -397,7 +417,7 @@ function GuestContent() {
     loadSessionAndRequests();
   }, []);
 
-  // Cargar catálogo de canciones con debounce y soporte de moods
+  // Cargar catálogo de canciones con debounce, soporte de moods y modo DJ vs Karaoke
   useEffect(() => {
     const timer = setTimeout(async () => {
       setIsSearching(true);
@@ -406,6 +426,7 @@ function GuestContent() {
         if (searchQuery) params.append("q", searchQuery);
         if (selectedGenre && selectedGenre !== "ALL") params.append("genre", selectedGenre);
         if (selectedMood) params.append("mood", selectedMood);
+        params.append("mode", activeMode);
 
         const res = await fetch(`/api/v1/catalog/songs?${params.toString()}`);
         if (res.ok) {
@@ -422,7 +443,7 @@ function GuestContent() {
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, selectedGenre, selectedMood]);
+  }, [searchQuery, selectedGenre, selectedMood, activeMode]);
 
   // Sincronización Realtime nativa SSE (0 ms) para comensales de mesa
   const { isConnected: isRealtime } = useRealtime({
@@ -543,6 +564,7 @@ function GuestContent() {
         notes,
         isFastPass,
         tipAmountCents: isFastPass ? 500 : 0,
+        mode: activeMode,
       };
 
       if (selectedSong) {
@@ -572,8 +594,8 @@ function GuestContent() {
       setIsFastPass(false);
       setSuccessMessage(
         isFastPass
-          ? "⭐ ¡Canción con Fast-Pass VIP enviada al DJ!"
-          : "¡Canción enviada a la cabina del DJ exitosamente!"
+          ? `⭐ ¡Canción con Fast-Pass VIP enviada ${activeMode === "DJ" ? "a la cabina DJ" : "al escenario de Karaoke"}!`
+          : `¡Canción enviada ${activeMode === "DJ" ? "a la cabina del DJ" : "al escenario de Karaoke"} exitosamente!`
       );
       setTimeout(() => setSuccessMessage(null), 4000);
 
@@ -1394,13 +1416,61 @@ function GuestContent() {
         {/* PESTAÑA 2: CATÁLOGO DE CANCIONES */}
         {activeTab === "catalog" && (
           <div className="space-y-4">
+            {/* Selector de Modo DJ vs Karaoke si el evento o salón es híbrido */}
+            {tableAllowance?.nightMode !== "DJ_ONLY" && tableAllowance?.nightMode !== "KARAOKE_ONLY" && (
+              <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-950/90 rounded-2xl border border-zinc-800 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setActiveMode("DJ")}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activeMode === "DJ"
+                      ? "bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow-md shadow-amber-500/20"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <Headphones className="w-3.5 h-3.5" />
+                  <span>🎧 Pista DJ (Baile)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveMode("KARAOKE")}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activeMode === "KARAOKE"
+                      ? "bg-gradient-to-r from-cyan-400 to-teal-400 text-black shadow-md shadow-cyan-400/20"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <Mic className="w-3.5 h-3.5" />
+                  <span>🎤 Cantar Karaoke</span>
+                </button>
+              </div>
+            )}
+
+            {tableAllowance?.nightMode === "DJ_ONLY" && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-950/60 border border-amber-500/40 text-xs text-amber-300">
+                <Headphones className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Noche en Modo DJ &bull; Búsqueda de canciones para la pista de baile</span>
+              </div>
+            )}
+
+            {tableAllowance?.nightMode === "KARAOKE_ONLY" && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-xs text-cyan-300">
+                <Mic className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span>Noche en Modo Karaoke &bull; Búsqueda de canciones con letra para cantar</span>
+              </div>
+            )}
+
             <div className="relative">
               <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar canción, artista o banda..."
+                placeholder={
+                  activeMode === "DJ"
+                    ? "Buscar tema bailable, remix o artista para el DJ..."
+                    : "Buscar canción, artista o pista de karaoke..."
+                }
                 className="w-full pl-9 pr-4 py-2.5 bg-zinc-900/90 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 transition-colors"
               />
               {isSearching && (
@@ -1502,13 +1572,23 @@ function GuestContent() {
                 )}
               </div>
 
-              {/* Resultados complementarios estirados de YouTube */}
+              {/* Resultados complementarios estirados de YouTube según Modo */}
               {youtubeSongs.length > 0 && (
                 <div className="space-y-2 pt-2 border-t border-zinc-800">
-                  <div className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider flex items-center justify-between">
+                  <div className={`text-[11px] font-semibold uppercase tracking-wider flex items-center justify-between ${
+                    activeMode === "DJ" ? "text-amber-400" : "text-cyan-400"
+                  }`}>
                     <span className="flex items-center gap-1.5">
-                      <Mic className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Resultados de YouTube ({youtubeSongs.length})</span>
+                      {activeMode === "DJ" ? (
+                        <Headphones className="w-3.5 h-3.5 text-amber-400" />
+                      ) : (
+                        <Mic className="w-3.5 h-3.5 text-cyan-400" />
+                      )}
+                      <span>
+                        {activeMode === "DJ"
+                          ? `Pistas Originales YouTube para DJ (${youtubeSongs.length})`
+                          : `Pistas de Karaoke con Letra en YouTube (${youtubeSongs.length})`}
+                      </span>
                     </span>
                     <span className="text-[10px] text-zinc-500 font-normal lowercase">
                       (toca para pedir)
@@ -1518,17 +1598,27 @@ function GuestContent() {
                   {youtubeSongs.map((yt) => (
                     <div
                       key={yt.id}
-                      className="p-3 rounded-xl bg-zinc-900/60 border border-cyan-500/30 hover:border-cyan-500/60 flex items-center justify-between transition-all"
+                      className={`p-3 rounded-xl bg-zinc-900/60 border flex items-center justify-between transition-all ${
+                        activeMode === "DJ"
+                          ? "border-amber-500/30 hover:border-amber-500/60"
+                          : "border-cyan-500/30 hover:border-cyan-500/60"
+                      }`}
                     >
                       <div className="min-w-0 pr-3">
                         <div className="text-xs font-bold text-white truncate">
                           {yt.parsedTitle || yt.title}
                         </div>
-                        <div className="text-[11px] text-cyan-300 truncate mt-0.5">
+                        <div className={`text-[11px] truncate mt-0.5 ${
+                          activeMode === "DJ" ? "text-amber-300" : "text-cyan-300"
+                        }`}>
                           {yt.parsedArtist || yt.channelTitle}
                         </div>
-                        <span className="inline-block text-[9px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800/60 mt-1">
-                          YouTube Karaoke
+                        <span className={`inline-block text-[9px] px-1.5 py-0.5 rounded border mt-1 ${
+                          activeMode === "DJ"
+                            ? "bg-amber-950 text-amber-300 border-amber-800/60"
+                            : "bg-cyan-950 text-cyan-300 border-cyan-800/60"
+                        }`}>
+                          {activeMode === "DJ" ? "🎧 Pista Original para DJ" : "🎤 Pista con Letra"}
                         </span>
                       </div>
 
@@ -1539,9 +1629,13 @@ function GuestContent() {
                           setCustomArtist(yt.parsedArtist || yt.channelTitle || "Desconocido");
                           setIsCustomModalOpen(true);
                         }}
-                        className="px-3 py-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white border border-cyan-500/30 text-xs font-bold transition-colors shrink-0 cursor-pointer"
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors shrink-0 cursor-pointer ${
+                          activeMode === "DJ"
+                            ? "bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-black border-amber-500/30"
+                            : "bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white border-cyan-500/30"
+                        }`}
                       >
-                        Pedir
+                        {activeMode === "DJ" ? "Pedir a DJ" : "Cantar"}
                       </button>
                     </div>
                   ))}
@@ -1644,9 +1738,15 @@ function GuestContent() {
           <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl p-5 space-y-4 animate-slideUp">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-purple-400" />
+                {activeMode === "DJ" ? (
+                  <Headphones className="w-4 h-4 text-amber-400" />
+                ) : (
+                  <Mic className="w-4 h-4 text-cyan-400" />
+                )}
                 <h3 className="text-sm font-bold text-white">
-                  {selectedSong ? "Pedir Canción" : "Petición de Canción"}
+                  {selectedSong
+                    ? (activeMode === "DJ" ? "Pedir Canción para la Pista DJ" : "Pedir Canción para Cantar")
+                    : (activeMode === "DJ" ? "Pedir Pista al DJ" : "Pedir Canción para Karaoke")}
                 </h3>
               </div>
               <button
@@ -1799,21 +1899,29 @@ function GuestContent() {
               <button
                 type="submit"
                 disabled={submitting || Boolean(tableAllowance?.isLocked) || Boolean(tableAllowance?.queuePaused)}
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className={`w-full py-2.5 px-4 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 ${
+                  activeMode === "DJ"
+                    ? "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black shadow-lg shadow-amber-500/20"
+                    : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white"
+                }`}
               >
                 {submitting ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Enviando al DJ...</span>
+                    <span>Enviando {activeMode === "DJ" ? "al DJ..." : "al Karaoke..."}</span>
                   </>
                 ) : tableAllowance?.queuePaused ? (
-                  <span>⏸ Pedidos Pausados por el DJ</span>
+                  <span>⏸ Pedidos Pausados {activeMode === "DJ" ? "por el DJ" : "en el Escenario"}</span>
                 ) : tableAllowance?.isLocked ? (
-                  <span>🔒 Cupo Asignado &bull; Canta para Liberar</span>
+                  <span>🔒 Cupo Asignado &bull; {activeMode === "DJ" ? "Espera tu turno" : "Canta para Liberar"}</span>
                 ) : (
                   <>
                     <Send className="w-3.5 h-3.5" />
-                    <span>Confirmar y Enviar Canción</span>
+                    <span>
+                      {activeMode === "DJ"
+                        ? "Confirmar y Enviar a Cabina DJ"
+                        : "Confirmar y Subir al Karaoke"}
+                    </span>
                   </>
                 )}
               </button>

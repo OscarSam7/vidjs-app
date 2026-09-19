@@ -18,6 +18,7 @@ const createRequestSchema = z
     notes: z.string().max(200).optional(),
     tipAmountCents: z.number().int().min(0).max(100000).optional(),
     isFastPass: z.boolean().optional(),
+    mode: z.enum(["DJ", "KARAOKE"]).optional(),
   })
   .refine((data) => data.songId || (data.customTitle && data.customArtist), {
     message: "Debes seleccionar una canción del catálogo o ingresar título y artista manualmente",
@@ -36,9 +37,17 @@ export async function POST(req: NextRequest) {
       throw new AppError("El evento de esta noche ha finalizado. No se aceptan más solicitudes.", 400);
     }
 
+    const body = await req.json();
+    const data = createRequestSchema.parse(body);
+
     const policy = parseQueuePolicy(guestSession.event.settings);
     const tableZone = (guestSession.table as any).zone || policy.zone || "MAIN";
-    const isDjZone = tableZone === "DJ" || policy.nightMode === "DJ_ONLY";
+    const isDjZone =
+      data.mode === "DJ"
+        ? true
+        : data.mode === "KARAOKE"
+        ? false
+        : tableZone === "DJ" || policy.nightMode === "DJ_ONLY";
     const effectiveLimit = isDjZone ? policy.dj.maxActivePerTable : policy.karaoke.maxActivePerTable;
     const isPaused = isDjZone ? policy.dj.queuePaused : policy.karaoke.queuePaused;
 
@@ -52,9 +61,6 @@ export async function POST(req: NextRequest) {
         "QUEUE_PAUSED"
       );
     }
-
-    const body = await req.json();
-    const data = createRequestSchema.parse(body);
 
     // 3. Regla Fair-Play: Máximo de canciones activas simultáneas por mesa (PENDING, ACCEPTED o PLAYING)
     const activeCount = await prisma.songRequest.count({

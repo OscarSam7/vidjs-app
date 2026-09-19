@@ -135,6 +135,21 @@ export async function GET(
   await setGuestSessionCookie(sessionToken);
 
   const redirectUrl = new URL(`${baseUrl}/guest`);
+
+  const incomingMode = req.nextUrl.searchParams.get("mode")?.toUpperCase();
+  const targetMode =
+    incomingMode === "DJ" || incomingMode === "KARAOKE"
+      ? incomingMode
+      : table.zone === "DJ"
+      ? "DJ"
+      : table.zone === "KARAOKE"
+      ? "KARAOKE"
+      : null;
+
+  if (targetMode) {
+    redirectUrl.searchParams.set("mode", targetMode);
+  }
+
   if (switchType) {
     redirectUrl.searchParams.set("switched", switchType);
     redirectUrl.searchParams.set("toZone", table.zone);
@@ -152,3 +167,4 @@ export async function GET(
 
   return NextResponse.redirect(redirectUrl.toString());
 }
+
