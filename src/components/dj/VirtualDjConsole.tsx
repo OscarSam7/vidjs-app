@@ -24,6 +24,7 @@ import {
   Search,
   Youtube,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 import { calculateCrossfaderGains, djSoundEffects } from "@/lib/audio/dj-audio-engine";
 
@@ -84,6 +85,7 @@ export default function VirtualDjConsole({
   const [audioUnlocked, setAudioUnlocked] = useState(false);
 
   // ==================== DECK A STATE ====================
+  const [isEjectedA, setIsEjectedA] = useState(false);
   const [manualTrackA, setManualTrackA] = useState<SongRequestData | null>(null);
   const [isPlayingA, setIsPlayingA] = useState(Boolean(currentPlaying));
   const [playbackSecondsA, setPlaybackSecondsA] = useState(0);
@@ -106,8 +108,10 @@ export default function VirtualDjConsole({
   const [searchQueryA, setSearchQueryA] = useState("");
   const [searchResultsA, setSearchResultsA] = useState<any[]>([]);
   const [isSearchingA, setIsSearchingA] = useState(false);
+  const searchRequestIdA = useRef(0);
 
   // ==================== DECK B STATE ====================
+  const [isEjectedB, setIsEjectedB] = useState(false);
   const [selectedQueueIdB, setSelectedQueueIdB] = useState<string | null>(null);
   const [manualTrackB, setManualTrackB] = useState<SongRequestData | null>(null);
   const [isPlayingB, setIsPlayingB] = useState(false);
@@ -132,6 +136,7 @@ export default function VirtualDjConsole({
   const [searchQueryB, setSearchQueryB] = useState("");
   const [searchResultsB, setSearchResultsB] = useState<any[]>([]);
   const [isSearchingB, setIsSearchingB] = useState(false);
+  const searchRequestIdB = useRef(0);
 
   // ==================== AUTO-ENGANCHE / TRANSITION ENGINE ====================
   const [isEnganchando, setIsEnganchando] = useState(false);
@@ -143,16 +148,19 @@ export default function VirtualDjConsole({
   const [beatPhase, setBeatPhase] = useState(1); // 1, 2, 3, 4
 
   // Determinar Track A
-  const trackA = manualTrackA || currentPlaying?.songRequest;
+  const trackA = isEjectedA ? null : (manualTrackA || currentPlaying?.songRequest || null);
   const trackADuration = trackA?.song?.durationSeconds || 210;
   const baseBpmA = trackA?.song?.bpm || 124;
   const effectiveBpmA = Number((baseBpmA * (1 + pitchA / 100)).toFixed(1));
 
   // Determinar Track B (de la cola seleccionada o por defecto queue[0])
-  const effectiveQueueEntryB = selectedQueueIdB
-    ? queue.find((q) => q.id === selectedQueueIdB) || queue[0]
-    : queue[0];
-  const trackB = manualTrackB || effectiveQueueEntryB?.songRequest;
+  const effectiveQueueEntryB =
+    isEjectedB || selectedQueueIdB === "EMPTY"
+      ? null
+      : selectedQueueIdB
+      ? queue.find((q) => q.id === selectedQueueIdB) || null
+      : queue[0] || null;
+  const trackB = isEjectedB ? null : (manualTrackB || effectiveQueueEntryB?.songRequest || null);
   const trackBDuration = trackB?.song?.durationSeconds || 210;
   const baseBpmB = trackB?.song?.bpm || 126;
   const effectiveBpmB = Number((baseBpmB * (1 + pitchB / 100)).toFixed(1));
@@ -324,6 +332,7 @@ export default function VirtualDjConsole({
   // Reset de reproducción al cambiar tema en Deck A
   useEffect(() => {
     if (currentPlaying?.songRequest?.id && !manualTrackA) {
+      setIsEjectedA(false);
       setPlaybackSecondsA(0);
       setIsPlayingA(true);
     }
@@ -336,8 +345,8 @@ export default function VirtualDjConsole({
 
   // Resolución de video de YouTube para DECK A
   useEffect(() => {
-    if (!trackA) {
-      setVideoIdA(null);
+    if (isEjectedA || !trackA) {
+      if (videoIdA) setVideoIdA(null);
       return;
     }
     const explicitId =
@@ -346,7 +355,13 @@ export default function VirtualDjConsole({
       extractYoutubeId(trackA.notes);
 
     if (explicitId) {
-      setVideoIdA(explicitId);
+      if (videoIdA !== explicitId) {
+        if (iframeRefA.current) {
+          sendPlayerCommand(iframeRefA.current, "stopVideo");
+          sendPlayerCommand(iframeRefA.current, "pauseVideo");
+        }
+        setVideoIdA(explicitId);
+      }
       return;
     }
 
@@ -355,25 +370,30 @@ export default function VirtualDjConsole({
     const query = `${title} ${artist}`.trim();
     if (!query) return;
 
-    let isMounted = true;
+    const reqId = ++searchRequestIdA.current;
+    if (iframeRefA.current) {
+      sendPlayerCommand(iframeRefA.current, "stopVideo");
+      sendPlayerCommand(iframeRefA.current, "pauseVideo");
+    }
+    setVideoIdA(null);
     setIsLoadingVideoA(true);
+
     fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query)}&isKaraoke=false`)
       .then((res) => res.json())
       .then((data) => {
-        if (!isMounted) return;
+        if (searchRequestIdA.current !== reqId) return;
         if (data.success && data.data?.results?.length > 0) {
           setVideoIdA(data.data.results[0].id);
         }
       })
       .catch((err) => console.warn("Error resolviendo video Deck A:", err))
       .finally(() => {
-        if (isMounted) setIsLoadingVideoA(false);
+        if (searchRequestIdA.current === reqId) {
+          setIsLoadingVideoA(false);
+        }
       });
-
-    return () => {
-      isMounted = false;
-    };
   }, [
+    isEjectedA,
     trackA?.id,
     trackA?.customTitle,
     manualTrackA?.customTitle,
@@ -383,8 +403,8 @@ export default function VirtualDjConsole({
 
   // Resolución de video de YouTube para DECK B
   useEffect(() => {
-    if (!trackB) {
-      setVideoIdB(null);
+    if (isEjectedB || !trackB) {
+      if (videoIdB) setVideoIdB(null);
       return;
     }
     const explicitId =
@@ -393,7 +413,13 @@ export default function VirtualDjConsole({
       extractYoutubeId(trackB.notes);
 
     if (explicitId) {
-      setVideoIdB(explicitId);
+      if (videoIdB !== explicitId) {
+        if (iframeRefB.current) {
+          sendPlayerCommand(iframeRefB.current, "stopVideo");
+          sendPlayerCommand(iframeRefB.current, "pauseVideo");
+        }
+        setVideoIdB(explicitId);
+      }
       return;
     }
 
@@ -402,25 +428,30 @@ export default function VirtualDjConsole({
     const query = `${title} ${artist}`.trim();
     if (!query) return;
 
-    let isMounted = true;
+    const reqId = ++searchRequestIdB.current;
+    if (iframeRefB.current) {
+      sendPlayerCommand(iframeRefB.current, "stopVideo");
+      sendPlayerCommand(iframeRefB.current, "pauseVideo");
+    }
+    setVideoIdB(null);
     setIsLoadingVideoB(true);
+
     fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query)}&isKaraoke=false`)
       .then((res) => res.json())
       .then((data) => {
-        if (!isMounted) return;
+        if (searchRequestIdB.current !== reqId) return;
         if (data.success && data.data?.results?.length > 0) {
           setVideoIdB(data.data.results[0].id);
         }
       })
       .catch((err) => console.warn("Error resolviendo video Deck B:", err))
       .finally(() => {
-        if (isMounted) setIsLoadingVideoB(false);
+        if (searchRequestIdB.current === reqId) {
+          setIsLoadingVideoB(false);
+        }
       });
-
-    return () => {
-      isMounted = false;
-    };
   }, [
+    isEjectedB,
     trackB?.id,
     trackB?.customTitle,
     manualTrackB?.customTitle,
@@ -548,6 +579,175 @@ export default function VirtualDjConsole({
     }
   };
 
+  // ==================== LIMPIEZA & CARGA DE BANDEJAS ====================
+  // Limpiar / Expulsar pista de DECK A (detiene audio, desmonta iframe y libera memoria)
+  const handleClearDeckA = () => {
+    searchRequestIdA.current++;
+    if (iframeRefA.current) {
+      sendPlayerCommand(iframeRefA.current, "stopVideo");
+      sendPlayerCommand(iframeRefA.current, "pauseVideo");
+    }
+    setIsEjectedA(true);
+    setManualTrackA(null);
+    setVideoIdA(null);
+    setIsPlayingA(false);
+    setPlaybackSecondsA(0);
+    setActiveLoopA(null);
+    setIsLoadingVideoA(false);
+    djSoundEffects.playVinylBrake();
+    showFeedback("info", "🗑️ Bandeja A limpiada y memoria liberada");
+  };
+
+  // Limpiar / Expulsar pista de DECK B (detiene audio, desmonta iframe y libera memoria)
+  const handleClearDeckB = () => {
+    searchRequestIdB.current++;
+    if (iframeRefB.current) {
+      sendPlayerCommand(iframeRefB.current, "stopVideo");
+      sendPlayerCommand(iframeRefB.current, "pauseVideo");
+    }
+    setIsEjectedB(true);
+    setManualTrackB(null);
+    setSelectedQueueIdB("EMPTY");
+    setVideoIdB(null);
+    setIsPlayingB(false);
+    setPlaybackSecondsB(0);
+    setActiveLoopB(null);
+    setIsLoadingVideoB(false);
+    djSoundEffects.playVinylBrake();
+    showFeedback("info", "🗑️ Bandeja B limpiada y memoria liberada");
+  };
+
+  // Cargar pista en DECK A con desmontaje y limpieza previa inmediata
+  const loadTrackIntoDeckA = async (track: SongRequestData, explicitVideoId?: string | null) => {
+    searchRequestIdA.current++;
+    const reqId = searchRequestIdA.current;
+    if (iframeRefA.current) {
+      sendPlayerCommand(iframeRefA.current, "stopVideo");
+      sendPlayerCommand(iframeRefA.current, "pauseVideo");
+    }
+    setVideoIdA(null);
+    setIsPlayingA(false);
+    setPlaybackSecondsA(0);
+    setActiveLoopA(null);
+    setIsEjectedA(false);
+    setManualTrackA(track);
+
+    const directId =
+      explicitVideoId ||
+      track.youtubeVideoId ||
+      extractYoutubeId(track.notes);
+
+    if (directId) {
+      setVideoIdA(directId);
+      setIsLoadingVideoA(false);
+      setIsPlayingA(true);
+      unlockAudio();
+      showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A`);
+      return;
+    }
+
+    const title = track.song?.title || track.customTitle || "";
+    const artist = track.song?.artist?.name || track.customArtist || "";
+    const query = `${title} ${artist}`.trim();
+
+    if (!query) {
+      setIsLoadingVideoA(false);
+      return;
+    }
+
+    setIsLoadingVideoA(true);
+    try {
+      const res = await fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query)}&isKaraoke=false`);
+      const data = await res.json();
+      if (searchRequestIdA.current === reqId) {
+        if (data.success && data.data?.results?.length > 0) {
+          setVideoIdA(data.data.results[0].id);
+          setIsPlayingA(true);
+          unlockAudio();
+          showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A`);
+        } else {
+          showFeedback("error", `No se encontró audio en YouTube para "${title}"`);
+        }
+      }
+    } catch {
+      if (searchRequestIdA.current === reqId) {
+        showFeedback("error", "Error buscando audio para Deck A");
+      }
+    } finally {
+      if (searchRequestIdA.current === reqId) {
+        setIsLoadingVideoA(false);
+      }
+    }
+  };
+
+  // Cargar pista en DECK B con desmontaje y limpieza previa inmediata
+  const loadTrackIntoDeckB = async (track: SongRequestData, queueEntryId?: string | null, explicitVideoId?: string | null) => {
+    searchRequestIdB.current++;
+    const reqId = searchRequestIdB.current;
+    if (iframeRefB.current) {
+      sendPlayerCommand(iframeRefB.current, "stopVideo");
+      sendPlayerCommand(iframeRefB.current, "pauseVideo");
+    }
+    setVideoIdB(null);
+    setIsPlayingB(false);
+    setPlaybackSecondsB(0);
+    setActiveLoopB(null);
+    setIsEjectedB(false);
+
+    if (queueEntryId) {
+      setSelectedQueueIdB(queueEntryId);
+      setManualTrackB(null);
+    } else {
+      setSelectedQueueIdB(null);
+      setManualTrackB(track);
+    }
+
+    const directId =
+      explicitVideoId ||
+      track.youtubeVideoId ||
+      extractYoutubeId(track.notes);
+
+    if (directId) {
+      setVideoIdB(directId);
+      setIsLoadingVideoB(false);
+      unlockAudio();
+      showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B`);
+      return;
+    }
+
+    const title = track.song?.title || track.customTitle || "";
+    const artist = track.song?.artist?.name || track.customArtist || "";
+    const query = `${title} ${artist}`.trim();
+
+    if (!query) {
+      setIsLoadingVideoB(false);
+      return;
+    }
+
+    setIsLoadingVideoB(true);
+    try {
+      const res = await fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(query)}&isKaraoke=false`);
+      const data = await res.json();
+      if (searchRequestIdB.current === reqId) {
+        if (data.success && data.data?.results?.length > 0) {
+          setVideoIdB(data.data.results[0].id);
+          unlockAudio();
+          showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B`);
+        } else {
+          showFeedback("error", `No se encontró audio en YouTube para "${title}"`);
+        }
+      }
+    } catch {
+      if (searchRequestIdB.current === reqId) {
+        showFeedback("error", "Error buscando audio para Deck B");
+      }
+    } finally {
+      if (searchRequestIdB.current === reqId) {
+        setIsLoadingVideoB(false);
+      }
+    }
+  };
+
   // ==================== MOTOR DE AUTO-ENGANCHE ====================
   const handleStartAutoEnganche = () => {
     if (!trackB) {
@@ -652,6 +852,8 @@ export default function VirtualDjConsole({
 
   // Nudge / Pitch Bend (Adelantar o retrasar un instante para alinear compases)
   const handleNudge = (deck: "A" | "B", dir: -1 | 1) => {
+    if (deck === "A" && !trackA) return;
+    if (deck === "B" && !trackB) return;
     djSoundEffects.playNudge();
     if (deck === "A") {
       const next = Math.max(0, playbackSecondsA + dir * 0.5);
@@ -666,6 +868,8 @@ export default function VirtualDjConsole({
 
   // CUE handler
   const handleCue = (deck: "A" | "B") => {
+    if (deck === "A" && !trackA) return;
+    if (deck === "B" && !trackB) return;
     djSoundEffects.playCueClick();
     if (deck === "A") {
       if (isPlayingA) {
@@ -692,6 +896,8 @@ export default function VirtualDjConsole({
 
   // Hot Cue Jump
   const handleHotCue = (deck: "A" | "B", cueNum: number) => {
+    if (deck === "A" && !trackA) return;
+    if (deck === "B" && !trackB) return;
     djSoundEffects.playCueClick();
     if (deck === "A") {
       const targetTime = hotCuesA[cueNum] ?? 0;
@@ -706,6 +912,8 @@ export default function VirtualDjConsole({
 
   // Loop toggle
   const handleToggleLoop = (deck: "A" | "B", beats: number) => {
+    if (deck === "A" && !trackA) return;
+    if (deck === "B" && !trackB) return;
     djSoundEffects.playCueClick();
     if (deck === "A") {
       setActiveLoopA(activeLoopA === beats ? null : beats);
@@ -922,9 +1130,9 @@ export default function VirtualDjConsole({
               <span className="px-2.5 py-1 rounded-md bg-purple-600 text-white text-[10px] font-black tracking-widest uppercase shadow-md shadow-purple-600/30">
                 DECK A &bull; CANAL 1
               </span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
-                Al Aire
+              <span className={`w-2 h-2 rounded-full ${trackA ? "bg-emerald-400 animate-ping" : "bg-zinc-600"}`} />
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${trackA ? "text-emerald-400" : "text-zinc-500"}`}>
+                {trackA ? (isPlayingA ? "Al Aire" : "Preparado") : "Bandeja Vacía"}
               </span>
               {trackA?.table && (
                 <span className="px-2 py-0.5 rounded bg-zinc-950 text-purple-300 border border-purple-500/30 text-xs font-bold">
@@ -933,135 +1141,157 @@ export default function VirtualDjConsole({
               )}
             </div>
 
-            {/* Selector de Pista Dropdown Deck A */}
-            <div className="relative">
-              <button
-                onClick={() => setIsSelectorOpenA(!isSelectorOpenA)}
-                className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-purple-950/60 border border-zinc-800 hover:border-purple-500/40 text-purple-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <span>Cargar Pista</span>
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-
-              {isSelectorOpenA && (
-                <div className="absolute right-0 top-full mt-1.5 w-80 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-2.5 z-50 space-y-2 max-h-80 overflow-y-auto">
-                  {/* Búsqueda directa o pegado de YouTube */}
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleSearchYtA(searchQueryA);
-                    }}
-                    className="flex items-center gap-1.5"
-                  >
-                    <input
-                      type="text"
-                      placeholder="Buscar en YouTube o pegar link..."
-                      value={searchQueryA}
-                      onChange={(e) => setSearchQueryA(e.target.value)}
-                      className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-hidden focus:border-purple-500"
-                    />
-                    <button
-                      type="submit"
-                      disabled={isSearchingA}
-                      className="px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      {isSearchingA ? <Disc3 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                    </button>
-                  </form>
-
-                  {/* Resultados de búsqueda de YouTube */}
-                  {searchResultsA.length > 0 && (
-                    <div className="space-y-1 border-b border-zinc-800 pb-2">
-                      <div className="text-[10px] font-black uppercase text-purple-400 px-1">
-                        🎬 Resultados de YouTube:
-                      </div>
-                      {searchResultsA.map((yt) => (
-                        <button
-                          key={yt.id}
-                          onClick={() => {
-                            setVideoIdA(yt.id);
-                            setManualTrackA({
-                              id: `yt-${yt.id}`,
-                              status: "MANUAL",
-                              customTitle: yt.parsedTitle || yt.title,
-                              customArtist: yt.parsedArtist || yt.channelTitle,
-                              notes: `https://www.youtube.com/watch?v=${yt.id}`,
-                              createdAt: new Date().toISOString(),
-                              table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
-                              guestSession: null,
-                              song: {
-                                id: `yt-${yt.id}`,
-                                title: yt.parsedTitle || yt.title,
-                                durationSeconds: 210,
-                                genre: "YouTube",
-                                bpm: 124,
-                                key: "8A / Am",
-                                artist: { name: yt.parsedArtist || yt.channelTitle },
-                              },
-                              youtubeVideoId: yt.id,
-                            });
-                            setPlaybackSecondsA(0);
-                            setIsPlayingA(true);
-                            unlockAudio();
-                            setIsSelectorOpenA(false);
-                            setSearchResultsA([]);
-                            setSearchQueryA("");
-                            showFeedback("success", `🎬 Cargado "${yt.parsedTitle || yt.title}" en Deck A`);
-                          }}
-                          className="w-full text-left p-1.5 rounded-lg hover:bg-purple-950/60 transition-colors flex items-center gap-2 text-xs cursor-pointer border border-transparent hover:border-purple-800"
-                        >
-                          <Youtube className="w-4 h-4 text-red-500 shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <div className="font-bold text-white truncate text-[11px]">
-                              {yt.parsedTitle || yt.title}
-                            </div>
-                            <div className="text-[10px] text-zinc-400 truncate">
-                              {yt.parsedArtist || yt.channelTitle}
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="text-[10px] font-black uppercase text-zinc-500 px-1 pt-1">
-                    Pistas en Cola ({queue.length})
-                  </div>
-                  {queue.length === 0 ? (
-                    <div className="text-xs text-zinc-500 p-2 text-center">
-                      No hay temas en cola
-                    </div>
-                  ) : (
-                    queue.map((entry, idx) => (
-                      <button
-                        key={entry.id}
-                        onClick={() => {
-                          setManualTrackA(entry.songRequest);
-                          setPlaybackSecondsA(0);
-                          setIsPlayingA(true);
-                          unlockAudio();
-                          setIsSelectorOpenA(false);
-                          showFeedback("success", `Cargado #${idx + 1} en Deck A`);
-                        }}
-                        className="w-full text-left p-2 rounded-lg hover:bg-purple-950/60 transition-colors flex items-center justify-between gap-2 border border-transparent hover:border-purple-800 text-xs cursor-pointer"
-                      >
-                        <div className="min-w-0">
-                          <div className="font-bold text-white truncate">
-                            #{idx + 1} {entry.songRequest.song?.title || entry.songRequest.customTitle}
-                          </div>
-                          <div className="text-[11px] text-zinc-400 truncate">
-                            {entry.songRequest.table.label} &bull;{" "}
-                            {entry.songRequest.song?.bpm ? `${entry.songRequest.song.bpm} BPM` : "124 BPM"}
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-mono text-purple-400 shrink-0 font-bold">
-                          Cargar
-                        </span>
-                      </button>
-                    ))
-                  )}
-                </div>
+            {/* Acciones Deck A: Limpiar y Cargar Pista */}
+            <div className="flex items-center gap-1.5">
+              {trackA && (
+                <button
+                  onClick={handleClearDeckA}
+                  className="px-2.5 py-1 rounded-lg bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 hover:border-red-600 text-red-300 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Limpiar bandeja A (Detener audio, desmontar y liberar memoria)"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Limpiar</span>
+                </button>
               )}
+
+              {/* Selector de Pista Dropdown Deck A */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsSelectorOpenA(!isSelectorOpenA)}
+                  className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-purple-950/60 border border-zinc-800 hover:border-purple-500/40 text-purple-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <span>Cargar Pista</span>
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+
+                {isSelectorOpenA && (
+                  <div className="absolute right-0 top-full mt-1.5 w-80 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-2.5 z-50 space-y-2 max-h-80 overflow-y-auto">
+                    {/* Botón rápido para limpiar bandeja */}
+                    {trackA && (
+                      <button
+                        onClick={() => {
+                          handleClearDeckA();
+                          setIsSelectorOpenA(false);
+                        }}
+                        className="w-full text-left p-1.5 rounded-lg bg-red-950/30 hover:bg-red-900/50 border border-red-900/50 text-red-300 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                        <span>⏹ Limpiar bandeja (Expulsar pista actual)</span>
+                      </button>
+                    )}
+
+                    {/* Búsqueda directa o pegado de YouTube */}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSearchYtA(searchQueryA);
+                      }}
+                      className="flex items-center gap-1.5"
+                    >
+                      <input
+                        type="text"
+                        placeholder="Buscar en YouTube o pegar link..."
+                        value={searchQueryA}
+                        onChange={(e) => setSearchQueryA(e.target.value)}
+                        className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-hidden focus:border-purple-500"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isSearchingA}
+                        className="px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        {isSearchingA ? <Disc3 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                      </button>
+                    </form>
+
+                    {/* Resultados de búsqueda de YouTube */}
+                    {searchResultsA.length > 0 && (
+                      <div className="space-y-1 border-b border-zinc-800 pb-2">
+                        <div className="text-[10px] font-black uppercase text-purple-400 px-1">
+                          🎬 Resultados de YouTube:
+                        </div>
+                        {searchResultsA.map((yt) => (
+                          <button
+                            key={yt.id}
+                            onClick={() => {
+                              loadTrackIntoDeckA(
+                                {
+                                  id: `yt-${yt.id}`,
+                                  status: "MANUAL",
+                                  customTitle: yt.parsedTitle || yt.title,
+                                  customArtist: yt.parsedArtist || yt.channelTitle,
+                                  notes: `https://www.youtube.com/watch?v=${yt.id}`,
+                                  createdAt: new Date().toISOString(),
+                                  table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
+                                  guestSession: null,
+                                  song: {
+                                    id: `yt-${yt.id}`,
+                                    title: yt.parsedTitle || yt.title,
+                                    durationSeconds: 210,
+                                    genre: "YouTube",
+                                    bpm: 124,
+                                    key: "8A / Am",
+                                    artist: { name: yt.parsedArtist || yt.channelTitle },
+                                  },
+                                  youtubeVideoId: yt.id,
+                                },
+                                yt.id
+                              );
+                              setIsSelectorOpenA(false);
+                              setSearchResultsA([]);
+                              setSearchQueryA("");
+                            }}
+                            className="w-full text-left p-1.5 rounded-lg hover:bg-purple-950/60 transition-colors flex items-center gap-2 text-xs cursor-pointer border border-transparent hover:border-purple-800"
+                          >
+                            <Youtube className="w-4 h-4 text-red-500 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-white truncate text-[11px]">
+                                {yt.parsedTitle || yt.title}
+                              </div>
+                              <div className="text-[10px] text-zinc-400 truncate">
+                                {yt.parsedArtist || yt.channelTitle}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="text-[10px] font-black uppercase text-zinc-500 px-1 pt-1">
+                      Pistas en Cola ({queue.length})
+                    </div>
+                    {queue.length === 0 ? (
+                      <div className="text-xs text-zinc-500 p-2 text-center">
+                        No hay temas en cola
+                      </div>
+                    ) : (
+                      queue.map((entry, idx) => (
+                        <button
+                          key={entry.id}
+                          onClick={() => {
+                            loadTrackIntoDeckA(entry.songRequest, entry.youtubeVideoId);
+                            setIsSelectorOpenA(false);
+                          }}
+                          className="w-full text-left p-2 rounded-lg hover:bg-purple-950/60 transition-colors flex items-center justify-between gap-2 border border-transparent hover:border-purple-800 text-xs cursor-pointer"
+                        >
+                          <div className="min-w-0">
+                            <div className="font-bold text-white truncate">
+                              #{idx + 1} {entry.songRequest.song?.title || entry.songRequest.customTitle}
+                            </div>
+                            <div className="text-[11px] text-zinc-400 truncate">
+                              {entry.songRequest.table.label} &bull;{" "}
+                              {entry.songRequest.song?.bpm ? `${entry.songRequest.song.bpm} BPM` : "124 BPM"}
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono text-purple-400 shrink-0 font-bold">
+                            Cargar
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1085,7 +1315,10 @@ export default function VirtualDjConsole({
               </div>
             </div>
           ) : (
-            <div className="py-4 text-center text-zinc-500 text-xs">Sin tema en Deck A</div>
+            <div className="py-3 px-3 rounded-xl bg-zinc-950/60 border border-dashed border-purple-900/40 text-center text-zinc-400 text-xs">
+              <span className="font-bold text-zinc-300">Bandeja A vacía</span>
+              <p className="text-[11px] text-zinc-500 mt-0.5">Usa &quot;Cargar Pista&quot; para subir un tema o buscar en YouTube</p>
+            </div>
           )}
 
           {/* Monitor de Video & Audio YouTube Deck A */}
@@ -1125,7 +1358,7 @@ export default function VirtualDjConsole({
                 ) : (
                   <>
                     <Music className="w-6 h-6 text-zinc-600" />
-                    <span className="text-[11px] text-zinc-400">Sin pista de audio en Deck A</span>
+                    <span className="text-[11px] text-zinc-400">Bandeja A vacía — Lista para cargar</span>
                   </>
                 )}
               </div>
@@ -1141,6 +1374,7 @@ export default function VirtualDjConsole({
                   isPlayingA ? "animate-spin [animation-duration:3s]" : ""
                 }`}
                 onClick={() => {
+                  if (!trackA) return;
                   unlockAudio();
                   setIsPlayingA(!isPlayingA);
                 }}
@@ -1293,16 +1527,19 @@ export default function VirtualDjConsole({
           <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800">
             <button
               onClick={() => handleCue("A")}
-              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95"
+              disabled={!trackA}
+              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40"
             >
               CUE
             </button>
             <button
               onClick={() => {
+                if (!trackA) return;
                 unlockAudio();
                 setIsPlayingA(!isPlayingA);
               }}
-              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 ${
+              disabled={!trackA}
+              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 ${
                 isPlayingA
                   ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-purple-600/30"
                   : "bg-zinc-800 hover:bg-zinc-700"
@@ -1313,7 +1550,8 @@ export default function VirtualDjConsole({
             </button>
             <button
               onClick={handleSyncDeckA}
-              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-emerald-950 border border-zinc-700 hover:border-emerald-600 text-emerald-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95"
+              disabled={!trackA || !trackB}
+              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-emerald-950 border border-zinc-700 hover:border-emerald-600 text-emerald-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40"
               title="Sincronizar BPM de Deck A con Deck B"
             >
               SYNC
@@ -1474,8 +1712,9 @@ export default function VirtualDjConsole({
               <span className="px-2.5 py-1 rounded-md bg-cyan-600 text-white text-[10px] font-black tracking-widest uppercase shadow-md shadow-cyan-600/30">
                 DECK B &bull; CANAL 2
               </span>
-              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
-                {isPlayingB ? "En Mezcla" : "Preparado"}
+              <span className={`w-2 h-2 rounded-full ${trackB ? (isPlayingB ? "bg-cyan-400 animate-ping" : "bg-cyan-400") : "bg-zinc-600"}`} />
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${trackB ? "text-cyan-400" : "text-zinc-500"}`}>
+                {trackB ? (isPlayingB ? "En Mezcla" : "Preparado") : "Bandeja Vacía"}
               </span>
               {trackB?.tipAmountCents && trackB.tipAmountCents > 0 ? (
                 <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-[10px] font-black">
@@ -1484,136 +1723,158 @@ export default function VirtualDjConsole({
               ) : null}
             </div>
 
-            {/* Selector de Pista Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setIsSelectorOpenB(!isSelectorOpenB)}
-                className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-cyan-950/60 border border-zinc-800 hover:border-cyan-500/40 text-cyan-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <span>Cargar Pista</span>
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-
-              {isSelectorOpenB && (
-                <div className="absolute right-0 top-full mt-1.5 w-80 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-2.5 z-50 space-y-2 max-h-80 overflow-y-auto">
-                  {/* Búsqueda directa o pegado de YouTube */}
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleSearchYtB(searchQueryB);
-                    }}
-                    className="flex items-center gap-1.5"
-                  >
-                    <input
-                      type="text"
-                      placeholder="Buscar en YouTube o pegar link..."
-                      value={searchQueryB}
-                      onChange={(e) => setSearchQueryB(e.target.value)}
-                      className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-hidden focus:border-cyan-500"
-                    />
-                    <button
-                      type="submit"
-                      disabled={isSearchingB}
-                      className="px-2.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      {isSearchingB ? <Disc3 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                    </button>
-                  </form>
-
-                  {/* Resultados de búsqueda de YouTube */}
-                  {searchResultsB.length > 0 && (
-                    <div className="space-y-1 border-b border-zinc-800 pb-2">
-                      <div className="text-[10px] font-black uppercase text-cyan-400 px-1">
-                        🎬 Resultados de YouTube:
-                      </div>
-                      {searchResultsB.map((yt) => (
-                        <button
-                          key={yt.id}
-                          onClick={() => {
-                            setVideoIdB(yt.id);
-                            setManualTrackB({
-                              id: `yt-${yt.id}`,
-                              status: "MANUAL",
-                              customTitle: yt.parsedTitle || yt.title,
-                              customArtist: yt.parsedArtist || yt.channelTitle,
-                              notes: `https://www.youtube.com/watch?v=${yt.id}`,
-                              createdAt: new Date().toISOString(),
-                              table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
-                              guestSession: null,
-                              song: {
-                                id: `yt-${yt.id}`,
-                                title: yt.parsedTitle || yt.title,
-                                durationSeconds: 210,
-                                genre: "YouTube",
-                                bpm: 126,
-                                key: "9A / Em",
-                                artist: { name: yt.parsedArtist || yt.channelTitle },
-                              },
-                              youtubeVideoId: yt.id,
-                            });
-                            setPlaybackSecondsB(0);
-                            setIsPlayingB(false);
-                            unlockAudio();
-                            setIsSelectorOpenB(false);
-                            setSearchResultsB([]);
-                            setSearchQueryB("");
-                            showFeedback("success", `🎬 Cargado "${yt.parsedTitle || yt.title}" en Deck B`);
-                          }}
-                          className="w-full text-left p-1.5 rounded-lg hover:bg-cyan-950/60 transition-colors flex items-center gap-2 text-xs cursor-pointer border border-transparent hover:border-cyan-800"
-                        >
-                          <Youtube className="w-4 h-4 text-red-500 shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <div className="font-bold text-white truncate text-[11px]">
-                              {yt.parsedTitle || yt.title}
-                            </div>
-                            <div className="text-[10px] text-zinc-400 truncate">
-                              {yt.parsedArtist || yt.channelTitle}
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="text-[10px] font-black uppercase text-zinc-500 px-1 pt-1">
-                    Pistas en Cola ({queue.length})
-                  </div>
-                  {queue.length === 0 ? (
-                    <div className="text-xs text-zinc-500 p-2 text-center">
-                      No hay temas en cola
-                    </div>
-                  ) : (
-                    queue.map((entry, idx) => (
-                      <button
-                        key={entry.id}
-                        onClick={() => {
-                          setSelectedQueueIdB(entry.id);
-                          setManualTrackB(null);
-                          setPlaybackSecondsB(0);
-                          setIsPlayingB(false);
-                          unlockAudio();
-                          setIsSelectorOpenB(false);
-                          showFeedback("success", `Cargado #${idx + 1} en Deck B`);
-                        }}
-                        className="w-full text-left p-2 rounded-lg hover:bg-cyan-950/60 transition-colors flex items-center justify-between gap-2 border border-transparent hover:border-cyan-800 text-xs cursor-pointer"
-                      >
-                        <div className="min-w-0">
-                          <div className="font-bold text-white truncate">
-                            #{idx + 1} {entry.songRequest.song?.title || entry.songRequest.customTitle}
-                          </div>
-                          <div className="text-[11px] text-zinc-400 truncate">
-                            {entry.songRequest.table.label} &bull;{" "}
-                            {entry.songRequest.song?.bpm ? `${entry.songRequest.song.bpm} BPM` : "126 BPM"}
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-mono text-cyan-400 shrink-0 font-bold">
-                          Cargar
-                        </span>
-                      </button>
-                    ))
-                  )}
-                </div>
+            {/* Acciones Deck B: Limpiar y Cargar Pista */}
+            <div className="flex items-center gap-1.5">
+              {trackB && (
+                <button
+                  onClick={handleClearDeckB}
+                  className="px-2.5 py-1 rounded-lg bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 hover:border-red-600 text-red-300 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Limpiar bandeja B (Detener audio, desmontar y liberar memoria)"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Limpiar</span>
+                </button>
               )}
+
+              {/* Selector de Pista Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsSelectorOpenB(!isSelectorOpenB)}
+                  className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-cyan-950/60 border border-zinc-800 hover:border-cyan-500/40 text-cyan-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <span>Cargar Pista</span>
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+
+                {isSelectorOpenB && (
+                  <div className="absolute right-0 top-full mt-1.5 w-80 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-2.5 z-50 space-y-2 max-h-80 overflow-y-auto">
+                    {/* Botón rápido para limpiar bandeja */}
+                    {trackB && (
+                      <button
+                        onClick={() => {
+                          handleClearDeckB();
+                          setIsSelectorOpenB(false);
+                        }}
+                        className="w-full text-left p-1.5 rounded-lg bg-red-950/30 hover:bg-red-900/50 border border-red-900/50 text-red-300 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                        <span>⏹ Limpiar bandeja (Expulsar pista actual)</span>
+                      </button>
+                    )}
+
+                    {/* Búsqueda directa o pegado de YouTube */}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSearchYtB(searchQueryB);
+                      }}
+                      className="flex items-center gap-1.5"
+                    >
+                      <input
+                        type="text"
+                        placeholder="Buscar en YouTube o pegar link..."
+                        value={searchQueryB}
+                        onChange={(e) => setSearchQueryB(e.target.value)}
+                        className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-hidden focus:border-cyan-500"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isSearchingB}
+                        className="px-2.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        {isSearchingB ? <Disc3 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                      </button>
+                    </form>
+
+                    {/* Resultados de búsqueda de YouTube */}
+                    {searchResultsB.length > 0 && (
+                      <div className="space-y-1 border-b border-zinc-800 pb-2">
+                        <div className="text-[10px] font-black uppercase text-cyan-400 px-1">
+                          🎬 Resultados de YouTube:
+                        </div>
+                        {searchResultsB.map((yt) => (
+                          <button
+                            key={yt.id}
+                            onClick={() => {
+                              loadTrackIntoDeckB(
+                                {
+                                  id: `yt-${yt.id}`,
+                                  status: "MANUAL",
+                                  customTitle: yt.parsedTitle || yt.title,
+                                  customArtist: yt.parsedArtist || yt.channelTitle,
+                                  notes: `https://www.youtube.com/watch?v=${yt.id}`,
+                                  createdAt: new Date().toISOString(),
+                                  table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
+                                  guestSession: null,
+                                  song: {
+                                    id: `yt-${yt.id}`,
+                                    title: yt.parsedTitle || yt.title,
+                                    durationSeconds: 210,
+                                    genre: "YouTube",
+                                    bpm: 126,
+                                    key: "9A / Em",
+                                    artist: { name: yt.parsedArtist || yt.channelTitle },
+                                  },
+                                  youtubeVideoId: yt.id,
+                                },
+                                null,
+                                yt.id
+                              );
+                              setIsSelectorOpenB(false);
+                              setSearchResultsB([]);
+                              setSearchQueryB("");
+                            }}
+                            className="w-full text-left p-1.5 rounded-lg hover:bg-cyan-950/60 transition-colors flex items-center gap-2 text-xs cursor-pointer border border-transparent hover:border-cyan-800"
+                          >
+                            <Youtube className="w-4 h-4 text-red-500 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-white truncate text-[11px]">
+                                {yt.parsedTitle || yt.title}
+                              </div>
+                              <div className="text-[10px] text-zinc-400 truncate">
+                                {yt.parsedArtist || yt.channelTitle}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="text-[10px] font-black uppercase text-zinc-500 px-1 pt-1">
+                      Pistas en Cola ({queue.length})
+                    </div>
+                    {queue.length === 0 ? (
+                      <div className="text-xs text-zinc-500 p-2 text-center">
+                        No hay temas en cola
+                      </div>
+                    ) : (
+                      queue.map((entry, idx) => (
+                        <button
+                          key={entry.id}
+                          onClick={() => {
+                            loadTrackIntoDeckB(entry.songRequest, entry.id, entry.youtubeVideoId);
+                            setIsSelectorOpenB(false);
+                          }}
+                          className="w-full text-left p-2 rounded-lg hover:bg-cyan-950/60 transition-colors flex items-center justify-between gap-2 border border-transparent hover:border-cyan-800 text-xs cursor-pointer"
+                        >
+                          <div className="min-w-0">
+                            <div className="font-bold text-white truncate">
+                              #{idx + 1} {entry.songRequest.song?.title || entry.songRequest.customTitle}
+                            </div>
+                            <div className="text-[11px] text-zinc-400 truncate">
+                              {entry.songRequest.table.label} &bull;{" "}
+                              {entry.songRequest.song?.bpm ? `${entry.songRequest.song.bpm} BPM` : "126 BPM"}
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono text-cyan-400 shrink-0 font-bold">
+                            Cargar
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1637,8 +1898,9 @@ export default function VirtualDjConsole({
               </div>
             </div>
           ) : (
-            <div className="py-4 text-center text-zinc-500 text-xs">
-              Sin tema en Deck B. Acepta pedidos o carga manualmente.
+            <div className="py-3 px-3 rounded-xl bg-zinc-950/60 border border-dashed border-cyan-900/40 text-center text-zinc-400 text-xs">
+              <span className="font-bold text-zinc-300">Bandeja B vacía</span>
+              <p className="text-[11px] text-zinc-500 mt-0.5">Usa &quot;Cargar Pista&quot; para preparar el siguiente tema</p>
             </div>
           )}
 
@@ -1674,13 +1936,13 @@ export default function VirtualDjConsole({
                 {isLoadingVideoB ? (
                   <>
                     <Disc3 className="w-6 h-6 animate-spin text-cyan-400" />
-                    <span className="text-[11px] font-bold">Buscando audio en YouTube...</span>
+                    <span className="text-[11px] font-bold">Cargando audio desde YouTube...</span>
                   </>
                 ) : (
                   <>
                     <Music className="w-6 h-6 text-zinc-600" />
                     <span className="text-[11px] text-zinc-400">
-                      Carga una pista para reproducir en Deck B
+                      Bandeja B vacía — Lista para cargar
                     </span>
                   </>
                 )}
@@ -1725,6 +1987,7 @@ export default function VirtualDjConsole({
                   isPlayingB ? "animate-spin [animation-duration:3s]" : ""
                 }`}
                 onClick={() => {
+                  if (!trackB) return;
                   unlockAudio();
                   setIsPlayingB(!isPlayingB);
                 }}
@@ -1855,16 +2118,19 @@ export default function VirtualDjConsole({
           <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800">
             <button
               onClick={() => handleCue("B")}
-              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95"
+              disabled={!trackB}
+              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40"
             >
               CUE
             </button>
             <button
               onClick={() => {
+                if (!trackB) return;
                 unlockAudio();
                 setIsPlayingB(!isPlayingB);
               }}
-              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 ${
+              disabled={!trackB}
+              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 ${
                 isPlayingB
                   ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-cyan-600/30"
                   : "bg-zinc-800 hover:bg-zinc-700"
@@ -1875,7 +2141,8 @@ export default function VirtualDjConsole({
             </button>
             <button
               onClick={handleSyncDeckB}
-              className={`py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95 border ${
+              disabled={!trackA || !trackB}
+              className={`py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95 border disabled:opacity-40 ${
                 isSyncedB
                   ? "bg-emerald-600 text-white border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.5)]"
                   : "bg-zinc-900 hover:bg-emerald-950 border-zinc-700 hover:border-emerald-600 text-emerald-400"
