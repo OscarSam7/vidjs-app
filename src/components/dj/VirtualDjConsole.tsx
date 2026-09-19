@@ -102,7 +102,7 @@ const DeckPlayer = memo(
 
     // URL estable: se calcula ÚNICAMENTE cuando cambia el videoId, jamás en re-renders
     const iframeSrc = useMemo(() => {
-      if (!videoId) return "";
+      if (!videoId) return "about:blank";
       return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&playsinline=1&controls=0&modestbranding=1&rel=0`;
     }, [videoId]);
 
@@ -110,38 +110,44 @@ const DeckPlayer = memo(
       <div
         className={`relative aspect-video max-h-36 w-full rounded-xl overflow-hidden border ${borderColor} bg-black shadow-inner`}
       >
-        {videoId ? (
-          <>
-            <iframe
-              ref={iframeRef}
-              id={`deck-${deckId.toLowerCase()}-iframe`}
-              src={iframeSrc}
-              title={`Deck ${deckId} Audio Player`}
-              className="w-full h-full border-0 pointer-events-auto"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            />
-            <div className="absolute top-1.5 left-2 right-2 flex items-center justify-between pointer-events-none">
-              <span
-                className={`px-2 py-0.5 rounded bg-black/80 ${textColor} text-[9px] font-mono font-bold border ${borderColor} backdrop-blur-xs`}
-              >
-                {chLabel} &bull; VOL: {effectiveVol}%
-              </span>
-              <span
-                className={`px-2 py-0.5 rounded text-[9px] font-bold backdrop-blur-xs ${
-                  isPlaying
-                    ? isA
-                      ? "bg-emerald-950/80 text-emerald-400 border border-emerald-500/40"
-                      : "bg-cyan-950/80 text-cyan-400 border border-cyan-500/40"
-                    : "bg-zinc-900/80 text-zinc-400 border border-zinc-700"
-                }`}
-              >
-                {isPlaying ? "▶ PLAYING" : "⏸ PAUSED"}
-              </span>
-            </div>
-          </>
-        ) : (
+        {/* El iframe permanece SIEMPRE montado para evitar destrucción y recreación de contexto DOM y streams */}
+        <iframe
+          ref={iframeRef}
+          id={`deck-${deckId.toLowerCase()}-iframe`}
+          src={iframeSrc}
+          title={`Deck ${deckId} Audio Player`}
+          className={`w-full h-full border-0 pointer-events-auto transition-opacity duration-200 ${
+            videoId ? "opacity-100 relative z-0" : "opacity-0 pointer-events-none absolute inset-0 -z-10"
+          }`}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        />
+
+        {/* Overlay HUD cuando hay pista activa */}
+        {videoId && (
+          <div className="absolute top-1.5 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
+            <span
+              className={`px-2 py-0.5 rounded bg-black/80 ${textColor} text-[9px] font-mono font-bold border ${borderColor} backdrop-blur-xs`}
+            >
+              {chLabel} &bull; VOL: {effectiveVol}%
+            </span>
+            <span
+              className={`px-2 py-0.5 rounded text-[9px] font-bold backdrop-blur-xs ${
+                isPlaying
+                  ? isA
+                    ? "bg-emerald-950/80 text-emerald-400 border border-emerald-500/40"
+                    : "bg-cyan-950/80 text-cyan-400 border border-cyan-500/40"
+                  : "bg-zinc-900/80 text-zinc-400 border border-zinc-700"
+              }`}
+            >
+              {isPlaying ? "▶ PLAYING" : "⏸ PAUSED"}
+            </span>
+          </div>
+        )}
+
+        {/* Overlay cuando está vacía o cargando */}
+        {!videoId && (
           <div
-            className={`w-full h-full flex flex-col items-center justify-center p-3 ${spinnerColor} bg-zinc-950/90 space-y-1 text-center`}
+            className={`absolute inset-0 z-10 flex flex-col items-center justify-center p-3 ${spinnerColor} bg-zinc-950/90 space-y-1 text-center`}
           >
             {isLoading ? (
               <>
@@ -793,7 +799,6 @@ export default function VirtualDjConsole({
     }
     prevTrackBKeyRef.current = null;
     activeVideoIdBRef.current = null;
-    prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
     setIsEjectedB(true);
     setManualTrackB(null);
     setSelectedQueueIdB("EMPTY");
@@ -905,6 +910,7 @@ export default function VirtualDjConsole({
       activeVideoIdBRef.current = directId;
       setVideoIdB(directId);
       setIsLoadingVideoB(false);
+      setIsPlayingB(true);
       unlockAudioB();
       showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B`);
       return;
@@ -928,6 +934,7 @@ export default function VirtualDjConsole({
           const resolvedId = data.data.results[0].id;
           activeVideoIdBRef.current = resolvedId;
           setVideoIdB(resolvedId);
+          setIsPlayingB(true);
           unlockAudioB();
           showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B`);
         } else {
