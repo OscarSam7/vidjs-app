@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, User, Shield, Sparkles, Menu } from "lucide-react";
+import { LogOut, User, Shield, Sparkles, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useState } from "react";
 
 interface TopbarProps {
@@ -10,10 +10,11 @@ interface TopbarProps {
     role: string;
   };
   tenantName: string;
+  isSidebarCollapsed?: boolean;
   onToggleSidebar?: () => void;
 }
 
-export function Topbar({ user, tenantName, onToggleSidebar }: TopbarProps) {
+export function Topbar({ user, tenantName, isSidebarCollapsed, onToggleSidebar }: TopbarProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -43,16 +44,21 @@ export function Topbar({ user, tenantName, onToggleSidebar }: TopbarProps) {
 
   return (
     <header className="h-16 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/80 px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
-      {/* Left section: Hamburger button (mobile) + Breadcrumb / Context */}
+      {/* Left section: Hamburger button (mobile/desktop) + Breadcrumb / Context */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-        {/* Mobile Hamburger Toggle */}
+        {/* Toggle Sidebar (Móvil y Desktop) */}
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="lg:hidden p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900 border border-zinc-800 transition-colors shrink-0 cursor-pointer"
-          aria-label="Abrir menú de navegación"
+          className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900 border border-zinc-800 transition-colors shrink-0 cursor-pointer flex items-center justify-center"
+          aria-label={isSidebarCollapsed ? "Expandir menú de módulos" : "Minimizar menú de módulos hacia la izquierda"}
+          title={isSidebarCollapsed ? "Expandir menú de herramientas" : "Minimizar herramientas hacia la izquierda"}
         >
-          <Menu className="w-5 h-5" />
+          {isSidebarCollapsed ? (
+            <PanelLeftOpen className="w-5 h-5 text-purple-400" />
+          ) : (
+            <PanelLeftClose className="w-5 h-5" />
+          )}
         </button>
 
         <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">

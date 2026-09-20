@@ -17,7 +17,38 @@ interface DashboardShellProps {
 
 export function DashboardShell({ children, user, tenantName }: DashboardShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
+
+  // Cargar estado de colapsado desde localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("vidjs_sidebar_collapsed");
+      if (saved !== null) {
+        setIsCollapsed(saved === "true");
+      }
+    } catch {
+      // Ignorar fallos de almacenamiento en navegadores privados
+    }
+  }, []);
+
+  const toggleCollapsed = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("vidjs_sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const handleToggleSidebar = () => {
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setMobileMenuOpen((prev) => !prev);
+    } else {
+      toggleCollapsed();
+    }
+  };
 
   // Cerrar automáticamente el menú móvil cuando cambia la ruta
   useEffect(() => {
@@ -32,14 +63,17 @@ export function DashboardShell({ children, user, tenantName }: DashboardShellPro
         tenantName={tenantName}
         isMobileOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={toggleCollapsed}
       />
 
       {/* Contenedor Principal */}
-      <div className="flex-1 flex flex-col min-w-0 w-full overflow-x-hidden">
+      <div className="flex-1 flex flex-col min-w-0 w-full overflow-x-hidden transition-all duration-300">
         <Topbar
           user={user}
           tenantName={tenantName}
-          onToggleSidebar={() => setMobileMenuOpen((prev) => !prev)}
+          isSidebarCollapsed={isCollapsed}
+          onToggleSidebar={handleToggleSidebar}
         />
         <main className="flex-1 p-3 sm:p-5 md:p-8 max-w-7xl w-full mx-auto overflow-y-auto overflow-x-hidden max-w-full">
           {children}
