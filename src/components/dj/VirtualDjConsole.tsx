@@ -801,8 +801,15 @@ export default function VirtualDjConsole({
     }
   }, []);
 
-  // ==================== SCREEN WAKE LOCK & BACKGROUND PLAYBACK ====================
+  // ==================== SCREEN WAKE LOCK & BACKGROUND AUDIO ANCHOR ====================
   const wakeLockRef = useRef<any>(null);
+  const silentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const startSilentAudioAnchor = () => {
+    if (silentAudioRef.current) {
+      silentAudioRef.current.play().catch(() => {});
+    }
+  };
 
   const requestWakeLock = async () => {
     if (typeof window === "undefined" || !("wakeLock" in navigator)) return;
@@ -817,13 +824,50 @@ export default function VirtualDjConsole({
 
   useEffect(() => {
     requestWakeLock();
+    startSilentAudioAnchor();
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "hidden") {
+        // El DJ salió de la app (cambió a WhatsApp, minimizó o fue al inicio)
+        // 1. Mantener activo el ancla de audio para que el SO no suspenda el proceso
+        startSilentAudioAnchor();
+
+        // 2. Anular el auto-pausado forzado por YouTube embebido en segundo plano
+        if (isPlayingA && iframeRefA.current) {
+          setTimeout(() => {
+            if (iframeRefA.current) {
+              sendPlayerCommand(iframeRefA.current, "unMute");
+              sendPlayerCommand(iframeRefA.current, "playVideo");
+            }
+          }, 150);
+          setTimeout(() => {
+            if (iframeRefA.current) {
+              sendPlayerCommand(iframeRefA.current, "unMute");
+              sendPlayerCommand(iframeRefA.current, "playVideo");
+            }
+          }, 500);
+        }
+
+        if (isPlayingB && iframeRefB.current) {
+          setTimeout(() => {
+            if (iframeRefB.current) {
+              sendPlayerCommand(iframeRefB.current, "unMute");
+              sendPlayerCommand(iframeRefB.current, "playVideo");
+            }
+          }, 150);
+          setTimeout(() => {
+            if (iframeRefB.current) {
+              sendPlayerCommand(iframeRefB.current, "unMute");
+              sendPlayerCommand(iframeRefB.current, "playVideo");
+            }
+          }, 500);
+        }
+      } else {
+        // El DJ volvió a la app
         requestWakeLock();
-        // Re-desbloquear AudioContext si fue suspendido por el navegador en segundo plano
         webDjEngine.unlock();
-        // Reanudar reproducción en YouTube iframes si estaban reproduciendo
+        startSilentAudioAnchor();
+
         if (isPlayingA && iframeRefA.current) {
           sendPlayerCommand(iframeRefA.current, "unMute");
           sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
@@ -1114,13 +1158,45 @@ export default function VirtualDjConsole({
       }
 
       navigator.mediaSession.setActionHandler("play", () => {
-        if (!isPlayingA && trackA) togglePlayA();
-        else if (!isPlayingB && trackB) togglePlayB();
+        webDjEngine.unlock();
+        startSilentAudioAnchor();
+        if (deckModeA === "native" && audioRefA.current) {
+          audioRefA.current.play().catch(() => {});
+          setIsPlayingA(true);
+        } else if (iframeRefA.current && trackA) {
+          sendPlayerCommand(iframeRefA.current, "unMute");
+          sendPlayerCommand(iframeRefA.current, "playVideo");
+          setIsPlayingA(true);
+        }
+        if (deckModeB === "native" && audioRefB.current) {
+          audioRefB.current.play().catch(() => {});
+          setIsPlayingB(true);
+        } else if (iframeRefB.current && trackB) {
+          sendPlayerCommand(iframeRefB.current, "unMute");
+          sendPlayerCommand(iframeRefB.current, "playVideo");
+          setIsPlayingB(true);
+        }
+        try {
+          navigator.mediaSession.playbackState = "playing";
+        } catch {}
       });
 
       navigator.mediaSession.setActionHandler("pause", () => {
-        if (isPlayingA) togglePlayA();
-        if (isPlayingB) togglePlayB();
+        if (deckModeA === "native" && audioRefA.current) {
+          audioRefA.current.pause();
+        } else if (iframeRefA.current) {
+          sendPlayerCommand(iframeRefA.current, "pauseVideo");
+        }
+        if (deckModeB === "native" && audioRefB.current) {
+          audioRefB.current.pause();
+        } else if (iframeRefB.current) {
+          sendPlayerCommand(iframeRefB.current, "pauseVideo");
+        }
+        setIsPlayingA(false);
+        setIsPlayingB(false);
+        try {
+          navigator.mediaSession.playbackState = "paused";
+        } catch {}
       });
     } catch {
       // Ignorar si el navegador restringe handlers de MediaSession
@@ -3494,6 +3570,15 @@ export default function VirtualDjConsole({
             handleStartAutoEnganche();
           }
         }}
+        className="hidden"
+      />
+
+      {/* Ancla de Audio Silencioso de Fondo (Garantiza que iOS y Android no suspendan la pestaña al salir a WhatsApp) */}
+      <audio
+        ref={silentAudioRef}
+        src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"
+        loop
+        playsInline
         className="hidden"
       />
 
