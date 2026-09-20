@@ -183,6 +183,13 @@ export default function DjBoothPage() {
   const crossfaderGains = calculateCrossfaderGains(crossfaderValue);
   const [isBridgeModalOpen, setIsBridgeModalOpen] = useState(false);
 
+  // Solicitud pendiente de carga de pista a bandeja de la consola DJ
+  const [pendingDeckLoad, setPendingDeckLoad] = useState<{
+    entry: QueueEntryData;
+    targetDeck?: "AUTO" | "A" | "B";
+    timestamp: number;
+  } | null>(null);
+
   // Mensaje de notificación
   const [feedback, setFeedback] = useState<{
     type: "success" | "error" | "info";
@@ -651,9 +658,35 @@ export default function DjBoothPage() {
     }
   };
 
-  // Reproducir un tema de la cola
+  // Cargar / Reproducir tema de la cola en la bandeja libre o seleccionada
+  const handleLoadQueueEntry = async (entry: QueueEntryData, targetDeck: "AUTO" | "A" | "B" = "AUTO") => {
+    // 1. Cargar y arrancar inmediatamente en la consola Virtual DJ en la bandeja correspondiente
+    setPendingDeckLoad({ entry, targetDeck, timestamp: Date.now() });
+
+    // 2. Notificar al backend de la acción
+    try {
+      const res = await fetch("/api/v1/dj/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "PLAY", queueEntryId: entry.id }),
+      });
+      if (res.ok) {
+        setPlaybackSeconds(0);
+        setIsPlaying(true);
+        await fetchDjState();
+      }
+    } catch {
+      // Estado local ya activo
+    }
+  };
+
+  // Reproducir un tema de la cola (compatibilidad)
   const handlePlayQueueEntry = async (queueEntryId: string) => {
     try {
+      const entry = data?.queue?.find((q) => q.id === queueEntryId);
+      if (entry) {
+        setPendingDeckLoad({ entry, targetDeck: "AUTO", timestamp: Date.now() });
+      }
       const res = await fetch("/api/v1/dj/queue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -662,7 +695,6 @@ export default function DjBoothPage() {
       if (res.ok) {
         setPlaybackSeconds(0);
         setIsPlaying(true);
-        showFeedback("success", "Cargada en Deck A (Al Aire)");
         await fetchDjState();
       }
     } catch {
@@ -1668,6 +1700,8 @@ export default function DjBoothPage() {
         showFeedback={showFeedback}
         crossfaderValue={crossfaderValue}
         setCrossfaderValue={setCrossfaderValue}
+        pendingDeckLoad={pendingDeckLoad}
+        onDeckLoaded={() => setPendingDeckLoad(null)}
       />
 
       {/* 2.5 SOUNDBOARD FX LAUNCHPAD PARA DJ */}
@@ -1916,29 +1950,60 @@ export default function DjBoothPage() {
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {queuePolicy.zone === "KARAOKE" && (
-                        <button
-                          onClick={() => handleCallSinger(entry)}
-                          title="Llamar a esta mesa al escenario (alerta en TV)"
-                          className="p-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white transition-colors cursor-pointer"
-                        >
-                          <Megaphone className="w-3.5 h-3.5" />
-                        </button>
+                      {queuePolicy.zone === "KARAOKE" ? (
+                        <>
+                          <button
+                            onClick={() => handleCallSinger(entry)}
+                            title="Llamar a esta mesa al escenario (alerta en TV)"
+                            className="p-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white transition-colors cursor-pointer"
+                          >
+                            <Megaphone className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleLoadQueueEntry(entry, "AUTO")}
+                            title="Subir al escenario ahora"
+                            className="p-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white transition-colors cursor-pointer"
+                          >
+                            <Play className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {/* Cargar específicamente en Deck A */}
+                          <button
+                            type="button"
+                            onClick={() => handleLoadQueueEntry(entry, "A")}
+                            title="Cargar y preparar en Bandeja A"
+                            className="px-2 py-1 rounded-lg bg-purple-950/60 hover:bg-purple-600 border border-purple-800/60 hover:border-purple-500 text-purple-300 hover:text-white text-[10px] font-mono font-bold transition-all cursor-pointer flex items-center gap-0.5"
+                          >
+                            <span>◀ A</span>
+                          </button>
+
+                          {/* Botón Principal: Tirar a la Bandeja Libre (Auto) */}
+                          <button
+                            type="button"
+                            onClick={() => handleLoadQueueEntry(entry, "AUTO")}
+                            title="Reproducir en la bandeja que esté libre"
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-all cursor-pointer flex items-center gap-1 shadow-md shadow-emerald-950"
+                          >
+                            <Play className="w-3 h-3 fill-white" />
+                            <span className="text-[10px] font-bold">Auto</span>
+                          </button>
+
+                          {/* Cargar específicamente en Deck B */}
+                          <button
+                            type="button"
+                            onClick={() => handleLoadQueueEntry(entry, "B")}
+                            title="Cargar y preparar en Bandeja B"
+                            className="px-2 py-1 rounded-lg bg-cyan-950/60 hover:bg-cyan-600 border border-cyan-800/60 hover:border-cyan-500 text-cyan-300 hover:text-white text-[10px] font-mono font-bold transition-all cursor-pointer flex items-center gap-0.5"
+                          >
+                            <span>B ▶</span>
+                          </button>
+                        </>
                       )}
 
                       <button
-                        onClick={() => handlePlayQueueEntry(entry.id)}
-                        title={queuePolicy.zone === "KARAOKE" ? "Subir al escenario ahora" : "Cargar a Deck A"}
-                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                          queuePolicy.zone === "KARAOKE"
-                            ? "bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white"
-                            : "bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white"
-                        }`}
-                      >
-                        <Play className="w-3.5 h-3.5" />
-                      </button>
-
-                      <button
+                        type="button"
                         onClick={() => handleSkipQueueEntry(entry.id)}
                         title="Quitar de cola"
                         className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-900 transition-colors cursor-pointer"

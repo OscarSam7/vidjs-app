@@ -62,6 +62,12 @@ interface QueueEntryData {
   youtubeVideoId?: string | null;
 }
 
+export interface PendingDeckLoad {
+  entry: QueueEntryData;
+  targetDeck?: "AUTO" | "A" | "B";
+  timestamp: number;
+}
+
 interface VirtualDjConsoleProps {
   currentPlaying: QueueEntryData | null;
   queue: QueueEntryData[];
@@ -71,6 +77,8 @@ interface VirtualDjConsoleProps {
   showFeedback: (type: "success" | "error" | "info", text: string) => void;
   crossfaderValue: number;
   setCrossfaderValue: (val: number) => void;
+  pendingDeckLoad?: PendingDeckLoad | null;
+  onDeckLoaded?: () => void;
 }
 
 interface DeckPlayerProps {
@@ -315,6 +323,8 @@ export default function VirtualDjConsole({
   showFeedback,
   crossfaderValue,
   setCrossfaderValue,
+  pendingDeckLoad,
+  onDeckLoaded,
 }: VirtualDjConsoleProps) {
   // ==================== MASTER AUDIO CABINA STATE ====================
   const [isMasterMuted, setIsMasterMuted] = useState(false);
@@ -1538,16 +1548,84 @@ export default function VirtualDjConsole({
     }
   }, [queue?.[0]?.id, isEjectedB]);
 
-  // Avance de tema del servidor: solo si Deck A no tiene pista activa y no fue expulsada manualmente
+  // Función para determinar inteligentemente cuál bandeja está libre para recibir la pista
+  const determineFreeDeck = (requested?: "AUTO" | "A" | "B"): "A" | "B" => {
+    if (requested === "A") return "A";
+    if (requested === "B") return "B";
+
+    const isAEmpty = !trackA || isEjectedA;
+    const isBEmpty = !trackB || isEjectedB;
+
+    // 1. Si alguna bandeja está completamente vacía (sin pista o expulsada)
+    if (isAEmpty && !isBEmpty) return "A";
+    if (isBEmpty && !isAEmpty) return "B";
+    if (isAEmpty && isBEmpty) return "A";
+
+    // 2. Si ambas tienen pista cargada: la que NO esté reproduciendo está libre
+    if (isPlayingA && !isPlayingB) return "B";
+    if (isPlayingB && !isPlayingA) return "A";
+
+    // 3. Si ambas están sonando o ambas en pausa: según hacia dónde esté inclinado el crossfader
+    // Si el crossfader favorece A (< 0), el público escucha A -> montar en B
+    if (crossfaderValue < 0) return "B";
+    // Si el crossfader favorece B (> 0), el público escucha B -> montar en A
+    if (crossfaderValue > 0) return "A";
+
+    // 4. Por defecto en mezcla 50/50: enviar a Deck B
+    return "B";
+  };
+
+  const lastHandledLoadTimestamp = useRef<number>(0);
+
+  // Carga reactiva inmediata disparada desde la cola de reproducción del DJ
+  useEffect(() => {
+    if (!pendingDeckLoad || pendingDeckLoad.timestamp === lastHandledLoadTimestamp.current) return;
+    lastHandledLoadTimestamp.current = pendingDeckLoad.timestamp;
+
+    const { entry, targetDeck = "AUTO" } = pendingDeckLoad;
+    const resolvedTarget = determineFreeDeck(targetDeck);
+    const title = entry.songRequest.song?.title || entry.songRequest.customTitle || "Tema";
+    const tableLabel = entry.songRequest.table?.label ? ` (${entry.songRequest.table.label})` : "";
+
+    if (resolvedTarget === "A") {
+      loadTrackIntoDeckA(entry.songRequest, entry.youtubeVideoId);
+      showFeedback("success", `🎧 Cargada en Bandeja A: "${title}"${tableLabel}`);
+    } else {
+      loadTrackIntoDeckB(entry.songRequest, entry.id, entry.youtubeVideoId);
+      showFeedback("success", `🎧 Cargada en Bandeja B: "${title}"${tableLabel}`);
+    }
+
+    if (onDeckLoaded) onDeckLoaded();
+  }, [pendingDeckLoad]);
+
+  // Avance de tema del servidor / Sincronización cuando entra un nuevo tema al aire
   useEffect(() => {
     const currentId = currentPlaying?.id || null;
     if (currentId && currentId !== prevCurrentPlayingIdRef.current) {
       prevCurrentPlayingIdRef.current = currentId;
-      if (!deckTrackA && !isEjectedA && currentPlaying?.songRequest) {
-        loadTrackIntoDeckA(currentPlaying.songRequest, currentPlaying.youtubeVideoId);
+
+      if (!currentPlaying?.songRequest) return;
+
+      // Verificar si la pista ya está cargada en alguna de las bandejas
+      const currentReqId = currentPlaying.songRequest.id;
+      const isAlreadyInA = trackA?.id === currentReqId || videoIdA === currentPlaying.youtubeVideoId;
+      const isAlreadyInB = trackB?.id === currentReqId || videoIdB === currentPlaying.youtubeVideoId;
+
+      if (!isAlreadyInA && !isAlreadyInB) {
+        const target = determineFreeDeck("AUTO");
+        const title = currentPlaying.songRequest.song?.title || currentPlaying.songRequest.customTitle || "Tema";
+        const tableLabel = currentPlaying.songRequest.table?.label ? ` (${currentPlaying.songRequest.table.label})` : "";
+
+        if (target === "A") {
+          loadTrackIntoDeckA(currentPlaying.songRequest, currentPlaying.youtubeVideoId);
+          showFeedback("success", `🎧 Cargada en Bandeja A: "${title}"${tableLabel}`);
+        } else {
+          loadTrackIntoDeckB(currentPlaying.songRequest, currentPlaying.id, currentPlaying.youtubeVideoId);
+          showFeedback("success", `🎧 Cargada en Bandeja B: "${title}"${tableLabel}`);
+        }
       }
     }
-  }, [currentPlaying?.id, deckTrackA, isEjectedA]);
+  }, [currentPlaying?.id, trackA?.id, trackB?.id, isPlayingA, isPlayingB, crossfaderValue]);
 
   // Detección inteligente de dirección para Auto-Enganche según la bandeja que está al aire
   useEffect(() => {
