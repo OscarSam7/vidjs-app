@@ -424,74 +424,160 @@ export default function VirtualDjConsole({
     djSoundEffects.playCueClick();
   };
 
-  // Reset Pitch Deck A (2 toques: 1° activar, 2° acción)
-  const [resetArmedA, setResetArmedA] = useState(false);
-  const [resetSuccessA, setResetSuccessA] = useState(false);
-  const resetTimeoutRefA = useRef<NodeJS.Timeout | null>(null);
+  // 1. Reset Pitch Deck A (2 toques síncronos: 1° activar, 2° acción)
+  const resetArmedPitchARef = useRef(false);
+  const [resetArmedPitchA, setResetArmedPitchA] = useState(false);
+  const [resetSuccessPitchA, setResetSuccessPitchA] = useState(false);
+  const resetTimerPitchARef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleResetPitchA = () => {
-    if (!resetArmedA) {
-      setResetArmedA(true);
-      if (resetTimeoutRefA.current) clearTimeout(resetTimeoutRefA.current);
-      resetTimeoutRefA.current = setTimeout(() => {
-        setResetArmedA(false);
-      }, 3500);
+  const handleResetPitchA = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!resetArmedPitchARef.current) {
+      // 1er toque: Activar
+      resetArmedPitchARef.current = true;
+      setResetArmedPitchA(true);
+      if (resetTimerPitchARef.current) clearTimeout(resetTimerPitchARef.current);
+      resetTimerPitchARef.current = setTimeout(() => {
+        resetArmedPitchARef.current = false;
+        setResetArmedPitchA(false);
+      }, 4000);
       djSoundEffects.playCueClick();
     } else {
-      if (resetTimeoutRefA.current) clearTimeout(resetTimeoutRefA.current);
+      // 2do toque: Acción
+      if (resetTimerPitchARef.current) clearTimeout(resetTimerPitchARef.current);
+      resetArmedPitchARef.current = false;
+      setResetArmedPitchA(false);
       setPitchA(0);
-      setResetArmedA(false);
-      setResetSuccessA(true);
+      setResetSuccessPitchA(true);
       djSoundEffects.playCueClick();
-      setTimeout(() => setResetSuccessA(false), 1200);
+      setTimeout(() => setResetSuccessPitchA(false), 1500);
     }
   };
 
-  // Reset Pitch Deck B (2 toques: 1° activar, 2° acción)
-  const [resetArmedB, setResetArmedB] = useState(false);
-  const [resetSuccessB, setResetSuccessB] = useState(false);
-  const resetTimeoutRefB = useRef<NodeJS.Timeout | null>(null);
+  // 2. Reset Pitch Deck B (2 toques síncronos: 1° activar, 2° acción)
+  const resetArmedPitchBRef = useRef(false);
+  const [resetArmedPitchB, setResetArmedPitchB] = useState(false);
+  const [resetSuccessPitchB, setResetSuccessPitchB] = useState(false);
+  const resetTimerPitchBRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleResetPitchB = () => {
-    if (!resetArmedB) {
-      setResetArmedB(true);
-      if (resetTimeoutRefB.current) clearTimeout(resetTimeoutRefB.current);
-      resetTimeoutRefB.current = setTimeout(() => {
-        setResetArmedB(false);
-      }, 3500);
+  const handleResetPitchB = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!resetArmedPitchBRef.current) {
+      // 1er toque: Activar
+      resetArmedPitchBRef.current = true;
+      setResetArmedPitchB(true);
+      if (resetTimerPitchBRef.current) clearTimeout(resetTimerPitchBRef.current);
+      resetTimerPitchBRef.current = setTimeout(() => {
+        resetArmedPitchBRef.current = false;
+        setResetArmedPitchB(false);
+      }, 4000);
       djSoundEffects.playCueClick();
     } else {
-      if (resetTimeoutRefB.current) clearTimeout(resetTimeoutRefB.current);
+      // 2do toque: Acción
+      if (resetTimerPitchBRef.current) clearTimeout(resetTimerPitchBRef.current);
+      resetArmedPitchBRef.current = false;
+      setResetArmedPitchB(false);
       setPitchB(0);
       setIsSyncedB(false);
-      setResetArmedB(false);
-      setResetSuccessB(true);
+      setResetSuccessPitchB(true);
       djSoundEffects.playCueClick();
-      setTimeout(() => setResetSuccessB(false), 1200);
+      setTimeout(() => setResetSuccessPitchB(false), 1500);
     }
   };
 
-  // Reset / Centrar Crossfader (2 toques: 1° activar, 2° acción)
+  // 3. Reset / Centrar Crossfader (2 toques síncronos: 1° activar, 2° acción)
+  const resetCrossfaderArmedRef = useRef(false);
   const [resetCrossfaderArmed, setResetCrossfaderArmed] = useState(false);
-  const resetCrossfaderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [resetCrossfaderSuccess, setResetCrossfaderSuccess] = useState(false);
+  const resetCrossfaderTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleResetCrossfader = () => {
-    if (!isCrossfaderActive) {
-      handleActivateCrossfader();
-      return;
+  const handleResetCrossfader = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
-    if (!resetCrossfaderArmed) {
+    // Asegurar que el crossfader también se active
+    if (!isCrossfaderActive) {
+      setIsCrossfaderActive(true);
+      resetCrossfaderTimer();
+    }
+
+    if (!resetCrossfaderArmedRef.current) {
+      // 1er toque: Activar
+      resetCrossfaderArmedRef.current = true;
       setResetCrossfaderArmed(true);
-      if (resetCrossfaderTimeoutRef.current) clearTimeout(resetCrossfaderTimeoutRef.current);
-      resetCrossfaderTimeoutRef.current = setTimeout(() => {
+      if (resetCrossfaderTimerRef.current) clearTimeout(resetCrossfaderTimerRef.current);
+      resetCrossfaderTimerRef.current = setTimeout(() => {
+        resetCrossfaderArmedRef.current = false;
         setResetCrossfaderArmed(false);
-      }, 3500);
+      }, 4000);
       djSoundEffects.playCueClick();
     } else {
-      if (resetCrossfaderTimeoutRef.current) clearTimeout(resetCrossfaderTimeoutRef.current);
-      setCrossfaderValue(0);
+      // 2do toque: Acción
+      if (resetCrossfaderTimerRef.current) clearTimeout(resetCrossfaderTimerRef.current);
+      resetCrossfaderArmedRef.current = false;
       setResetCrossfaderArmed(false);
+      setCrossfaderValue(0);
+      setResetCrossfaderSuccess(true);
       resetCrossfaderTimer();
+      djSoundEffects.playCueClick();
+      setTimeout(() => setResetCrossfaderSuccess(false), 1500);
+    }
+  };
+
+  // 4. Reset / Limpiar Bandejas A y B (2 toques de seguridad)
+  const resetDeckARef = useRef(false);
+  const [resetDeckAState, setResetDeckAState] = useState(false);
+  const resetDeckATimer = useRef<NodeJS.Timeout | null>(null);
+
+  const handleSafeClearDeckA = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!resetDeckARef.current) {
+      resetDeckARef.current = true;
+      setResetDeckAState(true);
+      if (resetDeckATimer.current) clearTimeout(resetDeckATimer.current);
+      resetDeckATimer.current = setTimeout(() => {
+        resetDeckARef.current = false;
+        setResetDeckAState(false);
+      }, 4000);
+      djSoundEffects.playCueClick();
+    } else {
+      if (resetDeckATimer.current) clearTimeout(resetDeckATimer.current);
+      resetDeckARef.current = false;
+      setResetDeckAState(false);
+      handleClearDeckA();
+      djSoundEffects.playCueClick();
+    }
+  };
+
+  const resetDeckBRef = useRef(false);
+  const [resetDeckBState, setResetDeckBState] = useState(false);
+  const resetDeckBTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const handleSafeClearDeckB = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!resetDeckBRef.current) {
+      resetDeckBRef.current = true;
+      setResetDeckBState(true);
+      if (resetDeckBTimer.current) clearTimeout(resetDeckBTimer.current);
+      resetDeckBTimer.current = setTimeout(() => {
+        resetDeckBRef.current = false;
+        setResetDeckBState(false);
+      }, 4000);
+      djSoundEffects.playCueClick();
+    } else {
+      if (resetDeckBTimer.current) clearTimeout(resetDeckBTimer.current);
+      resetDeckBRef.current = false;
+      setResetDeckBState(false);
+      handleClearDeckB();
       djSoundEffects.playCueClick();
     }
   };
@@ -499,9 +585,11 @@ export default function VirtualDjConsole({
   useEffect(() => {
     return () => {
       if (crossfaderTimerRef.current) clearTimeout(crossfaderTimerRef.current);
-      if (resetTimeoutRefA.current) clearTimeout(resetTimeoutRefA.current);
-      if (resetTimeoutRefB.current) clearTimeout(resetTimeoutRefB.current);
-      if (resetCrossfaderTimeoutRef.current) clearTimeout(resetCrossfaderTimeoutRef.current);
+      if (resetTimerPitchARef.current) clearTimeout(resetTimerPitchARef.current);
+      if (resetTimerPitchBRef.current) clearTimeout(resetTimerPitchBRef.current);
+      if (resetCrossfaderTimerRef.current) clearTimeout(resetCrossfaderTimerRef.current);
+      if (resetDeckATimer.current) clearTimeout(resetDeckATimer.current);
+      if (resetDeckBTimer.current) clearTimeout(resetDeckBTimer.current);
     };
   }, []);
 
@@ -1891,16 +1979,20 @@ export default function VirtualDjConsole({
               {trackA && (
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleClearDeckA();
-                  }}
-                  className="px-2.5 py-1 rounded-lg bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 hover:border-red-600 text-red-300 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Limpiar bandeja A (Detener audio, desmontar y liberar memoria)"
+                  onClick={handleSafeClearDeckA}
+                  className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all cursor-pointer select-none ${
+                    resetDeckAState
+                      ? "bg-amber-500 border-amber-400 text-black font-black animate-pulse shadow-md scale-105"
+                      : "bg-red-950/40 hover:bg-red-900/60 border-red-800/60 hover:border-red-600 text-red-300"
+                  }`}
+                  title={
+                    resetDeckAState
+                      ? "2° toque: Toca para confirmar y limpiar/resetear la bandeja A"
+                      : "1° toque: Toca para activar reseteo/limpieza de bandeja A"
+                  }
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Limpiar</span>
+                  <span>{resetDeckAState ? "¿CONFIRMAR RESET?" : "Limpiar"}</span>
                 </button>
               )}
 
@@ -2179,20 +2271,20 @@ export default function VirtualDjConsole({
               <button
                 type="button"
                 onClick={handleResetPitchA}
-                className={`text-[9px] font-mono transition-all rounded px-1.5 py-0.5 cursor-pointer font-bold ${
-                  resetSuccessA
-                    ? "bg-emerald-500 text-black font-black shadow-sm"
-                    : resetArmedA
-                    ? "bg-amber-500 text-black font-black animate-pulse shadow-md"
-                    : "text-purple-400 hover:text-purple-300 hover:bg-purple-950/50 border border-transparent hover:border-purple-500/30"
+                className={`text-[9px] font-mono transition-all rounded px-2 py-0.5 cursor-pointer font-bold select-none ${
+                  resetSuccessPitchA
+                    ? "bg-emerald-500 text-black font-black shadow-md scale-105"
+                    : resetArmedPitchA
+                    ? "bg-amber-400 text-black font-black animate-pulse shadow-[0_0_10px_rgba(251,191,36,0.6)] scale-105"
+                    : "text-purple-300 hover:text-white bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/60 hover:border-purple-500"
                 }`}
                 title={
-                  resetArmedA
-                    ? "2° toque: Toca de nuevo para resetear Pitch a 0%"
+                  resetArmedPitchA
+                    ? "2° toque: Toca para resetear Pitch a 0%"
                     : "1° toque: Toca para activar reseteo a 0%"
                 }
               >
-                {resetSuccessA ? "✓ 0%" : resetArmedA ? "¿0%?" : "RESET"}
+                {resetSuccessPitchA ? "✓ 0.0%" : resetArmedPitchA ? "¿CONFIRMAR 0%?" : "RESET"}
               </button>
             </div>
           </div>
@@ -2623,17 +2715,21 @@ export default function VirtualDjConsole({
               <button
                 type="button"
                 onClick={handleResetCrossfader}
-                className={`flex-1 py-1 px-1.5 rounded text-[9px] font-mono font-bold transition-all flex items-center justify-center gap-1 ${
-                  resetCrossfaderArmed
-                    ? "bg-amber-500 text-black font-black animate-pulse shadow-md"
+                className={`flex-1 py-1 px-1.5 rounded text-[9px] font-mono font-bold transition-all flex items-center justify-center gap-1 select-none cursor-pointer ${
+                  resetCrossfaderSuccess
+                    ? "bg-emerald-500 text-black font-black shadow-md scale-105"
+                    : resetCrossfaderArmed
+                    ? "bg-amber-400 text-black font-black animate-pulse shadow-[0_0_10px_rgba(251,191,36,0.6)] scale-105"
                     : crossfaderValue === 0
-                    ? "bg-zinc-800 text-white border border-zinc-700"
+                    ? "bg-zinc-800 text-zinc-300 border border-zinc-700"
                     : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800"
                 }`}
-                title="Resetear Crossfader al Centro (50/50) con doble toque"
+                title="Resetear Crossfader al Centro (50/50) en 2 toques"
               >
-                {resetCrossfaderArmed ? (
-                  <span>¿0% CENTRO?</span>
+                {resetCrossfaderSuccess ? (
+                  <span>✓ 50/50</span>
+                ) : resetCrossfaderArmed ? (
+                  <span>¿CONFIRMAR 50/50?</span>
                 ) : (
                   <span>RESET (50/50)</span>
                 )}
@@ -2688,16 +2784,20 @@ export default function VirtualDjConsole({
               {trackB && (
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleClearDeckB();
-                  }}
-                  className="px-2.5 py-1 rounded-lg bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 hover:border-red-600 text-red-300 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Limpiar bandeja B (Detener audio, desmontar y liberar memoria)"
+                  onClick={handleSafeClearDeckB}
+                  className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all cursor-pointer select-none ${
+                    resetDeckBState
+                      ? "bg-amber-500 border-amber-400 text-black font-black animate-pulse shadow-md scale-105"
+                      : "bg-red-950/40 hover:bg-red-900/60 border-red-800/60 hover:border-red-600 text-red-300"
+                  }`}
+                  title={
+                    resetDeckBState
+                      ? "2° toque: Toca para confirmar y limpiar/resetear la bandeja B"
+                      : "1° toque: Toca para activar reseteo/limpieza de bandeja B"
+                  }
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Limpiar</span>
+                  <span>{resetDeckBState ? "¿CONFIRMAR RESET?" : "Limpiar"}</span>
                 </button>
               )}
 
@@ -2925,20 +3025,20 @@ export default function VirtualDjConsole({
               <button
                 type="button"
                 onClick={handleResetPitchB}
-                className={`text-[9px] font-mono transition-all rounded px-1.5 py-0.5 cursor-pointer font-bold ${
-                  resetSuccessB
-                    ? "bg-emerald-500 text-black font-black shadow-sm"
-                    : resetArmedB
-                    ? "bg-amber-500 text-black font-black animate-pulse shadow-md"
-                    : "text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/50 border border-transparent hover:border-cyan-500/30"
+                className={`text-[9px] font-mono transition-all rounded px-2 py-0.5 cursor-pointer font-bold select-none ${
+                  resetSuccessPitchB
+                    ? "bg-emerald-500 text-black font-black shadow-md scale-105"
+                    : resetArmedPitchB
+                    ? "bg-amber-400 text-black font-black animate-pulse shadow-[0_0_10px_rgba(251,191,36,0.6)] scale-105"
+                    : "text-cyan-300 hover:text-white bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/60 hover:border-cyan-500"
                 }`}
                 title={
-                  resetArmedB
-                    ? "2° toque: Toca de nuevo para resetear Pitch a 0%"
+                  resetArmedPitchB
+                    ? "2° toque: Toca para resetear Pitch a 0%"
                     : "1° toque: Toca para activar reseteo a 0%"
                 }
               >
-                {resetSuccessB ? "✓ 0%" : resetArmedB ? "¿0%?" : "RESET"}
+                {resetSuccessPitchB ? "✓ 0.0%" : resetArmedPitchB ? "¿CONFIRMAR 0%?" : "RESET"}
               </button>
             </div>
 
