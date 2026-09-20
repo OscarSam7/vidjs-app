@@ -2854,26 +2854,16 @@ export default function VirtualDjConsole({
           </div>
 
           {/* CROSSFADER SLIDER CON ACTIVACIÓN EN DOS TOQUES */}
-          <div className={`w-full space-y-1.5 pt-2 border-t transition-all rounded-xl p-2 ${
+          <div className={`w-full space-y-2 pt-2 border-t transition-all rounded-xl p-2.5 ${
             isCrossfaderActive
               ? "bg-purple-950/20 border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
               : "bg-zinc-950/40 border-zinc-900"
           }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] uppercase font-bold text-zinc-400">Crossfader</span>
-                {isCrossfaderActive ? (
-                  <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase text-emerald-300 bg-emerald-950/80 border border-emerald-500/60 px-1.5 py-0.2 rounded-full animate-pulse">
-                    <Unlock className="w-2.5 h-2.5 text-emerald-400" />
-                    <span>Activo (Desliza)</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-[8px] font-bold text-zinc-500 bg-zinc-900 px-1.5 py-0.2 rounded-full border border-zinc-800">
-                    <Lock className="w-2.5 h-2.5 text-zinc-500" />
-                    <span>2 Toques</span>
-                  </span>
-                )}
-              </div>
+            {/* Header del Crossfader: Justificado y con botón de estado sin desborde */}
+            <div className="flex items-center justify-between w-full">
+              <span className="text-[10px] uppercase font-black tracking-wider text-zinc-300">
+                Crossfader
+              </span>
 
               <button
                 type="button"
@@ -2885,37 +2875,37 @@ export default function VirtualDjConsole({
                     handleActivateCrossfader();
                   }
                 }}
-                className={`text-[9px] font-bold px-2 py-0.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
+                className={`px-2 py-0.5 rounded-full text-[9px] font-bold border transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap select-none ${
                   isCrossfaderActive
-                    ? "bg-emerald-600/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-600/30"
-                    : "bg-zinc-900 hover:bg-zinc-800 border-zinc-800 text-zinc-400 hover:text-white"
+                    ? "bg-emerald-950/80 border-emerald-500/60 text-emerald-300 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse"
+                    : "bg-zinc-900 hover:bg-zinc-800 border-zinc-700/80 text-zinc-400 hover:text-white"
                 }`}
-                title={isCrossfaderActive ? "Toca para bloquear crossfader" : "1er toque: Toca para activar crossfader"}
+                title={isCrossfaderActive ? "Crossfader activo (toca para bloquear)" : "1er toque: Toca para activar crossfader"}
               >
                 {isCrossfaderActive ? (
                   <>
-                    <Unlock className="w-2.5 h-2.5 text-emerald-400" />
-                    <span>Bloquear</span>
+                    <Unlock className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                    <span>Activo</span>
                   </>
                 ) : (
                   <>
-                    <Lock className="w-2.5 h-2.5 text-purple-400" />
-                    <span>Tocar para Activar</span>
+                    <Lock className="w-2.5 h-2.5 text-purple-400 shrink-0" />
+                    <span>2 Toques</span>
                   </>
                 )}
               </button>
             </div>
 
             {/* Pista del slider con Overlay protector para el 1er toque */}
-            <div className="relative py-1 touch-pan-y">
+            <div className="relative py-1.5 touch-pan-y w-full">
               {!isCrossfaderActive && (
                 <div
                   onClick={handleActivateCrossfader}
-                  className="absolute inset-0 z-20 cursor-pointer flex items-center justify-center rounded-lg bg-zinc-950/75 border border-dashed border-purple-500/40 hover:border-purple-400 transition-all backdrop-blur-[0.5px] group touch-pan-y select-none"
+                  className="absolute inset-0 z-20 cursor-pointer flex items-center justify-center rounded-lg bg-zinc-950/80 border border-dashed border-purple-500/40 hover:border-purple-400 transition-all backdrop-blur-[1px] group touch-pan-y select-none"
                   title="Primer toque: Toca para activar el crossfader"
                 >
-                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-900/90 border border-zinc-700 text-zinc-300 text-[10px] font-bold shadow-md group-hover:scale-105 group-hover:border-purple-500 transition-all">
-                    <Lock className="w-3 h-3 text-purple-400" />
+                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-900/95 border border-purple-500/40 text-purple-200 text-[9px] font-bold shadow-md group-hover:scale-105 group-hover:border-purple-400 transition-all whitespace-nowrap">
+                    <Lock className="w-2.5 h-2.5 text-purple-400 shrink-0" />
                     <span>1er toque para activar</span>
                   </div>
                 </div>
@@ -2935,23 +2925,42 @@ export default function VirtualDjConsole({
                 className={`w-full accent-purple-500 h-2.5 bg-zinc-800 rounded-lg appearance-none transition-all ${
                   isCrossfaderActive
                     ? "cursor-pointer ring-2 ring-purple-500/40 shadow-md shadow-purple-500/20"
-                    : "opacity-40 cursor-not-allowed"
+                    : "opacity-30 cursor-not-allowed"
                 }`}
               />
             </div>
 
-            {/* Medidores de ganancia Deck A vs Deck B */}
-            <div className="flex justify-between text-[9px] font-mono font-bold text-zinc-400 px-0.5">
-              <span className={crossfaderValue < -20 ? "text-purple-400 font-black" : ""}>
-                A: {Math.round(crossfaderGains.gainA * 100)}%
-              </span>
-              <span className={crossfaderValue > 20 ? "text-cyan-400 font-black" : ""}>
-                B: {Math.round(crossfaderGains.gainB * 100)}%
-              </span>
+            {/* Medidores de ganancia Deck A vs Deck B con Justificación de 3 Columnas */}
+            <div className="grid grid-cols-3 items-center text-[9px] font-mono font-bold px-0.5 text-zinc-400 w-full">
+              <div className="text-left">
+                <span className={crossfaderValue < -10 ? "text-purple-400 font-black" : "text-zinc-400"}>
+                  A: {Math.round(crossfaderGains.gainA * 100)}%
+                </span>
+              </div>
+              <div className="text-center">
+                <span
+                  className={`px-1.5 py-0.5 rounded text-[8px] tracking-tight ${
+                    crossfaderValue === 0
+                      ? "bg-emerald-950/70 border border-emerald-600/50 text-emerald-300 font-black"
+                      : "text-zinc-500"
+                  }`}
+                >
+                  {crossfaderValue === 0
+                    ? "50 / 50"
+                    : crossfaderValue < 0
+                    ? `◀ A ${Math.abs(crossfaderValue)}%`
+                    : `B ${crossfaderValue}% ▶`}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className={crossfaderValue > 10 ? "text-cyan-400 font-black" : "text-zinc-400"}>
+                  B: {Math.round(crossfaderGains.gainB * 100)}%
+                </span>
+              </div>
             </div>
 
-            {/* Acceso rápido a posiciones (A / Centrar / B) */}
-            <div className="flex items-center justify-between gap-1.5 pt-1">
+            {/* Acceso rápido a posiciones (A / Centrar / B) - Justificado en Grilla de 3 Columnas */}
+            <div className="grid grid-cols-3 gap-1.5 pt-0.5 w-full">
               <button
                 type="button"
                 onClick={() => {
@@ -2962,20 +2971,20 @@ export default function VirtualDjConsole({
                     resetCrossfaderTimer();
                   }
                 }}
-                className={`flex-1 py-1 px-1.5 rounded text-[9px] font-mono font-bold transition-all ${
+                className={`py-1.5 px-1 rounded-lg text-[9px] font-mono font-bold transition-all whitespace-nowrap flex items-center justify-center gap-1 cursor-pointer ${
                   crossfaderValue === -100
-                    ? "bg-purple-600 text-white shadow-sm"
+                    ? "bg-purple-600 text-white shadow-sm font-black"
                     : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-purple-300 border border-zinc-800"
                 }`}
-                title="Ir a Deck A (100%)"
+                title="Llevar crossfader a Deck A (100%)"
               >
-                ◀ Deck A
+                <span>◀ A</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleResetCrossfader}
-                className={`flex-1 py-1 px-1.5 rounded text-[9px] font-mono font-bold transition-all flex items-center justify-center gap-1 select-none cursor-pointer ${
+                className={`py-1.5 px-1 rounded-lg text-[9px] font-mono font-bold transition-all flex items-center justify-center whitespace-nowrap select-none cursor-pointer ${
                   resetCrossfaderSuccess
                     ? "bg-emerald-500 text-black font-black shadow-md scale-105"
                     : resetCrossfaderArmed
@@ -2989,9 +2998,9 @@ export default function VirtualDjConsole({
                 {resetCrossfaderSuccess ? (
                   <span>✓ 50/50</span>
                 ) : resetCrossfaderArmed ? (
-                  <span>¿CONFIRMAR 50/50?</span>
+                  <span>¿CONFIRMAR?</span>
                 ) : (
-                  <span>RESET (50/50)</span>
+                  <span>RESET</span>
                 )}
               </button>
 
@@ -3005,14 +3014,14 @@ export default function VirtualDjConsole({
                     resetCrossfaderTimer();
                   }
                 }}
-                className={`flex-1 py-1 px-1.5 rounded text-[9px] font-mono font-bold transition-all ${
+                className={`py-1.5 px-1 rounded-lg text-[9px] font-mono font-bold transition-all whitespace-nowrap flex items-center justify-center gap-1 cursor-pointer ${
                   crossfaderValue === 100
-                    ? "bg-cyan-600 text-white shadow-sm"
+                    ? "bg-cyan-600 text-white shadow-sm font-black"
                     : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-cyan-300 border border-zinc-800"
                 }`}
-                title="Ir a Deck B (100%)"
+                title="Llevar crossfader a Deck B (100%)"
               >
-                Deck B ▶
+                <span>B ▶</span>
               </button>
             </div>
           </div>
