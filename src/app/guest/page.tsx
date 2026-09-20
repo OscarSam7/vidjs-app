@@ -295,10 +295,16 @@ function GuestContent() {
 
   const handleGoBack = () => {
     if (typeof window !== "undefined") {
-      if (window.history.length > 1) {
+      const ref = document.referrer;
+      if (
+        window.history.length > 1 &&
+        ref &&
+        !ref.endsWith("/guest") &&
+        !ref.endsWith("/")
+      ) {
         window.history.back();
       } else {
-        window.location.href = "/";
+        window.location.href = "/display";
       }
     }
   };
@@ -766,6 +772,20 @@ function GuestContent() {
     setIsCustomModalOpen(true);
   };
 
+  if (loadingSession) {
+    return (
+      <div className="p-6 text-center my-auto space-y-4 max-w-sm mx-auto w-full flex flex-col items-center justify-center">
+        <div className="w-16 h-16 rounded-2xl bg-purple-600/10 border border-purple-500/30 text-purple-400 flex items-center justify-center glow-purple">
+          <Disc3 className="w-8 h-8 animate-spin text-purple-400" />
+        </div>
+        <div className="space-y-1">
+          <h3 className="text-sm font-bold text-white">Cargando experiencia...</h3>
+          <p className="text-xs text-zinc-500">Conectando con el salón</p>
+        </div>
+      </div>
+    );
+  }
+
   if (errorParam === "no_active_event") {
     return (
       <div className="p-6 text-center my-auto space-y-4 max-w-sm mx-auto w-full">
@@ -774,7 +794,7 @@ function GuestContent() {
             type="button"
             onClick={handleGoBack}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
-            title="Volver atrás"
+            title="Volver a eventos"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-amber-400" />
             <span>Volver</span>
@@ -797,7 +817,7 @@ function GuestContent() {
             className="w-full py-2.5 px-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
           >
             <ArrowLeft className="w-4 h-4 text-amber-400" />
-            <span>Volver atrás</span>
+            <span>Volver al menú</span>
           </button>
         </div>
       </div>
@@ -812,7 +832,7 @@ function GuestContent() {
             type="button"
             onClick={handleGoBack}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
-            title="Volver atrás"
+            title="Volver a eventos"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-red-400" />
             <span>Volver</span>
@@ -832,7 +852,7 @@ function GuestContent() {
             className="w-full py-2.5 px-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
           >
             <ArrowLeft className="w-4 h-4 text-red-400" />
-            <span>Volver atrás</span>
+            <span>Volver al menú</span>
           </button>
         </div>
       </div>
@@ -842,17 +862,26 @@ function GuestContent() {
   if (!loadingSession && !session) {
     return (
       <div className="p-6 text-center my-auto space-y-6 max-w-sm mx-auto w-full">
-        {/* Botón superior para volver */}
-        <div className="w-full flex items-center justify-start">
+        {/* Barra superior con botón Volver y acceso administrativo */}
+        <div className="w-full flex items-center justify-between">
           <button
             type="button"
             onClick={handleGoBack}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
-            title="Volver a la página anterior"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
+            title="Volver al menú anterior"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-purple-400" />
             <span>Volver</span>
           </button>
+
+          <a
+            href="/dashboard/dj"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-900/70 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-purple-300 text-[11px] font-bold transition-all cursor-pointer"
+            title="Ir a la cabina del DJ"
+          >
+            <Headphones className="w-3.5 h-3.5 text-purple-400" />
+            <span>Cabina DJ</span>
+          </a>
         </div>
 
         <div className="w-16 h-16 rounded-2xl bg-purple-600/10 border border-purple-500/30 text-purple-400 mx-auto flex items-center justify-center glow-purple">
@@ -905,16 +934,24 @@ function GuestContent() {
           </a>
         </div>
 
-        {/* Botón inferior para volver */}
-        <div className="pt-2 border-t border-zinc-800/80">
+        {/* Opciones de salida y navegación inferior */}
+        <div className="pt-2 border-t border-zinc-800/80 space-y-2">
           <button
             type="button"
             onClick={handleGoBack}
             className="w-full py-2.5 px-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
           >
             <ArrowLeft className="w-4 h-4 text-purple-400" />
-            <span>Volver atrás</span>
+            <span>Volver al Lanzador de Eventos</span>
           </button>
+
+          <a
+            href="/dashboard/dj"
+            className="w-full py-2 px-4 rounded-xl bg-purple-950/20 hover:bg-purple-900/40 border border-purple-800/30 text-purple-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <Headphones className="w-3.5 h-3.5 text-purple-400" />
+            <span>Ir a la Consola DJ / Cabina</span>
+          </a>
         </div>
       </div>
     );
