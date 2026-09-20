@@ -27,6 +27,8 @@ import {
   Trash2,
   Upload,
   FileAudio,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { calculateCrossfaderGains, djSoundEffects, webDjEngine, AudioLevels } from "@/lib/audio/dj-audio-engine";
 
@@ -404,6 +406,104 @@ export default function VirtualDjConsole({
 
   // ==================== BEAT TICK ANIMATION & PHASE ====================
   const [beatPhase, setBeatPhase] = useState(1); // 1, 2, 3, 4
+
+  // ==================== 2-TOUCH SAFETY: CROSSFADER & RESET ====================
+  const [isCrossfaderActive, setIsCrossfaderActive] = useState(false);
+  const crossfaderTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const resetCrossfaderTimer = () => {
+    if (crossfaderTimerRef.current) clearTimeout(crossfaderTimerRef.current);
+    crossfaderTimerRef.current = setTimeout(() => {
+      setIsCrossfaderActive(false);
+    }, 6000); // 6s de inactividad antes de re-bloquear
+  };
+
+  const handleActivateCrossfader = () => {
+    setIsCrossfaderActive(true);
+    resetCrossfaderTimer();
+    djSoundEffects.playCueClick();
+  };
+
+  // Reset Pitch Deck A (2 toques: 1° activar, 2° acción)
+  const [resetArmedA, setResetArmedA] = useState(false);
+  const [resetSuccessA, setResetSuccessA] = useState(false);
+  const resetTimeoutRefA = useRef<NodeJS.Timeout | null>(null);
+
+  const handleResetPitchA = () => {
+    if (!resetArmedA) {
+      setResetArmedA(true);
+      if (resetTimeoutRefA.current) clearTimeout(resetTimeoutRefA.current);
+      resetTimeoutRefA.current = setTimeout(() => {
+        setResetArmedA(false);
+      }, 3500);
+      djSoundEffects.playCueClick();
+    } else {
+      if (resetTimeoutRefA.current) clearTimeout(resetTimeoutRefA.current);
+      setPitchA(0);
+      setResetArmedA(false);
+      setResetSuccessA(true);
+      djSoundEffects.playCueClick();
+      setTimeout(() => setResetSuccessA(false), 1200);
+    }
+  };
+
+  // Reset Pitch Deck B (2 toques: 1° activar, 2° acción)
+  const [resetArmedB, setResetArmedB] = useState(false);
+  const [resetSuccessB, setResetSuccessB] = useState(false);
+  const resetTimeoutRefB = useRef<NodeJS.Timeout | null>(null);
+
+  const handleResetPitchB = () => {
+    if (!resetArmedB) {
+      setResetArmedB(true);
+      if (resetTimeoutRefB.current) clearTimeout(resetTimeoutRefB.current);
+      resetTimeoutRefB.current = setTimeout(() => {
+        setResetArmedB(false);
+      }, 3500);
+      djSoundEffects.playCueClick();
+    } else {
+      if (resetTimeoutRefB.current) clearTimeout(resetTimeoutRefB.current);
+      setPitchB(0);
+      setIsSyncedB(false);
+      setResetArmedB(false);
+      setResetSuccessB(true);
+      djSoundEffects.playCueClick();
+      setTimeout(() => setResetSuccessB(false), 1200);
+    }
+  };
+
+  // Reset / Centrar Crossfader (2 toques: 1° activar, 2° acción)
+  const [resetCrossfaderArmed, setResetCrossfaderArmed] = useState(false);
+  const resetCrossfaderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleResetCrossfader = () => {
+    if (!isCrossfaderActive) {
+      handleActivateCrossfader();
+      return;
+    }
+    if (!resetCrossfaderArmed) {
+      setResetCrossfaderArmed(true);
+      if (resetCrossfaderTimeoutRef.current) clearTimeout(resetCrossfaderTimeoutRef.current);
+      resetCrossfaderTimeoutRef.current = setTimeout(() => {
+        setResetCrossfaderArmed(false);
+      }, 3500);
+      djSoundEffects.playCueClick();
+    } else {
+      if (resetCrossfaderTimeoutRef.current) clearTimeout(resetCrossfaderTimeoutRef.current);
+      setCrossfaderValue(0);
+      setResetCrossfaderArmed(false);
+      resetCrossfaderTimer();
+      djSoundEffects.playCueClick();
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (crossfaderTimerRef.current) clearTimeout(crossfaderTimerRef.current);
+      if (resetTimeoutRefA.current) clearTimeout(resetTimeoutRefA.current);
+      if (resetTimeoutRefB.current) clearTimeout(resetTimeoutRefB.current);
+      if (resetCrossfaderTimeoutRef.current) clearTimeout(resetCrossfaderTimeoutRef.current);
+    };
+  }, []);
 
   // Determinar Track A (aislado por estado explícito)
   const trackA = isEjectedA ? null : (deckTrackA || manualTrackA || null);
@@ -2076,13 +2176,23 @@ export default function VirtualDjConsole({
                 onChange={(e) => setPitchA(Number(e.target.value))}
                 className="h-24 -rotate-90 w-24 accent-purple-500 cursor-pointer appearance-none bg-zinc-800 rounded-lg"
               />
-              <span className="text-[9px] font-mono text-zinc-400 font-bold">-8%</span>
               <button
-                onClick={() => setPitchA(0)}
-                className="text-[9px] font-mono text-purple-400 hover:underline cursor-pointer"
-                title="Resetear Pitch a 0%"
+                type="button"
+                onClick={handleResetPitchA}
+                className={`text-[9px] font-mono transition-all rounded px-1.5 py-0.5 cursor-pointer font-bold ${
+                  resetSuccessA
+                    ? "bg-emerald-500 text-black font-black shadow-sm"
+                    : resetArmedA
+                    ? "bg-amber-500 text-black font-black animate-pulse shadow-md"
+                    : "text-purple-400 hover:text-purple-300 hover:bg-purple-950/50 border border-transparent hover:border-purple-500/30"
+                }`}
+                title={
+                  resetArmedA
+                    ? "2° toque: Toca de nuevo para resetear Pitch a 0%"
+                    : "1° toque: Toca para activar reseteo a 0%"
+                }
               >
-                RESET
+                {resetSuccessA ? "✓ 0%" : resetArmedA ? "¿0%?" : "RESET"}
               </button>
             </div>
           </div>
@@ -2387,17 +2497,98 @@ export default function VirtualDjConsole({
             </div>
           </div>
 
-          {/* CROSSFADER SLIDER */}
-          <div className="w-full space-y-1.5 pt-2 border-t border-zinc-900">
-            <span className="text-[9px] uppercase font-bold text-zinc-500">Crossfader</span>
-            <input
-              type="range"
-              min={-100}
-              max={100}
-              value={crossfaderValue}
-              onChange={(e) => setCrossfaderValue(Number(e.target.value))}
-              className="w-full accent-purple-500 cursor-pointer h-2 bg-zinc-800 rounded-lg appearance-none"
-            />
+          {/* CROSSFADER SLIDER CON ACTIVACIÓN EN DOS TOQUES */}
+          <div className={`w-full space-y-1.5 pt-2 border-t transition-all rounded-xl p-2 ${
+            isCrossfaderActive
+              ? "bg-purple-950/20 border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
+              : "bg-zinc-950/40 border-zinc-900"
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] uppercase font-bold text-zinc-400">Crossfader</span>
+                {isCrossfaderActive ? (
+                  <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase text-emerald-300 bg-emerald-950/80 border border-emerald-500/60 px-1.5 py-0.2 rounded-full animate-pulse">
+                    <Unlock className="w-2.5 h-2.5 text-emerald-400" />
+                    <span>Activo (Desliza)</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[8px] font-bold text-zinc-500 bg-zinc-900 px-1.5 py-0.2 rounded-full border border-zinc-800">
+                    <Lock className="w-2.5 h-2.5 text-zinc-500" />
+                    <span>2 Toques</span>
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (isCrossfaderActive) {
+                    setIsCrossfaderActive(false);
+                    if (crossfaderTimerRef.current) clearTimeout(crossfaderTimerRef.current);
+                  } else {
+                    handleActivateCrossfader();
+                  }
+                }}
+                className={`text-[9px] font-bold px-2 py-0.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
+                  isCrossfaderActive
+                    ? "bg-emerald-600/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-600/30"
+                    : "bg-zinc-900 hover:bg-zinc-800 border-zinc-800 text-zinc-400 hover:text-white"
+                }`}
+                title={isCrossfaderActive ? "Toca para bloquear crossfader" : "1er toque: Toca para activar crossfader"}
+              >
+                {isCrossfaderActive ? (
+                  <>
+                    <Unlock className="w-2.5 h-2.5 text-emerald-400" />
+                    <span>Bloquear</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-2.5 h-2.5 text-purple-400" />
+                    <span>Tocar para Activar</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Pista del slider con Overlay protector para el 1er toque */}
+            <div className="relative py-1">
+              {!isCrossfaderActive && (
+                <div
+                  onClick={handleActivateCrossfader}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    handleActivateCrossfader();
+                  }}
+                  className="absolute inset-0 z-20 cursor-pointer flex items-center justify-center rounded-lg bg-zinc-950/75 border border-dashed border-purple-500/40 hover:border-purple-400 transition-all backdrop-blur-[0.5px] group"
+                  title="Primer toque: Toca para activar el crossfader"
+                >
+                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-900/90 border border-zinc-700 text-zinc-300 text-[10px] font-bold shadow-md group-hover:scale-105 group-hover:border-purple-500 transition-all">
+                    <Lock className="w-3 h-3 text-purple-400" />
+                    <span>1er toque para activar</span>
+                  </div>
+                </div>
+              )}
+
+              <input
+                type="range"
+                min={-100}
+                max={100}
+                disabled={!isCrossfaderActive}
+                value={crossfaderValue}
+                onChange={(e) => {
+                  setCrossfaderValue(Number(e.target.value));
+                  resetCrossfaderTimer();
+                }}
+                onPointerDown={resetCrossfaderTimer}
+                className={`w-full accent-purple-500 h-2.5 bg-zinc-800 rounded-lg appearance-none transition-all ${
+                  isCrossfaderActive
+                    ? "cursor-pointer ring-2 ring-purple-500/40 shadow-md shadow-purple-500/20"
+                    : "opacity-40 cursor-not-allowed"
+                }`}
+              />
+            </div>
+
+            {/* Medidores de ganancia Deck A vs Deck B */}
             <div className="flex justify-between text-[9px] font-mono font-bold text-zinc-400 px-0.5">
               <span className={crossfaderValue < -20 ? "text-purple-400 font-black" : ""}>
                 A: {Math.round(crossfaderGains.gainA * 100)}%
@@ -2406,12 +2597,68 @@ export default function VirtualDjConsole({
                 B: {Math.round(crossfaderGains.gainB * 100)}%
               </span>
             </div>
-            <button
-              onClick={() => setCrossfaderValue(0)}
-              className="text-[9px] text-zinc-500 hover:text-zinc-300 font-mono underline cursor-pointer"
-            >
-              Centrar (50/50)
-            </button>
+
+            {/* Acceso rápido a posiciones (A / Centrar / B) */}
+            <div className="flex items-center justify-between gap-1.5 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isCrossfaderActive) {
+                    handleActivateCrossfader();
+                  } else {
+                    setCrossfaderValue(-100);
+                    resetCrossfaderTimer();
+                  }
+                }}
+                className={`flex-1 py-1 px-1.5 rounded text-[9px] font-mono font-bold transition-all ${
+                  crossfaderValue === -100
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-purple-300 border border-zinc-800"
+                }`}
+                title="Ir a Deck A (100%)"
+              >
+                ◀ Deck A
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetCrossfader}
+                className={`flex-1 py-1 px-1.5 rounded text-[9px] font-mono font-bold transition-all flex items-center justify-center gap-1 ${
+                  resetCrossfaderArmed
+                    ? "bg-amber-500 text-black font-black animate-pulse shadow-md"
+                    : crossfaderValue === 0
+                    ? "bg-zinc-800 text-white border border-zinc-700"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800"
+                }`}
+                title="Resetear Crossfader al Centro (50/50) con doble toque"
+              >
+                {resetCrossfaderArmed ? (
+                  <span>¿0% CENTRO?</span>
+                ) : (
+                  <span>RESET (50/50)</span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isCrossfaderActive) {
+                    handleActivateCrossfader();
+                  } else {
+                    setCrossfaderValue(100);
+                    resetCrossfaderTimer();
+                  }
+                }}
+                className={`flex-1 py-1 px-1.5 rounded text-[9px] font-mono font-bold transition-all ${
+                  crossfaderValue === 100
+                    ? "bg-cyan-600 text-white shadow-sm"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-cyan-300 border border-zinc-800"
+                }`}
+                title="Ir a Deck B (100%)"
+              >
+                Deck B ▶
+              </button>
+            </div>
           </div>
         </div>
 
@@ -2675,16 +2922,23 @@ export default function VirtualDjConsole({
                 }}
                 className="h-24 -rotate-90 w-24 accent-cyan-400 cursor-pointer appearance-none bg-zinc-800 rounded-lg"
               />
-              <span className="text-[9px] font-mono text-zinc-400 font-bold">-8%</span>
               <button
-                onClick={() => {
-                  setPitchB(0);
-                  setIsSyncedB(false);
-                }}
-                className="text-[9px] font-mono text-cyan-400 hover:underline cursor-pointer"
-                title="Resetear Pitch a 0%"
+                type="button"
+                onClick={handleResetPitchB}
+                className={`text-[9px] font-mono transition-all rounded px-1.5 py-0.5 cursor-pointer font-bold ${
+                  resetSuccessB
+                    ? "bg-emerald-500 text-black font-black shadow-sm"
+                    : resetArmedB
+                    ? "bg-amber-500 text-black font-black animate-pulse shadow-md"
+                    : "text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/50 border border-transparent hover:border-cyan-500/30"
+                }`}
+                title={
+                  resetArmedB
+                    ? "2° toque: Toca de nuevo para resetear Pitch a 0%"
+                    : "1° toque: Toca para activar reseteo a 0%"
+                }
               >
-                RESET
+                {resetSuccessB ? "✓ 0%" : resetArmedB ? "¿0%?" : "RESET"}
               </button>
             </div>
 
