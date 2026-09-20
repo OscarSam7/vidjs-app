@@ -424,6 +424,39 @@ export default function VirtualDjConsole({
     djSoundEffects.playCueClick();
   };
 
+  // ==================== 2-TOUCH SAFETY: PITCH FADERS A & B ====================
+  const [isPitchActiveA, setIsPitchActiveA] = useState(false);
+  const pitchTimerARef = useRef<NodeJS.Timeout | null>(null);
+
+  const resetPitchTimerA = () => {
+    if (pitchTimerARef.current) clearTimeout(pitchTimerARef.current);
+    pitchTimerARef.current = setTimeout(() => {
+      setIsPitchActiveA(false);
+    }, 6000); // 6s de inactividad antes de re-bloquear
+  };
+
+  const handleActivatePitchA = () => {
+    setIsPitchActiveA(true);
+    resetPitchTimerA();
+    djSoundEffects.playCueClick();
+  };
+
+  const [isPitchActiveB, setIsPitchActiveB] = useState(false);
+  const pitchTimerBRef = useRef<NodeJS.Timeout | null>(null);
+
+  const resetPitchTimerB = () => {
+    if (pitchTimerBRef.current) clearTimeout(pitchTimerBRef.current);
+    pitchTimerBRef.current = setTimeout(() => {
+      setIsPitchActiveB(false);
+    }, 6000); // 6s de inactividad antes de re-bloquear
+  };
+
+  const handleActivatePitchB = () => {
+    setIsPitchActiveB(true);
+    resetPitchTimerB();
+    djSoundEffects.playCueClick();
+  };
+
   // 1. Reset Pitch Deck A (2 toques síncronos: 1° activar, 2° acción)
   const resetArmedPitchARef = useRef(false);
   const [resetArmedPitchA, setResetArmedPitchA] = useState(false);
@@ -585,6 +618,8 @@ export default function VirtualDjConsole({
   useEffect(() => {
     return () => {
       if (crossfaderTimerRef.current) clearTimeout(crossfaderTimerRef.current);
+      if (pitchTimerARef.current) clearTimeout(pitchTimerARef.current);
+      if (pitchTimerBRef.current) clearTimeout(pitchTimerBRef.current);
       if (resetTimerPitchARef.current) clearTimeout(resetTimerPitchARef.current);
       if (resetTimerPitchBRef.current) clearTimeout(resetTimerPitchBRef.current);
       if (resetCrossfaderTimerRef.current) clearTimeout(resetCrossfaderTimerRef.current);
@@ -2256,18 +2291,75 @@ export default function VirtualDjConsole({
               </div>
             </div>
 
-            {/* Pitch / Tempo Fader Vertical Deck A */}
-            <div className="flex flex-col items-center justify-between h-40 bg-zinc-950/80 p-2 rounded-xl border border-zinc-800">
-              <span className="text-[9px] font-mono text-zinc-400 font-bold">+8%</span>
-              <input
-                type="range"
-                min={-8}
-                max={8}
-                step={0.1}
-                value={pitchA}
-                onChange={(e) => setPitchA(Number(e.target.value))}
-                className="h-24 -rotate-90 w-24 accent-purple-500 cursor-pointer appearance-none bg-zinc-800 rounded-lg"
-              />
+            {/* Pitch / Tempo Fader Vertical Deck A (2-Toques Seguridad) */}
+            <div className="flex flex-col items-center justify-between h-40 w-20 bg-zinc-950/80 p-1.5 rounded-xl border border-zinc-800 touch-pan-y select-none relative">
+              {/* Indicador de Valor y Bloqueo / Desbloqueo */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (isPitchActiveA) {
+                    setIsPitchActiveA(false);
+                    if (pitchTimerARef.current) clearTimeout(pitchTimerARef.current);
+                  } else {
+                    handleActivatePitchA();
+                  }
+                }}
+                className={`flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold transition-all cursor-pointer ${
+                  isPitchActiveA
+                    ? "bg-purple-950 border border-purple-400 text-purple-200 shadow-sm animate-pulse"
+                    : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-300"
+                }`}
+                title={isPitchActiveA ? "Pitch activo (toca para bloquear)" : "1° toque: Toca para activar ajuste de tempo"}
+              >
+                {isPitchActiveA ? (
+                  <>
+                    <Unlock className="w-2.5 h-2.5 text-purple-400 shrink-0" />
+                    <span>{pitchA >= 0 ? `+${pitchA.toFixed(1)}%` : `${pitchA.toFixed(1)}%`}</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-2.5 h-2.5 text-zinc-500 shrink-0" />
+                    <span>{pitchA >= 0 ? `+${pitchA.toFixed(1)}%` : `${pitchA.toFixed(1)}%`}</span>
+                  </>
+                )}
+              </button>
+
+              {/* Slider con Overlay protector para el 1er toque y libre scroll vertical */}
+              <div className="relative flex items-center justify-center my-auto w-20 h-24 touch-pan-y">
+                {!isPitchActiveA && (
+                  <div
+                    onClick={handleActivatePitchA}
+                    className="absolute inset-0 z-10 cursor-pointer flex flex-col items-center justify-center rounded-lg bg-zinc-950/75 border border-dashed border-purple-500/40 hover:border-purple-400 transition-all touch-pan-y select-none group"
+                    title="1er toque: Toca para activar y mover el tempo"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
+                    <span className="text-[7.5px] font-mono text-zinc-400 group-hover:text-purple-300 mt-0.5 text-center font-bold px-0.5 leading-tight">
+                      1° toque activar
+                    </span>
+                  </div>
+                )}
+
+                <input
+                  type="range"
+                  min={-8}
+                  max={8}
+                  step={0.1}
+                  disabled={!isPitchActiveA}
+                  value={pitchA}
+                  onChange={(e) => {
+                    setPitchA(Number(e.target.value));
+                    resetPitchTimerA();
+                  }}
+                  onPointerDown={resetPitchTimerA}
+                  className={`h-24 -rotate-90 w-24 accent-purple-500 appearance-none bg-zinc-800 rounded-lg transition-all ${
+                    isPitchActiveA
+                      ? "cursor-pointer ring-1 ring-purple-500/50 shadow-sm shadow-purple-500/20"
+                      : "opacity-40 pointer-events-none cursor-not-allowed"
+                  }`}
+                />
+              </div>
+
+              {/* Botón RESET con confirmación en 2 toques */}
               <button
                 type="button"
                 onClick={handleResetPitchA}
@@ -2643,15 +2735,11 @@ export default function VirtualDjConsole({
             </div>
 
             {/* Pista del slider con Overlay protector para el 1er toque */}
-            <div className="relative py-1">
+            <div className="relative py-1 touch-pan-y">
               {!isCrossfaderActive && (
                 <div
                   onClick={handleActivateCrossfader}
-                  onTouchStart={(e) => {
-                    e.preventDefault();
-                    handleActivateCrossfader();
-                  }}
-                  className="absolute inset-0 z-20 cursor-pointer flex items-center justify-center rounded-lg bg-zinc-950/75 border border-dashed border-purple-500/40 hover:border-purple-400 transition-all backdrop-blur-[0.5px] group"
+                  className="absolute inset-0 z-20 cursor-pointer flex items-center justify-center rounded-lg bg-zinc-950/75 border border-dashed border-purple-500/40 hover:border-purple-400 transition-all backdrop-blur-[0.5px] group touch-pan-y select-none"
                   title="Primer toque: Toca para activar el crossfader"
                 >
                   <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-900/90 border border-zinc-700 text-zinc-300 text-[10px] font-bold shadow-md group-hover:scale-105 group-hover:border-purple-500 transition-all">
@@ -3007,21 +3095,76 @@ export default function VirtualDjConsole({
 
           {/* Platter / Jogwheel Deck B & Pitch Fader */}
           <div className="flex items-center justify-around sm:justify-between gap-3 sm:gap-4 py-2 w-full">
-            {/* Pitch / Tempo Fader Vertical Deck B */}
-            <div className="flex flex-col items-center justify-between h-40 bg-zinc-950/80 p-2 rounded-xl border border-zinc-800">
-              <span className="text-[9px] font-mono text-zinc-400 font-bold">+8%</span>
-              <input
-                type="range"
-                min={-8}
-                max={8}
-                step={0.1}
-                value={pitchB}
-                onChange={(e) => {
-                  setPitchB(Number(e.target.value));
-                  setIsSyncedB(false);
+            {/* Pitch / Tempo Fader Vertical Deck B (2-Toques Seguridad) */}
+            <div className="flex flex-col items-center justify-between h-40 w-20 bg-zinc-950/80 p-1.5 rounded-xl border border-zinc-800 touch-pan-y select-none relative">
+              {/* Indicador de Valor y Bloqueo / Desbloqueo */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (isPitchActiveB) {
+                    setIsPitchActiveB(false);
+                    if (pitchTimerBRef.current) clearTimeout(pitchTimerBRef.current);
+                  } else {
+                    handleActivatePitchB();
+                  }
                 }}
-                className="h-24 -rotate-90 w-24 accent-cyan-400 cursor-pointer appearance-none bg-zinc-800 rounded-lg"
-              />
+                className={`flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold transition-all cursor-pointer ${
+                  isPitchActiveB
+                    ? "bg-cyan-950 border border-cyan-400 text-cyan-200 shadow-sm animate-pulse"
+                    : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-300"
+                }`}
+                title={isPitchActiveB ? "Pitch activo (toca para bloquear)" : "1° toque: Toca para activar ajuste de tempo"}
+              >
+                {isPitchActiveB ? (
+                  <>
+                    <Unlock className="w-2.5 h-2.5 text-cyan-400 shrink-0" />
+                    <span>{pitchB >= 0 ? `+${pitchB.toFixed(1)}%` : `${pitchB.toFixed(1)}%`}</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-2.5 h-2.5 text-zinc-500 shrink-0" />
+                    <span>{pitchB >= 0 ? `+${pitchB.toFixed(1)}%` : `${pitchB.toFixed(1)}%`}</span>
+                  </>
+                )}
+              </button>
+
+              {/* Slider con Overlay protector para el 1er toque y libre scroll vertical */}
+              <div className="relative flex items-center justify-center my-auto w-20 h-24 touch-pan-y">
+                {!isPitchActiveB && (
+                  <div
+                    onClick={handleActivatePitchB}
+                    className="absolute inset-0 z-10 cursor-pointer flex flex-col items-center justify-center rounded-lg bg-zinc-950/75 border border-dashed border-cyan-500/40 hover:border-cyan-400 transition-all touch-pan-y select-none group"
+                    title="1er toque: Toca para activar y mover el tempo"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+                    <span className="text-[7.5px] font-mono text-zinc-400 group-hover:text-cyan-300 mt-0.5 text-center font-bold px-0.5 leading-tight">
+                      1° toque activar
+                    </span>
+                  </div>
+                )}
+
+                <input
+                  type="range"
+                  min={-8}
+                  max={8}
+                  step={0.1}
+                  disabled={!isPitchActiveB}
+                  value={pitchB}
+                  onChange={(e) => {
+                    setPitchB(Number(e.target.value));
+                    setIsSyncedB(false);
+                    resetPitchTimerB();
+                  }}
+                  onPointerDown={resetPitchTimerB}
+                  className={`h-24 -rotate-90 w-24 accent-cyan-400 appearance-none bg-zinc-800 rounded-lg transition-all ${
+                    isPitchActiveB
+                      ? "cursor-pointer ring-1 ring-cyan-500/50 shadow-sm shadow-cyan-500/20"
+                      : "opacity-40 pointer-events-none cursor-not-allowed"
+                  }`}
+                />
+              </div>
+
+              {/* Botón RESET con confirmación en 2 toques */}
               <button
                 type="button"
                 onClick={handleResetPitchB}
