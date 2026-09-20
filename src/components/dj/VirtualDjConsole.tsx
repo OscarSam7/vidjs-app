@@ -801,6 +801,54 @@ export default function VirtualDjConsole({
     }
   }, []);
 
+  // ==================== SCREEN WAKE LOCK & BACKGROUND PLAYBACK ====================
+  const wakeLockRef = useRef<any>(null);
+
+  const requestWakeLock = async () => {
+    if (typeof window === "undefined" || !("wakeLock" in navigator)) return;
+    try {
+      if (document.visibilityState === "visible") {
+        wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
+      }
+    } catch {
+      // Silencioso si la batería está baja o ventana no enfocada
+    }
+  };
+
+  useEffect(() => {
+    requestWakeLock();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        requestWakeLock();
+        // Re-desbloquear AudioContext si fue suspendido por el navegador en segundo plano
+        webDjEngine.unlock();
+        // Reanudar reproducción en YouTube iframes si estaban reproduciendo
+        if (isPlayingA && iframeRefA.current) {
+          sendPlayerCommand(iframeRefA.current, "unMute");
+          sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+          sendPlayerCommand(iframeRefA.current, "playVideo");
+        }
+        if (isPlayingB && iframeRefB.current) {
+          sendPlayerCommand(iframeRefB.current, "unMute");
+          sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+          sendPlayerCommand(iframeRefB.current, "playVideo");
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {});
+        wakeLockRef.current = null;
+      }
+    };
+  }, [isPlayingA, isPlayingB, effectiveVolA, effectiveVolB]);
+
+
+
   // Conectar elementos de audio nativo al grafo de Web Audio API
   useEffect(() => {
     if (audioRefA.current) {
@@ -1045,6 +1093,40 @@ export default function VirtualDjConsole({
     }
   };
 
+  // Actualizar MediaSession para control y persistencia en segundo plano
+  useEffect(() => {
+    if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
+    try {
+      const activeTrack = trackA || trackB;
+      const title = activeTrack?.song?.title || activeTrack?.customTitle || "Vidjs DJ Live Session";
+      const artist = activeTrack?.song?.artist?.name || activeTrack?.customArtist || "Vidjs DJ";
+
+      if ("MediaMetadata" in window) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title,
+          artist,
+          album: "Vidjs Night Experience OS",
+          artwork: [
+            { src: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+            { src: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+          ],
+        });
+      }
+
+      navigator.mediaSession.setActionHandler("play", () => {
+        if (!isPlayingA && trackA) togglePlayA();
+        else if (!isPlayingB && trackB) togglePlayB();
+      });
+
+      navigator.mediaSession.setActionHandler("pause", () => {
+        if (isPlayingA) togglePlayA();
+        if (isPlayingB) togglePlayB();
+      });
+    } catch {
+      // Ignorar si el navegador restringe handlers de MediaSession
+    }
+  }, [trackA, trackB, isPlayingA, isPlayingB]);
+
   // Formato mm:ss
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -1058,35 +1140,49 @@ export default function VirtualDjConsole({
     return `-${formatTime(rem)}`;
   };
 
-  // Temporizador Deck A
+  // Temporizador Deck A (Resistente a segundo plano mediante delta Date.now)
+  const lastTickARef = useRef(Date.now());
   useEffect(() => {
     if (!isPlayingA) return;
+    lastTickARef.current = Date.now();
     const timer = setInterval(() => {
+      const now = Date.now();
+      const elapsedSeconds = Math.max(1, Math.round((now - lastTickARef.current) / 1000));
+      lastTickARef.current = now;
+
       setPlaybackSecondsA((prev) => {
-        if (activeLoopA !== null && prev >= cuePointA + activeLoopA * 2) {
+        const next = prev + elapsedSeconds;
+        if (activeLoopA !== null && next >= cuePointA + activeLoopA * 2) {
           return cuePointA;
         }
-        if (prev >= trackADuration) {
+        if (next >= trackADuration) {
           return trackADuration;
         }
-        return prev + 1;
+        return next;
       });
     }, 1000);
     return () => clearInterval(timer);
   }, [isPlayingA, trackADuration, activeLoopA, cuePointA]);
 
-  // Temporizador Deck B
+  // Temporizador Deck B (Resistente a segundo plano mediante delta Date.now)
+  const lastTickBRef = useRef(Date.now());
   useEffect(() => {
     if (!isPlayingB) return;
+    lastTickBRef.current = Date.now();
     const timer = setInterval(() => {
+      const now = Date.now();
+      const elapsedSeconds = Math.max(1, Math.round((now - lastTickBRef.current) / 1000));
+      lastTickBRef.current = now;
+
       setPlaybackSecondsB((prev) => {
-        if (activeLoopB !== null && prev >= cuePointB + activeLoopB * 2) {
+        const next = prev + elapsedSeconds;
+        if (activeLoopB !== null && next >= cuePointB + activeLoopB * 2) {
           return cuePointB;
         }
-        if (prev >= trackBDuration) {
+        if (next >= trackBDuration) {
           return trackBDuration;
         }
-        return prev + 1;
+        return next;
       });
     }, 1000);
     return () => clearInterval(timer);
