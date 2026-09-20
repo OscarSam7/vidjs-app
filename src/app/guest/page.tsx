@@ -32,6 +32,7 @@ import {
   Image as ImageIcon,
   Star,
   ArrowLeftRight,
+  ArrowLeft,
   LogOut,
   Mic,
   Headphones,
@@ -291,6 +292,16 @@ function GuestContent() {
   const [isManageTableOpen, setIsManageTableOpen] = useState(false);
   const [leavingTable, setLeavingTable] = useState(false);
   const [switchBanner, setSwitchBanner] = useState<string | null>(null);
+
+  const handleGoBack = () => {
+    if (typeof window !== "undefined") {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = "/";
+      }
+    }
+  };
 
   const handleJoinByCode = (e: React.FormEvent) => {
     e.preventDefault();
@@ -757,7 +768,18 @@ function GuestContent() {
 
   if (errorParam === "no_active_event") {
     return (
-      <div className="p-6 text-center my-auto space-y-4">
+      <div className="p-6 text-center my-auto space-y-4 max-w-sm mx-auto w-full">
+        <div className="w-full flex items-center justify-start">
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
+            title="Volver atrás"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-amber-400" />
+            <span>Volver</span>
+          </button>
+        </div>
         <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 mx-auto flex items-center justify-center">
           <Clock className="w-8 h-8" />
         </div>
@@ -768,13 +790,34 @@ function GuestContent() {
         <p className="text-xs text-zinc-500">
           ¡El evento comenzará en breve! Vuelve a escanear tu código QR en unos minutos.
         </p>
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="w-full py-2.5 px-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
+          >
+            <ArrowLeft className="w-4 h-4 text-amber-400" />
+            <span>Volver atrás</span>
+          </button>
+        </div>
       </div>
     );
   }
 
   if (errorParam === "table_not_found") {
     return (
-      <div className="p-6 text-center my-auto space-y-4">
+      <div className="p-6 text-center my-auto space-y-4 max-w-sm mx-auto w-full">
+        <div className="w-full flex items-center justify-start">
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
+            title="Volver atrás"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-red-400" />
+            <span>Volver</span>
+          </button>
+        </div>
         <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 mx-auto flex items-center justify-center">
           <AlertCircle className="w-8 h-8" />
         </div>
@@ -782,6 +825,16 @@ function GuestContent() {
         <p className="text-sm text-zinc-400">
           El código QR escaneado no coincide con ninguna mesa registrada en el sistema.
         </p>
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="w-full py-2.5 px-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
+          >
+            <ArrowLeft className="w-4 h-4 text-red-400" />
+            <span>Volver atrás</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -789,6 +842,19 @@ function GuestContent() {
   if (!loadingSession && !session) {
     return (
       <div className="p-6 text-center my-auto space-y-6 max-w-sm mx-auto w-full">
+        {/* Botón superior para volver */}
+        <div className="w-full flex items-center justify-start">
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white text-xs font-semibold transition-all cursor-pointer shadow-sm active:scale-95"
+            title="Volver a la página anterior"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-purple-400" />
+            <span>Volver</span>
+          </button>
+        </div>
+
         <div className="w-16 h-16 rounded-2xl bg-purple-600/10 border border-purple-500/30 text-purple-400 mx-auto flex items-center justify-center glow-purple">
           <QrCode className="w-8 h-8" />
         </div>
@@ -837,6 +903,18 @@ function GuestContent() {
               Retro Bar &bull; Viernes de Karaoke Pop & Clásicos
             </p>
           </a>
+        </div>
+
+        {/* Botón inferior para volver */}
+        <div className="pt-2 border-t border-zinc-800/80">
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="w-full py-2.5 px-4 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
+          >
+            <ArrowLeft className="w-4 h-4 text-purple-400" />
+            <span>Volver atrás</span>
+          </button>
         </div>
       </div>
     );
