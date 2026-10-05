@@ -18,6 +18,7 @@ const createRequestSchema = z
     notes: z.string().max(200).optional(),
     tipAmountCents: z.number().int().min(0).max(100000).optional(),
     isFastPass: z.boolean().optional(),
+    playNow: z.boolean().optional(),
     mode: z.enum(["DJ", "KARAOKE"]).optional(),
   })
   .refine((data) => data.songId || (data.customTitle && data.customArtist), {
@@ -95,26 +96,62 @@ export async function POST(req: NextRequest) {
     let initialStatus: "PENDING" | "ACCEPTED" | "PLAYING" = "PENDING";
     let queueEntryStatus: "CURRENT" | "QUEUED" | null = null;
     let playedAt: Date | null = null;
+    let prevPlayingList: any[] = [];
 
     if (isAutoPlay) {
-      // Verificar si hay alguna canción sonando actualmente
-      const currentActive = await prisma.queueEntry.findFirst({
-        where: {
-          tenantId: guestSession.tenantId,
-          eventId: guestSession.eventId,
-          status: "CURRENT",
-        },
-      });
-
-      if (!currentActive) {
-        // Nada sonando: entra directamente a reproducirse
+      if (data.playNow) {
+        // El comensal seleccionó darle al Play de inmediato
         initialStatus = "PLAYING";
         queueEntryStatus = "CURRENT";
         playedAt = new Date();
+
+        prevPlayingList = await prisma.songRequest.findMany({
+          where: {
+            tenantId: guestSession.tenantId,
+            eventId: guestSession.eventId,
+            status: "PLAYING",
+          },
+          include: { table: true, song: true },
+        });
+
+        await prisma.$transaction([
+          prisma.queueEntry.updateMany({
+            where: {
+              tenantId: guestSession.tenantId,
+              eventId: guestSession.eventId,
+              status: "CURRENT",
+            },
+            data: { status: "COMPLETED" },
+          }),
+          prisma.songRequest.updateMany({
+            where: {
+              tenantId: guestSession.tenantId,
+              eventId: guestSession.eventId,
+              status: "PLAYING",
+            },
+            data: { status: "PLAYED", playedAt: new Date() },
+          }),
+        ]);
       } else {
-        // Ya hay un tema al aire: se encola automáticamente
-        initialStatus = "ACCEPTED";
-        queueEntryStatus = "QUEUED";
+        // Verificar si hay alguna canción sonando actualmente
+        const currentActive = await prisma.queueEntry.findFirst({
+          where: {
+            tenantId: guestSession.tenantId,
+            eventId: guestSession.eventId,
+            status: "CURRENT",
+          },
+        });
+
+        if (!currentActive) {
+          // Nada sonando: entra directamente a reproducirse
+          initialStatus = "PLAYING";
+          queueEntryStatus = "CURRENT";
+          playedAt = new Date();
+        } else {
+          // Ya hay un tema al aire: se encola automáticamente
+          initialStatus = "ACCEPTED";
+          queueEntryStatus = "QUEUED";
+        }
       }
     }
 
@@ -180,6 +217,13 @@ export async function POST(req: NextRequest) {
         action: "PLAY",
         queueEntry: createdQueueEntry,
       });
+      for (const p of prevPlayingList) {
+        realtimeBus.broadcast(guestSession.eventId, "QUEUE_SLOT_UNLOCKED", {
+          tableId: p.tableId,
+          tableLabel: p.table?.label,
+          songTitle: p.song?.title || p.customTitle || "Canción",
+        });
+      }
     } else if (queueEntryStatus === "QUEUED") {
       realtimeBus.broadcast(guestSession.eventId, "QUEUE_UPDATE", {
         action: "ACCEPT",
@@ -190,7 +234,7 @@ export async function POST(req: NextRequest) {
 
     const responseMessage = isAutoPlay
       ? queueEntryStatus === "CURRENT"
-        ? "¡Canción aprobada y reproduciéndose en vivo!"
+        ? (data.playNow ? "🎉 ¡Le diste al Play! Tu tema está sonando al aire." : "¡Canción aprobada y reproduciéndose en vivo!")
         : "¡Canción aprobada automáticamente y agregada a la cola!"
       : "¡Canción enviada al DJ!";
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
+  Play,
   Music,
   Search,
   Sparkles,
@@ -267,6 +268,7 @@ function GuestContent() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   // Modal de Subida de Fotos y Marcos
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
@@ -606,8 +608,8 @@ function GuestContent() {
     return () => clearInterval(interval);
   }, [session]);
 
-  // Enviar solicitud de canción con Fast-Pass
-  const handleSubmitRequest = async (e: React.FormEvent) => {
+  // Enviar solicitud de canción con Fast-Pass y soporte de Play directo en Auto-Play
+  const handleSubmitRequest = async (e: React.FormEvent, playNow = false) => {
     e.preventDefault();
     setFormError(null);
     setSubmitting(true);
@@ -625,6 +627,7 @@ function GuestContent() {
         isFastPass,
         tipAmountCents: isFastPass ? 500 : 0,
         mode: activeMode,
+        playNow,
       };
 
       if (selectedSong) {
@@ -653,7 +656,9 @@ function GuestContent() {
       setNotes("");
       setIsFastPass(false);
       setSuccessMessage(
-        isFastPass
+        playNow
+          ? `🎉 ¡Le diste al Play! Tu tema está sonando en vivo al aire.`
+          : isFastPass
           ? `⭐ ¡Canción con Fast-Pass VIP enviada ${activeMode === "DJ" ? "a la cabina DJ" : "al escenario de Karaoke"}!`
           : `¡Canción enviada ${activeMode === "DJ" ? "a la cabina del DJ" : "al escenario de Karaoke"} exitosamente!`
       );
@@ -669,6 +674,30 @@ function GuestContent() {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Acción directa: el solicitante le da al Play a una canción en modo Auto-Play
+  const handlePlayRequest = async (requestId: string) => {
+    setActionLoadingId(requestId);
+    try {
+      const res = await fetch(`/api/v1/requests/${requestId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "PLAY" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMessage(data.message || "🎉 ¡Tu canción está sonando al aire ahora mismo!");
+        setTimeout(() => setSuccessMessage(null), 4000);
+        await loadSessionAndRequests();
+      } else {
+        alert(data.error?.message || "No se pudo reproducir la canción");
+      }
+    } catch {
+      alert("Error de conexión al reproducir");
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -1729,9 +1758,14 @@ function GuestContent() {
                           setSelectedSong(song);
                           setIsCustomModalOpen(true);
                         }}
-                        className="px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30 text-xs font-bold transition-colors shrink-0 cursor-pointer"
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+                          tableAllowance?.autoPlayRequests
+                            ? "bg-emerald-600/30 hover:bg-emerald-500 text-emerald-300 hover:text-black border border-emerald-500/50 shadow-sm"
+                            : "bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30"
+                        }`}
                       >
-                        Pedir
+                        {tableAllowance?.autoPlayRequests && <Play className="w-3 h-3 fill-current" />}
+                        <span>{tableAllowance?.autoPlayRequests ? "Play / Pedir" : "Pedir"}</span>
                       </button>
                     </div>
                   ))
@@ -1795,13 +1829,22 @@ function GuestContent() {
                           setCustomArtist(yt.parsedArtist || yt.channelTitle || "Desconocido");
                           setIsCustomModalOpen(true);
                         }}
-                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors shrink-0 cursor-pointer ${
-                          activeMode === "DJ"
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1 ${
+                          tableAllowance?.autoPlayRequests
+                            ? "bg-emerald-600/30 hover:bg-emerald-500 text-emerald-300 hover:text-black border-emerald-500/50"
+                            : activeMode === "DJ"
                             ? "bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-black border-amber-500/30"
                             : "bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white border-cyan-500/30"
                         }`}
                       >
-                        {activeMode === "DJ" ? "Pedir a DJ" : "Cantar"}
+                        {tableAllowance?.autoPlayRequests && <Play className="w-3 h-3 fill-current" />}
+                        <span>
+                          {tableAllowance?.autoPlayRequests
+                            ? "Play / Pedir"
+                            : activeMode === "DJ"
+                            ? "Pedir a DJ"
+                            : "Cantar"}
+                        </span>
                       </button>
                     </div>
                   ))}
@@ -1855,14 +1898,38 @@ function GuestContent() {
                         <div className="text-[11px] text-zinc-400">{artist}</div>
                       </div>
 
-                      {req.status === "PENDING" && (
-                        <button
-                          onClick={() => handleCancelRequest(req.id)}
-                          className="text-[10px] text-red-400 hover:text-red-300 font-medium px-2 py-0.5 rounded bg-red-950/50 border border-red-900/60 cursor-pointer"
-                        >
-                          Cancelar
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {tableAllowance?.autoPlayRequests && (req.status === "PENDING" || req.status === "ACCEPTED") && (
+                          <button
+                            type="button"
+                            onClick={() => handlePlayRequest(req.id)}
+                            disabled={actionLoadingId === req.id}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[11px] flex items-center gap-1 shadow-md shadow-emerald-600/30 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                            title="Darle al Play para que esta canción suene de inmediato en la cabina y TV"
+                          >
+                            {actionLoadingId === req.id ? (
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Play className="w-3 h-3 fill-current" />
+                            )}
+                            <span>Darle al Play</span>
+                          </button>
+                        )}
+                        {req.status === "PLAYING" && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-600 font-black flex items-center gap-1 animate-pulse">
+                            <Radio className="w-3 h-3 text-purple-400" />
+                            <span>¡AL AIRE!</span>
+                          </span>
+                        )}
+                        {req.status === "PENDING" && (
+                          <button
+                            onClick={() => handleCancelRequest(req.id)}
+                            className="text-[10px] text-red-400 hover:text-red-300 font-medium px-2 py-0.5 rounded bg-red-950/50 border border-red-900/60 cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {req.notes && (
@@ -1938,6 +2005,15 @@ function GuestContent() {
                 <p className="text-[11px] text-amber-300/90 leading-relaxed">
                   Tu mesa ya tiene su turno asignado. En cuanto terminen de cantar, se habilitará tu cupo para pedir otro tema automáticamente (&ldquo;Canta y Libera&rdquo;).
                 </p>
+              </div>
+            )}
+
+            {tableAllowance?.autoPlayRequests && (
+              <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-500/60 text-emerald-200 text-xs flex items-center gap-2.5 shadow-sm">
+                <Zap className="w-4 h-4 text-emerald-400 shrink-0 animate-pulse" />
+                <div className="text-[11px] leading-relaxed">
+                  <strong className="text-white font-black">⚡ Modo Auto-Play Activo:</strong> ¡Tienes la opción de darle al Play para que tu canción suene de inmediato en la pista o enviarla a la cola!
+                </div>
               </div>
             )}
 
@@ -2090,37 +2166,72 @@ function GuestContent() {
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={!session || submitting || Boolean(tableAllowance?.isLocked) || Boolean(tableAllowance?.queuePaused)}
-                className={`w-full py-2.5 px-4 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 ${
-                  activeMode === "DJ"
-                    ? "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black shadow-lg shadow-amber-500/20"
-                    : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white"
-                }`}
-              >
-                {!session ? (
-                  <span>🔒 Conecta tu mesa para enviar</span>
-                ) : submitting ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Enviando {activeMode === "DJ" ? "al DJ..." : "al Karaoke..."}</span>
-                  </>
-                ) : tableAllowance?.queuePaused ? (
-                  <span>⏸ Pedidos Pausados {activeMode === "DJ" ? "por el DJ" : "en el Escenario"}</span>
-                ) : tableAllowance?.isLocked ? (
-                  <span>🔒 Cupo Asignado &bull; {activeMode === "DJ" ? "Espera tu turno" : "Canta para Liberar"}</span>
-                ) : (
-                  <>
-                    <Send className="w-3.5 h-3.5" />
-                    <span>
-                      {activeMode === "DJ"
-                        ? "Confirmar y Enviar a Cabina DJ"
-                        : "Confirmar y Subir al Karaoke"}
-                    </span>
-                  </>
-                )}
-              </button>
+              {tableAllowance?.autoPlayRequests ? (
+                <div className="space-y-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={(e) => handleSubmitRequest(e, true)}
+                    disabled={!session || submitting || Boolean(tableAllowance?.isLocked) || Boolean(tableAllowance?.queuePaused)}
+                    className="w-full py-2.5 px-4 text-xs font-black rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all active:scale-95"
+                  >
+                    {!session ? (
+                      <span>🔒 Conecta tu mesa para enviar</span>
+                    ) : submitting ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Dando al Play...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4 fill-current" />
+                        <span>¡Darle al Play y Sonar Ahora!</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => handleSubmitRequest(e, false)}
+                    disabled={!session || submitting || Boolean(tableAllowance?.isLocked) || Boolean(tableAllowance?.queuePaused)}
+                    className="w-full py-2 px-3 text-[11px] font-bold rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all"
+                  >
+                    <Clock className="w-3 h-3 text-zinc-400" />
+                    <span>Solo Enviar a la Cola (Esperar turno)</span>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={!session || submitting || Boolean(tableAllowance?.isLocked) || Boolean(tableAllowance?.queuePaused)}
+                  className={`w-full py-2.5 px-4 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 ${
+                    activeMode === "DJ"
+                      ? "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black shadow-lg shadow-amber-500/20"
+                      : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white"
+                  }`}
+                >
+                  {!session ? (
+                    <span>🔒 Conecta tu mesa para enviar</span>
+                  ) : submitting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Enviando {activeMode === "DJ" ? "al DJ..." : "al Karaoke..."}</span>
+                    </>
+                  ) : tableAllowance?.queuePaused ? (
+                    <span>⏸ Pedidos Pausados {activeMode === "DJ" ? "por el DJ" : "en el Escenario"}</span>
+                  ) : tableAllowance?.isLocked ? (
+                    <span>🔒 Cupo Asignado &bull; {activeMode === "DJ" ? "Espera tu turno" : "Canta para Liberar"}</span>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>
+                        {activeMode === "DJ"
+                          ? "Confirmar y Enviar a Cabina DJ"
+                          : "Confirmar y Subir al Karaoke"}
+                      </span>
+                    </>
+                  )}
+                </button>
+              )}
             </form>
           </div>
         </div>
