@@ -521,6 +521,28 @@ export default function KaraokeBoothPage() {
     }
   };
 
+  // Sincronización de Play / Pausa con la pantalla de TV
+  const handleTogglePlay = () => {
+    const nextState = !isPlaying;
+    setIsPlaying(nextState);
+    const action = nextState ? "PLAY" : "PAUSE";
+    const eventId = selectedEventId || data?.event?.id;
+    if (eventId) {
+      if (typeof window !== "undefined") {
+        try {
+          const channel = new BroadcastChannel(`vidjs_karaoke_sync_${eventId}`);
+          channel.postMessage({ type: "PLAYBACK_CONTROL", action, timestamp: Date.now() });
+          channel.close();
+        } catch {}
+      }
+      fetch("/api/v1/karaoke/playback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId, action }),
+      }).catch(() => {});
+    }
+  };
+
   // Moderación de Solicitudes de Cantantes
   const handleModerateRequest = async (requestId: string, status: "ACCEPTED" | "REJECTED") => {
     setActionLoading(requestId);
@@ -870,7 +892,7 @@ export default function KaraokeBoothPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setIsPlaying(!isPlaying)}
+                onClick={handleTogglePlay}
                 disabled={!currentTrack}
                 className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
               >

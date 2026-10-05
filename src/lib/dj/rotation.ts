@@ -32,6 +32,9 @@ export interface QueuePolicy {
   dj: DjSettings;
   karaoke: KaraokeSettings;
 
+  // Reproducción automática de pedidos (Auto-Play / Jukebox)
+  autoPlayRequests?: boolean;
+
   // Parámetros de proyección visual y fotos
   photosAllowed: boolean;
   photoRotationSeconds: number;
@@ -77,6 +80,7 @@ export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
     queuePaused: false,
     rotationMode: "ROUND_ROBIN",
     avgSongDurationMinutes: 4,
+    autoPlayRequests: false,
   };
 
   if (!settingsJson) {
@@ -162,6 +166,7 @@ export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
       queuePaused: typeof parsed.queuePaused === "boolean" ? parsed.queuePaused : effectivePaused,
       rotationMode: parsed.rotationMode || effectiveRotation,
       avgSongDurationMinutes: karaoke.avgSongDurationMinutes,
+      autoPlayRequests: typeof parsed.autoPlayRequests === "boolean" ? parsed.autoPlayRequests : false,
     };
   } catch {
     return fallbackPolicy;

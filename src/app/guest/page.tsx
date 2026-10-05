@@ -83,6 +83,7 @@ export interface TableAllowanceInfo {
   nightMode?: string;
   djQueuePaused?: boolean;
   karaokeQueuePaused?: boolean;
+  autoPlayRequests?: boolean;
 }
 
 interface CurrentPlayingInfo {
@@ -1182,6 +1183,11 @@ function GuestContent() {
                       ? "🎤 Escenario Karaoke"
                       : "🔀 Modo Híbrido"}
                   </span>
+                  {tableAllowance.autoPlayRequests && (
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/60 font-mono font-bold">
+                      ⚡ Auto-Play Directo
+                    </span>
+                  )}
                 </div>
                 <div className="text-[10px] text-zinc-300 opacity-90 truncate">
                   {tableAllowance.queuePaused
@@ -1190,6 +1196,8 @@ function GuestContent() {
                     ? tableAllowance.zone === "DJ"
                       ? "Tu tema está en cola de mezcla. Al reproducirse se desbloqueará tu cupo."
                       : "Canta tu turno en el escenario y al terminar se desbloqueará tu cupo (Canta y Libera)."
+                    : tableAllowance.autoPlayRequests
+                    ? "⚡ Auto-Play activo: ¡Tu pedido sonará automáticamente en la pista!"
                     : tableAllowance.zone === "DJ"
                     ? "Pide temas para bailar en la pista a la consola del DJ."
                     : "Pide una canción para cantar en vivo en el escenario."}

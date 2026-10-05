@@ -90,7 +90,34 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 5. Crear la solicitud de canción
+    // 5. Crear la solicitud de canción (con auto-play si la opción está activada por el DJ)
+    const isAutoPlay = Boolean(policy.autoPlayRequests);
+    let initialStatus: "PENDING" | "ACCEPTED" | "PLAYING" = "PENDING";
+    let queueEntryStatus: "CURRENT" | "QUEUED" | null = null;
+    let playedAt: Date | null = null;
+
+    if (isAutoPlay) {
+      // Verificar si hay alguna canción sonando actualmente
+      const currentActive = await prisma.queueEntry.findFirst({
+        where: {
+          tenantId: guestSession.tenantId,
+          eventId: guestSession.eventId,
+          status: "CURRENT",
+        },
+      });
+
+      if (!currentActive) {
+        // Nada sonando: entra directamente a reproducirse
+        initialStatus = "PLAYING";
+        queueEntryStatus = "CURRENT";
+        playedAt = new Date();
+      } else {
+        // Ya hay un tema al aire: se encola automáticamente
+        initialStatus = "ACCEPTED";
+        queueEntryStatus = "QUEUED";
+      }
+    }
+
     const songRequest = await prisma.songRequest.create({
       data: {
         tenantId: guestSession.tenantId,
@@ -102,7 +129,8 @@ export async function POST(req: NextRequest) {
         customArtist: data.customArtist?.trim() || null,
         notes: data.notes?.trim() || null,
         tipAmountCents: data.tipAmountCents ?? (data.isFastPass ? 500 : 0),
-        status: "PENDING",
+        status: initialStatus,
+        playedAt,
       },
       include: {
         song: {
@@ -114,12 +142,61 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    let createdQueueEntry = null;
+    if (queueEntryStatus) {
+      const lastQueueEntry = await prisma.queueEntry.findFirst({
+        where: { tenantId: guestSession.tenantId, eventId: guestSession.eventId },
+        orderBy: { orderIndex: "desc" },
+      });
+      const nextOrderIndex = (lastQueueEntry?.orderIndex ?? 0) + 1;
+
+      createdQueueEntry = await prisma.queueEntry.create({
+        data: {
+          tenantId: guestSession.tenantId,
+          eventId: guestSession.eventId,
+          songRequestId: songRequest.id,
+          orderIndex: nextOrderIndex,
+          status: queueEntryStatus,
+        },
+        include: {
+          songRequest: {
+            include: {
+              song: { include: { artist: true } },
+              table: true,
+            },
+          },
+        },
+      });
+    }
+
     // Notificar inmediatamente a la cabina del DJ en tiempo real (con flag VIP Fast-Pass si aplica)
     realtimeBus.broadcast(guestSession.eventId, "REQUEST_NEW", songRequest);
 
+    if (queueEntryStatus === "CURRENT") {
+      realtimeBus.broadcast(guestSession.eventId, "TRACK_CHANGE", {
+        currentEntryId: createdQueueEntry?.id,
+      });
+      realtimeBus.broadcast(guestSession.eventId, "QUEUE_UPDATE", {
+        action: "PLAY",
+        queueEntry: createdQueueEntry,
+      });
+    } else if (queueEntryStatus === "QUEUED") {
+      realtimeBus.broadcast(guestSession.eventId, "QUEUE_UPDATE", {
+        action: "ACCEPT",
+        requestId: songRequest.id,
+        queueEntry: createdQueueEntry,
+      });
+    }
+
+    const responseMessage = isAutoPlay
+      ? queueEntryStatus === "CURRENT"
+        ? "¡Canción aprobada y reproduciéndose en vivo!"
+        : "¡Canción aprobada automáticamente y agregada a la cola!"
+      : "¡Canción enviada al DJ!";
+
     return NextResponse.json({
       success: true,
-      message: "¡Canción enviada al DJ!",
+      message: responseMessage,
       data: songRequest,
     });
   } catch (error) {
@@ -221,6 +298,7 @@ export async function GET() {
       nightMode: policy.nightMode,
       djQueuePaused: policy.dj.queuePaused,
       karaokeQueuePaused: policy.karaoke.queuePaused,
+      autoPlayRequests: Boolean(policy.autoPlayRequests),
     };
 
     // 3. Resolver branding del local y establecimiento

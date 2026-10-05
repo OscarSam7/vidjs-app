@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import {
   Disc3,
   Music,
@@ -185,6 +185,55 @@ export default function PublicDisplayScreenPage({
   // 📺 Video de Karaoke (YouTube IFrame Embed sincronizado con cabina DJ)
   const [karaokeVideoId, setKaraokeVideoId] = useState<string | null>(null);
   const [isKaraokeVideoEnabled, setIsKaraokeVideoEnabled] = useState<boolean>(true);
+  const karaokeIframeRef = useRef<HTMLIFrameElement>(null);
+  const [isTvPaused, setIsTvPaused] = useState<boolean>(false);
+  const [forceKaraokeMode, setForceKaraokeMode] = useState<boolean>(false);
+
+  // Detección reactiva de parámetro ?mode=karaoke en URL
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.get("mode") === "karaoke") {
+        setForceKaraokeMode(true);
+      }
+    }
+  }, []);
+
+  // Control remoto de YouTube IFrame (Play, Pause, Unmute, Seek)
+  const sendYouTubeCommand = (func: string, args: any[] = []) => {
+    if (!karaokeIframeRef.current?.contentWindow) return;
+    try {
+      karaokeIframeRef.current.contentWindow.postMessage(
+        JSON.stringify({
+          event: "command",
+          func,
+          args,
+        }),
+        "*"
+      );
+
+      if (func === "playVideo") {
+        setIsTvPaused(false);
+        // Desmutear y asegurar arranque confiable tras 300ms
+        setTimeout(() => {
+          if (karaokeIframeRef.current?.contentWindow) {
+            karaokeIframeRef.current.contentWindow.postMessage(
+              JSON.stringify({ event: "command", func: "unMute", args: [] }),
+              "*"
+            );
+            karaokeIframeRef.current.contentWindow.postMessage(
+              JSON.stringify({ event: "command", func: "playVideo", args: [] }),
+              "*"
+            );
+          }
+        }, 300);
+      } else if (func === "pauseVideo") {
+        setIsTvPaused(true);
+      }
+    } catch (err) {
+      console.warn("Error enviando comando a YouTube IFrame en TV:", err);
+    }
+  };
 
   // Simulación de tiempo transcurrido de la canción
   const [elapsedSeconds, setElapsedSeconds] = useState(15);
@@ -307,6 +356,14 @@ export default function PublicDisplayScreenPage({
         if (payload?.isVideoEnabled !== undefined) {
           setIsKaraokeVideoEnabled(payload.isVideoEnabled);
         }
+      } else if (type === "KARAOKE_PLAYBACK_CONTROL") {
+        if (payload?.action === "PLAY") {
+          sendYouTubeCommand("playVideo");
+        } else if (payload?.action === "PAUSE") {
+          sendYouTubeCommand("pauseVideo");
+        } else if (payload?.action === "SEEK" && typeof payload?.seconds === "number") {
+          sendYouTubeCommand("seekTo", [payload.seconds, true]);
+        }
       } else if (
         type === "TRACK_CHANGE" ||
         type === "QUEUE_UPDATE" ||
@@ -322,6 +379,31 @@ export default function PublicDisplayScreenPage({
       }
     },
   });
+
+  // Sincronización instantánea (0ms) con la consola DJ/KJ mediante BroadcastChannel
+  useEffect(() => {
+    if (typeof window === "undefined" || !data?.event?.id) return;
+    try {
+      const channel = new BroadcastChannel(`vidjs_karaoke_sync_${data.event.id}`);
+      channel.onmessage = (e) => {
+        const { type, action, seconds } = e.data || {};
+        if (type === "PLAYBACK_CONTROL") {
+          if (action === "PLAY") {
+            sendYouTubeCommand("playVideo");
+          } else if (action === "PAUSE") {
+            sendYouTubeCommand("pauseVideo");
+          } else if (action === "SEEK" && typeof seconds === "number") {
+            sendYouTubeCommand("seekTo", [seconds, true]);
+          }
+        }
+      };
+      return () => {
+        channel.close();
+      };
+    } catch {
+      // Ignorar si BroadcastChannel no está disponible en este entorno
+    }
+  }, [data?.event?.id]);
 
   // Temporizador para finalizar el aplausómetro
   useEffect(() => {
@@ -381,20 +463,6 @@ export default function PublicDisplayScreenPage({
       setPhotoFitMode(data.policy.photoFitMode);
     }
   }, [data?.policy?.photoFitMode]);
-
-  const handleToggleFitMode = (mode: "BLUR_FILL" | "CONTAIN" | "COVER") => {
-    setPhotoFitMode(mode);
-    if (data?.event?.id) {
-      fetch("/api/v1/dj/queue/policy", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId: data.event.id,
-          photoFitMode: mode,
-        }),
-      }).catch(() => {});
-    }
-  };
 
   // Temporizador visual de progreso
   useEffect(() => {
@@ -472,7 +540,7 @@ export default function PublicDisplayScreenPage({
     return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
-  const isKaraoke = data?.policy?.zone === "KARAOKE";
+  const isKaraoke = forceKaraokeMode || data?.policy?.zone === "KARAOKE";
 
   // Auto-resolución de video de YouTube para el tema al aire (Karaoke TV)
   useEffect(() => {
@@ -541,61 +609,7 @@ export default function PublicDisplayScreenPage({
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none" />
 
-      {/* Botones de Control Flotante (Centrado en la parte superior, auto-ocultable en Smart TV) */}
-      <div
-        className={`fixed top-3 sm:top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 transition-all duration-300 ${
-          showControls ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"
-        }`}
-      >
-        {/* Selector de Modo de Ajuste de Foto en TV */}
-        <div className="flex items-center bg-zinc-900/90 border border-zinc-700/80 rounded-xl p-1 backdrop-blur-md shadow-2xl text-xs">
-          <span className="text-[10px] uppercase font-bold text-zinc-400 px-2 flex items-center gap-1">
-            <Camera className="w-3 h-3 text-pink-400" />
-            <span className="hidden sm:inline">Foto TV:</span>
-          </span>
-          <button
-            onClick={() => handleToggleFitMode("BLUR_FILL")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-              photoFitMode === "BLUR_FILL"
-                ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
-                : "text-zinc-400 hover:text-white"
-            }`}
-            title="Cine Blur: Fondo ambiental desenfocado cinemático, foto original completa sin cortar caras"
-          >
-            ✨ Cine Blur
-          </button>
-          <button
-            onClick={() => handleToggleFitMode("CONTAIN")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-              photoFitMode === "CONTAIN"
-                ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
-                : "text-zinc-400 hover:text-white"
-            }`}
-            title="Contener: Ajuste exacto en caja con marco oscuro"
-          >
-            🔳 Contener
-          </button>
-          <button
-            onClick={() => handleToggleFitMode("COVER")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-              photoFitMode === "COVER"
-                ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
-                : "text-zinc-400 hover:text-white"
-            }`}
-            title="Llenar: Foto cubre todo el espacio del contenedor"
-          >
-            🔲 Llenar
-          </button>
-        </div>
 
-        <button
-          onClick={toggleFullscreen}
-          className="p-2.5 sm:p-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700/80 text-zinc-300 hover:text-white backdrop-blur-md shadow-2xl flex items-center gap-2 text-xs font-semibold cursor-pointer"
-        >
-          {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          <span className="hidden sm:inline">{isFullscreen ? "Salir" : "Pantalla Completa (F11)"}</span>
-        </button>
-      </div>
 
       {/* 1. Encabezado Superior (Logo del Local y Código) */}
       <header className="flex items-center justify-between z-10 border-b border-zinc-800/60 pb-2.5 sm:pb-3 shrink-0">
@@ -655,6 +669,14 @@ export default function PublicDisplayScreenPage({
           <div className="px-3 py-1.5 rounded-xl bg-purple-900/40 border border-purple-600/50 text-purple-200 font-mono text-xs font-extrabold tracking-wider">
             CÓDIGO: {data.event.code}
           </div>
+
+          <button
+            onClick={toggleFullscreen}
+            className="p-2 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white transition-colors flex items-center justify-center cursor-pointer"
+            title={isFullscreen ? "Salir de pantalla completa" : "Pantalla Completa (F11)"}
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
         </div>
       </header>
 
@@ -835,14 +857,29 @@ export default function PublicDisplayScreenPage({
               {/* Marco Widescreen 16:9 del Video de YouTube */}
               <div className="w-full relative aspect-video rounded-3xl overflow-hidden border-2 sm:border-4 border-cyan-500/60 shadow-[0_0_50px_rgba(6,182,212,0.3)] bg-black">
                 {karaokeVideoId ? (
-                  <iframe
-                    key={karaokeVideoId}
-                    src={`https://www.youtube.com/embed/${karaokeVideoId}?autoplay=1&enablejsapi=1`}
-                    title={`Karaoke: ${track.song.title}`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    className="w-full h-full border-0"
-                  />
+                  <>
+                    <iframe
+                      ref={karaokeIframeRef}
+                      key={karaokeVideoId}
+                      src={`https://www.youtube.com/embed/${karaokeVideoId}?autoplay=1&enablejsapi=1&origin=${typeof window !== "undefined" ? encodeURIComponent(window.location.origin) : ""}`}
+                      title={`Karaoke: ${track.song.title}`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                    />
+
+                    {/* HUD Flotante si la consola de DJ pausó el video */}
+                    {isTvPaused && (
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center pointer-events-none animate-fadeIn z-20">
+                        <div className="px-5 py-3 rounded-2xl bg-zinc-950/90 border-2 border-cyan-500/60 text-cyan-300 flex items-center gap-3 shadow-2xl shadow-cyan-950/80">
+                          <span className="w-3 h-3 rounded-full bg-cyan-400 animate-ping" />
+                          <span className="text-sm font-black tracking-widest uppercase">
+                            ⏸ PAUSADO DESDE CONSOLA
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center space-y-3 bg-zinc-950 text-cyan-400 p-6 text-center">
                     <Disc3 className="w-12 h-12 animate-spin text-cyan-400" />

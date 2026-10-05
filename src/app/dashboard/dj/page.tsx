@@ -154,6 +154,7 @@ interface QueuePolicyState {
   photoRotationSeconds?: number;
   photoFitMode?: "BLUR_FILL" | "CONTAIN" | "COVER";
   nightMode?: "KARAOKE_ONLY" | "DJ_ONLY" | "HYBRID";
+  autoPlayRequests?: boolean;
 }
 
 export default function DjBoothPage() {
@@ -172,6 +173,7 @@ export default function DjBoothPage() {
     photosAllowed: true,
     photoRotationSeconds: 8,
     photoFitMode: "BLUR_FILL",
+    autoPlayRequests: false,
   });
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [policyLoading, setPolicyLoading] = useState(false);
@@ -843,6 +845,96 @@ export default function DjBoothPage() {
     }
   };
 
+  // Sincronización de Play/Pause desde la consola con la pantalla de TV (BroadcastChannel 0ms + SSE Remoto)
+  const handlePlaybackControl = (action: "PLAY" | "PAUSE", deckId?: "A" | "B") => {
+    setIsPlaying(action === "PLAY");
+
+    const eventId = selectedEventId || data?.event?.id;
+    if (!eventId) return;
+
+    // 1. Canal local para latencia cero entre pestañas en el mismo navegador
+    if (typeof window !== "undefined") {
+      try {
+        const channel = new BroadcastChannel(`vidjs_karaoke_sync_${eventId}`);
+        channel.postMessage({ type: "PLAYBACK_CONTROL", action, deckId, timestamp: Date.now() });
+        channel.close();
+      } catch {}
+    }
+
+    // 2. Notificación en red vía SSE para Smart TVs o pantallas remotas en el local
+    fetch("/api/v1/karaoke/playback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventId,
+        action,
+        deckId,
+      }),
+    }).catch(() => {});
+  };
+
+  // Activar Modo Karaoke y abrir automáticamente la pantalla TV sincronizada
+  const handleActivateKaraokeMode = () => {
+    // 1. Abrir síncronamente la pestaña/ventana de la pantalla de TV de Karaoke
+    if (data?.event?.code) {
+      window.open(`/display/${data.event.code}?mode=karaoke`, "vidjs_tv_display");
+    }
+    // 2. Actualizar la política del evento a Modo Karaoke
+    handleUpdatePolicy({ zone: "KARAOKE", nightMode: "HYBRID" });
+    showFeedback("success", "🎤 Modo Karaoke activado. Pantalla TV abierta en nueva ventana.");
+  };
+
+  // ⚡ Conmutar Auto-Play de Pedidos (Aprobación y reproducción automática)
+  const handleToggleAutoPlay = async () => {
+    const nextState = !queuePolicy.autoPlayRequests;
+    await handleUpdatePolicy({ autoPlayRequests: nextState });
+
+    if (nextState) {
+      showFeedback(
+        "success",
+        "⚡ Auto-Play Activado: Los pedidos de las mesas sonarán automáticamente."
+      );
+
+      // Si hay pedidos pendientes en la bandeja al momento de activar, aceptarlos todos
+      if (data?.pendingRequests && data.pendingRequests.length > 0) {
+        for (const req of data.pendingRequests) {
+          try {
+            await fetch(`/api/v1/dj/requests/${req.id}/action`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "ACCEPT" }),
+            });
+          } catch (e) {
+            console.error("Error auto-accepting pending request:", e);
+          }
+        }
+        await fetchDjState();
+
+        // Si nada está sonando, poner a sonar el primero de la cola de inmediato
+        if (!data.currentPlaying) {
+          setTimeout(async () => {
+            const evId = selectedEventId || data?.event?.id;
+            if (!evId) return;
+            const freshState = await fetch(`/api/v1/dj/state?eventId=${evId}`)
+              .then((r) => r.json())
+              .catch(() => null);
+            if (freshState?.data?.queue && freshState.data.queue.length > 0) {
+              const first = freshState.data.queue[0];
+              await handleLoadQueueEntry(first, "AUTO");
+            }
+          }, 600);
+        }
+      } else if (!data?.currentPlaying && data?.queue && data.queue.length > 0) {
+        await handleLoadQueueEntry(data.queue[0], "AUTO");
+      }
+    } else {
+      showFeedback(
+        "info",
+        "Auto-Play desactivado: Los pedidos volverán a requerir moderación manual del DJ."
+      );
+    }
+  };
+
   // Auto-búsqueda de pista en YouTube al cambiar de tema
   useEffect(() => {
     if (currentTrack) {
@@ -1086,7 +1178,7 @@ export default function DjBoothPage() {
             </button>
 
             <button
-              onClick={() => handleUpdatePolicy({ zone: "KARAOKE", nightMode: "HYBRID" })}
+              onClick={handleActivateKaraokeMode}
               disabled={policyLoading}
               className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 queuePolicy.zone === "KARAOKE"
@@ -1098,14 +1190,83 @@ export default function DjBoothPage() {
               <span className="truncate">🎤 Modo Karaoke</span>
             </button>
           </div>
+
+          {/* ⚡ BOTÓN DESTACADO: REPRODUCCIÓN AUTOMÁTICA DE PEDIDOS */}
+          <button
+            onClick={handleToggleAutoPlay}
+            disabled={policyLoading}
+            className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 border shadow-lg ${
+              queuePolicy.autoPlayRequests
+                ? "bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 text-white border-emerald-400 shadow-emerald-600/40 ring-2 ring-emerald-400/60"
+                : "bg-zinc-900 text-zinc-300 hover:text-white hover:bg-zinc-800 border-zinc-700 hover:border-zinc-500"
+            }`}
+            title={
+              queuePolicy.autoPlayRequests
+                ? "Reproducción Automática ACTIVA: Los pedidos de mesas se aprueban y reproducen automáticamente"
+                : "Activar Reproducción Automática de pedidos de comensales"
+            }
+          >
+            <Zap
+              className={`w-4 h-4 shrink-0 ${
+                queuePolicy.autoPlayRequests
+                  ? "text-yellow-300 fill-yellow-300 animate-pulse"
+                  : "text-amber-400"
+              }`}
+            />
+            <span className="tracking-wide">
+              {queuePolicy.autoPlayRequests ? "Auto-Play: ACTIVADO" : "Auto-Play Pedidos"}
+            </span>
+            <span
+              className={`text-[9px] px-1.5 py-0.5 rounded font-black tracking-wider uppercase inline-block shrink-0 ${
+                queuePolicy.autoPlayRequests
+                  ? "bg-emerald-950 text-emerald-200 border border-emerald-400"
+                  : "bg-zinc-800 text-zinc-400 border border-zinc-700"
+              }`}
+            >
+              {queuePolicy.autoPlayRequests ? "ON" : "OFF"}
+            </span>
+          </button>
         </div>
 
-        <div className="flex items-center justify-center gap-2 text-xs w-full md:w-auto">
+        <div className="flex items-center justify-center gap-2 text-xs w-full md:w-auto flex-wrap">
           {queuePolicy.zone === "KARAOKE" ? (
-            <span className="px-3 py-1.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 font-semibold flex items-center justify-center gap-1.5 text-[11px] sm:text-xs">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
-              <span>Turnos &ldquo;Canta y Libera&rdquo; sincronizados con TV</span>
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-3 py-1.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 font-semibold flex items-center justify-center gap-1.5 text-[11px] sm:text-xs">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
+                <span>Turnos &ldquo;Canta y Libera&rdquo; sincronizados</span>
+              </span>
+
+              {/* Botón para abrir/enfocar pantalla TV de Karaoke */}
+              {data?.event?.code && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (data?.event?.code) {
+                      window.open(`/display/${data.event.code}?mode=karaoke`, "vidjs_tv_display");
+                    }
+                  }}
+                  className="px-2.5 py-1.5 rounded-xl bg-cyan-950/90 hover:bg-cyan-900 border border-cyan-500/60 text-cyan-200 font-bold flex items-center gap-1 text-[11px] transition-colors cursor-pointer shadow-sm shadow-cyan-900/40"
+                  title="Abrir o enfocar pantalla de TV Karaoke para mesas y cantantes"
+                >
+                  <Tv className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Ver Pantalla TV</span>
+                </button>
+              )}
+
+              {/* Botón para abrir modal de pista de YouTube */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsKaraokeModalOpen(true);
+                  handleSearchKaraoke();
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white font-bold flex items-center gap-1 text-[11px] transition-colors cursor-pointer"
+                title="Buscar y proyectar video de karaoke en la TV"
+              >
+                <Youtube className="w-3.5 h-3.5 text-red-500" />
+                <span>Pista YouTube</span>
+              </button>
+            </div>
           ) : (
             <span className="px-3 py-1.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-700/60 font-semibold flex items-center justify-center gap-1.5 text-[11px] sm:text-xs">
               <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse shrink-0" />
@@ -1287,6 +1448,12 @@ export default function DjBoothPage() {
                     🟢 RECIBIENDO PEDIDOS
                   </span>
                 )}
+                {queuePolicy.autoPlayRequests && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500 text-[10px] font-bold animate-pulse flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-yellow-300 fill-yellow-300" />
+                    ⚡ AUTO-PLAY ACTIVO
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-zinc-400 mt-1">
                 Regla &ldquo;Canta y Libera&rdquo;: cuando la mesa termina su turno, el sistema desbloquea su cupo automáticamente para volver a pedir.
@@ -1359,6 +1526,21 @@ export default function DjBoothPage() {
                   <span>Pausar</span>
                 </>
               )}
+            </button>
+
+            {/* Toggle rápido de Auto-Play en barra Fair Play */}
+            <button
+              onClick={handleToggleAutoPlay}
+              disabled={policyLoading}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                queuePolicy.autoPlayRequests
+                  ? "bg-emerald-600 text-white border-emerald-400 shadow-md shadow-emerald-600/30"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white border-zinc-800"
+              }`}
+              title="Aprobar y reproducir directamente los pedidos de mesas sin intervención manual"
+            >
+              <Zap className={`w-3.5 h-3.5 ${queuePolicy.autoPlayRequests ? "text-yellow-300 fill-yellow-300" : "text-amber-400"}`} />
+              <span>{queuePolicy.autoPlayRequests ? "⚡ Auto-Play: ON" : "Auto-Play"}</span>
             </button>
 
             {/* Acceso directo a Cabina Karaoke */}
@@ -1702,6 +1884,7 @@ export default function DjBoothPage() {
         setCrossfaderValue={setCrossfaderValue}
         pendingDeckLoad={pendingDeckLoad}
         onDeckLoaded={() => setPendingDeckLoad(null)}
+        onPlaybackControl={handlePlaybackControl}
       />
 
       {/* 2.5 SOUNDBOARD FX LAUNCHPAD PARA DJ */}
@@ -1711,7 +1894,7 @@ export default function DjBoothPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* COLUMNA IZQUIERDA: Solicitudes Entrantes (Bandeja de Moderación) */}
         <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <Flame className="w-5 h-5 text-amber-400" />
               <h2 className="text-base font-bold text-white">
@@ -1726,10 +1909,54 @@ export default function DjBoothPage() {
                 </span>
               )}
             </div>
-            <span className="text-[11px] text-zinc-500">
-              De las mesas al DJ
-            </span>
+
+            <div className="flex items-center gap-2">
+              {/* Botón rápido de Auto-Play en cabecera de solicitudes */}
+              <button
+                onClick={handleToggleAutoPlay}
+                disabled={policyLoading}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                  queuePolicy.autoPlayRequests
+                    ? "bg-gradient-to-r from-emerald-600 to-green-600 text-white border-emerald-400 shadow-md shadow-emerald-600/30 ring-1 ring-emerald-400/50"
+                    : "bg-zinc-800/90 hover:bg-zinc-700 text-zinc-300 border-zinc-700"
+                }`}
+                title="Activar/desactivar reproducción automática de pedidos"
+              >
+                <Zap
+                  className={`w-3.5 h-3.5 ${
+                    queuePolicy.autoPlayRequests
+                      ? "text-yellow-300 fill-yellow-300 animate-pulse"
+                      : "text-amber-400"
+                  }`}
+                />
+                <span>Auto-Play:</span>
+                <span className={`font-black ${queuePolicy.autoPlayRequests ? "text-white" : "text-zinc-400"}`}>
+                  {queuePolicy.autoPlayRequests ? "ACTIVO" : "OFF"}
+                </span>
+              </button>
+            </div>
           </div>
+
+          {/* Banner visual si Auto-Play está activo */}
+          {queuePolicy.autoPlayRequests && (
+            <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-950/80 to-teal-950/80 border border-emerald-500/60 flex items-center justify-between gap-3 text-xs text-emerald-200 shadow-sm">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <div>
+                  <span className="font-extrabold text-emerald-300">⚡ Auto-Play Activado: </span>
+                  <span className="text-zinc-200">
+                    Los pedidos de los invitados se aprueban y reproducen automáticamente sin requerir que los aceptes manualmente.
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={handleToggleAutoPlay}
+                className="text-[11px] underline text-emerald-400 hover:text-emerald-200 font-bold shrink-0 cursor-pointer"
+              >
+                Desactivar
+              </button>
+            </div>
+          )}
 
           {filteredPending.length === 0 ? (
             <div className="p-12 text-center text-zinc-500 space-y-2">
