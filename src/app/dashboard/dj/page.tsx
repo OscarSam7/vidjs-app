@@ -591,9 +591,7 @@ export default function DjBoothPage() {
         const total =
           data.currentPlaying?.songRequest.song?.durationSeconds || 210;
         if (prev >= total) {
-          // Auto avanzar
-          handleNextTrack();
-          return 0;
+          return total;
         }
         return prev + 1;
       });
@@ -705,8 +703,10 @@ export default function DjBoothPage() {
   };
 
   // Avanzar a la siguiente canción
+  const isAdvancingTrackRef = useRef(false);
   const handleNextTrack = async () => {
-    if (!data?.event) return;
+    if (!data?.event || isAdvancingTrackRef.current) return;
+    isAdvancingTrackRef.current = true;
     try {
       const res = await fetch("/api/v1/dj/queue", {
         method: "POST",
@@ -721,6 +721,10 @@ export default function DjBoothPage() {
       }
     } catch {
       showFeedback("error", "Error al avanzar tema");
+    } finally {
+      setTimeout(() => {
+        isAdvancingTrackRef.current = false;
+      }, 1500);
     }
   };
 
