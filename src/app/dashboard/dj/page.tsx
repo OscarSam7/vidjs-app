@@ -877,15 +877,10 @@ export default function DjBoothPage() {
     }).catch(() => {});
   };
 
-  // Activar Modo Karaoke y abrir automáticamente la pantalla TV sincronizada
+  // Activar Modo Karaoke
   const handleActivateKaraokeMode = () => {
-    // 1. Abrir síncronamente la pestaña/ventana de la pantalla de TV de Karaoke
-    if (data?.event?.code) {
-      window.open(`/display/${data.event.code}?mode=karaoke`, "vidjs_tv_display");
-    }
-    // 2. Actualizar la política del evento a Modo Karaoke
     handleUpdatePolicy({ zone: "KARAOKE", nightMode: "HYBRID" });
-    showFeedback("success", "🎤 Modo Karaoke activado. Pantalla TV abierta en nueva ventana.");
+    showFeedback("success", "🎤 Modo Karaoke activado");
   };
 
   // ⚡ Conmutar Auto-Play de Pedidos (Aprobación y reproducción automática)
