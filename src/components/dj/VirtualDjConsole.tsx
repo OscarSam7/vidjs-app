@@ -1902,6 +1902,13 @@ export default function VirtualDjConsole({
   // Avance de tema del servidor / Sincronización cuando entra un nuevo tema al aire
   useEffect(() => {
     const currentId = currentPlaying?.id || null;
+    if (!currentId && prevCurrentPlayingIdRef.current) {
+      prevCurrentPlayingIdRef.current = null;
+      if (isPlayingA) handleClearDeckA();
+      if (isPlayingB) handleClearDeckB();
+      return;
+    }
+
     if (currentId && currentId !== prevCurrentPlayingIdRef.current) {
       prevCurrentPlayingIdRef.current = currentId;
 
@@ -1940,16 +1947,14 @@ export default function VirtualDjConsole({
       const tableLabel = currentPlaying.songRequest.table?.label ? ` (${currentPlaying.songRequest.table.label})` : "";
 
       if (target === "A") {
+        if (isPlayingB) handleClearDeckB();
         loadTrackIntoDeckA(currentPlaying.songRequest, currentPlaying.youtubeVideoId, currentPlaying.id);
-        if (!isPlayingB) {
-          animateCrossfaderTo(-100, 500);
-        }
+        animateCrossfaderTo(-100, 500);
         showFeedback("success", `🎧 Cargada en Bandeja A: "${title}"${tableLabel}`);
       } else {
+        if (isPlayingA) handleClearDeckA();
         loadTrackIntoDeckB(currentPlaying.songRequest, currentPlaying.id, currentPlaying.youtubeVideoId);
-        if (!isPlayingA) {
-          animateCrossfaderTo(100, 500);
-        }
+        animateCrossfaderTo(100, 500);
         showFeedback("success", `🎧 Cargada en Bandeja B: "${title}"${tableLabel}`);
       }
     }

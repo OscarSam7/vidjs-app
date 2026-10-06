@@ -50,6 +50,105 @@ export async function POST(
       );
     }
 
+    const body = await req.json().catch(() => ({}));
+    const action = body.action || "PLAY";
+
+    if (action === "FINISH") {
+      // El solicitante decide terminar su reproducción activa para dar lugar al siguiente
+      if (songRequest.status !== "PLAYING") {
+        if (songRequest.status === "PLAYED") {
+          return NextResponse.json({
+            success: true,
+            message: "Esta canción ya ha finalizado su reproducción.",
+          });
+        }
+        throw new AppError("Esta canción no está actualmente en reproducción.", 400);
+      }
+
+      const now = new Date();
+
+      // Buscar si hay un siguiente tema en la cola en estado QUEUED
+      const nextEntry = await prisma.queueEntry.findFirst({
+        where: {
+          tenantId: guestSession.tenantId,
+          eventId: guestSession.eventId,
+          status: "QUEUED",
+        },
+        include: { songRequest: { include: { song: true, table: true } } },
+        orderBy: { orderIndex: "asc" },
+      });
+
+      const shouldAutoAdvance = Boolean(policy.autoPlayRequests && nextEntry);
+
+      if (shouldAutoAdvance && nextEntry) {
+        await prisma.$transaction([
+          prisma.queueEntry.updateMany({
+            where: {
+              tenantId: guestSession.tenantId,
+              eventId: guestSession.eventId,
+              status: "CURRENT",
+            },
+            data: { status: "COMPLETED" },
+          }),
+          prisma.songRequest.update({
+            where: { id: songRequest.id },
+            data: { status: "PLAYED", playedAt: now },
+          }),
+          prisma.queueEntry.update({
+            where: { id: nextEntry.id },
+            data: { status: "CURRENT" },
+          }),
+          prisma.songRequest.update({
+            where: { id: nextEntry.songRequestId },
+            data: { status: "PLAYING", playedAt: now },
+          }),
+        ]);
+
+        realtimeBus.broadcast(guestSession.eventId, "TRACK_CHANGE", {
+          currentEntryId: nextEntry.id,
+        });
+        realtimeBus.broadcast(guestSession.eventId, "QUEUE_UPDATE", {
+          action: "NEXT",
+        });
+      } else {
+        await prisma.$transaction([
+          prisma.queueEntry.updateMany({
+            where: {
+              tenantId: guestSession.tenantId,
+              eventId: guestSession.eventId,
+              status: "CURRENT",
+            },
+            data: { status: "COMPLETED" },
+          }),
+          prisma.songRequest.update({
+            where: { id: songRequest.id },
+            data: { status: "PLAYED", playedAt: now },
+          }),
+        ]);
+
+        realtimeBus.broadcast(guestSession.eventId, "TRACK_CHANGE", {
+          currentEntryId: null,
+        });
+        realtimeBus.broadcast(guestSession.eventId, "QUEUE_UPDATE", {
+          action: "STOP",
+        });
+      }
+
+      // Desbloquear cupo para la mesa ("Canta y Libera")
+      realtimeBus.broadcast(guestSession.eventId, "QUEUE_SLOT_UNLOCKED", {
+        tableId: songRequest.tableId,
+        tableLabel: songRequest.table.label,
+        songTitle: songRequest.song?.title || songRequest.customTitle || "Canción",
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: shouldAutoAdvance
+          ? "🎉 ¡Turno finalizado! Dando lugar al siguiente pedido."
+          : "🎉 ¡Turno finalizado con éxito! Cupo liberado para tu mesa.",
+      });
+    }
+
     if (songRequest.status === "PLAYING") {
       return NextResponse.json({
         success: true,

@@ -358,6 +358,9 @@ export async function GET() {
         },
         currentPlaying: currentPlayingEntry
           ? {
+              id: currentPlayingEntry.id,
+              requestId: currentPlayingEntry.songRequestId,
+              tableId: currentPlayingEntry.songRequest.tableId,
               title:
                 currentPlayingEntry.songRequest.song?.title ||
                 currentPlayingEntry.songRequest.customTitle ||
@@ -367,6 +370,7 @@ export async function GET() {
                 currentPlayingEntry.songRequest.customArtist ||
                 "Artista",
               tableLabel: currentPlayingEntry.songRequest.table.label,
+              isMyRequest: currentPlayingEntry.songRequest.tableId === guestSession.tableId,
             }
           : null,
         branding,

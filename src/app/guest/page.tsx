@@ -37,6 +37,7 @@ import {
   LogOut,
   Mic,
   Headphones,
+  Square,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -88,9 +89,13 @@ export interface TableAllowanceInfo {
 }
 
 interface CurrentPlayingInfo {
+  id?: string;
+  requestId?: string;
+  tableId?: string;
   title: string;
   artist: string;
   tableLabel: string;
+  isMyRequest?: boolean;
 }
 
 interface FlashDealInfo {
@@ -696,6 +701,37 @@ function GuestContent() {
       }
     } catch {
       alert("Error de conexión al reproducir");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Terminar reproducción activa por el solicitante para dar lugar al siguiente
+  const handleFinishRequest = async (requestId: string) => {
+    if (
+      !confirm(
+        "¿Deseas terminar tu turno ahora para dar paso a la siguiente canción? Tu cupo de mesa se liberará de inmediato."
+      )
+    ) {
+      return;
+    }
+    setActionLoadingId(requestId);
+    try {
+      const res = await fetch(`/api/v1/requests/${requestId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "FINISH" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMessage(data.message || "🎉 ¡Turno finalizado! Dando lugar al siguiente tema.");
+        setTimeout(() => setSuccessMessage(null), 4000);
+        await loadSessionAndRequests();
+      } else {
+        alert(data.error?.message || "No se pudo finalizar la reproducción");
+      }
+    } catch {
+      alert("Error de conexión al finalizar");
     } finally {
       setActionLoadingId(null);
     }
@@ -1445,14 +1481,19 @@ function GuestContent() {
 
             {/* Spotlight en Vivo */}
             {currentPlaying && (
-              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/60 to-zinc-900 border border-purple-500/30 flex items-center justify-between">
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/60 to-zinc-900 border border-purple-500/30 flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap shadow-md">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="p-2 rounded-xl bg-purple-600/20 border border-purple-500/40 text-purple-400 shrink-0">
                     <Radio className="w-4 h-4 animate-pulse" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] text-purple-300 font-bold uppercase tracking-wider">
-                      Sonando Ahora &bull; {currentPlaying.tableLabel}
+                    <div className="text-[10px] text-purple-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <span>Sonando Ahora &bull; {currentPlaying.tableLabel}</span>
+                      {(currentPlaying.isMyRequest || myRequests.some((r) => r.status === "PLAYING")) && (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500 text-white font-black animate-pulse">
+                          ¡TU MESA!
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs font-bold text-white truncate">
                       {currentPlaying.title}
@@ -1463,10 +1504,32 @@ function GuestContent() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-0.5 shrink-0 pl-2">
-                  <span className="w-1 h-3 bg-purple-400 rounded-full animate-pulse" />
-                  <span className="w-1 h-5 bg-purple-400 rounded-full animate-pulse [animation-delay:150ms]" />
-                  <span className="w-1 h-2 bg-purple-400 rounded-full animate-pulse [animation-delay:300ms]" />
+                <div className="flex items-center gap-2.5 shrink-0">
+                  {(currentPlaying.isMyRequest || myRequests.some((r) => r.status === "PLAYING")) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const playingReq = myRequests.find((r) => r.status === "PLAYING");
+                        const targetId = currentPlaying.requestId || playingReq?.id;
+                        if (targetId) handleFinishRequest(targetId);
+                      }}
+                      disabled={Boolean(actionLoadingId)}
+                      className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-md shadow-rose-950 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                      title="Terminar mi canción ahora para dar lugar al siguiente pedido y liberar mi cupo"
+                    >
+                      {actionLoadingId ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Square className="w-3 h-3 fill-current" />
+                      )}
+                      <span>Terminar Turno</span>
+                    </button>
+                  )}
+                  <div className="flex items-center gap-0.5 shrink-0 pl-1">
+                    <span className="w-1 h-3 bg-purple-400 rounded-full animate-pulse" />
+                    <span className="w-1 h-5 bg-purple-400 rounded-full animate-pulse [animation-delay:150ms]" />
+                    <span className="w-1 h-2 bg-purple-400 rounded-full animate-pulse [animation-delay:300ms]" />
+                  </div>
                 </div>
               </div>
             )}
@@ -1926,10 +1989,26 @@ function GuestContent() {
                           )
                         )}
                         {req.status === "PLAYING" && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-600 font-black flex items-center gap-1 animate-pulse">
-                            <Radio className="w-3 h-3 text-purple-400" />
-                            <span>¡AL AIRE!</span>
-                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-600 font-black flex items-center gap-1 animate-pulse">
+                              <Radio className="w-3 h-3 text-purple-400" />
+                              <span>¡AL AIRE!</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleFinishRequest(req.id)}
+                              disabled={actionLoadingId === req.id}
+                              className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] flex items-center gap-1 shadow-md shadow-rose-950 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                              title="Terminar mi canción ahora para dar lugar al siguiente pedido y liberar mi cupo"
+                            >
+                              {actionLoadingId === req.id ? (
+                                <RefreshCw className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Square className="w-3 h-3 fill-current" />
+                              )}
+                              <span>Terminar Turno</span>
+                            </button>
+                          </div>
                         )}
                         {req.status === "PENDING" && (
                           <button
