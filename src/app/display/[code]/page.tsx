@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, use } from "react";
+import Link from "next/link";
 import {
   Disc3,
   Music,
@@ -14,6 +15,7 @@ import {
   Swords,
   Camera,
   Mic,
+  Headphones,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -669,6 +671,17 @@ export default function PublicDisplayScreenPage({
           <div className="px-3 py-1.5 rounded-xl bg-purple-900/40 border border-purple-600/50 text-purple-200 font-mono text-xs font-extrabold tracking-wider">
             CÓDIGO: {data.event.code}
           </div>
+
+          {/* Botón para volver a la Consola y Panel de Control del DJ */}
+          <Link
+            href="/dashboard/dj"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black shadow-md shadow-purple-950/60 transition-all cursor-pointer border border-purple-400/40 active:scale-95"
+            title="Volver a la Consola y Panel de Control del DJ"
+          >
+            <Headphones className="w-4 h-4" />
+            <span className="hidden sm:inline">Volver al Panel DJ</span>
+            <span className="sm:hidden">Panel DJ</span>
+          </Link>
 
           <button
             onClick={toggleFullscreen}

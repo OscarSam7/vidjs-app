@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import Link from "next/link";
-import { Tv, Radio, ArrowRight, Disc3, Sparkles } from "lucide-react";
+import { Tv, Radio, ArrowRight, Disc3, Sparkles, Headphones } from "lucide-react";
 
 export default async function DisplayLauncherPage() {
   const activeEvents = await prisma.event.findMany({
@@ -57,6 +57,16 @@ export default async function DisplayLauncherPage() {
               </Link>
             ))
           )}
+        </div>
+
+        <div className="pt-2 text-center">
+          <Link
+            href="/dashboard/dj"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-white border border-zinc-800 transition-colors"
+          >
+            <Headphones className="w-4 h-4 text-purple-400" />
+            <span>Volver al Panel de Control DJ</span>
+          </Link>
         </div>
       </div>
     </div>
