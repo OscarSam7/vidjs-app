@@ -58,6 +58,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = createPhotoSchema.parse(body);
 
+    // Si el modo Auto-Play está activo, las fotos se aprueban automáticamente y se proyectan en pantalla
+    const isAutoPlay = Boolean(policy.autoPlayRequests);
+    const initialPhotoStatus = isAutoPlay ? "APPROVED" : "PENDING";
+
     const post = await prisma.photoPost.create({
       data: {
         tenantId,
@@ -66,7 +70,7 @@ export async function POST(req: NextRequest) {
         guestName: data.guestName?.trim() || defaultGuestName,
         imageUrl: data.imageUrl,
         caption: data.caption?.trim() || null,
-        status: "PENDING", // Pasa a moderación del DJ
+        status: initialPhotoStatus,
       },
       include: {
         table: { select: { label: true, number: true } },
@@ -76,9 +80,20 @@ export async function POST(req: NextRequest) {
     // Notificar a la cabina del DJ en tiempo real
     realtimeBus.broadcast(eventId, "PHOTO_NEW", post);
 
+    if (isAutoPlay) {
+      // Proyectar directamente en la pantalla de TV en tiempo real
+      realtimeBus.broadcast(eventId, "PHOTO_APPROVED", post);
+      realtimeBus.broadcast(eventId, "PHOTO_FEATURED", {
+        photo: post,
+        durationSeconds: 15,
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      message: "¡Foto enviada a la cabina para proyectar en pantalla!",
+      message: isAutoPlay
+        ? "🎉 ¡Foto aprobada y proyectándose en vivo en la pantalla grande!"
+        : "¡Foto enviada a la cabina para proyectar en pantalla!",
       data: post,
     });
   } catch (error) {

@@ -1480,59 +1480,146 @@ function GuestContent() {
             )}
 
             {/* Spotlight en Vivo */}
-            {currentPlaying && (
-              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/60 to-zinc-900 border border-purple-500/30 flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap shadow-md">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2 rounded-xl bg-purple-600/20 border border-purple-500/40 text-purple-400 shrink-0">
-                    <Radio className="w-4 h-4 animate-pulse" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[10px] text-purple-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                      <span>Sonando Ahora &bull; {currentPlaying.tableLabel}</span>
-                      {(currentPlaying.isMyRequest || myRequests.some((r) => r.status === "PLAYING")) && (
-                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500 text-white font-black animate-pulse">
-                          ¡TU MESA!
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs font-bold text-white truncate">
-                      {currentPlaying.title}
-                    </div>
-                    <div className="text-[11px] text-zinc-400 truncate">
-                      {currentPlaying.artist}
-                    </div>
-                  </div>
-                </div>
+            {currentPlaying && (() => {
+              const isMyTrack = Boolean(currentPlaying.isMyRequest || myRequests.some((r) => r.status === "PLAYING"));
+              const playingReq = myRequests.find((r) => r.status === "PLAYING");
+              const targetId = currentPlaying.requestId || playingReq?.id;
 
-                <div className="flex items-center gap-2.5 shrink-0">
-                  {(currentPlaying.isMyRequest || myRequests.some((r) => r.status === "PLAYING")) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const playingReq = myRequests.find((r) => r.status === "PLAYING");
-                        const targetId = currentPlaying.requestId || playingReq?.id;
-                        if (targetId) handleFinishRequest(targetId);
-                      }}
-                      disabled={Boolean(actionLoadingId)}
-                      className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-md shadow-rose-950 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                      title="Terminar mi canción ahora para dar lugar al siguiente pedido y liberar mi cupo"
-                    >
-                      {actionLoadingId ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Square className="w-3 h-3 fill-current" />
+              return (
+                <div
+                  className={`p-4 rounded-2xl transition-all shadow-xl space-y-3 ${
+                    isMyTrack
+                      ? "bg-gradient-to-br from-purple-950 via-zinc-900 to-indigo-950 border-2 border-purple-500/60 shadow-purple-950/60"
+                      : "bg-gradient-to-r from-purple-950/60 to-zinc-900 border border-purple-500/30"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`p-2.5 rounded-xl border text-purple-400 shrink-0 ${
+                          isMyTrack
+                            ? "bg-purple-600/30 border-purple-400 animate-pulse text-purple-300"
+                            : "bg-purple-600/20 border-purple-500/40"
+                        }`}
+                      >
+                        <Radio className="w-5 h-5 animate-pulse" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[10px] text-purple-300 font-bold uppercase tracking-wider flex items-center gap-1.5 flex-wrap">
+                          <span>Sonando Ahora &bull; {currentPlaying.tableLabel}</span>
+                          {isMyTrack && (
+                            <span className="text-[9px] px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-black tracking-wider animate-pulse shadow-sm">
+                              ✨ ¡TU CANCIÓN AL AIRE!
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm font-black text-white truncate">
+                          {currentPlaying.title}
+                        </div>
+                        <div className="text-xs text-zinc-400 truncate">
+                          {currentPlaying.artist}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      {isMyTrack && targetId && (
+                        <button
+                          type="button"
+                          onClick={() => handleFinishRequest(targetId)}
+                          disabled={Boolean(actionLoadingId)}
+                          className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-md shadow-rose-950 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                          title="Terminar mi canción ahora para dar lugar al siguiente pedido y liberar mi cupo"
+                        >
+                          {actionLoadingId ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Square className="w-3 h-3 fill-current" />
+                          )}
+                          <span>Terminar Turno</span>
+                        </button>
                       )}
-                      <span>Terminar Turno</span>
-                    </button>
-                  )}
-                  <div className="flex items-center gap-0.5 shrink-0 pl-1">
-                    <span className="w-1 h-3 bg-purple-400 rounded-full animate-pulse" />
-                    <span className="w-1 h-5 bg-purple-400 rounded-full animate-pulse [animation-delay:150ms]" />
-                    <span className="w-1 h-2 bg-purple-400 rounded-full animate-pulse [animation-delay:300ms]" />
+                      <div className="flex items-center gap-0.5 shrink-0 pl-1">
+                        <span className="w-1 h-3 bg-purple-400 rounded-full animate-pulse" />
+                        <span className="w-1 h-5 bg-purple-400 rounded-full animate-pulse [animation-delay:150ms]" />
+                        <span className="w-1 h-2 bg-purple-400 rounded-full animate-pulse [animation-delay:300ms]" />
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Panel VIP interactivo para el solicitante cuando su canción está sonando */}
+                  {isMyTrack && (
+                    <div className="pt-2 border-t border-purple-500/20 space-y-2.5">
+                      {/* Fila de Reacciones en Vivo */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-purple-200 flex items-center gap-1.5">
+                            <span>🎉 Reacciona en Vivo en la Pantalla TV:</span>
+                          </span>
+                          {lastReactionSent && (
+                            <span className="text-[10px] font-black text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800 animate-bounce">
+                              ¡{lastReactionSent} en la Pantalla!
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-8 gap-1.5">
+                          {[
+                            { emoji: "🔥", label: "Fuego" },
+                            { emoji: "❤️", label: "Amor" },
+                            { emoji: "👏", label: "Bravo" },
+                            { emoji: "🍻", label: "Salud" },
+                            { emoji: "💃", label: "Baile" },
+                            { emoji: "🎤", label: "Canto" },
+                            { emoji: "⭐", label: "Estrella" },
+                            { emoji: "🎉", label: "Fiesta" },
+                          ].map((item) => (
+                            <button
+                              key={item.emoji}
+                              type="button"
+                              onClick={() => handleSendReaction(item.emoji)}
+                              className="py-2 rounded-xl bg-zinc-950/90 hover:bg-purple-900/50 border border-purple-500/30 hover:border-purple-400 text-center transition-all cursor-pointer active:scale-90 flex flex-col items-center justify-center shadow-sm"
+                              title={`Enviar ${item.label} a la pantalla`}
+                            >
+                              <span className="text-lg leading-tight">{item.emoji}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Compartir Fotos si Auto-Play está activado */}
+                      {tableAllowance?.autoPlayRequests && (
+                        <div className="p-2.5 rounded-xl bg-gradient-to-r from-emerald-950/70 via-teal-950/60 to-zinc-950 border border-emerald-500/40 flex items-center justify-between gap-2.5 flex-wrap sm:flex-nowrap">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+                              <Camera className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-[11px] font-black text-emerald-200 flex items-center gap-1.5">
+                                <span>📸 Compartir Fotos en Pantalla</span>
+                                <span className="text-[9px] bg-emerald-500/30 text-emerald-300 border border-emerald-500/50 px-1 py-0.2 rounded font-black">
+                                  AUTO-PLAY EN VIVO
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-zinc-400 truncate">
+                                Sube una foto para proyectarla al instante en la TV durante tu canción
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsPhotoModalOpen(true)}
+                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black text-xs font-black flex items-center gap-1.5 shadow-md shadow-emerald-950 transition-all cursor-pointer active:scale-95 shrink-0"
+                          >
+                            <Camera className="w-3.5 h-3.5" />
+                            <span>Subir Foto Ahora</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* "¿Qué quieres hacer esta noche?" - Tarjetas de Acción Directa */}
             <div className="w-full">
@@ -2046,6 +2133,54 @@ function GuestContent() {
                         </div>
                       )}
                     </div>
+
+                    {req.status === "PLAYING" && (
+                      <div className="mt-3 pt-3 border-t border-purple-500/30 space-y-2 bg-purple-950/40 -mx-3 -mb-3 p-3 rounded-b-2xl">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-purple-200 flex items-center gap-1.5">
+                            <span>🎉 Reacciona en Vivo en la Pantalla TV:</span>
+                          </span>
+                          {lastReactionSent && (
+                            <span className="text-[10px] font-black text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800 animate-bounce">
+                              ¡{lastReactionSent} en la Pantalla!
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-8 gap-1.5">
+                          {[
+                            { emoji: "🔥", label: "Fuego" },
+                            { emoji: "❤️", label: "Amor" },
+                            { emoji: "👏", label: "Bravo" },
+                            { emoji: "🍻", label: "Salud" },
+                            { emoji: "💃", label: "Baile" },
+                            { emoji: "🎤", label: "Canto" },
+                            { emoji: "⭐", label: "Estrella" },
+                            { emoji: "🎉", label: "Fiesta" },
+                          ].map((item) => (
+                            <button
+                              key={item.emoji}
+                              type="button"
+                              onClick={() => handleSendReaction(item.emoji)}
+                              className="py-1.5 rounded-lg bg-zinc-950/90 hover:bg-purple-900/50 border border-purple-500/30 hover:border-purple-400 text-center transition-all cursor-pointer active:scale-90 flex flex-col items-center justify-center shadow-sm"
+                              title={`Enviar ${item.label} a la pantalla`}
+                            >
+                              <span className="text-base leading-tight">{item.emoji}</span>
+                            </button>
+                          ))}
+                        </div>
+
+                        {tableAllowance?.autoPlayRequests && (
+                          <button
+                            type="button"
+                            onClick={() => setIsPhotoModalOpen(true)}
+                            className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-emerald-950 transition-all cursor-pointer active:scale-95"
+                          >
+                            <Camera className="w-3.5 h-3.5" />
+                            <span>📸 Compartir Foto en Pantalla (Auto-Play En Vivo)</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -2374,10 +2509,31 @@ function GuestContent() {
               <div className="py-8 text-center space-y-2">
                 <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
                 <h4 className="text-sm font-bold text-white">¡Foto Enviada!</h4>
-                <p className="text-xs text-zinc-400">El DJ la proyectará en pantalla en unos momentos.</p>
+                <p className="text-xs text-zinc-400">
+                  {tableAllowance?.autoPlayRequests
+                    ? "🎉 ¡Foto aprobada automáticamente y proyectándose en vivo en la pantalla grande!"
+                    : "El DJ la proyectará en pantalla en unos momentos."}
+                </p>
               </div>
             ) : (
               <form onSubmit={handleUploadPhoto} className="space-y-3.5">
+                {/* Alerta de Auto-Play en vivo */}
+                {tableAllowance?.autoPlayRequests && (
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-950/80 to-teal-950/80 border border-emerald-500/50 text-emerald-200 text-xs flex items-center gap-2.5 shadow-sm">
+                    <Zap className="w-4 h-4 text-emerald-400 shrink-0 animate-pulse" />
+                    <div>
+                      <div className="font-bold text-white flex items-center gap-1.5">
+                        <span>⚡ Modo Auto-Play Activo</span>
+                        <span className="text-[9px] bg-emerald-500/30 text-emerald-300 border border-emerald-500/50 px-1.5 py-0.2 rounded font-black">
+                          PROYECCIÓN DIRECTA
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-emerald-300/90 mt-0.5 leading-relaxed">
+                        ¡Tu foto se proyectará al instante en la pantalla grande de la TV sin esperas!
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {/* Alerta de error si falla la subida */}
                 {photoError && (
                   <div className="p-3 rounded-xl bg-red-950/80 border border-red-800 text-red-200 text-xs flex items-center gap-2">
@@ -2507,12 +2663,20 @@ function GuestContent() {
                   {uploadingPhoto ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Enviando al proyector...</span>
+                      <span>
+                        {tableAllowance?.autoPlayRequests
+                          ? "Proyectando en vivo en la pantalla..."
+                          : "Enviando al proyector..."}
+                      </span>
                     </>
                   ) : (
                     <>
                       <Send className="w-3.5 h-3.5" />
-                      <span>Proyectar en Pantalla</span>
+                      <span>
+                        {tableAllowance?.autoPlayRequests
+                          ? "📸 Proyectar en Vivo en la Pantalla"
+                          : "Proyectar en Pantalla"}
+                      </span>
                     </>
                   )}
                 </button>
