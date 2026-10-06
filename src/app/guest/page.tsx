@@ -1900,20 +1900,30 @@ function GuestContent() {
 
                       <div className="flex items-center gap-1.5 shrink-0">
                         {tableAllowance?.autoPlayRequests && (req.status === "PENDING" || req.status === "ACCEPTED") && (
-                          <button
-                            type="button"
-                            onClick={() => handlePlayRequest(req.id)}
-                            disabled={actionLoadingId === req.id}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[11px] flex items-center gap-1 shadow-md shadow-emerald-600/30 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                            title="Darle al Play para que esta canción suene de inmediato en la cabina y TV"
-                          >
-                            {actionLoadingId === req.id ? (
-                              <RefreshCw className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <Play className="w-3 h-3 fill-current" />
-                            )}
-                            <span>Darle al Play</span>
-                          </button>
+                          Boolean(currentPlaying) ? (
+                            <div
+                              className="px-2.5 py-1 rounded-lg bg-red-950/80 border border-red-700/80 text-red-300 font-bold text-[11px] flex items-center gap-1.5 shadow-sm opacity-90 cursor-not-allowed select-none"
+                              title="Bandeja en reproducción. Espera a que termine la canción actual para darle al Play"
+                            >
+                              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                              <span>🔴 En Reprod.</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handlePlayRequest(req.id)}
+                              disabled={actionLoadingId === req.id}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[11px] flex items-center gap-1 shadow-md shadow-emerald-600/30 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                              title="Darle al Play para que esta canción suene de inmediato en la cabina y TV"
+                            >
+                              {actionLoadingId === req.id ? (
+                                <RefreshCw className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Play className="w-3 h-3 fill-current" />
+                              )}
+                              <span>▶ Darle al Play</span>
+                            </button>
+                          )
                         )}
                         {req.status === "PLAYING" && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-600 font-black flex items-center gap-1 animate-pulse">
@@ -2009,11 +2019,28 @@ function GuestContent() {
             )}
 
             {tableAllowance?.autoPlayRequests && (
-              <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-500/60 text-emerald-200 text-xs flex items-center gap-2.5 shadow-sm">
-                <Zap className="w-4 h-4 text-emerald-400 shrink-0 animate-pulse" />
-                <div className="text-[11px] leading-relaxed">
-                  <strong className="text-white font-black">⚡ Modo Auto-Play Activo:</strong> ¡Tienes la opción de darle al Play para que tu canción suene de inmediato en la pista o enviarla a la cola!
-                </div>
+              <div
+                className={`p-3 rounded-xl border text-xs flex items-center gap-2.5 shadow-sm ${
+                  Boolean(currentPlaying)
+                    ? "bg-red-950/70 border-red-500/60 text-red-200"
+                    : "bg-emerald-950/70 border-emerald-500/60 text-emerald-200"
+                }`}
+              >
+                {Boolean(currentPlaying) ? (
+                  <>
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping shrink-0" />
+                    <div className="text-[11px] leading-relaxed">
+                      <strong className="text-white font-black">🔴 Pista en Reproducción:</strong> Hay una canción sonando actualmente. Podrás darle al Play directamente en cuanto termine la pista actual. Por ahora puedes enviarla a la cola.
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 text-emerald-400 shrink-0 animate-pulse" />
+                    <div className="text-[11px] leading-relaxed">
+                      <strong className="text-white font-black">⚡ ¡Bandeja Libre!:</strong> Puedes darle al Play ahora mismo para que tu canción suene de inmediato en la pista.
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -2168,26 +2195,36 @@ function GuestContent() {
 
               {tableAllowance?.autoPlayRequests ? (
                 <div className="space-y-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={(e) => handleSubmitRequest(e, true)}
-                    disabled={!session || submitting || Boolean(tableAllowance?.isLocked) || Boolean(tableAllowance?.queuePaused)}
-                    className="w-full py-2.5 px-4 text-xs font-black rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all active:scale-95"
-                  >
-                    {!session ? (
-                      <span>🔒 Conecta tu mesa para enviar</span>
-                    ) : submitting ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Dando al Play...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4 fill-current" />
-                        <span>¡Darle al Play y Sonar Ahora!</span>
-                      </>
-                    )}
-                  </button>
+                  {Boolean(currentPlaying) ? (
+                    <div
+                      className="w-full py-2.5 px-4 text-xs font-bold rounded-xl bg-red-950/80 border border-red-700/80 text-red-300 shadow-inner flex items-center justify-center gap-2 select-none opacity-85 cursor-not-allowed"
+                      title="Bandeja en reproducción. Espera a que termine la canción actual para darle al Play"
+                    >
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+                      <span>🔴 Pista Ocupada (Espera que termine para dar Play)</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => handleSubmitRequest(e, true)}
+                      disabled={!session || submitting || Boolean(tableAllowance?.isLocked) || Boolean(tableAllowance?.queuePaused)}
+                      className="w-full py-2.5 px-4 text-xs font-black rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all active:scale-95"
+                    >
+                      {!session ? (
+                        <span>🔒 Conecta tu mesa para enviar</span>
+                      ) : submitting ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Dando al Play...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-4 h-4 fill-current" />
+                          <span>¡Darle al Play y Sonar Ahora!</span>
+                        </>
+                      )}
+                    </button>
+                  )}
 
                   <button
                     type="button"

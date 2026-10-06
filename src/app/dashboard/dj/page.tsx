@@ -660,6 +660,12 @@ export default function DjBoothPage() {
 
   // Cargar / Reproducir tema de la cola en la bandeja libre o seleccionada
   const handleLoadQueueEntry = async (entry: QueueEntryData, targetDeck: "AUTO" | "A" | "B" = "AUTO") => {
+    // Si la bandeja está ocupada y se intenta reproducir AUTO, alertar amigablemente
+    if (Boolean(data?.currentPlaying && isPlaying) && targetDeck === "AUTO") {
+      showFeedback("info", "⏳ Hay una bandeja en reproducción. Espera a que termine para dar Play al siguiente pedido.");
+      return;
+    }
+
     // 1. Cargar y arrancar inmediatamente en la consola Virtual DJ en la bandeja correspondiente
     setPendingDeckLoad({ entry, targetDeck, timestamp: Date.now() });
 
@@ -2186,11 +2192,24 @@ export default function DjBoothPage() {
                             <Megaphone className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => handleLoadQueueEntry(entry, "AUTO")}
-                            title="Subir al escenario ahora"
-                            className="p-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white transition-colors cursor-pointer"
+                            onClick={() => !Boolean(data?.currentPlaying && isPlaying) && handleLoadQueueEntry(entry, "AUTO")}
+                            disabled={Boolean(data?.currentPlaying && isPlaying)}
+                            title={
+                              Boolean(data?.currentPlaying && isPlaying)
+                                ? "Bandeja en reproducción. Espera a que termine para dar Play al siguiente cantante."
+                                : "Subir al escenario ahora"
+                            }
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              Boolean(data?.currentPlaying && isPlaying)
+                                ? "bg-red-950/80 border border-red-800 text-red-400 cursor-not-allowed opacity-80"
+                                : "bg-emerald-600/30 hover:bg-emerald-600 border border-emerald-500 text-emerald-300 hover:text-white cursor-pointer"
+                            }`}
                           >
-                            <Play className="w-3.5 h-3.5" />
+                            {Boolean(data?.currentPlaying && isPlaying) ? (
+                              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse block m-0.5" />
+                            ) : (
+                              <Play className="w-3.5 h-3.5 fill-current" />
+                            )}
                           </button>
                         </>
                       ) : (
@@ -2205,16 +2224,28 @@ export default function DjBoothPage() {
                             <span>◀ A</span>
                           </button>
 
-                          {/* Botón Principal: Tirar a la Bandeja Libre (Auto) */}
-                          <button
-                            type="button"
-                            onClick={() => handleLoadQueueEntry(entry, "AUTO")}
-                            title="Reproducir en la bandeja que esté libre"
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-all cursor-pointer flex items-center gap-1 shadow-md shadow-emerald-950"
-                          >
-                            <Play className="w-3 h-3 fill-white" />
-                            <span className="text-[10px] font-bold">Auto</span>
-                          </button>
+                          {/* Botón Principal: Tirar a la Bandeja Libre (Auto / Play) */}
+                          {Boolean(data?.currentPlaying && isPlaying) ? (
+                            <button
+                              type="button"
+                              disabled={true}
+                              title="Bandeja en reproducción. Espera a que termine para dar Play al siguiente pedido."
+                              className="px-2.5 py-1 rounded-lg bg-red-950/80 border border-red-800/80 text-red-300 text-xs font-bold flex items-center gap-1.5 opacity-80 cursor-not-allowed shadow-inner"
+                            >
+                              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                              <span className="text-[10px] font-bold">En Reprod.</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleLoadQueueEntry(entry, "AUTO")}
+                              title="Reproducir en la bandeja que esté libre"
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-all cursor-pointer flex items-center gap-1 shadow-md shadow-emerald-950 active:scale-95"
+                            >
+                              <Play className="w-3 h-3 fill-white" />
+                              <span className="text-[10px] font-bold">Play</span>
+                            </button>
+                          )}
 
                           {/* Cargar específicamente en Deck B */}
                           <button

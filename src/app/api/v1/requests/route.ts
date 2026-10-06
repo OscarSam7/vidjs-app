@@ -99,59 +99,34 @@ export async function POST(req: NextRequest) {
     let prevPlayingList: any[] = [];
 
     if (isAutoPlay) {
-      if (data.playNow) {
-        // El comensal seleccionó darle al Play de inmediato
+      // Verificar si hay alguna canción ejecutándose en la bandeja actualmente
+      const activeCurrent = await prisma.queueEntry.findFirst({
+        where: {
+          tenantId: guestSession.tenantId,
+          eventId: guestSession.eventId,
+          status: "CURRENT",
+        },
+      });
+
+      const activePlayingSong = await prisma.songRequest.findFirst({
+        where: {
+          tenantId: guestSession.tenantId,
+          eventId: guestSession.eventId,
+          status: "PLAYING",
+        },
+      });
+
+      const isDeckFree = !activeCurrent && !activePlayingSong;
+
+      if (data.playNow && isDeckFree) {
+        // El comensal seleccionó darle al Play de inmediato y la bandeja está libre
         initialStatus = "PLAYING";
         queueEntryStatus = "CURRENT";
         playedAt = new Date();
-
-        prevPlayingList = await prisma.songRequest.findMany({
-          where: {
-            tenantId: guestSession.tenantId,
-            eventId: guestSession.eventId,
-            status: "PLAYING",
-          },
-          include: { table: true, song: true },
-        });
-
-        await prisma.$transaction([
-          prisma.queueEntry.updateMany({
-            where: {
-              tenantId: guestSession.tenantId,
-              eventId: guestSession.eventId,
-              status: "CURRENT",
-            },
-            data: { status: "COMPLETED" },
-          }),
-          prisma.songRequest.updateMany({
-            where: {
-              tenantId: guestSession.tenantId,
-              eventId: guestSession.eventId,
-              status: "PLAYING",
-            },
-            data: { status: "PLAYED", playedAt: new Date() },
-          }),
-        ]);
       } else {
-        // Verificar si hay alguna canción sonando actualmente
-        const currentActive = await prisma.queueEntry.findFirst({
-          where: {
-            tenantId: guestSession.tenantId,
-            eventId: guestSession.eventId,
-            status: "CURRENT",
-          },
-        });
-
-        if (!currentActive) {
-          // Nada sonando: entra directamente a reproducirse
-          initialStatus = "PLAYING";
-          queueEntryStatus = "CURRENT";
-          playedAt = new Date();
-        } else {
-          // Ya hay un tema al aire: se encola automáticamente
-          initialStatus = "ACCEPTED";
-          queueEntryStatus = "QUEUED";
-        }
+        // La bandeja está ocupada o fue enviado a la cola: se encola de forma segura
+        initialStatus = "ACCEPTED";
+        queueEntryStatus = "QUEUED";
       }
     }
 

@@ -1156,6 +1156,12 @@ export default function VirtualDjConsole({
     webDjEngine.unlock();
     if (isEjectedA || !trackA) return;
 
+    // Solo habilitar dar play si la otra bandeja no está ejecutándose en reproducción
+    if (!isPlayingA && isPlayingB) {
+      showFeedback("info", "⏳ Bandeja B en reproducción. Espera a que termine para dar Play en Bandeja A.");
+      return;
+    }
+
     if (deckModeA === "native" && audioRefA.current) {
       if (isPlayingA) {
         audioRefA.current.pause();
@@ -1190,6 +1196,12 @@ export default function VirtualDjConsole({
   const togglePlayB = () => {
     webDjEngine.unlock();
     if (isEjectedB || !trackB) return;
+
+    // Solo habilitar dar play si la otra bandeja no está ejecutándose en reproducción
+    if (!isPlayingB && isPlayingA) {
+      showFeedback("info", "⏳ Bandeja A en reproducción. Espera a que termine para dar Play en Bandeja B.");
+      return;
+    }
 
     if (deckModeB === "native" && audioRefB.current) {
       if (isPlayingB) {
@@ -3053,15 +3065,38 @@ export default function VirtualDjConsole({
             </button>
             <button
               onClick={togglePlayA}
-              disabled={!trackA}
-              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 ${
+              disabled={!trackA || (!isPlayingA && isPlayingB)}
+              title={
+                !isPlayingA && isPlayingB
+                  ? "Bandeja B en reproducción. Espera a que termine para dar Play en Bandeja A."
+                  : isPlayingA
+                  ? "Pausar Bandeja A"
+                  : "Reproducir Bandeja A"
+              }
+              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-85 ${
                 isPlayingA
                   ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-purple-600/30"
-                  : "bg-zinc-800 hover:bg-zinc-700"
+                  : isPlayingB
+                  ? "bg-red-950/80 border border-red-700/80 text-red-300 shadow-sm cursor-not-allowed"
+                  : trackA
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/40 ring-1 ring-emerald-400/50 animate-pulse"
+                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400"
               }`}
             >
-              {isPlayingA ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
-              <span>{isPlayingA ? "PAUSA" : "PLAY"}</span>
+              {isPlayingA ? (
+                <Pause className="w-4 h-4" />
+              ) : isPlayingB ? (
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+              ) : (
+                <Play className="w-4 h-4 fill-current" />
+              )}
+              <span>
+                {isPlayingA
+                  ? "PAUSA"
+                  : isPlayingB
+                  ? "EN ESPERA"
+                  : "PLAY"}
+              </span>
             </button>
             <button
               onClick={handleSyncDeckA}
@@ -3958,15 +3993,38 @@ export default function VirtualDjConsole({
             </button>
             <button
               onClick={togglePlayB}
-              disabled={!trackB}
-              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 ${
+              disabled={!trackB || (!isPlayingB && isPlayingA)}
+              title={
+                !isPlayingB && isPlayingA
+                  ? "Bandeja A en reproducción. Espera a que termine para dar Play en Bandeja B."
+                  : isPlayingB
+                  ? "Pausar Bandeja B"
+                  : "Reproducir Bandeja B"
+              }
+              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-85 ${
                 isPlayingB
                   ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-cyan-600/30"
-                  : "bg-zinc-800 hover:bg-zinc-700"
+                  : isPlayingA
+                  ? "bg-red-950/80 border border-red-700/80 text-red-300 shadow-sm cursor-not-allowed"
+                  : trackB
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/40 ring-1 ring-emerald-400/50 animate-pulse"
+                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400"
               }`}
             >
-              {isPlayingB ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
-              <span>{isPlayingB ? "PAUSA" : "PLAY"}</span>
+              {isPlayingB ? (
+                <Pause className="w-4 h-4" />
+              ) : isPlayingA ? (
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+              ) : (
+                <Play className="w-4 h-4 fill-current" />
+              )}
+              <span>
+                {isPlayingB
+                  ? "PAUSA"
+                  : isPlayingA
+                  ? "EN ESPERA"
+                  : "PLAY"}
+              </span>
             </button>
             <button
               onClick={handleSyncDeckB}

@@ -63,7 +63,7 @@ export async function POST(
 
     const now = new Date();
 
-    // 1. Obtener canciones que estaban sonando previamente para liberar slots
+    // 1. Verificar si hay alguna canción ejecutándose en la bandeja actualmente
     const prevPlaying = await prisma.songRequest.findMany({
       where: {
         tenantId: guestSession.tenantId,
@@ -73,6 +73,14 @@ export async function POST(
       },
       include: { table: true, song: true },
     });
+
+    if (prevPlaying.length > 0) {
+      throw new AppError(
+        "Hay una canción ejecutándose actualmente en la bandeja. Espera a que termine para poder darle al Play.",
+        400,
+        "DECK_CURRENTLY_PLAYING"
+      );
+    }
 
     // 2. Finalizar temas anteriores y marcar este tema como PLAYING y CURRENT
     await prisma.$transaction([
