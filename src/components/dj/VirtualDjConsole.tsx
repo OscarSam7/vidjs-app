@@ -1384,24 +1384,30 @@ export default function VirtualDjConsole({
   }, [isPlayingA, isPlayingB, effectiveBpmA]);
 
   // Sincronizar BPM con botón SYNC en Deck B
-  const handleSyncDeckB = () => {
+  const handleSyncDeckB = (arg?: unknown) => {
     if (!trackB) return;
+    const playSound = typeof arg === "boolean" ? arg : true;
     // Calcular el porcentaje de pitch necesario para igualar el BPM de Deck A
     const neededPitch = ((effectiveBpmA / baseBpmB) - 1) * 100;
     const clampedPitch = Math.max(-16, Math.min(16, neededPitch));
     setPitchB(Number(clampedPitch.toFixed(2)));
     setIsSyncedB(true);
-    djSoundEffects.playBeatSyncTone();
+    if (playSound) {
+      djSoundEffects.playBeatSyncTone();
+    }
     showFeedback("success", `⚡ Deck B sincronizado a ${effectiveBpmA} BPM`);
   };
 
   // Sincronizar BPM con botón SYNC en Deck A
-  const handleSyncDeckA = () => {
+  const handleSyncDeckA = (arg?: unknown) => {
     if (!trackA) return;
+    const playSound = typeof arg === "boolean" ? arg : true;
     const neededPitch = ((effectiveBpmB / baseBpmA) - 1) * 100;
     const clampedPitch = Math.max(-16, Math.min(16, neededPitch));
     setPitchA(Number(clampedPitch.toFixed(2)));
-    djSoundEffects.playBeatSyncTone();
+    if (playSound) {
+      djSoundEffects.playBeatSyncTone();
+    }
     showFeedback("success", `⚡ Deck A sincronizado a ${effectiveBpmB} BPM`);
   };
 
@@ -2143,7 +2149,7 @@ export default function VirtualDjConsole({
 
       unlockAudioB();
       setIsPlayingB(true);
-      handleSyncDeckB();
+      handleSyncDeckB(false);
       setIsEnganchando(true);
       setTransitionProgress(0);
       showFeedback("info", `⚡ Auto-Enganche A ➔ B iniciado (${transitionDuration} compases)`);
@@ -2181,7 +2187,6 @@ export default function VirtualDjConsole({
           setTransitionProgress(100);
           setIsPlayingA(false); // Detener Deck A
           handleClearDeckA(); // Limpiar y vaciar automáticamente bandeja A
-          djSoundEffects.playVinylBrake();
           setEngancheDirection("B_TO_A");
 
           const queueEntryId = effectiveQueueEntryB?.id;
@@ -2204,7 +2209,7 @@ export default function VirtualDjConsole({
 
       unlockAudioA();
       setIsPlayingA(true);
-      handleSyncDeckA();
+      handleSyncDeckA(false);
       setIsEnganchando(true);
       setTransitionProgress(0);
       showFeedback("info", `⚡ Auto-Enganche B ➔ A iniciado (${transitionDuration} compases)`);
@@ -2242,7 +2247,6 @@ export default function VirtualDjConsole({
           setTransitionProgress(100);
           setIsPlayingB(false); // Detener Deck B
           handleClearDeckB(); // Limpiar y vaciar automáticamente bandeja B
-          djSoundEffects.playVinylBrake();
           setEngancheDirection("A_TO_B");
 
           showFeedback("success", `🎉 ¡Enganche B ➔ A completado! "${trackA.song?.title || trackA.customTitle}" al aire`);
