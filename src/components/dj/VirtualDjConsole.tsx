@@ -477,7 +477,6 @@ export default function VirtualDjConsole({
   const handleActivateCrossfader = () => {
     setIsCrossfaderActive(true);
     resetCrossfaderTimer();
-    djSoundEffects.playCueClick();
   };
 
   // ==================== 2-TOUCH SAFETY: PITCH FADERS A & B ====================
@@ -494,7 +493,6 @@ export default function VirtualDjConsole({
   const handleActivatePitchA = () => {
     setIsPitchActiveA(true);
     resetPitchTimerA();
-    djSoundEffects.playCueClick();
   };
 
   const [isPitchActiveB, setIsPitchActiveB] = useState(false);
@@ -510,7 +508,6 @@ export default function VirtualDjConsole({
   const handleActivatePitchB = () => {
     setIsPitchActiveB(true);
     resetPitchTimerB();
-    djSoundEffects.playCueClick();
   };
 
   // 1. Reset Pitch Deck A (2 toques síncronos: 1° activar, 2° acción)
@@ -533,7 +530,6 @@ export default function VirtualDjConsole({
         resetArmedPitchARef.current = false;
         setResetArmedPitchA(false);
       }, 4000);
-      djSoundEffects.playCueClick();
     } else {
       // 2do toque: Acción
       if (resetTimerPitchARef.current) clearTimeout(resetTimerPitchARef.current);
@@ -541,7 +537,6 @@ export default function VirtualDjConsole({
       setResetArmedPitchA(false);
       setPitchA(0);
       setResetSuccessPitchA(true);
-      djSoundEffects.playCueClick();
       setTimeout(() => setResetSuccessPitchA(false), 1500);
     }
   };
@@ -566,7 +561,6 @@ export default function VirtualDjConsole({
         resetArmedPitchBRef.current = false;
         setResetArmedPitchB(false);
       }, 4000);
-      djSoundEffects.playCueClick();
     } else {
       // 2do toque: Acción
       if (resetTimerPitchBRef.current) clearTimeout(resetTimerPitchBRef.current);
@@ -575,7 +569,6 @@ export default function VirtualDjConsole({
       setPitchB(0);
       setIsSyncedB(false);
       setResetSuccessPitchB(true);
-      djSoundEffects.playCueClick();
       setTimeout(() => setResetSuccessPitchB(false), 1500);
     }
   };
@@ -606,7 +599,6 @@ export default function VirtualDjConsole({
         resetCrossfaderArmedRef.current = false;
         setResetCrossfaderArmed(false);
       }, 4000);
-      djSoundEffects.playCueClick();
     } else {
       // 2do toque: Acción
       if (resetCrossfaderTimerRef.current) clearTimeout(resetCrossfaderTimerRef.current);
@@ -615,7 +607,6 @@ export default function VirtualDjConsole({
       setCrossfaderValue(0);
       setResetCrossfaderSuccess(true);
       resetCrossfaderTimer();
-      djSoundEffects.playCueClick();
       setTimeout(() => setResetCrossfaderSuccess(false), 1500);
     }
   };
@@ -636,13 +627,11 @@ export default function VirtualDjConsole({
         resetDeckARef.current = false;
         setResetDeckAState(false);
       }, 4000);
-      djSoundEffects.playCueClick();
     } else {
       if (resetDeckATimer.current) clearTimeout(resetDeckATimer.current);
       resetDeckARef.current = false;
       setResetDeckAState(false);
       handleClearDeckA();
-      djSoundEffects.playCueClick();
     }
   };
 
@@ -661,13 +650,11 @@ export default function VirtualDjConsole({
         resetDeckBRef.current = false;
         setResetDeckBState(false);
       }, 4000);
-      djSoundEffects.playCueClick();
     } else {
       if (resetDeckBTimer.current) clearTimeout(resetDeckBTimer.current);
       resetDeckBRef.current = false;
       setResetDeckBState(false);
       handleClearDeckB();
-      djSoundEffects.playCueClick();
     }
   };
 
@@ -2305,7 +2292,6 @@ export default function VirtualDjConsole({
   const handleSwapBass = () => {
     setBassKillA(!bassKillA);
     setBassKillB(bassKillA);
-    djSoundEffects.playCueClick();
     showFeedback("info", bassKillA ? "Bajo activo en Deck A" : "Bajo activo en Deck B");
   };
 
@@ -2313,7 +2299,6 @@ export default function VirtualDjConsole({
   const handleNudge = (deck: "A" | "B", dir: -1 | 1) => {
     if (deck === "A" && !trackA) return;
     if (deck === "B" && !trackB) return;
-    djSoundEffects.playNudge();
     if (deck === "A") {
       const next = Math.max(0, playbackSecondsA + dir * 0.5);
       setPlaybackSecondsA(next);
@@ -2329,7 +2314,6 @@ export default function VirtualDjConsole({
   const handleCue = (deck: "A" | "B") => {
     if (deck === "A" && !trackA) return;
     if (deck === "B" && !trackB) return;
-    djSoundEffects.playCueClick();
     if (deck === "A") {
       if (isPlayingA) {
         setIsPlayingA(false);
@@ -2359,7 +2343,6 @@ export default function VirtualDjConsole({
   const handleHotCue = (deck: "A" | "B", cueNum: number) => {
     if (deck === "A" && !trackA) return;
     if (deck === "B" && !trackB) return;
-    djSoundEffects.playCueClick();
     if (deck === "A") {
       const targetTime = hotCuesA[cueNum] ?? 0;
       setPlaybackSecondsA(targetTime);
@@ -2375,7 +2358,6 @@ export default function VirtualDjConsole({
   const handleToggleLoop = (deck: "A" | "B", beats: number) => {
     if (deck === "A" && !trackA) return;
     if (deck === "B" && !trackB) return;
-    djSoundEffects.playCueClick();
     if (deck === "A") {
       setActiveLoopA(activeLoopA === beats ? null : beats);
     } else {

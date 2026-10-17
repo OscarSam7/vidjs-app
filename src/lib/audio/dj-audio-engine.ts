@@ -642,28 +642,11 @@ class DjSoundEffectsEngine {
   }
 
   /**
-   * 🔘 Click de CUE / Hot Cue (Feedback percusivo táctil como Pioneer / VirtualDJ)
+   * 🔘 Click de CUE / Hot Cue (Silenciado para evitar pitidos sobre la música)
    */
   public playCueClick() {
-    const ctx = this.getContext();
-    if (!ctx) return;
-
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(1400, now);
-    osc.frequency.exponentialRampToValueAtTime(180, now + 0.04);
-
-    gain.gain.setValueAtTime(0.25, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 0.04);
+    // Silenciado intencionalmente a petición para evitar pitidos táctiles
+    return;
   }
 
   /**
@@ -731,28 +714,11 @@ class DjSoundEffectsEngine {
   }
 
   /**
-   * 🎛️ Nudge / Pitch Bend (Micro ajuste de fase para cuadrar compases)
+   * 🎛️ Nudge / Pitch Bend (Silenciado para evitar pitidos sobre la música)
    */
   public playNudge() {
-    const ctx = this.getContext();
-    if (!ctx) return;
-
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(880, now);
-    osc.frequency.exponentialRampToValueAtTime(300, now + 0.03);
-
-    gain.gain.setValueAtTime(0.15, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 0.03);
+    // Silenciado intencionalmente a petición para evitar pitidos táctiles
+    return;
   }
 }
 
