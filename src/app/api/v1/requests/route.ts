@@ -8,6 +8,8 @@ import { getMergedBranding } from "@/lib/branding/config";
 import { handleApiError, UnauthorizedError, AppError } from "@/lib/errors";
 import { realtimeBus } from "@/lib/realtime/event-bus";
 import { parseQueuePolicy } from "@/lib/dj/rotation";
+import { rateLimit, getClientIp } from "@/lib/security/rate-limit";
+import { sanitizeText } from "@/lib/security/sanitize";
 
 const createRequestSchema = z
   .object({
@@ -31,6 +33,25 @@ export async function POST(req: NextRequest) {
     const guestSession = await getCurrentGuestSession();
     if (!guestSession) {
       throw new UnauthorizedError("Tu sesión de mesa ha expirado. Por favor, vuelve a escanear el código QR.");
+    }
+
+    // 1.1 Rate Limiting por mesa e IP para prevenir abusos
+    const ip = getClientIp(req);
+    const tableLimit = rateLimit(`req:table:${guestSession.tableId}`, 10, 60 * 1000);
+    const ipLimit = rateLimit(`req:ip:${ip}`, 20, 60 * 1000);
+    if (!tableLimit.success || !ipLimit.success) {
+      const retryAfter = Math.max(tableLimit.retryAfterSeconds, ipLimit.retryAfterSeconds);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Has realizado demasiadas solicitudes en poco tiempo. Por favor espera unos momentos.",
+          retryAfterSeconds: retryAfter,
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(retryAfter) },
+        }
+      );
     }
 
     // 2. Validar que el evento siga activo
@@ -83,11 +104,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Si se proporcionó un nombre de comensal, actualizar la sesión
-    if (data.guestName && data.guestName.trim() !== guestSession.guestName) {
+    // 4. Sanitizar textos de entrada del usuario
+    const sanitizedGuestName = data.guestName ? sanitizeText(data.guestName) : null;
+    const sanitizedCustomTitle = data.customTitle ? sanitizeText(data.customTitle) : null;
+    const sanitizedCustomArtist = data.customArtist ? sanitizeText(data.customArtist) : null;
+    const sanitizedNotes = data.notes ? sanitizeText(data.notes) : null;
+
+    // Si se proporcionó un nombre de comensal, actualizar la sesión de forma limpia
+    if (sanitizedGuestName && sanitizedGuestName !== guestSession.guestName) {
       await prisma.guestSession.update({
         where: { id: guestSession.id },
-        data: { guestName: data.guestName.trim() },
+        data: { guestName: sanitizedGuestName },
       });
     }
 
@@ -137,9 +164,9 @@ export async function POST(req: NextRequest) {
         tableId: guestSession.tableId,
         guestSessionId: guestSession.id,
         songId: data.songId || null,
-        customTitle: data.customTitle?.trim() || null,
-        customArtist: data.customArtist?.trim() || null,
-        notes: data.notes?.trim() || null,
+        customTitle: sanitizedCustomTitle || null,
+        customArtist: sanitizedCustomArtist || null,
+        notes: sanitizedNotes || null,
         tipAmountCents: data.tipAmountCents ?? (data.isFastPass ? 500 : 0),
         status: initialStatus,
         playedAt,

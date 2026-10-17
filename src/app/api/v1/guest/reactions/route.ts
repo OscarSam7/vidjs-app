@@ -4,6 +4,7 @@ import { getCurrentGuestSession } from "@/lib/auth/guest-session";
 import { handleApiError, UnauthorizedError } from "@/lib/errors";
 import { realtimeBus } from "@/lib/realtime/event-bus";
 import { randomUUID } from "crypto";
+import { rateLimit, getClientIp } from "@/lib/security/rate-limit";
 
 const reactionSchema = z.object({
   reaction: z.string().min(1).max(8),
@@ -13,9 +14,24 @@ const ALLOWED_REACTIONS = ["🔥", "❤️", "👏", "🍻", "💃", "🎤", "�
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
     const guestSession = await getCurrentGuestSession();
     if (!guestSession) {
       throw new UnauthorizedError("Debes escanear el QR de tu mesa para reaccionar.");
+    }
+
+    // Rate Limiting para evitar inundación de eventos y spam en pantalla (30 reacciones cada 10s por mesa)
+    const tableLimit = rateLimit(`reaction:table:${guestSession.tableId}`, 30, 10 * 1000);
+    const ipLimit = rateLimit(`reaction:ip:${ip}`, 40, 10 * 1000);
+
+    if (!tableLimit.success || !ipLimit.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Has enviado demasiadas reacciones muy rápido. Espera un momento.",
+        },
+        { status: 429 }
+      );
     }
 
     const body = await req.json();
