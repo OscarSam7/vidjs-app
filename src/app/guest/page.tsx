@@ -1643,16 +1643,21 @@ function GuestContent() {
 
                 <button
                   onClick={() => {
-                    setSelectedMood("fiesta");
-                    setActiveTab("catalog");
+                    const moodSection = document.getElementById("moods-section");
+                    if (moodSection) {
+                      moodSection.scrollIntoView({ behavior: "smooth" });
+                    } else {
+                      setSelectedMood("fiesta");
+                      setActiveTab("catalog");
+                    }
                   }}
                   className="p-2.5 sm:p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-fuchsia-500/60 text-left transition-all group cursor-pointer flex flex-col justify-between min-w-0"
                 >
                   <div className="w-7 h-7 rounded-xl bg-fuchsia-600/20 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-400 mb-2 group-hover:scale-110 transition-transform shrink-0">
                     <Sparkles className="w-3.5 h-3.5" />
                   </div>
-                  <div className="text-xs font-bold text-white truncate w-full">Sorpréndeme</div>
-                  <div className="text-[10px] text-zinc-400 mt-0.5 truncate w-full">Por mood</div>
+                  <div className="text-xs font-bold text-white truncate w-full">Mood</div>
+                  <div className="text-[10px] text-zinc-400 mt-0.5 truncate w-full">Según tu vibra</div>
                 </button>
 
                 <button
@@ -1669,7 +1674,7 @@ function GuestContent() {
             </div>
 
             {/* Selector Rápido de Moods */}
-            <div>
+            <div id="moods-section">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-xs font-black uppercase text-zinc-400 tracking-wider">
                   Elige tu Mood
