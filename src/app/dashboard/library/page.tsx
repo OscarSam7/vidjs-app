@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Music,
   ListMusic,
@@ -11,21 +12,15 @@ import {
   Plus,
   Play,
   Pause,
-  Flame,
-  Sparkles,
-  Clock,
-  SlidersHorizontal,
   Layers,
   FolderPlus,
   Check,
-  Volume2,
   Users,
   Tag,
   X,
-  Radio,
   ArrowRight,
-  Send,
-  HelpCircle,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 
 interface Artist {
@@ -67,6 +62,8 @@ interface Playlist {
 }
 
 export default function LibraryPage() {
+  const router = useRouter();
+
   // Estado principal
   const [songs, setSongs] = useState<Song[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
@@ -89,6 +86,8 @@ export default function LibraryPage() {
   // Modales
   const [isAddSongModalOpen, setIsAddSongModalOpen] = useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
+  const [songToDelete, setSongToDelete] = useState<Song | null>(null);
+  const [deletingSongId, setDeletingSongId] = useState<string | null>(null);
   const [actionSuccessNotice, setActionSuccessNotice] = useState<string | null>(null);
 
   // Formularios
@@ -185,25 +184,34 @@ export default function LibraryPage() {
     });
   }, [songs, activeTab, activePlaylist, selectedGenre, selectedArtist, selectedBpmRange, searchQuery]);
 
-  // Manejo de envío a Cabina DJ (guardado en sesión/localStorage para carga rápida)
-  const handleSendToDj = (song: Song, targetDeck: "A" | "B" | "QUEUE") => {
+  // Cargar en bandeja DJ y redirigir automáticamente a la Cabina DJ
+  const handleLoadAndGoToDj = (song: Song, targetDeck: "A" | "B" = "A") => {
     try {
       const payload = {
-        title: song.title,
-        artist: song.artist?.name || "Artista",
-        bpm: song.bpm || 120,
-        key: song.key || "C",
+        track: {
+          id: song.id,
+          title: song.title,
+          artist: song.artist?.name || "Artista",
+          genre: song.genre || "Varios",
+          bpm: song.bpm || 120,
+          key: song.key || "C",
+          durationSeconds: song.durationSeconds || 210,
+          fileUrl: song.fileUrl || null,
+        },
         targetDeck,
         timestamp: Date.now(),
       };
-      localStorage.setItem("vidjs_quick_load_track", JSON.stringify(payload));
-      showNotice(`🎧 Pista "${song.title}" lista para Cabina DJ (${targetDeck === "QUEUE" ? "Encolar" : `Deck ${targetDeck}`})`);
+      localStorage.setItem("vidjs_library_deck_load", JSON.stringify(payload));
+      showNotice(`🎧 ¡Cargando "${song.title}" en Bandeja ${targetDeck}! Te llevamos a la Cabina DJ...`);
+      setTimeout(() => {
+        router.push("/dashboard/dj");
+      }, 350);
     } catch {
-      showNotice(`Pista seleccionada: ${song.title}`);
+      router.push("/dashboard/dj");
     }
   };
 
-  // Manejo de envío a Cabina Karaoke
+  // Cargar en Cabina Karaoke y redirigir automáticamente
   const handleSendToKaraoke = (song: Song) => {
     try {
       const payload = {
@@ -212,9 +220,38 @@ export default function LibraryPage() {
         timestamp: Date.now(),
       };
       localStorage.setItem("vidjs_quick_karaoke_track", JSON.stringify(payload));
-      showNotice(`🎤 Pista de Karaoke "${song.title}" enviada para la Cabina / TV`);
+      showNotice(`🎤 Pista Karaoke "${song.title}" seleccionada. Abriendo Cabina Karaoke...`);
+      setTimeout(() => {
+        router.push("/dashboard/karaoke");
+      }, 350);
     } catch {
-      showNotice(`Pista Karaoke lista: ${song.title}`);
+      router.push("/dashboard/karaoke");
+    }
+  };
+
+  // Eliminar pista de la base de datos
+  const handleDeleteSong = async (songId: string) => {
+    try {
+      setDeletingSongId(songId);
+      const res = await fetch(`/api/v1/library?id=${songId}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (json.success) {
+        showNotice(json.message || "Pista eliminada de la biblioteca.");
+        setSongs((prev) => prev.filter((s) => s.id !== songId));
+        setSongToDelete(null);
+        if (previewTrack?.id === songId) {
+          setPreviewTrack(null);
+          setIsPlayingPreview(false);
+        }
+      } else {
+        alert(json.error || "No se pudo eliminar la pista");
+      }
+    } catch {
+      alert("Error de conexión al eliminar la pista");
+    } finally {
+      setDeletingSongId(null);
     }
   };
 
@@ -241,7 +278,7 @@ export default function LibraryPage() {
       });
       const json = await res.json();
       if (json.success) {
-        showNotice(`¡Pista "${newSongForm.title}" agregada al catálogo!`);
+        showNotice(`¡Pista "${newSongForm.title}" agregada a la biblioteca con éxito!`);
         setIsAddSongModalOpen(false);
         setNewSongForm({
           title: "",
@@ -309,7 +346,7 @@ export default function LibraryPage() {
   };
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-6 pb-28">
       {/* Notificación Flotante */}
       {actionSuccessNotice && (
         <div className="fixed top-20 right-6 z-50 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-purple-400/30 animate-in fade-in slide-in-from-top-4">
@@ -330,7 +367,7 @@ export default function LibraryPage() {
               Biblioteca de Pistas & Karaoke
             </h1>
             <p className="text-sm text-zinc-400 max-w-2xl">
-              Colección completa de tracks para DJ y pistas instrumentales para Karaoke. Explora por playlists, géneros, artistas o filtra por BPM y tonalidad armónica.
+              Agrega, borra y administra pistas para DJ y canciones para Karaoke. Carga cualquier tema directamente a la bandeja de la cabina DJ con un solo clic.
             </p>
           </div>
 
@@ -789,11 +826,11 @@ export default function LibraryPage() {
                       <th className="py-3.5 px-4 text-center">BPM / Key</th>
                       <th className="py-3.5 px-4 text-center">Duración</th>
                       <th className="py-3.5 px-4 text-center">Tipo</th>
-                      <th className="py-3.5 px-4 text-right">Acciones</th>
+                      <th className="py-3.5 px-4 text-right">Acciones Directas</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/60">
-                    {filteredSongs.map((song, idx) => {
+                    {filteredSongs.map((song) => {
                       const isThisPreviewing = previewTrack?.id === song.id && isPlayingPreview;
 
                       return (
@@ -883,35 +920,46 @@ export default function LibraryPage() {
                             </div>
                           </td>
 
-                          {/* Col 8: Acciones Directas */}
+                          {/* Col 8: Acciones Directas (Llevar a Bandeja DJ, Karaoke y Borrar) */}
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              {/* Botón Cargar en Deck A */}
+                              {/* Botón Cargar en Deck A (Lleva automáticamente a la Cabina DJ) */}
                               <button
-                                onClick={() => handleSendToDj(song, "A")}
-                                className="px-2 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 text-[10px] font-bold transition-all cursor-pointer"
-                                title="Cargar a Deck A en Cabina DJ"
+                                onClick={() => handleLoadAndGoToDj(song, "A")}
+                                className="px-2.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                                title="Cargar en Bandeja A y abrir Cabina DJ"
                               >
+                                <Headphones className="w-3 h-3" />
                                 Deck A
                               </button>
 
-                              {/* Botón Cargar en Deck B */}
+                              {/* Botón Cargar en Deck B (Lleva automáticamente a la Cabina DJ) */}
                               <button
-                                onClick={() => handleSendToDj(song, "B")}
-                                className="px-2 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-bold transition-all cursor-pointer"
-                                title="Cargar a Deck B en Cabina DJ"
+                                onClick={() => handleLoadAndGoToDj(song, "B")}
+                                className="px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                                title="Cargar en Bandeja B y abrir Cabina DJ"
                               >
+                                <Headphones className="w-3 h-3" />
                                 Deck B
                               </button>
 
-                              {/* Botón Encolar en Karaoke */}
+                              {/* Botón Encolar en Karaoke y abrir Cabina Karaoke */}
                               <button
                                 onClick={() => handleSendToKaraoke(song)}
-                                className="px-2 py-1 rounded-lg bg-pink-600/20 hover:bg-pink-600 text-pink-300 hover:text-white border border-pink-500/30 text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
-                                title="Enviar a Cabina / Cola Karaoke"
+                                className="px-2.5 py-1.5 rounded-lg bg-pink-600/20 hover:bg-pink-600 text-pink-300 hover:text-white border border-pink-500/30 text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                                title="Enviar a Cabina Karaoke y abrir pantalla"
                               >
                                 <Mic className="w-3 h-3" />
                                 Karaoke
+                              </button>
+
+                              {/* Botón Eliminar Pista de la Biblioteca */}
+                              <button
+                                onClick={() => setSongToDelete(song)}
+                                className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/20 text-[10px] transition-all cursor-pointer"
+                                title="Eliminar pista de la biblioteca"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </td>
@@ -966,25 +1014,56 @@ export default function LibraryPage() {
           </div>
 
           {/* Acciones directas desde el preview player */}
-          <div className="grid grid-cols-3 gap-1.5 mt-3 pt-3 border-t border-zinc-800/80">
+          <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-zinc-800/80">
             <button
-              onClick={() => handleSendToDj(previewTrack, "A")}
-              className="py-1 px-2 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white text-[10px] font-bold text-center transition-colors"
+              onClick={() => handleLoadAndGoToDj(previewTrack, "A")}
+              className="py-1.5 px-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold text-center transition-colors flex items-center justify-center gap-1 shadow-md shadow-blue-600/20"
             >
-              Deck A
+              <Headphones className="w-3.5 h-3.5" />
+              Llevar a Deck A
             </button>
             <button
-              onClick={() => handleSendToDj(previewTrack, "B")}
-              className="py-1 px-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white text-[10px] font-bold text-center transition-colors"
+              onClick={() => handleLoadAndGoToDj(previewTrack, "B")}
+              className="py-1.5 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold text-center transition-colors flex items-center justify-center gap-1 shadow-md shadow-indigo-600/20"
             >
-              Deck B
+              <Headphones className="w-3.5 h-3.5" />
+              Llevar a Deck B
             </button>
-            <button
-              onClick={() => handleSendToKaraoke(previewTrack)}
-              className="py-1 px-2 rounded-lg bg-pink-600/20 hover:bg-pink-600 text-pink-300 hover:text-white text-[10px] font-bold text-center transition-colors"
-            >
-              Karaoke
-            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CONFIRMAR ELIMINACIÓN DE PISTA */}
+      {songToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-red-600/20 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-white">¿Eliminar pista de la biblioteca?</h3>
+              <p className="text-xs text-zinc-400 mt-1">
+                Se eliminará permanentemente <strong className="text-white">"{songToDelete.title}"</strong> de {songToDelete.artist?.name || "Artista"}.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setSongToDelete(null)}
+                disabled={Boolean(deletingSongId)}
+                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteSong(songToDelete.id)}
+                disabled={Boolean(deletingSongId)}
+                className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs cursor-pointer shadow-lg shadow-red-600/30 flex items-center gap-1.5"
+              >
+                {deletingSongId ? "Eliminando..." : "Eliminar Pista"}
+              </button>
+            </div>
           </div>
         </div>
       )}

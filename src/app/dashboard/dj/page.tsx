@@ -583,6 +583,68 @@ export default function DjBoothPage() {
     return () => clearInterval(interval);
   }, [selectedEventId]);
 
+  // Carga automática de pista enviada desde la Biblioteca Musical (/dashboard/library)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("vidjs_library_deck_load");
+      if (!stored) return;
+
+      const parsed = JSON.parse(stored);
+      if (!parsed || !parsed.track) return;
+
+      // Verificar que la acción sea reciente (menos de 60 segundos)
+      if (Date.now() - parsed.timestamp > 60000) {
+        localStorage.removeItem("vidjs_library_deck_load");
+        return;
+      }
+
+      const targetDeck: "AUTO" | "A" | "B" = parsed.targetDeck || "A";
+      const libraryEntry: QueueEntryData = {
+        id: `lib-${parsed.track.id || Date.now()}`,
+        orderIndex: 0,
+        status: "QUEUED",
+        youtubeVideoId: parsed.track.fileUrl || null,
+        songRequest: {
+          id: `req-lib-${parsed.track.id || Date.now()}`,
+          status: "ACCEPTED",
+          customTitle: null,
+          customArtist: null,
+          notes: "Cargada desde la Biblioteca Musical",
+          tipAmountCents: 0,
+          createdAt: new Date().toISOString(),
+          table: { id: "cabina", number: 0, label: "Biblioteca Musical" },
+          guestSession: null,
+          song: {
+            id: parsed.track.id || "lib-song",
+            title: parsed.track.title,
+            durationSeconds: parsed.track.durationSeconds || 210,
+            genre: parsed.track.genre || "Varios",
+            bpm: parsed.track.bpm || 120,
+            key: parsed.track.key || "C",
+            artist: { name: parsed.track.artist },
+          },
+          youtubeVideoId: parsed.track.fileUrl || null,
+        },
+      };
+
+      // Disparar carga reactiva inmediata en la consola VirtualDJ
+      setPendingDeckLoad({
+        entry: libraryEntry,
+        targetDeck,
+        timestamp: Date.now(),
+      });
+
+      showFeedback(
+        "success",
+        `🎧 Pista de la biblioteca cargada automáticamente en Bandeja ${targetDeck}: "${parsed.track.title}"`
+      );
+
+      localStorage.removeItem("vidjs_library_deck_load");
+    } catch (err) {
+      console.error("Error al procesar carga de pista desde biblioteca:", err);
+    }
+  }, []);
+
   // Temporizador de reproducción visual
   useEffect(() => {
     if (!isPlaying || !data?.currentPlaying) return;

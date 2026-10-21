@@ -375,3 +375,72 @@ export async function POST(req: NextRequest) {
     return handleApiError(error);
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getCurrentSession();
+    if (!session) {
+      throw new UnauthorizedError("Debes iniciar sesión con permisos de DJ, Staff o Administrador.");
+    }
+
+    const { searchParams } = new URL(req.url);
+    const songId = searchParams.get("id");
+    const playlistId = searchParams.get("playlistId");
+
+    // Caso 1: Eliminar una playlist personalizada
+    if (playlistId) {
+      if (!session.tenantId) {
+        throw new BadRequestError("Se requiere un establecimiento para gestionar playlists.");
+      }
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: session.tenantId },
+        select: { settings: true },
+      });
+      let currentSettings: any = {};
+      try {
+        if (tenant?.settings) currentSettings = JSON.parse(tenant.settings);
+      } catch {}
+      if (Array.isArray(currentSettings.customPlaylists)) {
+        currentSettings.customPlaylists = currentSettings.customPlaylists.filter(
+          (p: any) => p.id !== playlistId
+        );
+        await prisma.tenant.update({
+          where: { id: session.tenantId },
+          data: { settings: JSON.stringify(currentSettings) },
+        });
+      }
+      return NextResponse.json({
+        success: true,
+        message: "Playlist eliminada con éxito.",
+      });
+    }
+
+    // Caso 2: Eliminar una canción / pista
+    if (!songId) {
+      throw new BadRequestError("Se requiere el parámetro 'id' de la canción a eliminar.");
+    }
+
+    // Buscar la canción
+    const song = await prisma.song.findUnique({
+      where: { id: songId },
+      select: { id: true, title: true, tenantId: true },
+    });
+
+    if (!song) {
+      throw new BadRequestError("La pista seleccionada no existe o ya fue eliminada.");
+    }
+
+    // Eliminar la canción de la base de datos
+    await prisma.song.delete({
+      where: { id: songId },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Pista "${song.title}" eliminada de la biblioteca exitosamente.`,
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
