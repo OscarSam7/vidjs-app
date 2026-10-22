@@ -126,6 +126,68 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const livePlayback =
+      realtimeBus.getPlaybackState(event.code) ||
+      realtimeBus.getPlaybackState(event.id) ||
+      (code ? realtimeBus.getPlaybackState(code) : null);
+
+    const effectiveCurrentPlaying = currentPlaying
+      ? {
+          id: currentPlaying.id,
+          status: currentPlaying.status,
+          updatedAt: currentPlaying.updatedAt,
+          youtubeVideoId,
+          song: {
+            title:
+              currentPlaying.songRequest.song?.title ||
+              currentPlaying.songRequest.customTitle,
+            artist:
+              currentPlaying.songRequest.song?.artist?.name ||
+              currentPlaying.songRequest.customArtist,
+            genre: currentPlaying.songRequest.song?.genre || "Fiesta / Pop",
+            durationSeconds:
+              currentPlaying.songRequest.song?.durationSeconds || 210,
+            bpm: currentPlaying.songRequest.song?.bpm,
+            key: currentPlaying.songRequest.song?.key,
+            youtubeSearchQuery: `${
+              currentPlaying.songRequest.song?.title ||
+              currentPlaying.songRequest.customTitle ||
+              ""
+            } ${
+              currentPlaying.songRequest.song?.artist?.name ||
+              currentPlaying.songRequest.customArtist ||
+              ""
+            } karaoke`.trim(),
+          },
+          table: currentPlaying.songRequest.table,
+          guestName: currentPlaying.songRequest.guestSession?.guestName,
+          notes: currentPlaying.songRequest.notes,
+          tipAmountCents: currentPlaying.songRequest.tipAmountCents || 0,
+          isFastPass: (currentPlaying.songRequest.tipAmountCents || 0) > 0,
+        }
+      : livePlayback && (livePlayback.action === "PLAY" || livePlayback.action === "PAUSE") && livePlayback.trackTitle
+      ? {
+          id: "live_dj_active",
+          status: livePlayback.action === "PLAY" ? "PLAYING" : "PAUSED",
+          updatedAt: livePlayback.updatedAt || new Date().toISOString(),
+          youtubeVideoId: livePlayback.videoId || null,
+          song: {
+            title: livePlayback.trackTitle,
+            artist: livePlayback.trackArtist || "DJ Mix",
+            genre: "General",
+            durationSeconds: livePlayback.duration || 210,
+            bpm: null,
+            key: null,
+            youtubeSearchQuery: `${livePlayback.trackTitle} ${livePlayback.trackArtist || ""} karaoke`.trim(),
+          },
+          table: { id: "booth", number: 0, label: "Cabina DJ" },
+          guestName: null,
+          notes: null,
+          tipAmountCents: 0,
+          isFastPass: false,
+        }
+      : null;
+
     return NextResponse.json({
       success: true,
       data: {
@@ -140,41 +202,7 @@ export async function GET(req: NextRequest) {
         },
         policy,
         branding,
-        currentPlaying: currentPlaying
-          ? {
-              id: currentPlaying.id,
-              status: currentPlaying.status,
-              updatedAt: currentPlaying.updatedAt,
-              youtubeVideoId,
-              song: {
-                title:
-                  currentPlaying.songRequest.song?.title ||
-                  currentPlaying.songRequest.customTitle,
-                artist:
-                  currentPlaying.songRequest.song?.artist?.name ||
-                  currentPlaying.songRequest.customArtist,
-                genre: currentPlaying.songRequest.song?.genre || "Fiesta / Pop",
-                durationSeconds:
-                  currentPlaying.songRequest.song?.durationSeconds || 210,
-                bpm: currentPlaying.songRequest.song?.bpm,
-                key: currentPlaying.songRequest.song?.key,
-                youtubeSearchQuery: `${
-                  currentPlaying.songRequest.song?.title ||
-                  currentPlaying.songRequest.customTitle ||
-                  ""
-                } ${
-                  currentPlaying.songRequest.song?.artist?.name ||
-                  currentPlaying.songRequest.customArtist ||
-                  ""
-                } karaoke`.trim(),
-              },
-              table: currentPlaying.songRequest.table,
-              guestName: currentPlaying.songRequest.guestSession?.guestName,
-              notes: currentPlaying.songRequest.notes,
-              tipAmountCents: currentPlaying.songRequest.tipAmountCents || 0,
-              isFastPass: (currentPlaying.songRequest.tipAmountCents || 0) > 0,
-            }
-          : null,
+        currentPlaying: effectiveCurrentPlaying,
         upcomingQueue: upcomingQueue.map((item, idx) => ({
           id: item.id,
           order: idx + 1,
@@ -260,6 +288,10 @@ export async function POST(req: NextRequest) {
         action: "RESET",
         timestamp: now.toISOString(),
       };
+
+      // Limpiar estado en memoria de la pista activa
+      realtimeBus.clearPlaybackState(event.id);
+      realtimeBus.clearPlaybackState(event.code);
 
       // Emitir eventos de limpieza por SSE a la pantalla de TV y a la cabina DJ
       realtimeBus.broadcast(event.id, "TRACK_CHANGE", { currentEntryId: null });

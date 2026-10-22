@@ -46,8 +46,20 @@ export async function POST(req: NextRequest) {
       broadcastKeys.add(targetKey.toUpperCase());
     }
 
+    const activeState = {
+      action: payload.action,
+      seconds: payload.seconds,
+      duration: payload.duration,
+      trackTitle: payload.trackTitle,
+      trackArtist: payload.trackArtist,
+      videoId: payload.videoId,
+      deckId: payload.deckId,
+      updatedAt: payload.timestamp,
+    };
+
     broadcastKeys.forEach((key) => {
       try {
+        realtimeBus.setPlaybackState(key, activeState);
         realtimeBus.broadcast(key, "KARAOKE_PLAYBACK_CONTROL", payload);
       } catch {}
     });
@@ -62,6 +74,8 @@ export async function POST(req: NextRequest) {
       });
 
       if (event) {
+        realtimeBus.setPlaybackState(event.id, activeState);
+        realtimeBus.setPlaybackState(event.code, activeState);
         if (!broadcastKeys.has(event.id)) {
           realtimeBus.broadcast(event.id, "KARAOKE_PLAYBACK_CONTROL", payload);
         }

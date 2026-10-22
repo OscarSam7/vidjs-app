@@ -355,6 +355,23 @@ export default function PublicDisplayScreenPage({
     [data?.currentPlaying?.song?.title]
   );
 
+  // Restaurar pista activa desde storage local al montar si existe sesión en curso reciente
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = localStorage.getItem("vidjs_playback_sync_payload");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.action === "PLAY" && parsed.trackTitle) {
+          const age = Date.now() - (parsed.timestamp || 0);
+          if (age < 15 * 60 * 1000) {
+            handleIncomingPlaybackControl(parsed);
+          }
+        }
+      }
+    } catch {}
+  }, [handleIncomingPlaybackControl]);
+
   const [isResetting, setIsResetting] = useState(false);
   const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null);
 
@@ -427,7 +444,25 @@ export default function PublicDisplayScreenPage({
       const res = await fetch(`/api/v1/display/state?code=${code}`);
       if (res.ok) {
         const json = await res.json();
-        setData(json.data);
+        setData((prev) => {
+          if (!prev) return json.data;
+
+          // Si en la pantalla la canción está sonando activamente (isPlaying y no reseteada),
+          // y el servidor devolvió null para currentPlaying (ej. DJ tiró la pista manualmente o de biblioteca),
+          // PRESERVAR la pista activa para que la pantalla NO se borre a los pocos segundos.
+          const isActivelyPlayingLocally = !isTvPaused && Boolean(prev.currentPlaying);
+          const serverHasNoTrack = !json.data?.currentPlaying;
+
+          if (isActivelyPlayingLocally && serverHasNoTrack) {
+            return {
+              ...json.data,
+              currentPlaying: prev.currentPlaying,
+            };
+          }
+
+          return json.data;
+        });
+
         if (json.data?.currentPlaying?.youtubeVideoId) {
           setKaraokeVideoId(json.data.currentPlaying.youtubeVideoId);
         }
@@ -552,7 +587,6 @@ export default function PublicDisplayScreenPage({
         if (type === "QUEUE_POLICY_UPDATED" && payload?.policy?.photoFitMode) {
           setPhotoFitMode(payload.policy.photoFitMode);
         }
-        setKaraokeVideoId(null);
         fetchDisplayState();
       }
     },

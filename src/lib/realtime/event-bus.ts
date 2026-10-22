@@ -28,6 +28,17 @@ export type RealtimeEventType =
   | "KARAOKE_PLAYBACK_CONTROL"
   | "PULSE_UPDATE";
 
+export interface ActivePlaybackState {
+  action: "PLAY" | "PAUSE" | "SEEK" | "RESET";
+  seconds?: number;
+  duration?: number;
+  trackTitle?: string;
+  trackArtist?: string;
+  videoId?: string | null;
+  deckId?: string | null;
+  updatedAt: string;
+}
+
 export interface RealtimeMessage<T = any> {
   eventId: string;
   type: RealtimeEventType;
@@ -39,11 +50,34 @@ type RealtimeListener = (message: RealtimeMessage) => void;
 
 class RealtimeEventBus {
   private emitter: EventEmitter;
+  private playbackStore: Map<string, ActivePlaybackState> = new Map();
 
   constructor() {
     this.emitter = new EventEmitter();
     // Aumentar límite de oyentes para salas con múltiples pantallas y cabinas
     this.emitter.setMaxListeners(500);
+  }
+
+  public setPlaybackState(key: string, state: ActivePlaybackState): void {
+    if (!key) return;
+    if (state.action === "RESET") {
+      this.playbackStore.delete(key);
+      this.playbackStore.delete(key.toUpperCase());
+    } else {
+      this.playbackStore.set(key, state);
+      this.playbackStore.set(key.toUpperCase(), state);
+    }
+  }
+
+  public getPlaybackState(key: string): ActivePlaybackState | null {
+    if (!key) return null;
+    return this.playbackStore.get(key) || this.playbackStore.get(key.toUpperCase()) || null;
+  }
+
+  public clearPlaybackState(key: string): void {
+    if (!key) return;
+    this.playbackStore.delete(key);
+    this.playbackStore.delete(key.toUpperCase());
   }
 
   private channelName(eventId: string): string {
