@@ -7,6 +7,7 @@ import { calculateNightPulse } from "@/lib/pulse/night-pulse";
 import { getActiveFlashDeal } from "@/lib/pulse/flash-deals";
 import { parseQueuePolicy } from "@/lib/dj/rotation";
 import { searchYouTube } from "@/lib/youtube/search";
+import { realtimeBus } from "@/lib/realtime/event-bus";
 
 export const dynamic = "force-dynamic";
 
@@ -198,6 +199,142 @@ export async function GET(req: NextRequest) {
         },
       },
     });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+/**
+ * POST /api/v1/display/state
+ * Limpia y resetea la pantalla TV cuando un tema queda trabado o desfasado,
+ * completando la pista actual en la base de datos y notificando a la cabina DJ
+ * para permitir la entrada inmediata del siguiente pedido.
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const code = (body.code || "").trim().toUpperCase();
+    const action = body.action || "RESET"; // "RESET" | "CLEAR" | "NEXT"
+
+    if (!code) {
+      return NextResponse.json(
+        { error: { code: "BAD_REQUEST", message: "Código de evento requerido" } },
+        { status: 400 }
+      );
+    }
+
+    const event = await prisma.event.findUnique({
+      where: { code },
+      select: { id: true, code: true, tenantId: true },
+    });
+
+    if (!event) {
+      throw new NotFoundError(`No se encontró ningún evento con el código '${code}'`);
+    }
+
+    const now = new Date();
+
+    if (action === "RESET" || action === "CLEAR") {
+      // Finalizar cualquier tema en CURRENT o PLAYING para este evento
+      await prisma.$transaction([
+        prisma.queueEntry.updateMany({
+          where: {
+            eventId: event.id,
+            status: "CURRENT",
+          },
+          data: { status: "COMPLETED" },
+        }),
+        prisma.songRequest.updateMany({
+          where: {
+            eventId: event.id,
+            status: "PLAYING",
+          },
+          data: {
+            status: "PLAYED",
+            playedAt: now,
+          },
+        }),
+      ]);
+
+      const resetPayload = {
+        action: "RESET",
+        timestamp: now.toISOString(),
+      };
+
+      // Emitir eventos de limpieza por SSE a la pantalla de TV y a la cabina DJ
+      realtimeBus.broadcast(event.id, "TRACK_CHANGE", { currentEntryId: null });
+      realtimeBus.broadcast(event.code, "TRACK_CHANGE", { currentEntryId: null });
+      realtimeBus.broadcast(event.id, "KARAOKE_PLAYBACK_CONTROL", resetPayload);
+      realtimeBus.broadcast(event.code, "KARAOKE_PLAYBACK_CONTROL", resetPayload);
+
+      return NextResponse.json({
+        success: true,
+        message: "Pantalla y pista activa reseteadas correctamente",
+      });
+    }
+
+    if (action === "NEXT") {
+      // Avanzar al siguiente pedido en cola si existe
+      const nextQueueEntry = await prisma.queueEntry.findFirst({
+        where: {
+          eventId: event.id,
+          status: "QUEUED",
+        },
+        orderBy: { orderIndex: "asc" },
+        include: { songRequest: { include: { song: true, table: true } } },
+      });
+
+      await prisma.$transaction([
+        prisma.queueEntry.updateMany({
+          where: {
+            eventId: event.id,
+            status: "CURRENT",
+          },
+          data: { status: "COMPLETED" },
+        }),
+        prisma.songRequest.updateMany({
+          where: {
+            eventId: event.id,
+            status: "PLAYING",
+          },
+          data: {
+            status: "PLAYED",
+            playedAt: now,
+          },
+        }),
+        ...(nextQueueEntry
+          ? [
+              prisma.queueEntry.update({
+                where: { id: nextQueueEntry.id },
+                data: { status: "CURRENT" },
+              }),
+              prisma.songRequest.update({
+                where: { id: nextQueueEntry.songRequestId },
+                data: { status: "PLAYING", playedAt: now },
+              }),
+            ]
+          : []),
+      ]);
+
+      realtimeBus.broadcast(event.id, "TRACK_CHANGE", {
+        currentEntryId: nextQueueEntry?.id || null,
+      });
+      realtimeBus.broadcast(event.code, "TRACK_CHANGE", {
+        currentEntryId: nextQueueEntry?.id || null,
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          nextEntry: nextQueueEntry ? { id: nextQueueEntry.id } : null,
+        },
+      });
+    }
+
+    return NextResponse.json(
+      { error: { code: "BAD_REQUEST", message: `Acción '${action}' no reconocida` } },
+      { status: 400 }
+    );
   } catch (error) {
     return handleApiError(error);
   }

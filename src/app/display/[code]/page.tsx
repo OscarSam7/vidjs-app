@@ -16,6 +16,7 @@ import {
   Camera,
   Mic,
   Headphones,
+  RotateCcw,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -246,7 +247,7 @@ export default function PublicDisplayScreenPage({
   // Sincronizador unificado de reproducción entre la cabina DJ y la pantalla TV
   const handleIncomingPlaybackControl = useCallback(
     (payload: {
-      action: "PLAY" | "PAUSE" | "SEEK";
+      action: "PLAY" | "PAUSE" | "SEEK" | "RESET";
       seconds?: number;
       duration?: number;
       trackTitle?: string;
@@ -255,6 +256,20 @@ export default function PublicDisplayScreenPage({
     }) => {
       if (!payload?.action) return;
       const { action, seconds, duration, trackTitle, trackArtist, videoId } = payload;
+
+      if (action === "RESET") {
+        setIsTvPaused(false);
+        sendYouTubeCommand("pauseVideo");
+        setKaraokeVideoId(null);
+        setElapsedSeconds(0);
+        setData((prev) => (prev ? { ...prev, currentPlaying: null } : null));
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.removeItem("vidjs_playback_sync_payload");
+          } catch {}
+        }
+        return;
+      }
 
       if (action === "PLAY") {
         setIsTvPaused(false);
@@ -339,6 +354,73 @@ export default function PublicDisplayScreenPage({
     },
     [data?.currentPlaying?.song?.title]
   );
+
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null);
+
+  // Limpiar y resetear la pantalla TV cuando un tema queda desfasado o trabado
+  const handleResetScreen = async () => {
+    setIsResetting(true);
+    try {
+      // 1. Limpieza local inmediata (0ms)
+      setIsTvPaused(false);
+      sendYouTubeCommand("pauseVideo");
+      setKaraokeVideoId(null);
+      setElapsedSeconds(0);
+      setData((prev) => (prev ? { ...prev, currentPlaying: null } : null));
+
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.removeItem("vidjs_playback_sync_payload");
+        } catch {}
+
+        // Difusión local a todas las pestañas y consolas DJ
+        const resetPayload = {
+          type: "PLAYBACK_CONTROL",
+          action: "RESET",
+          timestamp: Date.now(),
+        };
+        const channelNames = ["vidjs_karaoke_sync_global"];
+        if (code) {
+          channelNames.push(`vidjs_karaoke_sync_${code}`);
+          channelNames.push(`vidjs_karaoke_sync_${code.toUpperCase()}`);
+        }
+        if (data?.event?.id) {
+          channelNames.push(`vidjs_karaoke_sync_${data.event.id}`);
+        }
+        channelNames.forEach((chName) => {
+          try {
+            const ch = new BroadcastChannel(chName);
+            ch.postMessage(resetPayload);
+            setTimeout(() => {
+              try {
+                ch.close();
+              } catch {}
+            }, 1000);
+          } catch {}
+        });
+      }
+
+      // 2. Notificar al backend para liberar la canción en la base de datos
+      const res = await fetch("/api/v1/display/state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, action: "RESET" }),
+      });
+
+      if (res.ok) {
+        setResetSuccessMessage("✨ Pantalla liberada. Lista para el siguiente pedido.");
+        setTimeout(() => setResetSuccessMessage(null), 4000);
+      }
+
+      // 3. Recargar estado fresco del servidor
+      await fetchDisplayState();
+    } catch (err) {
+      console.warn("Error reseteando pantalla:", err);
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   const fetchDisplayState = async () => {
     try {
@@ -731,6 +813,16 @@ export default function PublicDisplayScreenPage({
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none" />
 
+      {/* Toast Notificación de Reset de Pantalla */}
+      {resetSuccessMessage && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 animate-fadeIn pointer-events-none">
+          <div className="px-5 py-2.5 rounded-2xl bg-zinc-950/95 border-2 border-emerald-500/80 text-emerald-300 text-xs sm:text-sm font-bold shadow-2xl flex items-center gap-2.5 backdrop-blur-md">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+            <span>{resetSuccessMessage}</span>
+          </div>
+        </div>
+      )}
+
 
 
       {/* 1. Encabezado Superior (Logo del Local y Código) */}
@@ -791,6 +883,18 @@ export default function PublicDisplayScreenPage({
           <div className="px-3 py-1.5 rounded-xl bg-purple-900/40 border border-purple-600/50 text-purple-200 font-mono text-xs font-extrabold tracking-wider">
             CÓDIGO: {data.event.code}
           </div>
+
+          {/* Botón para Limpiar / Resetear pantalla y permitir que entre el siguiente pedido */}
+          <button
+            onClick={handleResetScreen}
+            disabled={isResetting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-950/80 to-red-950/80 hover:from-rose-600 hover:to-red-600 border border-rose-600/60 hover:border-rose-400 text-rose-200 hover:text-white text-xs font-black shadow-md shadow-rose-950/60 transition-all cursor-pointer active:scale-95"
+            title="Limpiar / Resetear pantalla para dar paso al siguiente pedido si un tema se quedó trabado o desincronizado"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? "animate-spin text-white" : "text-rose-400"}`} />
+            <span className="hidden sm:inline">Limpiar / Resetear</span>
+            <span className="sm:hidden">Reset</span>
+          </button>
 
           {/* Botón para volver a la Consola y Panel de Control del DJ */}
           <Link
@@ -977,14 +1081,26 @@ export default function PublicDisplayScreenPage({
                   )}
                 </div>
 
-                <button
-                  onClick={() => setIsKaraokeVideoEnabled(false)}
-                  className="text-[11px] text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 transition-colors cursor-pointer flex items-center gap-1.5"
-                  title="Cambiar a visualizador clásico con vinilo"
-                >
-                  <Disc3 className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Modo Vinilo</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleResetScreen}
+                    disabled={isResetting}
+                    className="text-[11px] text-rose-300 hover:text-white px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-800 border border-rose-700/60 transition-colors cursor-pointer flex items-center gap-1.5 active:scale-95"
+                    title="Limpiar pantalla y desbloquear para permitir entrar el siguiente pedido"
+                  >
+                    <RotateCcw className={`w-3 h-3 ${isResetting ? "animate-spin" : ""}`} />
+                    <span>Resetear Pista</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsKaraokeVideoEnabled(false)}
+                    className="text-[11px] text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 transition-colors cursor-pointer flex items-center gap-1.5"
+                    title="Cambiar a visualizador clásico con vinilo"
+                  >
+                    <Disc3 className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Modo Vinilo</span>
+                  </button>
+                </div>
               </div>
 
               {/* Marco Widescreen 16:9 del Video de YouTube */}
@@ -1130,6 +1246,17 @@ export default function PublicDisplayScreenPage({
                     <span>📺 Ver Video Karaoke</span>
                   </button>
                 )}
+
+                {/* Botón Resetear / Limpiar Pista en modo vinilo */}
+                <button
+                  onClick={handleResetScreen}
+                  disabled={isResetting}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white border border-rose-600/60 hover:border-rose-400 text-xs font-bold transition-colors cursor-pointer shadow-sm active:scale-95"
+                  title="Limpiar y liberar pantalla para que entre el siguiente pedido"
+                >
+                  <RotateCcw className={`w-3 h-3 ${isResetting ? "animate-spin" : ""}`} />
+                  <span>Limpiar / Siguiente Pedido</span>
+                </button>
               </div>
 
               {/* Título y Artista */}

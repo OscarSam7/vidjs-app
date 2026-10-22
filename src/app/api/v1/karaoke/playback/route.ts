@@ -18,13 +18,13 @@ export async function POST(req: NextRequest) {
 
     if (!targetKey || !action) {
       return NextResponse.json(
-        { success: false, error: { message: "eventId o code y action ('PLAY' | 'PAUSE' | 'SEEK') son requeridos" } },
+        { success: false, error: { message: "eventId o code y action ('PLAY' | 'PAUSE' | 'SEEK' | 'RESET') son requeridos" } },
         { status: 400 }
       );
     }
 
     const payload = {
-      action: action as "PLAY" | "PAUSE" | "SEEK",
+      action: action as "PLAY" | "PAUSE" | "SEEK" | "RESET",
       seconds: typeof seconds === "number" ? seconds : undefined,
       duration: typeof duration === "number" ? duration : undefined,
       trackTitle: typeof trackTitle === "string" ? trackTitle : undefined,

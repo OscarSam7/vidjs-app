@@ -654,6 +654,13 @@ export default function DjBoothPage() {
           "success",
           `🎤 ${payload?.tableLabel || "Mesa"} completó su turno. ¡Cupo liberado!`
         );
+      } else if (type === "KARAOKE_PLAYBACK_CONTROL") {
+        if (payload?.action === "RESET") {
+          setIsPlaying(false);
+          setPlaybackSeconds(0);
+          fetchDjState();
+          showFeedback("info", "📺 Pantalla TV reseteada / Pista liberada");
+        }
       }
     },
   });
@@ -666,6 +673,60 @@ export default function DjBoothPage() {
     }, 15000);
     return () => clearInterval(interval);
   }, [selectedEventId]);
+
+  // Escuchar reseteos de pantalla desde la TV u otra ventana (BroadcastChannel y Storage)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "vidjs_playback_sync_payload" && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed.action === "RESET") {
+            setIsPlaying(false);
+            setPlaybackSeconds(0);
+            fetchDjState();
+            showFeedback("info", "📺 Pantalla TV reseteada / Pista liberada");
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+
+    const eventId = selectedEventId || data?.event?.id;
+    const eventCode = data?.event?.code;
+    const channels = ["vidjs_karaoke_sync_global"];
+    if (eventId) channels.push(`vidjs_karaoke_sync_${eventId}`);
+    if (eventCode) channels.push(`vidjs_karaoke_sync_${eventCode}`);
+
+    const openChannels: BroadcastChannel[] = [];
+    try {
+      channels.forEach((name) => {
+        try {
+          const ch = new BroadcastChannel(name);
+          ch.onmessage = (e) => {
+            const msg = e.data || {};
+            if (msg.action === "RESET") {
+              setIsPlaying(false);
+              setPlaybackSeconds(0);
+              fetchDjState();
+              showFeedback("info", "📺 Pantalla TV reseteada / Pista liberada");
+            }
+          };
+          openChannels.push(ch);
+        } catch {}
+      });
+    } catch {}
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      openChannels.forEach((ch) => {
+        try {
+          ch.close();
+        } catch {}
+      });
+    };
+  }, [selectedEventId, data?.event?.id, data?.event?.code]);
 
   // Carga automática de pista enviada desde la Biblioteca Musical (/dashboard/library)
   useEffect(() => {
