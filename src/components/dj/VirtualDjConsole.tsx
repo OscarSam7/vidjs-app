@@ -33,8 +33,14 @@ import {
   Unlock,
   FastForward,
   Rewind,
+  ListMusic,
+  Columns,
+  Maximize2,
+  Minimize2,
+  X,
 } from "lucide-react";
 import { calculateCrossfaderGains, djSoundEffects, webDjEngine, AudioLevels } from "@/lib/audio/dj-audio-engine";
+import { MusicLibraryView, Song as LibSong } from "@/components/library/MusicLibraryView";
 
 interface SongRequestData {
   id: string;
@@ -445,6 +451,11 @@ export default function VirtualDjConsole({
   const lastScratchSoundTimeARef = useRef<number>(0);
   const lastScratchSoundTimeBRef = useRef<number>(0);
 
+  // ==================== IN-CONSOLE MUSIC LIBRARY (SIN PAUSAR AUDIO) ====================
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [libraryViewMode, setLibraryViewMode] = useState<"drawer" | "split">("drawer");
+  const [libraryTargetDeckHint, setLibraryTargetDeckHint] = useState<"A" | "B" | null>(null);
+
   // ==================== 2-TOUCH SAFETY: CROSSFADER & RESET ====================
   const [isCrossfaderActive, setIsCrossfaderActive] = useState(false);
   const crossfaderTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -749,6 +760,45 @@ export default function VirtualDjConsole({
     animId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animId);
   }, [isPlayingA, isPlayingB, effectiveBpmA, effectiveBpmB]);
+
+  // Eventos de apertura de biblioteca integrada y atajos de teclado (Tecla B / Esc)
+  useEffect(() => {
+    const handleOpen = (e: any) => {
+      setIsLibraryOpen(true);
+      if (e?.detail?.targetDeck) {
+        setLibraryTargetDeckHint(e.detail.targetDeck);
+      }
+    };
+    const handleToggle = () => {
+      setIsLibraryOpen((prev) => !prev);
+    };
+
+    window.addEventListener("open-dj-library", handleOpen);
+    window.addEventListener("toggle-dj-library", handleToggle);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isInput =
+        activeEl &&
+        (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT");
+      if (isInput) return;
+
+      if (e.key === "b" || e.key === "B") {
+        e.preventDefault();
+        setIsLibraryOpen((prev) => !prev);
+      } else if (e.key === "Escape" && isLibraryOpen) {
+        setIsLibraryOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("open-dj-library", handleOpen);
+      window.removeEventListener("toggle-dj-library", handleToggle);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isLibraryOpen]);
 
   // Cálculo de ganancias de crossfader de potencia constante
   const crossfaderGains = calculateCrossfaderGains(crossfaderValue);
@@ -2706,6 +2756,97 @@ export default function VirtualDjConsole({
     setVinylActionB("IDLE");
   };
 
+  // ==================== CARGA DIRECTA DESDE BIBLIOTECA (SIN PAUSAR) ====================
+  const handleLoadSongFromLibraryA = (song: LibSong) => {
+    webDjEngine.unlock();
+
+    const syntheticTrack: SongRequestData = {
+      id: `lib-a-${song.id}-${Date.now()}`,
+      status: isPlayingA ? "PLAYING" : "PENDING",
+      customTitle: song.title,
+      customArtist: song.artist?.name || "Artista",
+      notes: song.genre || null,
+      createdAt: new Date().toISOString(),
+      table: { id: "library", number: 0, label: "Biblioteca" },
+      guestSession: null,
+      song: {
+        id: song.id,
+        title: song.title,
+        durationSeconds: song.durationSeconds || 210,
+        artist: { name: song.artist?.name || "Artista" },
+        key: song.key || "8A",
+        bpm: song.bpm || 124,
+        genre: song.genre || "General",
+      },
+    };
+
+    if (song.fileUrl) {
+      setDeckModeA("native");
+      setLocalAudioUrlA(song.fileUrl);
+      setLocalAudioNameA(song.title);
+      setDeckTrackA(syntheticTrack);
+      setManualTrackA(syntheticTrack);
+      setIsEjectedA(false);
+      setPlaybackSecondsA(0);
+      if (audioRefA.current) {
+        audioRefA.current.src = song.fileUrl;
+        audioRefA.current.currentTime = 0;
+        if (isPlayingA) {
+          audioRefA.current.play().catch(() => {});
+        }
+      }
+    } else {
+      loadTrackIntoDeckA(syntheticTrack);
+    }
+
+    showFeedback("success", `🎧 "${song.title}" cargada en Bandeja A (Música en vivo continua)`);
+  };
+
+  const handleLoadSongFromLibraryB = (song: LibSong) => {
+    webDjEngine.unlock();
+
+    const syntheticTrack: SongRequestData = {
+      id: `lib-b-${song.id}-${Date.now()}`,
+      status: isPlayingB ? "PLAYING" : "PENDING",
+      customTitle: song.title,
+      customArtist: song.artist?.name || "Artista",
+      notes: song.genre || null,
+      createdAt: new Date().toISOString(),
+      table: { id: "library", number: 0, label: "Biblioteca" },
+      guestSession: null,
+      song: {
+        id: song.id,
+        title: song.title,
+        durationSeconds: song.durationSeconds || 210,
+        artist: { name: song.artist?.name || "Artista" },
+        key: song.key || "8A",
+        bpm: song.bpm || 126,
+        genre: song.genre || "General",
+      },
+    };
+
+    if (song.fileUrl) {
+      setDeckModeB("native");
+      setLocalAudioUrlB(song.fileUrl);
+      setLocalAudioNameB(song.title);
+      setDeckTrackB(syntheticTrack);
+      setManualTrackB(syntheticTrack);
+      setIsEjectedB(false);
+      setPlaybackSecondsB(0);
+      if (audioRefB.current) {
+        audioRefB.current.src = song.fileUrl;
+        audioRefB.current.currentTime = 0;
+        if (isPlayingB) {
+          audioRefB.current.play().catch(() => {});
+        }
+      }
+    } else {
+      loadTrackIntoDeckB(syntheticTrack);
+    }
+
+    showFeedback("success", `🎧 "${song.title}" cargada en Bandeja B (Música en vivo continua)`);
+  };
+
   // CUE handler
   const handleCue = (deck: "A" | "B") => {
     if (deck === "A" && !trackA) return;
@@ -2794,6 +2935,60 @@ export default function VirtualDjConsole({
             {isMasterMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             <span>{isMasterMuted ? "🔇 AUDIO MUTED (CLICK PARA ACTIVAR)" : "🔊 AUDIO CABINA: ACTIVO"}</span>
           </button>
+        </div>
+
+        {/* Acceso a Biblioteca Musical Integrada (Cero pausa / Cero interrupción) */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setIsLibraryOpen((prev) => !prev);
+              setLibraryTargetDeckHint(null);
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer shadow-md ${
+              isLibraryOpen
+                ? "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/40 ring-2 ring-amber-300"
+                : "bg-zinc-900 hover:bg-zinc-800 text-amber-300 hover:text-amber-200 border border-amber-500/40"
+            }`}
+            title="Abrir/Cerrar Biblioteca Musical sin detener la música en vivo (Atajo de teclado: B)"
+          >
+            <ListMusic className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>{isLibraryOpen ? "OCULTAR BIBLIOTECA [B]" : "📚 BIBLIOTECA MUSICAL [B]"}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30 font-mono">
+              EN VIVO
+            </span>
+          </button>
+
+          {isLibraryOpen && (
+            <div className="hidden sm:flex items-center bg-zinc-900 border border-zinc-700 rounded-xl p-0.5 text-[11px] font-bold">
+              <button
+                type="button"
+                onClick={() => setLibraryViewMode("drawer")}
+                className={`px-2 py-1 rounded-lg flex items-center gap-1 transition-all ${
+                  libraryViewMode === "drawer"
+                    ? "bg-purple-600 text-white shadow"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+                title="Modo Modal Flotante con Mini-HUD de Cabina"
+              >
+                <Maximize2 className="w-3 h-3" />
+                <span>Flotante</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLibraryViewMode("split")}
+                className={`px-2 py-1 rounded-lg flex items-center gap-1 transition-all ${
+                  libraryViewMode === "split"
+                    ? "bg-cyan-600 text-white shadow"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+                title="Modo Panel Dividido (VirtualDJ / Traktor)"
+              >
+                <Columns className="w-3 h-3" />
+                <span>Dividido</span>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-4 text-xs font-mono">
@@ -3031,6 +3226,23 @@ export default function VirtualDjConsole({
                         <span>⏹ Limpiar bandeja (Expulsar pista actual)</span>
                       </button>
                     )}
+
+                    {/* Botón para explorar en Biblioteca Musical */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSelectorOpenA(false);
+                        setLibraryTargetDeckHint("A");
+                        setIsLibraryOpen(true);
+                      }}
+                      className="w-full text-left p-2 rounded-lg bg-amber-950/40 hover:bg-amber-900/60 border border-amber-800/60 text-amber-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
+                    >
+                      <ListMusic className="w-4 h-4 text-amber-400 shrink-0" />
+                      <div className="flex flex-col">
+                        <span>📚 Explorar en Biblioteca Musical</span>
+                        <span className="text-[10px] text-amber-400 font-normal">Playlists, géneros, karaoke y pistas guardadas</span>
+                      </div>
+                    </button>
 
                     {/* Botón para subir archivo MP3/WAV local (Web Audio API) */}
                     <button
@@ -4036,6 +4248,23 @@ export default function VirtualDjConsole({
                       </button>
                     )}
 
+                    {/* Botón para explorar en Biblioteca Musical */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSelectorOpenB(false);
+                        setLibraryTargetDeckHint("B");
+                        setIsLibraryOpen(true);
+                      }}
+                      className="w-full text-left p-2 rounded-lg bg-amber-950/40 hover:bg-amber-900/60 border border-amber-800/60 text-amber-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
+                    >
+                      <ListMusic className="w-4 h-4 text-amber-400 shrink-0" />
+                      <div className="flex flex-col">
+                        <span>📚 Explorar en Biblioteca Musical</span>
+                        <span className="text-[10px] text-amber-400 font-normal">Playlists, géneros, karaoke y pistas guardadas</span>
+                      </div>
+                    </button>
+
                     {/* Botón para subir archivo MP3/WAV local (Web Audio API) */}
                     <button
                       type="button"
@@ -4585,6 +4814,67 @@ export default function VirtualDjConsole({
         </div>
       </div>
 
+      {/* ========================================================================= */}
+      {/* 4. PANEL SPLIT-SCREEN: BIBLIOTECA MUSICAL EN VIVO (ESTILO VIRTUALDJ)      */}
+      {/* ========================================================================= */}
+      {isLibraryOpen && libraryViewMode === "split" && (
+        <section className="rounded-3xl border border-amber-500/40 bg-zinc-950/95 backdrop-blur-md p-4 sm:p-5 shadow-2xl transition-all animate-in fade-in duration-200">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-3 border-b border-zinc-800">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                <ListMusic className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                    BIBLIOTECA MUSICAL • CABINA INTEGRADA
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    EN VIVO SIN PAUSAS
+                  </span>
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
+                  Navega playlists, géneros y karaoke. Carga temas en cualquiera de las bandejas sin detener la música al aire.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setLibraryViewMode("drawer")}
+                className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Cambiar a pantalla completa flotante"
+              >
+                <Maximize2 className="w-3.5 h-3.5 text-purple-400" />
+                <span>Modo Flotante</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsLibraryOpen(false)}
+                className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-red-950/50 text-zinc-400 hover:text-red-300 border border-zinc-750 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Cerrar biblioteca (Atajo: Esc o B)"
+              >
+                <X className="w-4 h-4 text-red-400" />
+                <span>Cerrar [Esc]</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="max-h-[620px] overflow-y-auto pr-1">
+            <MusicLibraryView
+              isEmbedded={true}
+              onLoadDeckA={handleLoadSongFromLibraryA}
+              onLoadDeckB={handleLoadSongFromLibraryB}
+              onClose={() => setIsLibraryOpen(false)}
+              targetDeckHint={libraryTargetDeckHint}
+              compactHeader={true}
+            />
+          </div>
+        </section>
+      )}
+
       {/* Elementos de Audio Nativo Web Audio API (conectados al grafo de 44.1kHz) */}
       <audio
         ref={audioRefA}
@@ -4645,6 +4935,128 @@ export default function VirtualDjConsole({
           e.target.value = "";
         }}
       />
+
+      {/* ========================================================================= */}
+      {/* 5. MODAL / DRAWER FLOTANTE DE BIBLIOTECA CON MINI-HUD DE CABINA EN VIVO   */}
+      {/* ========================================================================= */}
+      {isLibraryOpen && libraryViewMode === "drawer" && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col p-2 sm:p-4 animate-in fade-in duration-200"
+        >
+          {/* LIVE MINI-DJ HUD BAR (Mantén el control visual total mientras buscas pistas) */}
+          <div className="rounded-2xl bg-zinc-950/95 border border-zinc-800 shadow-2xl p-3 mb-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
+            {/* DECK A MINI MONITOR */}
+            <div className="flex items-center gap-2 sm:gap-3 bg-zinc-900/90 border border-purple-900/40 rounded-xl px-3 py-1.5 flex-1 min-w-[200px]">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                <span className="text-[11px] font-black text-purple-400 uppercase tracking-wider">
+                  DECK A
+                </span>
+                <span
+                  className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ${
+                    isPlayingA
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      : "bg-zinc-800 text-zinc-400"
+                  }`}
+                >
+                  {isPlayingA ? "▶ AL AIRE" : "⏸ PAUSA"}
+                </span>
+              </div>
+              <div className="truncate text-xs text-white font-medium flex-1">
+                {trackA ? (
+                  <span>
+                    <strong className="text-purple-300">{trackA.customTitle || trackA.song?.title || "Pista A"}</strong>
+                    {" - "}
+                    <span className="text-zinc-400">{trackA.customArtist || trackA.song?.artist?.name || "Artista"}</span>
+                  </span>
+                ) : (
+                  <span className="text-zinc-500 italic">Bandeja A vacía</span>
+                )}
+              </div>
+              <div className="text-[10px] font-mono text-zinc-400 shrink-0">
+                {formatTime(playbackSecondsA)} / {formatTime(trackADuration)}
+              </div>
+            </div>
+
+            {/* CENTRO: MASTER STATUS & MODE SWITCH */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-300">
+                <Headphones className="w-3.5 h-3.5 text-amber-400" />
+                <span>CROSSFADER:</span>
+                <strong className="text-amber-400">
+                  {crossfaderValue === 0 ? "CENTRO" : crossfaderValue < 0 ? `A ${Math.abs(crossfaderValue)}%` : `B ${crossfaderValue}%`}
+                </strong>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setLibraryViewMode("split")}
+                className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Cambiar a modo Split-Screen bajo las bandejas"
+              >
+                <Columns className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="hidden sm:inline">Panel Dividido</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsLibraryOpen(false)}
+                className="px-3 py-1.5 rounded-xl bg-red-600/90 hover:bg-red-500 text-white text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                title="Cerrar biblioteca y volver a la cabina completa (Atajo: Esc o B)"
+              >
+                <X className="w-4 h-4" />
+                <span>CERRAR [ESC]</span>
+              </button>
+            </div>
+
+            {/* DECK B MINI MONITOR */}
+            <div className="flex items-center gap-2 sm:gap-3 bg-zinc-900/90 border border-cyan-900/40 rounded-xl px-3 py-1.5 flex-1 min-w-[200px]">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                <span className="text-[11px] font-black text-cyan-400 uppercase tracking-wider">
+                  DECK B
+                </span>
+                <span
+                  className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ${
+                    isPlayingB
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      : "bg-zinc-800 text-zinc-400"
+                  }`}
+                >
+                  {isPlayingB ? "▶ AL AIRE" : "⏸ PAUSA"}
+                </span>
+              </div>
+              <div className="truncate text-xs text-white font-medium flex-1">
+                {trackB ? (
+                  <span>
+                    <strong className="text-cyan-300">{trackB.customTitle || trackB.song?.title || "Pista B"}</strong>
+                    {" - "}
+                    <span className="text-zinc-400">{trackB.customArtist || trackB.song?.artist?.name || "Artista"}</span>
+                  </span>
+                ) : (
+                  <span className="text-zinc-500 italic">Bandeja B vacía</span>
+                )}
+              </div>
+              <div className="text-[10px] font-mono text-zinc-400 shrink-0">
+                {formatTime(playbackSecondsB)} / {formatTime(trackBDuration)}
+              </div>
+            </div>
+          </div>
+
+          {/* CUERPO PRINCIPAL DE LA BIBLIOTECA */}
+          <div className="flex-1 overflow-y-auto rounded-2xl bg-zinc-950/80 border border-zinc-800/80 p-3 sm:p-4 shadow-inner">
+            <MusicLibraryView
+              isEmbedded={true}
+              onLoadDeckA={handleLoadSongFromLibraryA}
+              onLoadDeckB={handleLoadSongFromLibraryB}
+              onClose={() => setIsLibraryOpen(false)}
+              targetDeckHint={libraryTargetDeckHint}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

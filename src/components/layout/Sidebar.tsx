@@ -64,6 +64,16 @@ export function Sidebar({
     { name: "Configuración", icon: Settings, href: "#settings" },
   ];
 
+  const handleItemClick = (e: React.MouseEvent, item: MenuItem, isMobile = false) => {
+    if (isMobile && onClose) onClose();
+    if (pathname === "/dashboard/dj" && item.href === "/dashboard/library") {
+      e.preventDefault();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("open-dj-library"));
+      }
+    }
+  };
+
   const renderContent = (isMobile = false) => {
     const collapsed = !isMobile && isCollapsed;
 
@@ -159,6 +169,7 @@ export function Sidebar({
                 <a
                   key={item.name}
                   href={item.href}
+                  onClick={(e) => handleItemClick(e, item, isMobile)}
                   title={item.name}
                   className={`w-11 h-11 mx-auto flex items-center justify-center rounded-xl transition-all relative group ${
                     item.active
@@ -186,9 +197,7 @@ export function Sidebar({
               <a
                 key={item.name}
                 href={item.href}
-                onClick={() => {
-                  if (isMobile && onClose) onClose();
-                }}
+                onClick={(e) => handleItemClick(e, item, isMobile)}
                 className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-colors ${
                   item.active
                     ? "bg-purple-600/15 text-purple-300 border border-purple-500/20 font-semibold"
