@@ -20,7 +20,42 @@ export interface FlashDeal {
   targetPulse: PulseLevel;
 }
 
-export function getActiveFlashDeal(level: PulseLevel): FlashDeal | null {
+export interface CustomPromoConfig {
+  enabled?: boolean;
+  mode?: "CUSTOM" | "AUTO";
+  badgeText?: string;
+  title?: string;
+  discount?: string;
+  subtitle?: string;
+  callToAction?: string;
+}
+
+export function getActiveFlashDeal(
+  level: PulseLevel,
+  customConfig?: CustomPromoConfig | null
+): FlashDeal | null {
+  // 1. Si la promoción está desactivada por el local
+  if (customConfig && customConfig.enabled === false) {
+    return null;
+  }
+
+  // 2. Si el establecimiento definió una promoción personalizada
+  if (customConfig && customConfig.mode === "CUSTOM" && customConfig.title) {
+    return {
+      id: "deal-custom",
+      title: customConfig.title,
+      subtitle: customConfig.subtitle || "Válido en la barra por tiempo limitado",
+      discount: customConfig.discount || "",
+      badgeText: customConfig.badgeText || "PROMO ACTIVA",
+      color: "text-amber-300 border-amber-500/60",
+      bannerBg: "from-amber-950/80 via-zinc-950 to-purple-950/80",
+      expiresInMinutes: 30,
+      callToAction: customConfig.callToAction || "Pedir en Barra",
+      targetPulse: level,
+    };
+  }
+
+  // 3. Modo automático (Demo dinámica según la energía de la pista)
   switch (level) {
     case "LOW":
       return {

@@ -86,6 +86,18 @@ export const brandingSchema = z.object({
   tiktokHandle: z.string().max(50, "Máximo 50 caracteres").optional().nullable(),
   whatsappNumber: z.string().max(30, "Máximo 30 caracteres").optional().nullable(),
   googleMapsReviewUrl: z.string().url("URL de Google Maps inválida").or(z.string().length(0)).optional().nullable(),
+  activePromo: z
+    .object({
+      enabled: z.boolean().default(true),
+      mode: z.enum(["CUSTOM", "AUTO"]).default("CUSTOM"),
+      badgeText: z.string().max(40).default("PROMO ACTIVA"),
+      title: z.string().max(80).default("🍸 2x1 en Tragos de Barra"),
+      discount: z.string().max(80).default("Happy Hour hasta las 00:00 hs"),
+      subtitle: z.string().max(160).default("Acércate a la barra mostrando tu pantalla para canjear"),
+      callToAction: z.string().max(40).default("Pedir en Barra"),
+    })
+    .optional()
+    .nullable(),
 });
 
 export type BrandingConfig = z.infer<typeof brandingSchema>;
@@ -105,6 +117,15 @@ export const DEFAULT_BRANDING: BrandingConfig = {
   tiktokHandle: null,
   whatsappNumber: null,
   googleMapsReviewUrl: null,
+  activePromo: {
+    enabled: true,
+    mode: "CUSTOM",
+    badgeText: "PROMO ACTIVA",
+    title: "🍸 2x1 en Tragos de Barra",
+    discount: "Happy Hour hasta las 00:00 hs",
+    subtitle: "Acércate a la barra mostrando tu pantalla para canjear",
+    callToAction: "Pedir en Barra",
+  },
 };
 
 /**
@@ -161,6 +182,15 @@ export function getMergedBranding(
     ...DEFAULT_BRANDING,
     ...cleanTenant,
     ...cleanVenue,
+    activePromo: {
+      enabled: cleanVenue.activePromo?.enabled ?? cleanTenant.activePromo?.enabled ?? DEFAULT_BRANDING.activePromo?.enabled ?? true,
+      mode: cleanVenue.activePromo?.mode ?? cleanTenant.activePromo?.mode ?? DEFAULT_BRANDING.activePromo?.mode ?? "CUSTOM",
+      badgeText: cleanVenue.activePromo?.badgeText ?? cleanTenant.activePromo?.badgeText ?? DEFAULT_BRANDING.activePromo?.badgeText ?? "PROMO ACTIVA",
+      title: cleanVenue.activePromo?.title ?? cleanTenant.activePromo?.title ?? DEFAULT_BRANDING.activePromo?.title ?? "🍸 2x1 en Tragos de Barra",
+      discount: cleanVenue.activePromo?.discount ?? cleanTenant.activePromo?.discount ?? DEFAULT_BRANDING.activePromo?.discount ?? "Happy Hour hasta las 00:00 hs",
+      subtitle: cleanVenue.activePromo?.subtitle ?? cleanTenant.activePromo?.subtitle ?? DEFAULT_BRANDING.activePromo?.subtitle ?? "Acércate a la barra mostrando tu pantalla para canjear",
+      callToAction: cleanVenue.activePromo?.callToAction ?? cleanTenant.activePromo?.callToAction ?? DEFAULT_BRANDING.activePromo?.callToAction ?? "Pedir en Barra",
+    },
   };
 
   // Si no hay logo definido en settings, usar el logoUrl nativo de Tenant si existe

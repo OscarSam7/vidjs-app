@@ -23,6 +23,8 @@ import {
   Trash2,
   Check,
   Link as LinkIcon,
+  Flame,
+  Zap,
 } from "lucide-react";
 import { THEME_PRESETS, BrandingConfig, DEFAULT_BRANDING } from "@/lib/branding/config";
 
@@ -122,6 +124,28 @@ export default function BrandingSettingsPage() {
       if (type === "logo") setUploadingLogo(false);
       else setUploadingBanner(false);
     }
+  };
+
+  // Actualizar campos de la promoción activa con valores por defecto seguros
+  const updateActivePromo = (updates: Partial<NonNullable<BrandingConfig["activePromo"]>>) => {
+    setFormData((prev) => {
+      const current = prev.activePromo || {
+        enabled: true,
+        mode: "CUSTOM",
+        badgeText: "PROMO ACTIVA",
+        title: "🍸 2x1 en Tragos de Barra",
+        discount: "Happy Hour hasta las 00:00 hs",
+        subtitle: "Acércate a la barra mostrando tu pantalla para canjear",
+        callToAction: "Pedir en Barra",
+      };
+      return {
+        ...prev,
+        activePromo: {
+          ...current,
+          ...updates,
+        },
+      };
+    });
   };
 
   // Cargar configuración de marca
@@ -709,6 +733,168 @@ export default function BrandingSettingsPage() {
             </div>
           </div>
 
+          {/* Promoción Activa de Barra & Ofertas Flash */}
+          <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Flame className="w-4 h-4 text-amber-400" />
+                <h2 className="text-sm font-bold text-white">Promoción Activa de Barra & Ofertas (Flash Deals)</h2>
+              </div>
+              <span className="text-[10px] text-amber-400 bg-amber-950/60 border border-amber-800/60 px-2 py-0.5 rounded-full font-bold">
+                TV & Móvil
+              </span>
+            </div>
+
+            <p className="text-[11px] text-zinc-400">
+              Personaliza la promoción de barra que se muestra a los comensales en su celular y en la barra superior de la Smart TV.
+            </p>
+
+            {/* Toggle de Activación */}
+            <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                  formData.activePromo?.enabled !== false
+                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                    : "bg-zinc-800 text-zinc-500"
+                }`}>
+                  <Zap className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-white block">
+                    Mostrar Promoción Activa al Público
+                  </span>
+                  <span className="text-[10px] text-zinc-400">
+                    Visible en la barra superior de la Smart TV y en el móvil de cada mesa.
+                  </span>
+                </div>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.activePromo?.enabled !== false}
+                  onChange={(e) => updateActivePromo({ enabled: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500" />
+              </label>
+            </div>
+
+            {formData.activePromo?.enabled !== false && (
+              <div className="space-y-4 pt-2 animate-fadeIn">
+                {/* Selector de Modo: Personalizada vs Automática */}
+                <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-zinc-950 border border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => updateActivePromo({ enabled: true, mode: "CUSTOM" })}
+                    className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      formData.activePromo?.mode !== "AUTO"
+                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
+                        : "text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    ✨ Personalizada (Tu propia promo)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => updateActivePromo({ enabled: true, mode: "AUTO" })}
+                    className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      formData.activePromo?.mode === "AUTO"
+                        ? "bg-purple-600/20 text-purple-300 border border-purple-500/40 shadow-sm"
+                        : "text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    🤖 Automática (Modo Demo Dinámico)
+                  </button>
+                </div>
+
+                {formData.activePromo?.mode === "AUTO" ? (
+                  <div className="p-3.5 rounded-xl bg-purple-950/20 border border-purple-800/40 text-xs text-zinc-300 space-y-1.5">
+                    <div className="font-bold text-purple-300 flex items-center gap-1.5">
+                      <span>⚡ Modo Demo Dinámico Activado</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400">
+                      El sistema rota automáticamente entre ofertas sugeridas según la energía del local:
+                      Calentamiento de pista (2x1 Cerveza), Happy Hour relámpago, Trago de autor y Brindis colectivo cumbre.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                          Insignia / Etiqueta
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="PROMO ACTIVA"
+                          value={formData.activePromo?.badgeText || ""}
+                          onChange={(e) => updateActivePromo({ badgeText: e.target.value })}
+                          className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 font-bold uppercase"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                          Título de la Promoción
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="🍸 2x1 en Cócteles Clásicos & Gin"
+                          value={formData.activePromo?.title || ""}
+                          onChange={(e) => updateActivePromo({ title: e.target.value })}
+                          className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 font-medium"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                          Descuento o Beneficio Principal
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="2x1 hasta las 00:00 hs • 25% OFF"
+                          value={formData.activePromo?.discount || ""}
+                          onChange={(e) => updateActivePromo({ discount: e.target.value })}
+                          className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                          Botón de Acción
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Pedir en Barra"
+                          value={formData.activePromo?.callToAction || ""}
+                          onChange={(e) => updateActivePromo({ callToAction: e.target.value })}
+                          className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                        Instrucciones para el Cliente (Subtítulo)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Muestra esta pantalla al barman para canjear tu beneficio"
+                        value={formData.activePromo?.subtitle || ""}
+                        onChange={(e) => updateActivePromo({ subtitle: e.target.value })}
+                        className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Wi-Fi y Redes Sociales */}
           <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-4">
             <div className="flex items-center gap-2">
@@ -807,6 +993,21 @@ export default function BrandingSettingsPage() {
               {formData.marqueeText && (
                 <div className="my-2 py-1 px-2 rounded bg-purple-950/60 border border-purple-800/60 text-[9px] font-bold text-purple-200 truncate animate-pulse text-center">
                   ✨ {formData.marqueeText}
+                </div>
+              )}
+
+              {/* Promo Activa TV en Preview */}
+              {formData.activePromo?.enabled !== false && (
+                <div className="my-2 py-1 px-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-400 text-zinc-950 font-bold text-[9px] flex items-center justify-between shadow-md">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="px-1.5 py-0.2 rounded-full bg-zinc-950 text-amber-400 text-[8px] font-black uppercase">
+                      {formData.activePromo?.badgeText || "PROMO ACTIVA"}
+                    </span>
+                    <span className="truncate">⚡ {formData.activePromo?.title || "Happy Hour en Barra"}</span>
+                  </div>
+                  <span className="font-semibold text-zinc-900 text-[9px] shrink-0 truncate ml-2">
+                    {formData.activePromo?.discount}
+                  </span>
                 </div>
               )}
 
@@ -917,6 +1118,28 @@ export default function BrandingSettingsPage() {
                     </span>
                   </div>
                   <span className="text-[9px] font-mono text-zinc-500">Clave lista</span>
+                </div>
+              )}
+
+              {/* Promo Activa Móvil en Preview */}
+              {formData.activePromo?.enabled !== false && (
+                <div className="my-2.5 p-2 rounded-xl bg-gradient-to-r from-amber-950/80 via-zinc-950 to-purple-950/80 border border-amber-500/60 flex items-center justify-between gap-1.5 shadow-md">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[8px] font-black uppercase px-1 rounded bg-black/60 text-amber-300">
+                        {formData.activePromo?.badgeText || "PROMO ACTIVA"}
+                      </span>
+                      <span className="text-[10px] font-black text-white truncate">
+                        {formData.activePromo?.title || "Happy Hour"}
+                      </span>
+                    </div>
+                    <p className="text-[9px] text-zinc-300 font-bold truncate">
+                      {formData.activePromo?.discount}
+                    </p>
+                  </div>
+                  <span className="px-1.5 py-0.5 rounded bg-white text-black font-black text-[8px] uppercase shrink-0 shadow-sm">
+                    {formData.activePromo?.callToAction || "Pedir"}
+                  </span>
                 </div>
               )}
 

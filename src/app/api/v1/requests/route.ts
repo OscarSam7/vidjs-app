@@ -372,7 +372,7 @@ export async function GET() {
       requestsLast15m: recentRequestsCount,
       queuedWaiters: queuedEntries.length,
     });
-    const flashDeal = getActiveFlashDeal(pulse.level);
+    const flashDeal = getActiveFlashDeal(pulse.level, branding.activePromo);
 
     return NextResponse.json({
       success: true,

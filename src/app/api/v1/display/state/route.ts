@@ -219,7 +219,8 @@ export async function GET(req: NextRequest) {
             activeTables: 5,
             requestsLast15m: 3,
             queuedWaiters: upcomingQueue.length,
-          }).level
+          }).level,
+          branding.activePromo
         ),
         qr: {
           scanUrl,

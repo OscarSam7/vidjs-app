@@ -658,6 +658,27 @@ export default function SettingsPage() {
                   className="w-5 h-5 accent-purple-600 rounded cursor-pointer"
                 />
               </div>
+
+              {/* Acceso directo a Promoción de Barra & Ofertas Flash */}
+              <div className="p-4 rounded-xl bg-gradient-to-r from-amber-950/40 via-zinc-950 to-purple-950/40 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-white">Promoción Activa de Barra & Ofertas (Flash Deals)</div>
+                    <div className="text-[11px] text-zinc-400">
+                      Personaliza los tragos 2x1, happy hour, descuentos y textos de la marquesina en TV y celular.
+                    </div>
+                  </div>
+                </div>
+                <a
+                  href="/dashboard/branding"
+                  className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shrink-0 transition-colors text-center shadow-md shadow-amber-500/20"
+                >
+                  Configurar en Marca & White-Label &rarr;
+                </a>
+              </div>
             </div>
           </div>
         )}
