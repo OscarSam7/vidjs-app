@@ -6,9 +6,11 @@ import {
   Pause,
   Sliders,
   RotateCcw,
+  RotateCw,
   Zap,
   Volume2,
   VolumeX,
+  Disc,
   Disc3,
   Music,
   ChevronDown,
@@ -29,6 +31,8 @@ import {
   FileAudio,
   Lock,
   Unlock,
+  FastForward,
+  Rewind,
 } from "lucide-react";
 import { calculateCrossfaderGains, djSoundEffects, webDjEngine, AudioLevels } from "@/lib/audio/dj-audio-engine";
 
@@ -419,6 +423,28 @@ export default function VirtualDjConsole({
   // ==================== BEAT TICK ANIMATION & PHASE ====================
   const [beatPhase, setBeatPhase] = useState(1); // 1, 2, 3, 4
 
+  // ==================== REAL VINYL TURNTABLE & NUDGE ENGINE ====================
+  const platterRefA = useRef<HTMLDivElement | null>(null);
+  const platterRefB = useRef<HTMLDivElement | null>(null);
+  const platterAngleRefA = useRef<number>(0);
+  const platterAngleRefB = useRef<number>(0);
+
+  const [vinylActionA, setVinylActionA] = useState<"IDLE" | "REWIND" | "FORWARD" | "SPINBACK" | "SCRATCH">("IDLE");
+  const [vinylActionB, setVinylActionB] = useState<"IDLE" | "REWIND" | "FORWARD" | "SPINBACK" | "SCRATCH">("IDLE");
+
+  const isSpinbackingARef = useRef(false);
+  const isSpinbackingBRef = useRef(false);
+  const isPlatterTouchingARef = useRef(false);
+  const isPlatterTouchingBRef = useRef(false);
+
+  const continuousNudgeIntervalRefA = useRef<NodeJS.Timeout | null>(null);
+  const continuousNudgeIntervalRefB = useRef<NodeJS.Timeout | null>(null);
+
+  const platterLastAngleARef = useRef<number>(0);
+  const platterLastAngleBRef = useRef<number>(0);
+  const lastScratchSoundTimeARef = useRef<number>(0);
+  const lastScratchSoundTimeBRef = useRef<number>(0);
+
   // ==================== 2-TOUCH SAFETY: CROSSFADER & RESET ====================
   const [isCrossfaderActive, setIsCrossfaderActive] = useState(false);
   const crossfaderTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -689,6 +715,40 @@ export default function VirtualDjConsole({
   const trackBDuration = trackB?.song?.durationSeconds || 210;
   const baseBpmB = trackB?.song?.bpm || 126;
   const effectiveBpmB = Number((baseBpmB * (1 + pitchB / 100)).toFixed(1));
+
+  // Rotación física continua del vinilo a ~33 1/3 RPM sincronizado con BPM y pitch
+  useEffect(() => {
+    let animId: number;
+    let lastTime = performance.now();
+
+    const loop = (currentTime: number) => {
+      const delta = (currentTime - lastTime) / 1000;
+      lastTime = currentTime;
+
+      // Deck A: gira físicamente según BPM y tempo
+      if (isPlayingA && !isPlatterTouchingARef.current && !isSpinbackingARef.current) {
+        const speedFactor = effectiveBpmA > 0 ? effectiveBpmA / 124 : 1;
+        platterAngleRefA.current = (platterAngleRefA.current + 200 * speedFactor * delta) % 360000;
+        if (platterRefA.current) {
+          platterRefA.current.style.transform = `rotate(${platterAngleRefA.current}deg)`;
+        }
+      }
+
+      // Deck B: gira físicamente según BPM y tempo
+      if (isPlayingB && !isPlatterTouchingBRef.current && !isSpinbackingBRef.current) {
+        const speedFactor = effectiveBpmB > 0 ? effectiveBpmB / 124 : 1;
+        platterAngleRefB.current = (platterAngleRefB.current + 200 * speedFactor * delta) % 360000;
+        if (platterRefB.current) {
+          platterRefB.current.style.transform = `rotate(${platterAngleRefB.current}deg)`;
+        }
+      }
+
+      animId = requestAnimationFrame(loop);
+    };
+
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, [isPlayingA, isPlayingB, effectiveBpmA, effectiveBpmB]);
 
   // Cálculo de ganancias de crossfader de potencia constante
   const crossfaderGains = calculateCrossfaderGains(crossfaderValue);
@@ -2295,19 +2355,355 @@ export default function VirtualDjConsole({
     showFeedback("info", bassKillA ? "Bajo activo en Deck A" : "Bajo activo en Deck B");
   };
 
-  // Nudge / Pitch Bend (Adelantar o retrasar un instante para alinear compases)
+  // ==================== REAL VINYL TURNTABLE & NUDGE ENGINE ====================
+  // Nudge / Pitch Bend con comportamiento físico de disco de vinilo real (retroceso y empuje)
   const handleNudge = (deck: "A" | "B", dir: -1 | 1) => {
-    if (deck === "A" && !trackA) return;
-    if (deck === "B" && !trackB) return;
+    webDjEngine.unlock();
+
     if (deck === "A") {
-      const next = Math.max(0, playbackSecondsA + dir * 0.5);
+      if (!trackA) {
+        if (dir === -1) djSoundEffects.playVinylNudgeBack(0.8);
+        else djSoundEffects.playVinylNudgeForward(0.8);
+        return;
+      }
+
+      const deltaSec = dir * 0.55;
+      const next = Math.max(0, playbackSecondsA + deltaSec);
       setPlaybackSecondsA(next);
-      sendPlayerCommand(iframeRefA.current, "seekTo", [next, true]);
+
+      if (deckModeA === "native" && audioRefA.current) {
+        audioRefA.current.currentTime = next;
+      } else if (iframeRefA.current) {
+        sendPlayerCommand(iframeRefA.current, "seekTo", [next, true]);
+      }
+
+      // Física y visual de disco de vinilo
+      if (dir === -1) {
+        djSoundEffects.playVinylNudgeBack(1.0);
+        setVinylActionA("REWIND");
+        platterAngleRefA.current -= 65;
+        if (platterRefA.current) {
+          platterRefA.current.style.transition = "transform 0.15s ease-out";
+          platterRefA.current.style.transform = `rotate(${platterAngleRefA.current}deg)`;
+          setTimeout(() => {
+            if (platterRefA.current) platterRefA.current.style.transition = "none";
+          }, 150);
+        }
+      } else {
+        djSoundEffects.playVinylNudgeForward(1.0);
+        setVinylActionA("FORWARD");
+        platterAngleRefA.current += 65;
+        if (platterRefA.current) {
+          platterRefA.current.style.transition = "transform 0.15s ease-out";
+          platterRefA.current.style.transform = `rotate(${platterAngleRefA.current}deg)`;
+          setTimeout(() => {
+            if (platterRefA.current) platterRefA.current.style.transition = "none";
+          }, 150);
+        }
+      }
+      setTimeout(() => setVinylActionA("IDLE"), 350);
     } else {
-      const next = Math.max(0, playbackSecondsB + dir * 0.5);
+      if (!trackB) {
+        if (dir === -1) djSoundEffects.playVinylNudgeBack(0.8);
+        else djSoundEffects.playVinylNudgeForward(0.8);
+        return;
+      }
+
+      const deltaSec = dir * 0.55;
+      const next = Math.max(0, playbackSecondsB + deltaSec);
       setPlaybackSecondsB(next);
-      sendPlayerCommand(iframeRefB.current, "seekTo", [next, true]);
+
+      if (deckModeB === "native" && audioRefB.current) {
+        audioRefB.current.currentTime = next;
+      } else if (iframeRefB.current) {
+        sendPlayerCommand(iframeRefB.current, "seekTo", [next, true]);
+      }
+
+      if (dir === -1) {
+        djSoundEffects.playVinylNudgeBack(1.0);
+        setVinylActionB("REWIND");
+        platterAngleRefB.current -= 65;
+        if (platterRefB.current) {
+          platterRefB.current.style.transition = "transform 0.15s ease-out";
+          platterRefB.current.style.transform = `rotate(${platterAngleRefB.current}deg)`;
+          setTimeout(() => {
+            if (platterRefB.current) platterRefB.current.style.transition = "none";
+          }, 150);
+        }
+      } else {
+        djSoundEffects.playVinylNudgeForward(1.0);
+        setVinylActionB("FORWARD");
+        platterAngleRefB.current += 65;
+        if (platterRefB.current) {
+          platterRefB.current.style.transition = "transform 0.15s ease-out";
+          platterRefB.current.style.transform = `rotate(${platterAngleRefB.current}deg)`;
+          setTimeout(() => {
+            if (platterRefB.current) platterRefB.current.style.transition = "none";
+          }, 150);
+        }
+      }
+      setTimeout(() => setVinylActionB("IDLE"), 350);
     }
+  };
+
+  // ↺ Efecto SPINBACK / BACKSPIN: Retroceso real de disco de discoteca
+  const handleSpinback = (deck: "A" | "B") => {
+    webDjEngine.unlock();
+    djSoundEffects.playVinylSpinback(1.15);
+
+    if (deck === "A") {
+      isSpinbackingARef.current = true;
+      setVinylActionA("SPINBACK");
+
+      // Rebobinar 4 segundos hacia atrás en el audio
+      const next = Math.max(0, playbackSecondsA - 4);
+      setPlaybackSecondsA(next);
+
+      if (deckModeA === "native" && audioRefA.current) {
+        const originalRate = audioRefA.current.playbackRate;
+        audioRefA.current.playbackRate = 0.35;
+        audioRefA.current.currentTime = next;
+        setTimeout(() => {
+          if (audioRefA.current) audioRefA.current.playbackRate = originalRate;
+        }, 850);
+      } else if (iframeRefA.current) {
+        sendPlayerCommand(iframeRefA.current, "setPlaybackRate", [0.5]);
+        sendPlayerCommand(iframeRefA.current, "seekTo", [next, true]);
+        setTimeout(() => {
+          if (iframeRefA.current) sendPlayerCommand(iframeRefA.current, "setPlaybackRate", [1]);
+        }, 850);
+      }
+
+      // Giro inercial de vinilo (-1080 deg = 3 vueltas completas en reversa)
+      platterAngleRefA.current -= 1080;
+      if (platterRefA.current) {
+        platterRefA.current.style.transition = "transform 1.15s cubic-bezier(0.12, 0.9, 0.2, 1)";
+        platterRefA.current.style.transform = `rotate(${platterAngleRefA.current}deg)`;
+      }
+
+      showFeedback("info", "↺ SPINBACK: Retroceso de Disco Deck A");
+
+      setTimeout(() => {
+        isSpinbackingARef.current = false;
+        if (platterRefA.current) platterRefA.current.style.transition = "none";
+        setVinylActionA("IDLE");
+      }, 1150);
+    } else {
+      isSpinbackingBRef.current = true;
+      setVinylActionB("SPINBACK");
+
+      const next = Math.max(0, playbackSecondsB - 4);
+      setPlaybackSecondsB(next);
+
+      if (deckModeB === "native" && audioRefB.current) {
+        const originalRate = audioRefB.current.playbackRate;
+        audioRefB.current.playbackRate = 0.35;
+        audioRefB.current.currentTime = next;
+        setTimeout(() => {
+          if (audioRefB.current) audioRefB.current.playbackRate = originalRate;
+        }, 850);
+      } else if (iframeRefB.current) {
+        sendPlayerCommand(iframeRefB.current, "setPlaybackRate", [0.5]);
+        sendPlayerCommand(iframeRefB.current, "seekTo", [next, true]);
+        setTimeout(() => {
+          if (iframeRefB.current) sendPlayerCommand(iframeRefB.current, "setPlaybackRate", [1]);
+        }, 850);
+      }
+
+      platterAngleRefB.current -= 1080;
+      if (platterRefB.current) {
+        platterRefB.current.style.transition = "transform 1.15s cubic-bezier(0.12, 0.9, 0.2, 1)";
+        platterRefB.current.style.transform = `rotate(${platterAngleRefB.current}deg)`;
+      }
+
+      showFeedback("info", "↺ SPINBACK: Retroceso de Disco Deck B");
+
+      setTimeout(() => {
+        isSpinbackingBRef.current = false;
+        if (platterRefB.current) platterRefB.current.style.transition = "none";
+        setVinylActionB("IDLE");
+      }, 1150);
+    }
+  };
+
+  // Rebobinado o avance continuo al mantener presionado el Nudge
+  const startContinuousNudge = (deck: "A" | "B", dir: -1 | 1) => {
+    webDjEngine.unlock();
+    const isDeckA = deck === "A";
+    const ref = isDeckA ? continuousNudgeIntervalRefA : continuousNudgeIntervalRefB;
+    if (ref.current) clearInterval(ref.current);
+
+    djSoundEffects.startContinuousVinylScrub(dir);
+    if (isDeckA) setVinylActionA(dir === -1 ? "REWIND" : "FORWARD");
+    else setVinylActionB(dir === -1 ? "REWIND" : "FORWARD");
+
+    ref.current = setInterval(() => {
+      if (isDeckA) {
+        setPlaybackSecondsA((prev) => {
+          const next = Math.max(0, prev + dir * 0.7);
+          if (deckModeA === "native" && audioRefA.current) {
+            audioRefA.current.currentTime = next;
+          } else if (iframeRefA.current) {
+            sendPlayerCommand(iframeRefA.current, "seekTo", [next, true]);
+          }
+          return next;
+        });
+        platterAngleRefA.current += dir * 40;
+        if (platterRefA.current) {
+          platterRefA.current.style.transform = `rotate(${platterAngleRefA.current}deg)`;
+        }
+      } else {
+        setPlaybackSecondsB((prev) => {
+          const next = Math.max(0, prev + dir * 0.7);
+          if (deckModeB === "native" && audioRefB.current) {
+            audioRefB.current.currentTime = next;
+          } else if (iframeRefB.current) {
+            sendPlayerCommand(iframeRefB.current, "seekTo", [next, true]);
+          }
+          return next;
+        });
+        platterAngleRefB.current += dir * 40;
+        if (platterRefB.current) {
+          platterRefB.current.style.transform = `rotate(${platterAngleRefB.current}deg)`;
+        }
+      }
+    }, 110);
+  };
+
+  const stopContinuousNudge = (deck: "A" | "B") => {
+    const isDeckA = deck === "A";
+    const ref = isDeckA ? continuousNudgeIntervalRefA : continuousNudgeIntervalRefB;
+    if (ref.current) {
+      clearInterval(ref.current);
+      ref.current = null;
+    }
+    djSoundEffects.stopContinuousVinylScrub();
+    if (isDeckA) setVinylActionA("IDLE");
+    else setVinylActionB("IDLE");
+  };
+
+  // Cálculo angular para soporte táctil y arrastre de vinilo
+  const getPlatterPointerAngle = (clientX: number, clientY: number, target: HTMLElement) => {
+    const rect = target.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    return Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI);
+  };
+
+  // Handlers de arrastre y scratch para Deck A
+  const handlePlatterPointerDownA = (e: React.PointerEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-spindle]")) return;
+
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    isPlatterTouchingARef.current = true;
+    const angle = getPlatterPointerAngle(e.clientX, e.clientY, e.currentTarget);
+    platterLastAngleARef.current = angle;
+    setVinylActionA("SCRATCH");
+    webDjEngine.unlock();
+    djSoundEffects.playVinylNudgeBack(0.6);
+  };
+
+  const handlePlatterPointerMoveA = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPlatterTouchingARef.current) return;
+    const currentAngle = getPlatterPointerAngle(e.clientX, e.clientY, e.currentTarget);
+    let delta = currentAngle - platterLastAngleARef.current;
+
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+
+    platterLastAngleARef.current = currentAngle;
+    platterAngleRefA.current += delta;
+    if (platterRefA.current) {
+      platterRefA.current.style.transition = "none";
+      platterRefA.current.style.transform = `rotate(${platterAngleRefA.current}deg)`;
+    }
+
+    const now = Date.now();
+    if (Math.abs(delta) > 2 && now - lastScratchSoundTimeARef.current > 70) {
+      lastScratchSoundTimeARef.current = now;
+      const dir = delta < 0 ? -1 : 1;
+      djSoundEffects.playVinylScratch(dir, Math.min(2, Math.abs(delta) / 6));
+
+      const scrubSec = (delta / 360) * 2.0;
+      setPlaybackSecondsA((prev) => {
+        const next = Math.max(0, prev + scrubSec);
+        if (deckModeA === "native" && audioRefA.current) {
+          audioRefA.current.currentTime = next;
+        } else if (iframeRefA.current) {
+          sendPlayerCommand(iframeRefA.current, "seekTo", [next, true]);
+        }
+        return next;
+      });
+    }
+  };
+
+  const handlePlatterPointerUpA = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPlatterTouchingARef.current) return;
+    isPlatterTouchingARef.current = false;
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+    setVinylActionA("IDLE");
+  };
+
+  // Handlers de arrastre y scratch para Deck B
+  const handlePlatterPointerDownB = (e: React.PointerEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-spindle]")) return;
+
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    isPlatterTouchingBRef.current = true;
+    const angle = getPlatterPointerAngle(e.clientX, e.clientY, e.currentTarget);
+    platterLastAngleBRef.current = angle;
+    setVinylActionB("SCRATCH");
+    webDjEngine.unlock();
+    djSoundEffects.playVinylNudgeBack(0.6);
+  };
+
+  const handlePlatterPointerMoveB = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPlatterTouchingBRef.current) return;
+    const currentAngle = getPlatterPointerAngle(e.clientX, e.clientY, e.currentTarget);
+    let delta = currentAngle - platterLastAngleBRef.current;
+
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+
+    platterLastAngleBRef.current = currentAngle;
+    platterAngleRefB.current += delta;
+    if (platterRefB.current) {
+      platterRefB.current.style.transition = "none";
+      platterRefB.current.style.transform = `rotate(${platterAngleRefB.current}deg)`;
+    }
+
+    const now = Date.now();
+    if (Math.abs(delta) > 2 && now - lastScratchSoundTimeBRef.current > 70) {
+      lastScratchSoundTimeBRef.current = now;
+      const dir = delta < 0 ? -1 : 1;
+      djSoundEffects.playVinylScratch(dir, Math.min(2, Math.abs(delta) / 6));
+
+      const scrubSec = (delta / 360) * 2.0;
+      setPlaybackSecondsB((prev) => {
+        const next = Math.max(0, prev + scrubSec);
+        if (deckModeB === "native" && audioRefB.current) {
+          audioRefB.current.currentTime = next;
+        } else if (iframeRefB.current) {
+          sendPlayerCommand(iframeRefB.current, "seekTo", [next, true]);
+        }
+        return next;
+      });
+    }
+  };
+
+  const handlePlatterPointerUpB = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPlatterTouchingBRef.current) return;
+    isPlatterTouchingBRef.current = false;
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+    setVinylActionB("IDLE");
   };
 
   // CUE handler
@@ -2827,41 +3223,119 @@ export default function VirtualDjConsole({
               className="relative shrink-0 mx-auto"
             >
               <div
-                className={`w-36 h-36 rounded-full bg-black border-4 ${
-                  isDraggingA ? "border-purple-400 scale-105" : "border-zinc-800"
-                } shadow-[0_0_25px_rgba(168,85,247,0.2)] flex items-center justify-center relative cursor-grab active:cursor-grabbing transition-all ${
-                  isPlayingA ? "animate-spin [animation-duration:3s]" : ""
-                }`}
-                onClick={togglePlayA}
-                title="Jogwheel / Vinilo Deck A - Click para Play/Pausa o arrastra un MP3 aquí"
+                ref={platterRefA}
+                onPointerDown={handlePlatterPointerDownA}
+                onPointerMove={handlePlatterPointerMoveA}
+                onPointerUp={handlePlatterPointerUpA}
+                onPointerCancel={handlePlatterPointerUpA}
+                className={`w-36 h-36 rounded-full bg-gradient-to-tr from-zinc-950 via-zinc-900 to-zinc-950 border-4 ${
+                  isDraggingA
+                    ? "border-purple-400 scale-105"
+                    : vinylActionA === "SPINBACK"
+                    ? "border-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.5)] scale-102"
+                    : vinylActionA === "REWIND"
+                    ? "border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.5)]"
+                    : vinylActionA === "FORWARD"
+                    ? "border-purple-400 shadow-[0_0_25px_rgba(168,85,247,0.5)]"
+                    : vinylActionA === "SCRATCH"
+                    ? "border-purple-300 shadow-[0_0_25px_rgba(192,132,252,0.6)]"
+                    : "border-zinc-800"
+                } shadow-[0_0_25px_rgba(168,85,247,0.2)] flex items-center justify-center relative cursor-grab active:cursor-grabbing select-none transition-colors`}
+                title="Plato de Vinilo Deck A - Arrastra para scratch o retroceder como un disco real"
               >
-                {/* Ranuras de vinilo */}
-                <div className="w-28 h-28 rounded-full border border-zinc-800 flex items-center justify-center">
+                {/* Ranuras de vinilo auténticas (micro-grooves concéntricos) */}
+                <div className="absolute inset-1.5 rounded-full border border-zinc-800/80 pointer-events-none" />
+                <div className="absolute inset-3 rounded-full border border-zinc-700/40 pointer-events-none" />
+                <div className="absolute inset-5 rounded-full border border-zinc-800/60 pointer-events-none" />
+                <div className="absolute inset-7 rounded-full border border-zinc-700/30 pointer-events-none" />
+
+                {/* Marcador de Vinilo / Stripe Blanca de Posición (Estilo Slipmat de Torna) */}
+                <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-6 rounded-full bg-gradient-to-b from-white via-purple-200 to-transparent shadow-[0_0_8px_rgba(255,255,255,0.9)] pointer-events-none z-10" />
+
+                {/* Ranuras de vinilo intermedias */}
+                <div className="w-28 h-28 rounded-full border border-zinc-800 flex items-center justify-center pointer-events-none">
                   <div className="w-20 h-20 rounded-full border border-zinc-700/60 flex items-center justify-center">
-                    {/* Centro HUD de Jogwheel */}
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-700 to-indigo-600 border-2 border-white flex flex-col items-center justify-center text-white shadow-lg">
-                      <span className="text-[11px] font-black">{effectiveBpmA}</span>
-                      <span className="text-[8px] font-bold opacity-80">BPM</span>
+                    {/* Centro HUD de Jogwheel (Spindle / Record Label con botón Play/Pause táctil) */}
+                    <div
+                      data-spindle="true"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePlayA();
+                      }}
+                      className="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-700 to-indigo-600 border-2 border-white flex flex-col items-center justify-center text-white shadow-lg pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                      title="Click en centro: Play / Pausa"
+                    >
+                      {vinylActionA === "REWIND" ? (
+                        <div className="flex flex-col items-center animate-pulse">
+                          <RotateCcw className="w-4 h-4 text-amber-300" />
+                          <span className="text-[7px] font-black text-amber-200">REWIND</span>
+                        </div>
+                      ) : vinylActionA === "FORWARD" ? (
+                        <div className="flex flex-col items-center animate-pulse">
+                          <RotateCw className="w-4 h-4 text-purple-200" />
+                          <span className="text-[7px] font-black text-purple-100">PUSH</span>
+                        </div>
+                      ) : vinylActionA === "SPINBACK" ? (
+                        <div className="flex flex-col items-center animate-spin">
+                          <Disc3 className="w-4 h-4 text-pink-300" />
+                          <span className="text-[7px] font-black text-pink-200">SPINBACK</span>
+                        </div>
+                      ) : vinylActionA === "SCRATCH" ? (
+                        <div className="flex flex-col items-center">
+                          <Disc className="w-4 h-4 text-purple-200 animate-spin [animation-duration:1s]" />
+                          <span className="text-[7px] font-black text-purple-100">SCRATCH</span>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="text-[11px] font-black">{effectiveBpmA}</span>
+                          <span className="text-[8px] font-bold opacity-80">BPM</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Botones de Pitch Bend / Nudge */}
-              <div className="flex justify-center gap-2 mt-2">
+              {/* Controles de Vinilo: Nudge Atrás, Spinback Club, Nudge Adelante */}
+              <div className="flex items-center justify-center gap-1.5 mt-2.5">
+                {/* Nudge Atrás (Clic: Empujón vinilo atrás | Mantener: Rebobinado continuo de disco) */}
                 <button
+                  onMouseDown={() => startContinuousNudge("A", -1)}
+                  onMouseUp={() => stopContinuousNudge("A")}
+                  onMouseLeave={() => stopContinuousNudge("A")}
+                  onTouchStart={() => startContinuousNudge("A", -1)}
+                  onTouchEnd={() => stopContinuousNudge("A")}
                   onClick={() => handleNudge("A", -1)}
-                  className="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-bold text-zinc-400 hover:text-white cursor-pointer"
-                  title="Empujar compás atrás"
+                  className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-purple-950/50 active:bg-purple-900 border border-zinc-800 hover:border-purple-600/40 text-[10px] font-black text-zinc-300 hover:text-purple-300 transition-all cursor-pointer flex items-center gap-1 shadow-sm select-none"
+                  title="Clic: Empujar vinilo atrás (-0.5s) | Mantener: Rebobinado continuo de vinilo"
                 >
-                  &laquo; NUDGE
+                  <RotateCcw className="w-3 h-3 text-purple-400" />
+                  <span>&laquo; NUDGE</span>
                 </button>
+
+                {/* Botón Central: SPINBACK / RETROCESO REAL DE DISCO */}
                 <button
-                  onClick={() => handleNudge("A", 1)}
-                  className="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-bold text-zinc-400 hover:text-white cursor-pointer"
-                  title="Empujar compás adelante"
+                  onClick={() => handleSpinback("A")}
+                  className="px-2 py-1 rounded-lg bg-gradient-to-r from-red-600/20 via-purple-600/30 to-pink-600/20 hover:from-red-600/40 hover:to-pink-600/40 border border-purple-500/40 text-[10px] font-black text-white hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1 shadow-lg shadow-purple-900/20"
+                  title="Efecto Spinback: Retroceso salvaje de vinilo club (-4 segs con frenada inercial)"
                 >
-                  NUDGE &raquo;
+                  <Disc3 className="w-3.5 h-3.5 text-pink-400 animate-spin [animation-duration:4s]" />
+                  <span className="bg-gradient-to-r from-pink-300 to-purple-200 bg-clip-text text-transparent">SPINBACK</span>
+                </button>
+
+                {/* Nudge Adelante (Clic: Empuje adelante | Mantener: Avance continuo) */}
+                <button
+                  onMouseDown={() => startContinuousNudge("A", 1)}
+                  onMouseUp={() => stopContinuousNudge("A")}
+                  onMouseLeave={() => stopContinuousNudge("A")}
+                  onTouchStart={() => startContinuousNudge("A", 1)}
+                  onTouchEnd={() => stopContinuousNudge("A")}
+                  onClick={() => handleNudge("A", 1)}
+                  className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-purple-950/50 active:bg-purple-900 border border-zinc-800 hover:border-purple-600/40 text-[10px] font-black text-zinc-300 hover:text-purple-300 transition-all cursor-pointer flex items-center gap-1 shadow-sm select-none"
+                  title="Clic: Empujar vinilo adelante (+0.5s) | Mantener: Avance continuo"
+                >
+                  <span>NUDGE &raquo;</span>
+                  <RotateCw className="w-3 h-3 text-purple-400" />
                 </button>
               </div>
             </div>
@@ -3844,41 +4318,119 @@ export default function VirtualDjConsole({
               className="relative shrink-0 mx-auto"
             >
               <div
-                className={`w-36 h-36 rounded-full bg-black border-4 ${
-                  isDraggingB ? "border-cyan-400 scale-105" : "border-zinc-800"
-                } shadow-[0_0_25px_rgba(6,182,212,0.2)] flex items-center justify-center relative cursor-grab active:cursor-grabbing transition-all ${
-                  isPlayingB ? "animate-spin [animation-duration:3s]" : ""
-                }`}
-                onClick={togglePlayB}
-                title="Jogwheel / Vinilo Deck B - Click para Play/Pausa o arrastra un MP3 aquí"
+                ref={platterRefB}
+                onPointerDown={handlePlatterPointerDownB}
+                onPointerMove={handlePlatterPointerMoveB}
+                onPointerUp={handlePlatterPointerUpB}
+                onPointerCancel={handlePlatterPointerUpB}
+                className={`w-36 h-36 rounded-full bg-gradient-to-tr from-zinc-950 via-zinc-900 to-zinc-950 border-4 ${
+                  isDraggingB
+                    ? "border-cyan-400 scale-105"
+                    : vinylActionB === "SPINBACK"
+                    ? "border-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.5)] scale-102"
+                    : vinylActionB === "REWIND"
+                    ? "border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.5)]"
+                    : vinylActionB === "FORWARD"
+                    ? "border-cyan-400 shadow-[0_0_25px_rgba(6,182,212,0.5)]"
+                    : vinylActionB === "SCRATCH"
+                    ? "border-cyan-300 shadow-[0_0_25px_rgba(34,211,238,0.6)]"
+                    : "border-zinc-800"
+                } shadow-[0_0_25px_rgba(6,182,212,0.2)] flex items-center justify-center relative cursor-grab active:cursor-grabbing select-none transition-colors`}
+                title="Plato de Vinilo Deck B - Arrastra para scratch o retroceder como un disco real"
               >
-                {/* Ranuras de vinilo */}
-                <div className="w-28 h-28 rounded-full border border-zinc-800 flex items-center justify-center">
+                {/* Ranuras de vinilo auténticas (micro-grooves concéntricos) */}
+                <div className="absolute inset-1.5 rounded-full border border-zinc-800/80 pointer-events-none" />
+                <div className="absolute inset-3 rounded-full border border-zinc-700/40 pointer-events-none" />
+                <div className="absolute inset-5 rounded-full border border-zinc-800/60 pointer-events-none" />
+                <div className="absolute inset-7 rounded-full border border-zinc-700/30 pointer-events-none" />
+
+                {/* Marcador de Vinilo / Stripe Blanca de Posición (Estilo Slipmat de Torna) */}
+                <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-6 rounded-full bg-gradient-to-b from-white via-cyan-200 to-transparent shadow-[0_0_8px_rgba(255,255,255,0.9)] pointer-events-none z-10" />
+
+                {/* Ranuras de vinilo intermedias */}
+                <div className="w-28 h-28 rounded-full border border-zinc-800 flex items-center justify-center pointer-events-none">
                   <div className="w-20 h-20 rounded-full border border-zinc-700/60 flex items-center justify-center">
-                    {/* Centro HUD de Jogwheel */}
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-600 border-2 border-white flex flex-col items-center justify-center text-white shadow-lg">
-                      <span className="text-[11px] font-black">{effectiveBpmB}</span>
-                      <span className="text-[8px] font-bold opacity-80">BPM</span>
+                    {/* Centro HUD de Jogwheel (Spindle / Record Label con botón Play/Pause táctil) */}
+                    <div
+                      data-spindle="true"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePlayB();
+                      }}
+                      className="w-14 h-14 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-600 border-2 border-white flex flex-col items-center justify-center text-white shadow-lg pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                      title="Click en centro: Play / Pausa"
+                    >
+                      {vinylActionB === "REWIND" ? (
+                        <div className="flex flex-col items-center animate-pulse">
+                          <RotateCcw className="w-4 h-4 text-amber-300" />
+                          <span className="text-[7px] font-black text-amber-200">REWIND</span>
+                        </div>
+                      ) : vinylActionB === "FORWARD" ? (
+                        <div className="flex flex-col items-center animate-pulse">
+                          <RotateCw className="w-4 h-4 text-cyan-200" />
+                          <span className="text-[7px] font-black text-cyan-100">PUSH</span>
+                        </div>
+                      ) : vinylActionB === "SPINBACK" ? (
+                        <div className="flex flex-col items-center animate-spin">
+                          <Disc3 className="w-4 h-4 text-pink-300" />
+                          <span className="text-[7px] font-black text-pink-200">SPINBACK</span>
+                        </div>
+                      ) : vinylActionB === "SCRATCH" ? (
+                        <div className="flex flex-col items-center">
+                          <Disc className="w-4 h-4 text-cyan-200 animate-spin [animation-duration:1s]" />
+                          <span className="text-[7px] font-black text-cyan-100">SCRATCH</span>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="text-[11px] font-black">{effectiveBpmB}</span>
+                          <span className="text-[8px] font-bold opacity-80">BPM</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Botones de Pitch Bend / Nudge */}
-              <div className="flex justify-center gap-2 mt-2">
+              {/* Controles de Vinilo: Nudge Atrás, Spinback Club, Nudge Adelante */}
+              <div className="flex items-center justify-center gap-1.5 mt-2.5">
+                {/* Nudge Atrás (Clic: Empujón vinilo atrás | Mantener: Rebobinado continuo de disco) */}
                 <button
+                  onMouseDown={() => startContinuousNudge("B", -1)}
+                  onMouseUp={() => stopContinuousNudge("B")}
+                  onMouseLeave={() => stopContinuousNudge("B")}
+                  onTouchStart={() => startContinuousNudge("B", -1)}
+                  onTouchEnd={() => stopContinuousNudge("B")}
                   onClick={() => handleNudge("B", -1)}
-                  className="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-bold text-zinc-400 hover:text-white cursor-pointer"
-                  title="Empujar compás atrás"
+                  className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-cyan-950/50 active:bg-cyan-900 border border-zinc-800 hover:border-cyan-600/40 text-[10px] font-black text-zinc-300 hover:text-cyan-300 transition-all cursor-pointer flex items-center gap-1 shadow-sm select-none"
+                  title="Clic: Empujar vinilo atrás (-0.5s) | Mantener: Rebobinado continuo de vinilo"
                 >
-                  &laquo; NUDGE
+                  <RotateCcw className="w-3 h-3 text-cyan-400" />
+                  <span>&laquo; NUDGE</span>
                 </button>
+
+                {/* Botón Central: SPINBACK / RETROCESO REAL DE DISCO */}
                 <button
-                  onClick={() => handleNudge("B", 1)}
-                  className="px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-bold text-zinc-400 hover:text-white cursor-pointer"
-                  title="Empujar compás adelante"
+                  onClick={() => handleSpinback("B")}
+                  className="px-2 py-1 rounded-lg bg-gradient-to-r from-red-600/20 via-cyan-600/30 to-pink-600/20 hover:from-red-600/40 hover:to-pink-600/40 border border-cyan-500/40 text-[10px] font-black text-white hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1 shadow-lg shadow-cyan-900/20"
+                  title="Efecto Spinback: Retroceso salvaje de vinilo club (-4 segs con frenada inercial)"
                 >
-                  NUDGE &raquo;
+                  <Disc3 className="w-3.5 h-3.5 text-pink-400 animate-spin [animation-duration:4s]" />
+                  <span className="bg-gradient-to-r from-pink-300 to-cyan-200 bg-clip-text text-transparent">SPINBACK</span>
+                </button>
+
+                {/* Nudge Adelante (Clic: Empuje adelante | Mantener: Avance continuo) */}
+                <button
+                  onMouseDown={() => startContinuousNudge("B", 1)}
+                  onMouseUp={() => stopContinuousNudge("B")}
+                  onMouseLeave={() => stopContinuousNudge("B")}
+                  onTouchStart={() => startContinuousNudge("B", 1)}
+                  onTouchEnd={() => stopContinuousNudge("B")}
+                  onClick={() => handleNudge("B", 1)}
+                  className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-cyan-950/50 active:bg-cyan-900 border border-zinc-800 hover:border-cyan-600/40 text-[10px] font-black text-zinc-300 hover:text-cyan-300 transition-all cursor-pointer flex items-center gap-1 shadow-sm select-none"
+                  title="Clic: Empujar vinilo adelante (+0.5s) | Mantener: Avance continuo"
+                >
+                  <span>NUDGE &raquo;</span>
+                  <RotateCw className="w-3 h-3 text-cyan-400" />
                 </button>
               </div>
             </div>

@@ -374,36 +374,294 @@ class DjSoundEffectsEngine {
     });
   }
 
+  private scrubNodes: {
+    osc: OscillatorNode;
+    noise: AudioBufferSourceNode;
+    gain: GainNode;
+    filter: BiquadFilterNode;
+  } | null = null;
+
+  private createNoiseBuffer(durationSeconds = 1.0): AudioBuffer | null {
+    const ctx = this.getContext();
+    if (!ctx) return null;
+    const bufferSize = Math.max(128, Math.floor(ctx.sampleRate * durationSeconds));
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    return buffer;
+  }
+
   /**
-   * 🎛️ Vinyl Scratch / Rewind
+   * 💿 Retroceso de Vinilo Real (Vinyl Nudge Back / Scratch Reverso)
+   * Simula la fricción física de la aguja sobre los surcos y caída de tono inercial al retroceder.
    */
-  public playScratch() {
+  public playVinylNudgeBack(intensity: number = 1) {
     const ctx = this.getContext();
     if (!ctx) return;
-
     const now = ctx.currentTime;
+    const duration = Math.min(0.35, Math.max(0.12, 0.22 * intensity));
+
+    // 1. Textura de fricción de surco de vinilo (Ruido filtrado)
+    const noiseBuffer = this.createNoiseBuffer(duration);
+    if (noiseBuffer) {
+      const noise = ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
+
+      const noiseFilter = ctx.createBiquadFilter();
+      noiseFilter.type = "bandpass";
+      noiseFilter.frequency.setValueAtTime(2600, now);
+      noiseFilter.frequency.exponentialRampToValueAtTime(450, now + duration);
+      noiseFilter.Q.setValueAtTime(3.2, now);
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.28 * Math.min(1.2, intensity), now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+
+      noise.start(now);
+      noise.stop(now + duration);
+    }
+
+    // 2. Tono musical deformado en reversa (Caída exponencial de frecuencia)
     const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
+    const oscGain = ctx.createGain();
+    const oscFilter = ctx.createBiquadFilter();
 
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(800, now);
-    osc.frequency.exponentialRampToValueAtTime(150, now + 0.25);
-    osc.frequency.exponentialRampToValueAtTime(600, now + 0.4);
-    osc.frequency.exponentialRampToValueAtTime(80, now + 0.6);
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(980 * Math.min(1.3, intensity), now);
+    osc.frequency.exponentialRampToValueAtTime(110, now + duration);
 
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(2000, now);
+    oscFilter.type = "lowpass";
+    oscFilter.frequency.setValueAtTime(1800, now);
+    oscFilter.frequency.exponentialRampToValueAtTime(300, now + duration);
 
-    gain.gain.setValueAtTime(0.4, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.65);
+    oscGain.gain.setValueAtTime(0.22 * Math.min(1.2, intensity), now);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
+    osc.connect(oscFilter);
+    oscFilter.connect(oscGain);
+    oscGain.connect(ctx.destination);
 
     osc.start(now);
-    osc.stop(now + 0.65);
+    osc.stop(now + duration);
+  }
+
+  /**
+   * ⏩ Empuje de Vinilo Hacia Adelante (Vinyl Nudge Forward / Catch-up)
+   * Simula empujar el disco con los dedos hacia adelante para acelerar el compás.
+   */
+  public playVinylNudgeForward(intensity: number = 1) {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const duration = Math.min(0.28, Math.max(0.1, 0.16 * intensity));
+
+    // 1. Textura de fricción de surco
+    const noiseBuffer = this.createNoiseBuffer(duration);
+    if (noiseBuffer) {
+      const noise = ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
+
+      const noiseFilter = ctx.createBiquadFilter();
+      noiseFilter.type = "bandpass";
+      noiseFilter.frequency.setValueAtTime(800, now);
+      noiseFilter.frequency.exponentialRampToValueAtTime(2800, now + duration);
+      noiseFilter.Q.setValueAtTime(2.8, now);
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.22 * Math.min(1.2, intensity), now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+
+      noise.start(now);
+      noise.stop(now + duration);
+    }
+
+    // 2. Subida de tono (acelerón del surco)
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(190, now);
+    osc.frequency.exponentialRampToValueAtTime(820 * Math.min(1.2, intensity), now + duration);
+
+    oscGain.gain.setValueAtTime(0.2 * Math.min(1.2, intensity), now);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.connect(oscGain);
+    oscGain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  /**
+   * ↺ SPINBACK / BACKSPIN DE DISCOTECA (El auténtico rebobinado salvaje de vinilo)
+   * Simula girar violentamente el disco hacia atrás con desaceleración inercial y caída de aguja.
+   */
+  public playVinylSpinback(duration: number = 1.15) {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // 1. Ruido blanco envolvente con ráfagas moduladas de giro inverso
+    const noiseBuffer = this.createNoiseBuffer(duration);
+    if (noiseBuffer) {
+      const noise = ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(3600, now);
+      filter.frequency.exponentialRampToValueAtTime(280, now + duration);
+      filter.Q.setValueAtTime(3.8, now);
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.linearRampToValueAtTime(0.38, now + 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      noise.start(now);
+      noise.stop(now + duration);
+    }
+
+    // 2. Osciladores multitono con descenso de pitch dramático
+    const osc = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(1850, now);
+    osc.frequency.exponentialRampToValueAtTime(650, now + 0.35);
+    osc.frequency.exponentialRampToValueAtTime(180, now + 0.75);
+    osc.frequency.exponentialRampToValueAtTime(38, now + duration);
+
+    osc2.type = "triangle";
+    osc2.frequency.setValueAtTime(1250, now);
+    osc2.frequency.exponentialRampToValueAtTime(420, now + 0.35);
+    osc2.frequency.exponentialRampToValueAtTime(120, now + 0.75);
+    osc2.frequency.exponentialRampToValueAtTime(25, now + duration);
+
+    oscGain.gain.setValueAtTime(0.28, now);
+    oscGain.gain.linearRampToValueAtTime(0.32, now + 0.2);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    const lowpass = ctx.createBiquadFilter();
+    lowpass.type = "lowpass";
+    lowpass.frequency.setValueAtTime(2800, now);
+    lowpass.frequency.exponentialRampToValueAtTime(220, now + duration);
+
+    osc.connect(lowpass);
+    osc2.connect(lowpass);
+    lowpass.connect(oscGain);
+    oscGain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + duration);
+    osc2.start(now);
+    osc2.stop(now + duration);
+
+    // 3. Golpe sutil de caída de aguja al final (needle settle click)
+    const settleTime = now + duration * 0.92;
+    const clickOsc = ctx.createOscillator();
+    const clickGain = ctx.createGain();
+    clickOsc.type = "triangle";
+    clickOsc.frequency.setValueAtTime(140, settleTime);
+    clickGain.gain.setValueAtTime(0.18, settleTime);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, settleTime + 0.05);
+
+    clickOsc.connect(clickGain);
+    clickGain.connect(ctx.destination);
+    clickOsc.start(settleTime);
+    clickOsc.stop(settleTime + 0.05);
+  }
+
+  /**
+   * 🎛️ Scratching de Vinilo Dinámico (Scratch táctil con dirección y velocidad)
+   */
+  public playVinylScratch(direction: -1 | 1, speed: number = 1.0) {
+    if (direction === -1) {
+      this.playVinylNudgeBack(speed);
+    } else {
+      this.playVinylNudgeForward(speed);
+    }
+  }
+
+  /**
+   * 🔄 Rebobinado Continuo de Vinilo (Al mantener presionado el Nudge o arrastrar continuo)
+   */
+  public startContinuousVinylScrub(dir: -1 | 1 = -1) {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    this.stopContinuousVinylScrub();
+
+    const now = ctx.currentTime;
+    const noiseBuffer = this.createNoiseBuffer(3.0);
+    if (!noiseBuffer) return;
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+    noise.loop = true;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(dir === -1 ? 1600 : 2000, now);
+    filter.Q.setValueAtTime(3.0, now);
+
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(dir === -1 ? 480 : 620, now);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.2, now);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    noise.start(now);
+    osc.start(now);
+
+    this.scrubNodes = { osc, noise, gain, filter };
+  }
+
+  public stopContinuousVinylScrub() {
+    if (!this.scrubNodes) return;
+    const ctx = this.getContext();
+    if (ctx) {
+      try {
+        const now = ctx.currentTime;
+        this.scrubNodes.gain.gain.linearRampToValueAtTime(0.001, now + 0.04);
+        const nodes = this.scrubNodes;
+        setTimeout(() => {
+          try {
+            nodes.noise.stop();
+            nodes.osc.stop();
+          } catch {}
+        }, 50);
+      } catch {}
+    }
+    this.scrubNodes = null;
+  }
+
+  /**
+   * 🎛️ Vinyl Scratch / Rewind (Compatibilidad clásica)
+   */
+  public playScratch() {
+    this.playVinylSpinback(0.8);
   }
 
   /**
@@ -714,11 +972,14 @@ class DjSoundEffectsEngine {
   }
 
   /**
-   * 🎛️ Nudge / Pitch Bend (Silenciado para evitar pitidos sobre la música)
+   * 🎛️ Nudge / Pitch Bend con sonido de vinilo real (sin pitidos electrónicos)
    */
-  public playNudge() {
-    // Silenciado intencionalmente a petición para evitar pitidos táctiles
-    return;
+  public playNudge(direction: -1 | 1 = -1, intensity: number = 1.0) {
+    if (direction === -1) {
+      this.playVinylNudgeBack(intensity);
+    } else {
+      this.playVinylNudgeForward(intensity);
+    }
   }
 }
 
