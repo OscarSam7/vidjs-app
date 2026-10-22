@@ -574,7 +574,7 @@ export default function KaraokeBoothPage() {
   // Moderación rápida de fotos de mesas
   const handleModeratePhoto = async (
     photoId: string,
-    action: "APPROVE" | "REJECT" | "REMOVE"
+    action: "APPROVE" | "REJECT" | "REMOVE" | "DELETE"
   ) => {
     setActionLoading(photoId);
     try {
@@ -590,6 +590,8 @@ export default function KaraokeBoothPage() {
           showFeedback("info", "Foto rechazada");
         } else if (action === "REMOVE") {
           showFeedback("success", "Foto retirada de TV");
+        } else if (action === "DELETE") {
+          showFeedback("success", "Foto eliminada permanentemente de la base de datos");
         }
         fetchPhotos();
       } else {
@@ -1174,6 +1176,7 @@ export default function KaraokeBoothPage() {
                             onClick={() => handleModeratePhoto(photo.id, "APPROVE")}
                             disabled={actionLoading === photo.id}
                             className="flex-1 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                            title="Aprobar para rotación en pantalla"
                           >
                             <Check className="w-3 h-3" />
                             <span>Aprobar TV</span>
@@ -1182,22 +1185,50 @@ export default function KaraokeBoothPage() {
                             type="button"
                             onClick={() => handleModeratePhoto(photo.id, "REJECT")}
                             disabled={actionLoading === photo.id}
-                            className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-red-950/60 text-zinc-400 hover:text-red-300 border border-zinc-700 hover:border-red-800 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                            className="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white border border-zinc-700 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
                             title="Rechazar foto"
                           >
                             <X className="w-3 h-3" />
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm("¿Eliminar permanentemente esta foto de la base de datos?")) {
+                                handleModeratePhoto(photo.id, "DELETE");
+                              }
+                            }}
+                            disabled={actionLoading === photo.id}
+                            className="p-1 rounded-lg bg-zinc-800 hover:bg-red-950 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-800 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                            title="Eliminar foto permanentemente de la base de datos"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
                         </>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleModeratePhoto(photo.id, "REMOVE")}
-                          disabled={actionLoading === photo.id}
-                          className="w-full py-1 rounded-lg bg-zinc-800 hover:bg-red-950/60 text-zinc-400 hover:text-red-300 border border-zinc-700 hover:border-red-800 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          <span>Quitar de TV</span>
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleModeratePhoto(photo.id, "REMOVE")}
+                            disabled={actionLoading === photo.id}
+                            className="flex-1 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                            title="Sacar de la pantalla de TV temporalmente"
+                          >
+                            <span>Quitar de TV</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm("¿Eliminar permanentemente esta foto de la base de datos?")) {
+                                handleModeratePhoto(photo.id, "DELETE");
+                              }
+                            }}
+                            disabled={actionLoading === photo.id}
+                            className="p-1 rounded-lg bg-zinc-800 hover:bg-red-950 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-800 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                            title="Eliminar foto permanentemente de la base de datos"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

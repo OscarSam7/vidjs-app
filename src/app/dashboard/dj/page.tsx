@@ -43,6 +43,7 @@ import {
   ExternalLink,
   PlusCircle,
   Tv,
+  EyeOff,
   Youtube,
 } from "lucide-react";
 import Link from "next/link";
@@ -337,7 +338,7 @@ export default function DjBoothPage() {
   // Moderación rápida y control de fotos de mesas
   const handleModeratePhoto = async (
     photoId: string,
-    action: "APPROVE" | "REJECT" | "REMOVE" | "FEATURE"
+    action: "APPROVE" | "REJECT" | "REMOVE" | "FEATURE" | "DELETE"
   ) => {
     setActionLoading(photoId);
     try {
@@ -361,6 +362,10 @@ export default function DjBoothPage() {
           setApprovedPhotos((prev) => prev.filter((p) => p.id !== photoId));
         } else if (action === "FEATURE") {
           showFeedback("success", "⭐ ¡Foto proyectándose destacada en pantalla gigante!");
+        } else if (action === "DELETE") {
+          showFeedback("success", "Foto eliminada permanentemente de la base de datos");
+          setPendingPhotos((prev) => prev.filter((p) => p.id !== photoId));
+          setApprovedPhotos((prev) => prev.filter((p) => p.id !== photoId));
         }
       } else {
         showFeedback("error", json.error?.message || "Error al procesar foto");
@@ -369,6 +374,37 @@ export default function DjBoothPage() {
       showFeedback("error", "Error al procesar foto");
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  // Limpieza masiva de fotos (Vaciar Muro o Borrar Rechazadas)
+  const handleClearPhotos = async (filter: "ALL" | "REJECTED" | "REMOVED" = "ALL") => {
+    const eventId = selectedEventId || data?.event?.id;
+    if (!eventId) return;
+    const confirmMsg =
+      filter === "ALL"
+        ? "¿Estás seguro de que deseas borrar permanentemente TODAS las fotos subidas por los clientes en este evento?"
+        : "¿Deseas borrar permanentemente todas las fotos rechazadas o retiradas?";
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch(`/api/v1/photos?eventId=${eventId}&filter=${filter}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (res.ok) {
+        showFeedback("success", json.message || "Fotos eliminadas");
+        if (filter === "ALL") {
+          setPendingPhotos([]);
+          setApprovedPhotos([]);
+        } else if (filter === "REMOVED") {
+          setApprovedPhotos([]);
+        }
+      } else {
+        showFeedback("error", json.error?.message || "Error al limpiar fotos");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión al limpiar fotos");
     }
   };
 
@@ -1802,6 +1838,19 @@ export default function DjBoothPage() {
                 {approvedPhotos.length}
               </span>
             </button>
+
+            {/* Botón de Limpieza Masiva del Muro */}
+            {(pendingPhotos.length > 0 || approvedPhotos.length > 0) && (
+              <button
+                type="button"
+                onClick={() => handleClearPhotos("ALL")}
+                className="ml-auto px-3 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Eliminar permanentemente todas las fotos subidas por clientes de la base de datos"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                <span>Vaciar Muro</span>
+              </button>
+            )}
           </div>
 
           {/* CONTENIDO PESTAÑA PENDIENTES */}
@@ -1841,22 +1890,38 @@ export default function DjBoothPage() {
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 pt-1 border-t border-zinc-800">
+                      <div className="flex items-center gap-1.5 pt-1 border-t border-zinc-800">
                         <button
+                          type="button"
                           onClick={() => handleModeratePhoto(photo.id, "APPROVE")}
                           disabled={actionLoading === photo.id}
                           className="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                          title="Aprobar para rotación en pantalla gigante"
                         >
                           <Check className="w-3 h-3" />
                           <span>Aprobar TV</span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleModeratePhoto(photo.id, "REJECT")}
                           disabled={actionLoading === photo.id}
-                          className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-red-950/60 text-zinc-400 hover:text-red-300 border border-zinc-700 hover:border-red-800 text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50"
-                          title="Rechazar foto"
+                          className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white border border-zinc-700 text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                          title="Rechazar foto (No mostrar en TV)"
                         >
-                          <X className="w-3 h-3" />
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm("¿Eliminar permanentemente esta foto de la base de datos?")) {
+                              handleModeratePhoto(photo.id, "DELETE");
+                            }
+                          }}
+                          disabled={actionLoading === photo.id}
+                          className="p-1.5 rounded-lg bg-zinc-800 hover:bg-red-950 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-800 text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                          title="Eliminar foto permanentemente de la base de datos"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -1908,8 +1973,8 @@ export default function DjBoothPage() {
                         )}
                       </div>
 
-                      {/* Botones de Acción al Aire: Destacar 12s vs Sacar de TV */}
-                      <div className="flex items-center gap-2 pt-1 border-t border-zinc-800">
+                      {/* Botones de Acción al Aire: Destacar 12s, Sacar de TV y Eliminar Definitivamente */}
+                      <div className="flex items-center gap-1.5 pt-1 border-t border-zinc-800">
                         <button
                           type="button"
                           onClick={() => handleModeratePhoto(photo.id, "FEATURE")}
@@ -1924,8 +1989,21 @@ export default function DjBoothPage() {
                           type="button"
                           onClick={() => handleModeratePhoto(photo.id, "REMOVE")}
                           disabled={actionLoading === photo.id}
-                          className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-red-950 text-zinc-400 hover:text-red-300 border border-zinc-700 hover:border-red-800 text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50"
-                          title="Sacar de la pantalla de TV inmediatamente"
+                          className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                          title="Sacar de la pantalla de TV temporalmente"
+                        >
+                          <EyeOff className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm("¿Eliminar permanentemente esta foto de la base de datos?")) {
+                              handleModeratePhoto(photo.id, "DELETE");
+                            }
+                          }}
+                          disabled={actionLoading === photo.id}
+                          className="p-1.5 rounded-lg bg-zinc-800 hover:bg-red-950 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-800 text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                          title="Eliminar foto permanentemente de la base de datos"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

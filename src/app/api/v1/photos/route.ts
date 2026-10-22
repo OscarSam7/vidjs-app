@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getCurrentGuestSession } from "@/lib/auth/guest-session";
-import { getCurrentSession } from "@/lib/auth/session";
-import { handleApiError, UnauthorizedError, ForbiddenError, BadRequestError } from "@/lib/errors";
+import { getCurrentSession, requireTenantContext } from "@/lib/auth/session";
+import { handleApiError, UnauthorizedError, ForbiddenError, BadRequestError, NotFoundError } from "@/lib/errors";
 import { realtimeBus } from "@/lib/realtime/event-bus";
 import { parseQueuePolicy } from "@/lib/dj/rotation";
 import { rateLimit, getClientIp } from "@/lib/security/rate-limit";
@@ -191,3 +191,69 @@ export async function GET(req: NextRequest) {
     return handleApiError(error);
   }
 }
+
+// DELETE: Eliminar fotos subidas por clientes (individual o limpieza masiva de evento)
+export async function DELETE(req: NextRequest) {
+  try {
+    const { tenantId, session } = await requireTenantContext();
+    if (!["DJ", "MANAGER", "OWNER", "SUPER_ADMIN"].includes(session.role)) {
+      throw new ForbiddenError("No tienes permisos para eliminar fotos de clientes.");
+    }
+
+    const { searchParams } = new URL(req.url);
+    const photoId = searchParams.get("id");
+    const eventId = searchParams.get("eventId");
+    const filter = searchParams.get("filter") || "ALL"; // ALL | REJECTED | REMOVED | PENDING
+
+    // 1. Eliminación individual por ID
+    if (photoId) {
+      const post = await prisma.photoPost.findFirst({
+        where: { id: photoId, tenantId },
+      });
+      if (!post) {
+        throw new NotFoundError("Foto no encontrada o no pertenece a este establecimiento");
+      }
+
+      await prisma.photoPost.delete({
+        where: { id: photoId },
+      });
+
+      realtimeBus.broadcast(post.eventId, "PHOTO_REMOVED", { id: photoId, eventId: post.eventId });
+
+      return NextResponse.json({
+        success: true,
+        message: "Foto eliminada permanentemente.",
+        data: { id: photoId, deleted: true },
+      });
+    }
+
+    // 2. Limpieza masiva por Evento
+    if (!eventId) {
+      throw new BadRequestError("Debes especificar el ID de la foto o el eventId para limpiar fotos.");
+    }
+
+    const whereClause: any = { eventId, tenantId };
+    if (filter === "REJECTED") {
+      whereClause.status = "REJECTED";
+    } else if (filter === "REMOVED") {
+      whereClause.status = "REMOVED";
+    } else if (filter === "PENDING") {
+      whereClause.status = "PENDING";
+    }
+
+    const result = await prisma.photoPost.deleteMany({
+      where: whereClause,
+    });
+
+    realtimeBus.broadcast(eventId, "PHOTO_REMOVED", { eventId, bulk: true });
+
+    return NextResponse.json({
+      success: true,
+      message: `Se han eliminado ${result.count} fotos permanentemente de la base de datos.`,
+      data: { count: result.count },
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+

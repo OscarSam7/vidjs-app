@@ -6,7 +6,7 @@ import { handleApiError, NotFoundError } from "@/lib/errors";
 import { realtimeBus } from "@/lib/realtime/event-bus";
 
 const photoActionSchema = z.object({
-  action: z.enum(["APPROVE", "REJECT", "REMOVE", "FEATURE"]),
+  action: z.enum(["APPROVE", "REJECT", "REMOVE", "FEATURE", "DELETE"]),
   durationSeconds: z.number().int().min(5).max(60).optional(),
 });
 
@@ -44,6 +44,22 @@ export async function POST(
         success: true,
         message: "¡Foto proyectándose destacada en pantalla gigante!",
         data: post,
+      });
+    }
+
+    if (data.action === "DELETE") {
+      // Eliminar permanentemente de la base de datos
+      await prisma.photoPost.delete({
+        where: { id },
+      });
+
+      // Notificar a la pantalla Smart TV para sacarla inmediatamente
+      realtimeBus.broadcast(post.eventId, "PHOTO_REMOVED", { id, eventId: post.eventId });
+
+      return NextResponse.json({
+        success: true,
+        message: "Foto eliminada permanentemente de la base de datos.",
+        data: { id, deleted: true },
       });
     }
 
