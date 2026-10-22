@@ -806,12 +806,6 @@ export default function DjBoothPage() {
 
   // Cargar / Reproducir tema de la cola en la bandeja libre o seleccionada
   const handleLoadQueueEntry = async (entry: QueueEntryData, targetDeck: "AUTO" | "A" | "B" = "AUTO") => {
-    // Si la bandeja está ocupada y se intenta reproducir AUTO, alertar amigablemente
-    if (Boolean(data?.currentPlaying && isPlaying) && targetDeck === "AUTO") {
-      showFeedback("info", "⏳ Hay una bandeja en reproducción. Espera a que termine para dar Play al siguiente pedido.");
-      return;
-    }
-
     // 1. Cargar y arrancar inmediatamente en la consola Virtual DJ en la bandeja correspondiente
     setPendingDeckLoad({ entry, targetDeck, timestamp: Date.now() });
 
@@ -1001,7 +995,7 @@ export default function DjBoothPage() {
     }
   };
 
-  // Sincronización de Play/Pause desde la consola con la pantalla de TV (BroadcastChannel 0ms + SSE Remoto)
+  // Sincronización de Play/Pause desde la consola con la pantalla de TV (BroadcastChannel 0ms + LocalStorage + SSE Remoto)
   const handlePlaybackControl = (
     action: "PLAY" | "PAUSE" | "SEEK",
     deckId?: "A" | "B",
@@ -1017,14 +1011,54 @@ export default function DjBoothPage() {
     if (action === "PAUSE") setIsPlaying(false);
 
     const eventId = selectedEventId || data?.event?.id;
-    if (!eventId) return;
+    const eventCode = data?.event?.code;
 
-    // 1. Canal local para latencia cero entre pestañas en el mismo navegador
+    const payload = {
+      type: "PLAYBACK_CONTROL",
+      action,
+      deckId,
+      seconds: details?.currentTime,
+      duration: details?.duration,
+      trackTitle: details?.trackTitle,
+      trackArtist: details?.trackArtist,
+      videoId: details?.videoId,
+      eventId,
+      code: eventCode,
+      timestamp: Date.now(),
+    };
+
+    // 1. LocalStorage cross-tab sync (100% infalible entre pestañas/ventanas sin descarte)
     if (typeof window !== "undefined") {
       try {
-        const channel = new BroadcastChannel(`vidjs_karaoke_sync_${eventId}`);
-        channel.postMessage({
-          type: "PLAYBACK_CONTROL",
+        localStorage.setItem("vidjs_playback_sync_payload", JSON.stringify(payload));
+      } catch {}
+
+      // 2. BroadcastChannel para canales locales (sin llamar a .close() sincrónico)
+      try {
+        const channelsToNotify = [`vidjs_karaoke_sync_global`];
+        if (eventId) channelsToNotify.push(`vidjs_karaoke_sync_${eventId}`);
+        if (eventCode) channelsToNotify.push(`vidjs_karaoke_sync_${eventCode}`);
+
+        channelsToNotify.forEach((chName) => {
+          try {
+            const ch = new BroadcastChannel(chName);
+            ch.postMessage(payload);
+            setTimeout(() => {
+              try { ch.close(); } catch {}
+            }, 1500);
+          } catch {}
+        });
+      } catch {}
+    }
+
+    // 3. Notificación en red vía SSE para Smart TVs o pantallas remotas en el local
+    if (eventId || eventCode) {
+      fetch("/api/v1/karaoke/playback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: eventId || eventCode,
+          code: eventCode,
           action,
           deckId,
           seconds: details?.currentTime,
@@ -1032,27 +1066,9 @@ export default function DjBoothPage() {
           trackTitle: details?.trackTitle,
           trackArtist: details?.trackArtist,
           videoId: details?.videoId,
-          timestamp: Date.now(),
-        });
-        channel.close();
-      } catch {}
+        }),
+      }).catch(() => {});
     }
-
-    // 2. Notificación en red vía SSE para Smart TVs o pantallas remotas en el local
-    fetch("/api/v1/karaoke/playback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        eventId,
-        action,
-        deckId,
-        seconds: details?.currentTime,
-        duration: details?.duration,
-        trackTitle: details?.trackTitle,
-        trackArtist: details?.trackArtist,
-        videoId: details?.videoId,
-      }),
-    }).catch(() => {});
   };
 
   // Activar Modo Karaoke
@@ -2553,21 +2569,20 @@ export default function DjBoothPage() {
                             <Megaphone className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => !Boolean(data?.currentPlaying && isPlaying) && handleLoadQueueEntry(entry, "AUTO")}
-                            disabled={Boolean(data?.currentPlaying && isPlaying)}
+                            onClick={() => handleLoadQueueEntry(entry, "AUTO")}
                             title={
-                              Boolean(data?.currentPlaying && isPlaying)
-                                ? "Bandeja en reproducción. Espera a que termine para dar Play al siguiente cantante."
+                              entry.id === data?.currentPlaying?.id && isPlaying
+                                ? "Tema sonando en este momento"
                                 : "Subir al escenario ahora"
                             }
-                            className={`p-1.5 rounded-lg transition-colors ${
-                              Boolean(data?.currentPlaying && isPlaying)
-                                ? "bg-red-950/80 border border-red-800 text-red-400 cursor-not-allowed opacity-80"
-                                : "bg-emerald-600/30 hover:bg-emerald-600 border border-emerald-500 text-emerald-300 hover:text-white cursor-pointer"
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                              entry.id === data?.currentPlaying?.id && isPlaying
+                                ? "bg-amber-600/30 border border-amber-500 text-amber-300"
+                                : "bg-emerald-600/30 hover:bg-emerald-600 border border-emerald-500 text-emerald-300 hover:text-white"
                             }`}
                           >
-                            {Boolean(data?.currentPlaying && isPlaying) ? (
-                              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse block m-0.5" />
+                            {entry.id === data?.currentPlaying?.id && isPlaying ? (
+                              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse block m-0.5" />
                             ) : (
                               <Play className="w-3.5 h-3.5 fill-current" />
                             )}
@@ -2586,14 +2601,14 @@ export default function DjBoothPage() {
                           </button>
 
                           {/* Botón Principal: Tirar a la Bandeja Libre (Auto / Play) */}
-                          {Boolean(data?.currentPlaying && isPlaying) ? (
+                          {entry.id === data?.currentPlaying?.id && isPlaying ? (
                             <button
                               type="button"
-                              disabled={true}
-                              title="Bandeja en reproducción. Espera a que termine para dar Play al siguiente pedido."
-                              className="px-2.5 py-1 rounded-lg bg-red-950/80 border border-red-800/80 text-red-300 text-xs font-bold flex items-center gap-1.5 opacity-80 cursor-not-allowed shadow-inner"
+                              onClick={() => handleLoadQueueEntry(entry, "AUTO")}
+                              title="Tema en reproducción. Haz clic para recargar o pasar a otra bandeja."
+                              className="px-2.5 py-1 rounded-lg bg-amber-950/80 border border-amber-700 text-amber-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-inner"
                             >
-                              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
                               <span className="text-[10px] font-bold">En Reprod.</span>
                             </button>
                           ) : (

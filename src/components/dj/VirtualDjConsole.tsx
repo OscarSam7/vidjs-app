@@ -359,7 +359,7 @@ export default function VirtualDjConsole({
   const [isEjectedA, setIsEjectedA] = useState(false);
   const [deckTrackA, setDeckTrackA] = useState<SongRequestData | null>(() => currentPlaying?.songRequest || null);
   const [manualTrackA, setManualTrackA] = useState<SongRequestData | null>(null);
-  const [isPlayingA, setIsPlayingA] = useState(Boolean(currentPlaying));
+  const [isPlayingA, setIsPlayingA] = useState(false);
   const [playbackSecondsA, setPlaybackSecondsA] = useState(0);
   const [pitchA, setPitchA] = useState(0); // -8% a +8%
   const [cuePointA, setCuePointA] = useState(0);
@@ -1304,12 +1304,6 @@ export default function VirtualDjConsole({
     webDjEngine.unlock();
     if (isEjectedA || !trackA) return;
 
-    // Solo habilitar dar play si la otra bandeja no está ejecutándose en reproducción
-    if (!isPlayingA && isPlayingB) {
-      showFeedback("info", "⏳ Bandeja B en reproducción. Espera a que termine para dar Play en Bandeja A.");
-      return;
-    }
-
     if (deckModeA === "native" && audioRefA.current) {
       if (isPlayingA) {
         audioRefA.current.pause();
@@ -1344,12 +1338,6 @@ export default function VirtualDjConsole({
   const togglePlayB = () => {
     webDjEngine.unlock();
     if (isEjectedB || !trackB) return;
-
-    // Solo habilitar dar play si la otra bandeja no está ejecutándose en reproducción
-    if (!isPlayingB && isPlayingA) {
-      showFeedback("info", "⏳ Bandeja A en reproducción. Espera a que termine para dar Play en Bandeja B.");
-      return;
-    }
 
     if (deckModeB === "native" && audioRefB.current) {
       if (isPlayingB) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, use } from "react";
+import { useState, useEffect, useRef, useCallback, use } from "react";
 import Link from "next/link";
 import {
   Disc3,
@@ -240,8 +240,105 @@ export default function PublicDisplayScreenPage({
     }
   };
 
-  // Simulación de tiempo transcurrido de la canción
-  const [elapsedSeconds, setElapsedSeconds] = useState(15);
+  // Simulación y control de tiempo transcurrido de la canción
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Sincronizador unificado de reproducción entre la cabina DJ y la pantalla TV
+  const handleIncomingPlaybackControl = useCallback(
+    (payload: {
+      action: "PLAY" | "PAUSE" | "SEEK";
+      seconds?: number;
+      duration?: number;
+      trackTitle?: string;
+      trackArtist?: string;
+      videoId?: string | null;
+    }) => {
+      if (!payload?.action) return;
+      const { action, seconds, duration, trackTitle, trackArtist, videoId } = payload;
+
+      if (action === "PLAY") {
+        setIsTvPaused(false);
+        sendYouTubeCommand("playVideo");
+
+        if (typeof seconds === "number") {
+          setElapsedSeconds(seconds);
+        }
+
+        if (videoId) {
+          setKaraokeVideoId(videoId);
+        } else if (trackTitle) {
+          setKaraokeVideoId((prevVid) => {
+            if (data?.currentPlaying?.song?.title && data.currentPlaying.song.title !== trackTitle) {
+              return null;
+            }
+            return prevVid;
+          });
+        }
+
+        if (trackTitle) {
+          setData((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              currentPlaying: {
+                id: prev.currentPlaying?.id || "live_dj_active",
+                status: "PLAYING",
+                updatedAt: new Date().toISOString(),
+                youtubeVideoId: videoId !== undefined ? videoId : prev.currentPlaying?.youtubeVideoId || null,
+                song: {
+                  title: trackTitle,
+                  artist: trackArtist || prev.currentPlaying?.song?.artist || "DJ Mix",
+                  genre: prev.currentPlaying?.song?.genre || "General",
+                  durationSeconds: duration || prev.currentPlaying?.song?.durationSeconds || 210,
+                  bpm: prev.currentPlaying?.song?.bpm || null,
+                  key: prev.currentPlaying?.song?.key || null,
+                },
+                table: prev.currentPlaying?.table || { id: "booth", number: 0, label: "Cabina DJ" },
+                guestName: prev.currentPlaying?.guestName || null,
+                notes: prev.currentPlaying?.notes || null,
+                isFastPass: prev.currentPlaying?.isFastPass || false,
+              },
+            };
+          });
+        } else {
+          setData((prev) => {
+            if (!prev || !prev.currentPlaying) return prev;
+            return {
+              ...prev,
+              currentPlaying: {
+                ...prev.currentPlaying,
+                status: "PLAYING",
+                updatedAt: new Date().toISOString(),
+              },
+            };
+          });
+        }
+      } else if (action === "PAUSE") {
+        setIsTvPaused(true);
+        sendYouTubeCommand("pauseVideo");
+
+        if (typeof seconds === "number") {
+          setElapsedSeconds(seconds);
+        }
+
+        setData((prev) => {
+          if (!prev || !prev.currentPlaying) return prev;
+          return {
+            ...prev,
+            currentPlaying: {
+              ...prev.currentPlaying,
+              status: "PAUSED",
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        });
+      } else if (action === "SEEK" && typeof seconds === "number") {
+        setElapsedSeconds(seconds);
+        sendYouTubeCommand("seekTo", [seconds, true]);
+      }
+    },
+    [data?.currentPlaying?.song?.title]
+  );
 
   const fetchDisplayState = async () => {
     try {
@@ -362,52 +459,7 @@ export default function PublicDisplayScreenPage({
           setIsKaraokeVideoEnabled(payload.isVideoEnabled);
         }
       } else if (type === "KARAOKE_PLAYBACK_CONTROL") {
-        if (payload?.action === "PLAY") {
-          setIsTvPaused(false);
-          sendYouTubeCommand("playVideo");
-          if (typeof payload?.seconds === "number") {
-            setElapsedSeconds(payload.seconds);
-          }
-          if (payload?.videoId && payload.videoId !== karaokeVideoId) {
-            setKaraokeVideoId(payload.videoId);
-          }
-          if (payload?.trackTitle) {
-            setData((prev) => {
-              if (!prev) return prev;
-              if (prev.currentPlaying) return prev;
-              return {
-                ...prev,
-                currentPlaying: {
-                  id: "live_dj_active",
-                  status: "PLAYING",
-                  updatedAt: new Date().toISOString(),
-                  youtubeVideoId: payload.videoId || null,
-                  song: {
-                    title: payload.trackTitle,
-                    artist: payload.trackArtist || "DJ Mix",
-                    genre: "General",
-                    durationSeconds: payload.duration || 210,
-                    bpm: null,
-                    key: null,
-                  },
-                  table: { id: "booth", number: 0, label: "Cabina DJ" },
-                  guestName: null,
-                  notes: null,
-                  isFastPass: false,
-                },
-              };
-            });
-          }
-        } else if (payload?.action === "PAUSE") {
-          setIsTvPaused(true);
-          sendYouTubeCommand("pauseVideo");
-          if (typeof payload?.seconds === "number") {
-            setElapsedSeconds(payload.seconds);
-          }
-        } else if (payload?.action === "SEEK" && typeof payload?.seconds === "number") {
-          setElapsedSeconds(payload.seconds);
-          sendYouTubeCommand("seekTo", [payload.seconds, true]);
-        }
+        handleIncomingPlaybackControl(payload);
       } else if (
         type === "TRACK_CHANGE" ||
         type === "QUEUE_UPDATE" ||
@@ -424,69 +476,56 @@ export default function PublicDisplayScreenPage({
     },
   });
 
-  // Sincronización instantánea (0ms) con la consola DJ/KJ mediante BroadcastChannel
+  // Sincronización instantánea ultra-resiliente (0ms) con la consola DJ/KJ mediante BroadcastChannel y Storage Events
   useEffect(() => {
-    if (typeof window === "undefined" || !data?.event?.id) return;
-    try {
-      const channel = new BroadcastChannel(`vidjs_karaoke_sync_${data.event.id}`);
-      channel.onmessage = (e) => {
-        const { type, action, seconds, duration, trackTitle, trackArtist, videoId } = e.data || {};
-        if (type === "PLAYBACK_CONTROL") {
-          if (action === "PLAY") {
-            setIsTvPaused(false);
-            sendYouTubeCommand("playVideo");
-            if (typeof seconds === "number") {
-              setElapsedSeconds(seconds);
-            }
-            if (videoId && videoId !== karaokeVideoId) {
-              setKaraokeVideoId(videoId);
-            }
-            if (trackTitle) {
-              setData((prev) => {
-                if (!prev) return prev;
-                if (prev.currentPlaying) return prev;
-                return {
-                  ...prev,
-                  currentPlaying: {
-                    id: "live_dj_active",
-                    status: "PLAYING",
-                    updatedAt: new Date().toISOString(),
-                    youtubeVideoId: videoId || null,
-                    song: {
-                      title: trackTitle,
-                      artist: trackArtist || "DJ Mix",
-                      genre: "General",
-                      durationSeconds: duration || 210,
-                      bpm: null,
-                      key: null,
-                    },
-                    table: { id: "booth", number: 0, label: "Cabina DJ" },
-                    guestName: null,
-                    notes: null,
-                    isFastPass: false,
-                  },
-                };
-              });
-            }
-          } else if (action === "PAUSE") {
-            setIsTvPaused(true);
-            sendYouTubeCommand("pauseVideo");
-            if (typeof seconds === "number") {
-              setElapsedSeconds(seconds);
-            }
-          } else if (action === "SEEK" && typeof seconds === "number") {
-            setElapsedSeconds(seconds);
-            sendYouTubeCommand("seekTo", [seconds, true]);
-          }
-        }
-      };
-      return () => {
-        channel.close();
-      };
-    } catch {
-      // Ignorar si BroadcastChannel no está disponible en este entorno
+    if (typeof window === "undefined") return;
+
+    // 1. Escuchar Storage Event (infalible entre ventanas y pestañas del mismo dominio)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "vidjs_playback_sync_payload" && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          handleIncomingPlaybackControl(parsed);
+        } catch {}
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+
+    // 2. Canales BroadcastChannel multicanal
+    const channelNames = ["vidjs_karaoke_sync_global"];
+    if (code) {
+      channelNames.push(`vidjs_karaoke_sync_${code}`);
+      channelNames.push(`vidjs_karaoke_sync_${code.toUpperCase()}`);
     }
-  }, [data?.event?.id, karaokeVideoId]);
+    if (data?.event?.id) {
+      channelNames.push(`vidjs_karaoke_sync_${data.event.id}`);
+    }
+
+    const openChannels: BroadcastChannel[] = [];
+    try {
+      channelNames.forEach((name) => {
+        try {
+          const ch = new BroadcastChannel(name);
+          ch.onmessage = (e) => {
+            const msg = e.data || {};
+            if (msg.type === "PLAYBACK_CONTROL" || msg.action) {
+              handleIncomingPlaybackControl(msg);
+            }
+          };
+          openChannels.push(ch);
+        } catch {}
+      });
+    } catch {}
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      openChannels.forEach((ch) => {
+        try {
+          ch.close();
+        } catch {}
+      });
+    };
+  }, [code, data?.event?.id, handleIncomingPlaybackControl]);
 
   // Temporizador para finalizar el aplausómetro
   useEffect(() => {
