@@ -42,6 +42,7 @@ import {
   Megaphone,
   ExternalLink,
   PlusCircle,
+  Plus,
   Tv,
   EyeOff,
   Youtube,
@@ -223,8 +224,9 @@ export default function DjBoothPage() {
   // 📸 Fotos de Mesas State
   const [pendingPhotos, setPendingPhotos] = useState<PhotoItem[]>([]);
   const [approvedPhotos, setApprovedPhotos] = useState<PhotoItem[]>([]);
-  const [photoTab, setPhotoTab] = useState<"PENDING" | "LIVE">("PENDING");
-  const [showPhotoDrawer, setShowPhotoDrawer] = useState(false);
+  const [removedPhotos, setRemovedPhotos] = useState<PhotoItem[]>([]);
+  const [photoTab, setPhotoTab] = useState<"PENDING" | "LIVE" | "REMOVED">("PENDING");
+  const [showPhotoDrawer, setShowPhotoDrawer] = useState(true);
 
   // 👏 Aplausómetro & Ruleta Interactive State
   const [isApplauseModalOpen, setIsApplauseModalOpen] = useState(false);
@@ -290,6 +292,14 @@ export default function DjBoothPage() {
             })
             .catch(() => {});
 
+          // Consultar fotos retiradas de TV
+          fetch(`/api/v1/photos?eventId=${currentId}&status=REMOVED`)
+            .then((r) => r.json())
+            .then((pj) => {
+              if (pj.success && pj.data?.photos) setRemovedPhotos(pj.data.photos);
+            })
+            .catch(() => {});
+
           // Consultar política de cola Fair-Play
           fetch(`/api/v1/dj/queue/policy?eventId=${currentId}`)
             .then((r) => r.json())
@@ -351,21 +361,25 @@ export default function DjBoothPage() {
       if (res.ok) {
         if (action === "APPROVE") {
           showFeedback("success", "¡Foto aprobada para proyectar en TV!");
-          const target = pendingPhotos.find((p) => p.id === photoId);
+          const target = pendingPhotos.find((p) => p.id === photoId) || removedPhotos.find((p) => p.id === photoId);
           setPendingPhotos((prev) => prev.filter((p) => p.id !== photoId));
-          if (target) setApprovedPhotos((prev) => [target, ...prev]);
+          setRemovedPhotos((prev) => prev.filter((p) => p.id !== photoId));
+          if (target) setApprovedPhotos((prev) => [{ ...target, status: "APPROVED" }, ...prev]);
         } else if (action === "REJECT") {
           showFeedback("info", "Foto rechazada");
           setPendingPhotos((prev) => prev.filter((p) => p.id !== photoId));
         } else if (action === "REMOVE") {
           showFeedback("success", "Foto retirada de la pantalla de TV");
+          const target = approvedPhotos.find((p) => p.id === photoId);
           setApprovedPhotos((prev) => prev.filter((p) => p.id !== photoId));
+          if (target) setRemovedPhotos((prev) => [{ ...target, status: "REMOVED" }, ...prev]);
         } else if (action === "FEATURE") {
           showFeedback("success", "⭐ ¡Foto proyectándose destacada en pantalla gigante!");
         } else if (action === "DELETE") {
           showFeedback("success", "Foto eliminada permanentemente de la base de datos");
           setPendingPhotos((prev) => prev.filter((p) => p.id !== photoId));
           setApprovedPhotos((prev) => prev.filter((p) => p.id !== photoId));
+          setRemovedPhotos((prev) => prev.filter((p) => p.id !== photoId));
         }
       } else {
         showFeedback("error", json.error?.message || "Error al procesar foto");
@@ -397,14 +411,48 @@ export default function DjBoothPage() {
         if (filter === "ALL") {
           setPendingPhotos([]);
           setApprovedPhotos([]);
+          setRemovedPhotos([]);
         } else if (filter === "REMOVED") {
-          setApprovedPhotos([]);
+          setRemovedPhotos([]);
         }
       } else {
         showFeedback("error", json.error?.message || "Error al limpiar fotos");
       }
     } catch {
       showFeedback("error", "Error de conexión al limpiar fotos");
+    }
+  };
+
+  // 📸 Subir Foto Demo de Prueba
+  const handleCreateDemoPhoto = async () => {
+    const eventId = selectedEventId || data?.event?.id;
+    if (!eventId) return;
+    setActionLoading("demo-photo");
+    try {
+      const demoImg =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FABJAD/sY6AnFAAAAAElFTkSuQmCC";
+      const randomTableNum = Math.floor(Math.random() * 5) + 1;
+      const res = await fetch("/api/v1/photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl: demoImg,
+          caption: "🎉 ¡Noche increíble disfrutando en la mesa!",
+          guestName: `Comensal Mesa ${randomTableNum}`,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.data) {
+        showFeedback("success", "📸 Foto de prueba creada con éxito en Pendientes");
+        setPendingPhotos((prev) => [json.data, ...prev]);
+        setPhotoTab("PENDING");
+      } else {
+        showFeedback("error", json.error || "No se pudo generar la foto de prueba");
+      }
+    } catch {
+      showFeedback("error", "Error al enviar foto de prueba");
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -1369,12 +1417,54 @@ export default function DjBoothPage() {
                 <Youtube className="w-3.5 h-3.5 text-red-500" />
                 <span>Pista YouTube</span>
               </button>
+
+              {/* Botón superior Muro de Fotos */}
+              <button
+                type="button"
+                onClick={() => setShowPhotoDrawer((v) => !v)}
+                className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer ${
+                  showPhotoDrawer
+                    ? "bg-pink-600 text-white border-pink-400 shadow-md shadow-pink-600/30"
+                    : pendingPhotos.length > 0
+                    ? "bg-pink-950/90 text-pink-300 border-pink-500 animate-pulse"
+                    : "bg-zinc-900 hover:bg-zinc-800 border-zinc-700 text-zinc-300"
+                }`}
+                title="Abrir o colapsar el Muro de Fotos en Vivo"
+              >
+                <Camera className="w-3.5 h-3.5 text-pink-400" />
+                <span>Muro Fotos</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[9px] font-mono">
+                  {pendingPhotos.length + approvedPhotos.length + removedPhotos.length}
+                </span>
+              </button>
             </div>
           ) : (
-            <span className="px-3 py-1.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-700/60 font-semibold flex items-center justify-center gap-1.5 text-[11px] sm:text-xs">
-              <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse shrink-0" />
-              <span>Pista de baile & Mezclas continuas</span>
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-3 py-1.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-700/60 font-semibold flex items-center justify-center gap-1.5 text-[11px] sm:text-xs">
+                <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse shrink-0" />
+                <span>Pista de baile & Mezclas continuas</span>
+              </span>
+
+              {/* Botón superior Muro de Fotos */}
+              <button
+                type="button"
+                onClick={() => setShowPhotoDrawer((v) => !v)}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                  showPhotoDrawer
+                    ? "bg-pink-600 text-white border-pink-400 shadow-md shadow-pink-600/30"
+                    : pendingPhotos.length > 0
+                    ? "bg-pink-950/90 text-pink-300 border-pink-500 animate-pulse"
+                    : "bg-zinc-900 hover:bg-zinc-800 border-zinc-700 text-zinc-300"
+                }`}
+                title="Abrir o colapsar el Muro de Fotos en Vivo"
+              >
+                <Camera className="w-3.5 h-3.5 text-pink-400" />
+                <span>Muro de Fotos</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono font-bold">
+                  {pendingPhotos.length + approvedPhotos.length + removedPhotos.length}
+                </span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -1437,19 +1527,19 @@ export default function DjBoothPage() {
             <button
               onClick={() => setShowPhotoDrawer(!showPhotoDrawer)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border shrink-0 ${
-                pendingPhotos.length > 0
+                showPhotoDrawer
+                  ? "bg-pink-600 text-white border-pink-400 shadow-md shadow-pink-600/30"
+                  : pendingPhotos.length > 0
                   ? "bg-pink-600/30 hover:bg-pink-600/40 border-pink-500/50 text-pink-300 animate-pulse"
                   : "bg-zinc-950 hover:bg-zinc-900 border-zinc-800 text-zinc-300"
               }`}
-              title="Moderar fotos subidas por los comensales"
+              title="Abrir o colapsar el Muro de Fotos en Vivo"
             >
               <Camera className="w-3.5 h-3.5 text-pink-400" />
-              <span>Fotos Mesas</span>
-              {pendingPhotos.length > 0 && (
-                <span className="w-4 h-4 rounded-full bg-pink-500 text-white text-[9px] font-black flex items-center justify-center">
-                  {pendingPhotos.length}
-                </span>
-              )}
+              <span>Muro de Fotos</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-pink-950 text-pink-200 border border-pink-700 text-[10px] font-mono font-bold">
+                {pendingPhotos.length + approvedPhotos.length + removedPhotos.length}
+              </span>
             </button>
 
             <button
@@ -1807,19 +1897,19 @@ export default function DjBoothPage() {
             </div>
           </div>
 
-          {/* Pestañas de Fotos: Pendientes vs Al Aire */}
-          <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-2">
+          {/* Pestañas de Fotos: Pendientes vs Al Aire vs Retiradas */}
+          <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-2 flex-wrap">
             <button
               type="button"
               onClick={() => setPhotoTab("PENDING")}
-              className={`px-4 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
                 photoTab === "PENDING"
                   ? "bg-pink-600 text-white shadow-lg shadow-pink-600/30"
                   : "bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800"
               }`}
             >
-              <span>📥 Pendientes de Aprobación</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono">
+              <span>📥 Pendientes</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono font-bold">
                 {pendingPhotos.length}
               </span>
             </button>
@@ -1827,30 +1917,61 @@ export default function DjBoothPage() {
             <button
               type="button"
               onClick={() => setPhotoTab("LIVE")}
-              className={`px-4 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
                 photoTab === "LIVE"
                   ? "bg-cyan-600 text-white shadow-lg shadow-cyan-600/30"
                   : "bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800"
               }`}
             >
-              <span>📺 Fotos al Aire en TV</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono">
+              <span>📺 En TV</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono font-bold">
                 {approvedPhotos.length}
               </span>
             </button>
 
-            {/* Botón de Limpieza Masiva del Muro */}
-            {(pendingPhotos.length > 0 || approvedPhotos.length > 0) && (
+            <button
+              type="button"
+              onClick={() => setPhotoTab("REMOVED")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                photoTab === "REMOVED"
+                  ? "bg-zinc-700 text-white shadow-lg"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800"
+              }`}
+            >
+              <span>🚫 Retiradas de TV</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono font-bold">
+                {removedPhotos.length}
+              </span>
+            </button>
+
+            {/* Acciones de Fotos a la derecha: + Foto Demo y Vaciar Muro */}
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCreateDemoPhoto}
+                disabled={actionLoading === "demo-photo"}
+                className="px-3 py-1.5 rounded-xl bg-pink-600/20 hover:bg-pink-600/30 border border-pink-500/40 text-pink-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Generar una foto de prueba simulando un cliente desde una mesa"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Foto Demo</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => handleClearPhotos("ALL")}
-                className="ml-auto px-3 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="Eliminar permanentemente todas las fotos subidas por clientes de la base de datos"
+                disabled={pendingPhotos.length === 0 && approvedPhotos.length === 0 && removedPhotos.length === 0}
+                className={`px-3.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                  pendingPhotos.length > 0 || approvedPhotos.length > 0 || removedPhotos.length > 0
+                    ? "bg-red-950/80 hover:bg-red-900 text-red-200 border-red-700 cursor-pointer shadow-sm shadow-red-950/50"
+                    : "bg-zinc-900 text-zinc-600 border border-zinc-800 cursor-not-allowed opacity-50"
+                }`}
+                title="Eliminar permanentemente todas las fotos del evento de la base de datos"
               >
                 <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                <span>Vaciar Muro</span>
+                <span>Vaciar Muro ({pendingPhotos.length + approvedPhotos.length + removedPhotos.length})</span>
               </button>
-            )}
+            </div>
           </div>
 
           {/* CONTENIDO PESTAÑA PENDIENTES */}
@@ -1993,6 +2114,80 @@ export default function DjBoothPage() {
                           title="Sacar de la pantalla de TV temporalmente"
                         >
                           <EyeOff className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm("¿Eliminar permanentemente esta foto de la base de datos?")) {
+                              handleModeratePhoto(photo.id, "DELETE");
+                            }
+                          }}
+                          disabled={actionLoading === photo.id}
+                          className="p-1.5 rounded-lg bg-zinc-800 hover:bg-red-950 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-800 text-[11px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                          title="Eliminar foto permanentemente de la base de datos"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CONTENIDO PESTAÑA RETIRADAS */}
+          {photoTab === "REMOVED" && (
+            <div>
+              {removedPhotos.length === 0 ? (
+                <div className="p-8 text-center text-zinc-500 text-xs space-y-1">
+                  <p>No hay fotos retiradas.</p>
+                  <p className="text-[10px] text-zinc-600">
+                    Las fotos que quites de la pantalla Smart TV con el botón de ojo tachado aparecerán aquí.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {removedPhotos.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-2.5 transition-all shadow-lg opacity-80 hover:opacity-100"
+                    >
+                      <div className="aspect-square rounded-lg overflow-hidden bg-black relative border border-zinc-800">
+                        <img
+                          src={photo.imageUrl}
+                          alt={photo.caption || "Foto retirada"}
+                          className="w-full h-full object-cover grayscale-[40%]"
+                        />
+                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-zinc-400 border border-zinc-700 text-[10px] font-mono font-bold">
+                          {photo.table.label}
+                        </span>
+                        <span className="absolute top-2 right-2 px-2 py-0.5 rounded bg-zinc-900/90 text-zinc-400 border border-zinc-700 text-[9px] font-bold">
+                          FUERA DE TV
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white truncate">
+                          de {photo.guestName}
+                        </div>
+                        {photo.caption && (
+                          <p className="text-[11px] text-zinc-400 italic line-clamp-2 mt-0.5">
+                            &ldquo;{photo.caption}&rdquo;
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Botones: Volver a proyectar o Borrar Definitivo */}
+                      <div className="flex items-center gap-1.5 pt-1 border-t border-zinc-800">
+                        <button
+                          type="button"
+                          onClick={() => handleModeratePhoto(photo.id, "APPROVE")}
+                          disabled={actionLoading === photo.id}
+                          className="flex-1 py-1.5 rounded-lg bg-cyan-700 hover:bg-cyan-600 text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                          title="Volver a proyectar en pantalla gigante de TV"
+                        >
+                          <Tv className="w-3 h-3" />
+                          <span>Volver a TV</span>
                         </button>
                         <button
                           type="button"

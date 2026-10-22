@@ -32,6 +32,8 @@ import {
   Disc3,
   Youtube,
   Send,
+  EyeOff,
+  Plus,
 } from "lucide-react";
 import KaraokeVideoModal from "@/components/dj/KaraokeVideoModal";
 import DjSoundboard from "@/components/dj/DjSoundboard";
@@ -165,7 +167,7 @@ export default function KaraokeBoothPage() {
   // Duelos & Fotos
   const [duel, setDuel] = useState<LiveDuelData | null>(null);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
-  const [activePhotoTab, setActivePhotoTab] = useState<"PENDING" | "APPROVED">("PENDING");
+  const [activePhotoTab, setActivePhotoTab] = useState<"PENDING" | "APPROVED" | "REMOVED">("PENDING");
   const [isRouletteSpinning, setIsRouletteSpinning] = useState(false);
   const [rouletteWinner, setRouletteWinner] = useState<string | null>(null);
 
@@ -599,6 +601,65 @@ export default function KaraokeBoothPage() {
       }
     } catch {
       showFeedback("error", "Error al procesar la foto");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Limpieza masiva de fotos (Vaciar Muro de Karaoke)
+  const handleClearPhotos = async (filter: "ALL" | "REJECTED" | "REMOVED" = "ALL") => {
+    const eventId = selectedEventId || data?.event?.id;
+    if (!eventId) return;
+    const confirmMsg =
+      filter === "ALL"
+        ? "¿Estás seguro de que deseas borrar permanentemente TODAS las fotos del muro en este evento?"
+        : "¿Deseas borrar permanentemente todas las fotos rechazadas o retiradas?";
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch(`/api/v1/photos?eventId=${eventId}&filter=${filter}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (res.ok) {
+        showFeedback("success", json.message || "Fotos eliminadas del muro");
+        setPhotos([]);
+      } else {
+        showFeedback("error", json.error?.message || "Error al vaciar fotos");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión al limpiar fotos");
+    }
+  };
+
+  // 📸 Subir Foto Demo de Prueba en Karaoke
+  const handleCreateDemoPhoto = async () => {
+    const eventId = selectedEventId || data?.event?.id;
+    if (!eventId) return;
+    setActionLoading("demo-photo");
+    try {
+      const demoImg =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FABJAD/sY6AnFAAAAAElFTkSuQmCC";
+      const randomTableNum = Math.floor(Math.random() * 5) + 1;
+      const res = await fetch("/api/v1/photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageUrl: demoImg,
+          caption: "🎤 ¡Cantando a dúo en el Karaoke! #RetroBar",
+          guestName: `Mesa ${randomTableNum} - Cantantes`,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.data) {
+        showFeedback("success", "📸 Foto de prueba creada con éxito en Pendientes");
+        fetchPhotos();
+        setActivePhotoTab("PENDING");
+      } else {
+        showFeedback("error", json.error || "No se pudo generar la foto de prueba");
+      }
+    } catch {
+      showFeedback("error", "Error al enviar foto de prueba");
     } finally {
       setActionLoading(null);
     }
@@ -1094,7 +1155,7 @@ export default function KaraokeBoothPage() {
 
         {/* COLUMNA DERECHA: Dinámicas del Escenario (Fotos y Duelos) */}
         <div className="p-6 rounded-3xl bg-zinc-900/70 border border-zinc-800 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-zinc-800">
             <div className="flex items-center gap-2">
               <Camera className="w-5 h-5 text-pink-400" />
               <h2 className="text-base font-bold text-white">Muro de Fotos en Pantalla TV</h2>
@@ -1102,30 +1163,70 @@ export default function KaraokeBoothPage() {
                 {(Array.isArray(photos) ? photos : []).length}
               </span>
             </div>
-            <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
-                onClick={() => setActivePhotoTab("PENDING")}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
-                  activePhotoTab === "PENDING"
-                    ? "bg-pink-600 text-white"
-                    : "text-zinc-400 hover:text-white"
-                }`}
+                onClick={handleCreateDemoPhoto}
+                disabled={actionLoading === "demo-photo"}
+                className="px-2.5 py-1 rounded-xl bg-pink-600/20 hover:bg-pink-600/30 border border-pink-500/40 text-pink-300 text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                title="Generar foto de prueba para moderar"
               >
-                Por Moderar
+                <Plus className="w-3 h-3" />
+                <span>+ Foto Demo</span>
               </button>
+
               <button
                 type="button"
-                onClick={() => setActivePhotoTab("APPROVED")}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
-                  activePhotoTab === "APPROVED"
-                    ? "bg-pink-600 text-white"
-                    : "text-zinc-400 hover:text-white"
+                onClick={() => handleClearPhotos("ALL")}
+                disabled={(Array.isArray(photos) ? photos : []).length === 0}
+                className={`px-2.5 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 border transition-colors ${
+                  (Array.isArray(photos) ? photos : []).length > 0
+                    ? "bg-red-950/80 hover:bg-red-900 text-red-200 border-red-700 cursor-pointer shadow-sm"
+                    : "bg-zinc-900 text-zinc-600 border border-zinc-800 cursor-not-allowed opacity-50"
                 }`}
+                title="Eliminar permanentemente todas las fotos del muro en este evento"
               >
-                En TV
+                <Trash2 className="w-3 h-3 text-red-400" />
+                <span>Vaciar Muro</span>
               </button>
             </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+            <button
+              type="button"
+              onClick={() => setActivePhotoTab("PENDING")}
+              className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer text-center ${
+                activePhotoTab === "PENDING"
+                  ? "bg-pink-600 text-white shadow-md shadow-pink-600/30"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              📥 Por Moderar ({(Array.isArray(photos) ? photos : []).filter((p) => p.status === "PENDING").length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActivePhotoTab("APPROVED")}
+              className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer text-center ${
+                activePhotoTab === "APPROVED"
+                  ? "bg-cyan-600 text-white shadow-md shadow-cyan-600/30"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              📺 En TV ({(Array.isArray(photos) ? photos : []).filter((p) => p.status === "APPROVED").length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActivePhotoTab("REMOVED")}
+              className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer text-center ${
+                activePhotoTab === "REMOVED"
+                  ? "bg-zinc-700 text-white shadow-md"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              🚫 Retiradas ({(Array.isArray(photos) ? photos : []).filter((p) => p.status === "REMOVED").length})
+            </button>
           </div>
 
           {(Array.isArray(photos) ? photos : []).filter((p) => p.status === activePhotoTab).length === 0 ? (
@@ -1204,7 +1305,7 @@ export default function KaraokeBoothPage() {
                             <Trash2 className="w-3 h-3" />
                           </button>
                         </>
-                      ) : (
+                      ) : photo.status === "APPROVED" ? (
                         <>
                           <button
                             type="button"
@@ -1213,7 +1314,34 @@ export default function KaraokeBoothPage() {
                             className="flex-1 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
                             title="Sacar de la pantalla de TV temporalmente"
                           >
+                            <EyeOff className="w-3 h-3 text-zinc-400" />
                             <span>Quitar de TV</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm("¿Eliminar permanentemente esta foto de la base de datos?")) {
+                                handleModeratePhoto(photo.id, "DELETE");
+                              }
+                            }}
+                            disabled={actionLoading === photo.id}
+                            className="p-1 rounded-lg bg-zinc-800 hover:bg-red-950 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-800 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                            title="Eliminar foto permanentemente de la base de datos"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleModeratePhoto(photo.id, "APPROVE")}
+                            disabled={actionLoading === photo.id}
+                            className="flex-1 py-1 rounded-lg bg-cyan-700 hover:bg-cyan-600 text-white text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                            title="Volver a proyectar en pantalla de TV"
+                          >
+                            <Tv className="w-3 h-3" />
+                            <span>Volver a TV</span>
                           </button>
                           <button
                             type="button"

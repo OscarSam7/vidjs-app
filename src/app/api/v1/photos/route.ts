@@ -163,9 +163,10 @@ export async function GET(req: NextRequest) {
 
     if (isStaff && statusParam) {
       const sanitizedStatus = sanitizeText(statusParam).toUpperCase();
-      if (["PENDING", "APPROVED", "REJECTED"].includes(sanitizedStatus)) {
+      if (["PENDING", "APPROVED", "REJECTED", "REMOVED"].includes(sanitizedStatus)) {
         whereClause.status = sanitizedStatus;
       }
+      // Si es "ALL", no filtramos por status y traemos todas las del evento
     } else if (!isStaff) {
       // Comensales y público solo pueden ver fotos aprobadas
       whereClause.status = "APPROVED";
@@ -177,7 +178,7 @@ export async function GET(req: NextRequest) {
         table: { select: { label: true, number: true } },
       },
       orderBy: { createdAt: "desc" },
-      take: 20,
+      take: 100,
     });
 
     return NextResponse.json({
