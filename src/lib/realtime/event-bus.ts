@@ -8,6 +8,8 @@ export type RealtimeEventType =
   | "QUEUE_POLICY_UPDATED"
   | "QUEUE_SLOT_UNLOCKED"
   | "TABLE_RELEASED"
+  | "TABLE_UPDATED"
+  | "TABLE_DELETED"
   | "REQUEST_NEW"
   | "PHOTO_NEW"
   | "PHOTO_APPROVED"

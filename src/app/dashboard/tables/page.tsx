@@ -15,6 +15,14 @@ import {
   X,
   Disc3,
   RotateCcw,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  Download,
+  ShieldAlert,
+  Layers,
+  Power,
+  Sliders,
 } from "lucide-react";
 
 interface TableWithQr {
@@ -23,6 +31,7 @@ interface TableWithQr {
   label: string;
   qrToken: string;
   capacity: number;
+  zone?: string;
   active: boolean;
   scanUrl: string;
   qrDataUrl: string;
@@ -40,6 +49,19 @@ export default function TablesManagementPage() {
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [resettingId, setResettingId] = useState<string | null>(null);
 
+  // Toast Notification State
+  const [toast, setToast] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
+
+  const showToast = (type: "success" | "error" | "info", message: string) => {
+    setToast({ type, message });
+    setTimeout(() => {
+      setToast((current) => (current?.message === message ? null : current));
+    }, 4000);
+  };
+
   // Modal para imprimir plantilla
   const [printingTable, setPrintingTable] = useState<TableWithQr | null>(null);
 
@@ -49,9 +71,221 @@ export default function TablesManagementPage() {
   const [newNumber, setNewNumber] = useState<number>(1);
   const [newLabel, setNewLabel] = useState("");
   const [newCapacity, setNewCapacity] = useState<number>(4);
+  const [newZone, setNewZone] = useState<string>("MAIN");
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Modal para editar mesa
+  const [editingTable, setEditingTable] = useState<TableWithQr | null>(null);
+  const [editVenueId, setEditVenueId] = useState("");
+  const [editNumber, setEditNumber] = useState<number>(1);
+  const [editLabel, setEditLabel] = useState("");
+  const [editCapacity, setEditCapacity] = useState<number>(4);
+  const [editZone, setEditZone] = useState<string>("MAIN");
+  const [editActive, setEditActive] = useState<boolean>(true);
+  const [editRegenerateQr, setEditRegenerateQr] = useState<boolean>(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // Modal para eliminar mesa
+  const [deletingTable, setDeletingTable] = useState<TableWithQr | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const fetchTables = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/v1/tables");
+      if (res.ok) {
+        const data = await res.json();
+        setTables(data.data);
+        if (data.data.length > 0 && !newVenueId) {
+          setNewVenueId(data.data[0].venue.id);
+        }
+      }
+    } catch (err) {
+      console.error("Error al cargar mesas:", err);
+      showToast("error", "Error de conexión al cargar la lista de mesas");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTables();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const venues = Array.from(
+    new Map(tables.map((t) => [t.venue.id, t.venue.name])).entries()
+  );
+
+  const filteredTables =
+    selectedVenue === "ALL"
+      ? tables
+      : tables.filter((t) => t.venue.id === selectedVenue);
+
+  const handleCopy = (url: string, token: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedToken(token);
+    showToast("info", "Enlace de mesa copiado al portapapeles");
+    setTimeout(() => setCopiedToken(null), 2500);
+  };
+
+  // Descarga de imágenes QR
+  const handleDownloadPng = (dataUrl: string, fileName: string) => {
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `QR-${fileName.replace(/\s+/g, "_")}.png`;
+    a.click();
+    showToast("success", `QR descargado en formato PNG`);
+  };
+
+  const handleDownloadSvg = (svgContent: string, fileName: string) => {
+    const blob = new Blob([svgContent], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `QR-${fileName.replace(/\s+/g, "_")}.svg`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("success", `QR vectorial descargado en formato SVG`);
+  };
+
+  // Crear Mesa
+  const handleCreateTable = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    setCreating(true);
+
+    try {
+      const res = await fetch("/api/v1/tables", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          venueId: newVenueId,
+          number: newNumber,
+          label: newLabel,
+          capacity: newCapacity,
+          zone: newZone,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error?.message || "Error al crear la mesa");
+      }
+
+      setIsNewTableOpen(false);
+      setNewLabel("");
+      setNewNumber(tables.length + 1);
+      showToast("success", `Mesa "${data.data?.label || newLabel}" creada con código QR exitosamente.`);
+      await fetchTables();
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setFormError(err.message);
+      } else {
+        setFormError("Error al procesar la solicitud");
+      }
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // Abrir Modal de Edición
+  const handleOpenEdit = (table: TableWithQr) => {
+    setEditingTable(table);
+    setEditVenueId(table.venue.id);
+    setEditNumber(table.number);
+    setEditLabel(table.label);
+    setEditCapacity(table.capacity);
+    setEditZone(table.zone || "MAIN");
+    setEditActive(table.active);
+    setEditRegenerateQr(false);
+    setEditError(null);
+  };
+
+  // Guardar Edición
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTable) return;
+    setSavingEdit(true);
+    setEditError(null);
+
+    try {
+      const res = await fetch(`/api/v1/tables/${editingTable.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          venueId: editVenueId,
+          number: editNumber,
+          label: editLabel,
+          capacity: editCapacity,
+          zone: editZone,
+          active: editActive,
+          regenerateQr: editRegenerateQr,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error?.message || "Error al actualizar la mesa");
+      }
+
+      showToast("success", data.message || `Mesa "${editLabel}" actualizada con éxito.`);
+      setEditingTable(null);
+      await fetchTables();
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setEditError(err.message);
+      } else {
+        setEditError("Error al guardar los cambios");
+      }
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // Abrir Modal de Eliminación
+  const handleOpenDelete = (table: TableWithQr) => {
+    setDeletingTable(table);
+    setDeleteError(null);
+  };
+
+  // Confirmar Eliminación
+  const handleDeleteTable = async () => {
+    if (!deletingTable) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      const res = await fetch(`/api/v1/tables/${deletingTable.id}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error?.message || "Error al eliminar la mesa");
+      }
+
+      showToast("success", data.message || `Mesa eliminada correctamente.`);
+      setDeletingTable(null);
+      await fetchTables();
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setDeleteError(err.message);
+      } else {
+        setDeleteError("Error al eliminar la mesa");
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Liberar / Resetear Mesa
   const handleResetTable = async (tableId: string, label: string) => {
     if (
       !confirm(
@@ -67,109 +301,62 @@ export default function TablesManagementPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert(data.message || `Mesa ${label} liberada con éxito.`);
+        showToast("success", data.message || `Mesa ${label} liberada con éxito.`);
         await fetchTables();
       } else {
-        alert(data.error?.message || "Error al resetear la mesa");
+        showToast("error", data.error?.message || "Error al resetear la mesa");
       }
     } catch {
-      alert("Error de conexión al resetear la mesa");
+      showToast("error", "Error de conexión al resetear la mesa");
     } finally {
       setResettingId(null);
     }
   };
 
-  const fetchTables = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/v1/tables");
-      if (res.ok) {
-        const data = await res.json();
-        setTables(data.data);
-        if (data.data.length > 0 && !newVenueId) {
-          setNewVenueId(data.data[0].venue.id);
-        }
-      }
-    } catch (err) {
-      console.error("Error al cargar mesas:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTables();
-  }, []);
-
-  const venues = Array.from(
-    new Map(tables.map((t) => [t.venue.id, t.venue.name])).entries()
-  );
-
-  const filteredTables =
-    selectedVenue === "ALL"
-      ? tables
-      : tables.filter((t) => t.venue.id === selectedVenue);
-
-  const handleCopy = (url: string, token: string) => {
-    navigator.clipboard.writeText(url);
-    setCopiedToken(token);
-    setTimeout(() => setCopiedToken(null), 2500);
-  };
-
-  const handleCreateTable = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-    setCreating(true);
-
-    try {
-      const res = await fetch("/api/v1/tables", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          venueId: newVenueId,
-          number: newNumber,
-          label: newLabel,
-          capacity: newCapacity,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error?.message || "Error al crear la mesa");
-      }
-
-      setIsNewTableOpen(false);
-      setNewLabel("");
-      setNewNumber(tables.length + 1);
-      await fetchTables();
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setFormError(err.message);
-      } else {
-        setFormError("Error al procesar la solicitud");
-      }
-    } finally {
-      setCreating(false);
-    }
-  };
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 select-none">
+      {/* Toast Notification Bar */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-2xl border text-xs font-bold flex items-center gap-3 backdrop-blur-md transition-all animate-in slide-in-from-bottom-5 ${
+            toast.type === "success"
+              ? "bg-emerald-950/90 border-emerald-500/50 text-emerald-200 shadow-emerald-900/30"
+              : toast.type === "error"
+              ? "bg-red-950/90 border-red-500/50 text-red-200 shadow-red-900/30"
+              : "bg-zinc-900/95 border-zinc-700 text-zinc-200 shadow-black/50"
+          }`}
+        >
+          {toast.type === "success" ? (
+            <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+          ) : toast.type === "error" ? (
+            <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+          ) : (
+            <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+          )}
+          <span>{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="p-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* 1. Header & Acciones */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 backdrop-blur-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-zinc-900/80 border border-zinc-800 backdrop-blur-xl shadow-xl">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
               ACCESO MÓVIL CLIENTES
             </span>
-            <span className="text-xs text-zinc-400">Total: {tables.length} mesas</span>
+            <span className="text-xs text-zinc-400">Total: {tables.length} mesas registradas</span>
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">
             Gestión de Mesas y Códigos QR
           </h1>
           <p className="text-xs text-zinc-400">
-            Genera, previsualiza e imprime los códigos QR para las mesas de tus locales.
+            Administra, edita, descarga e imprime los códigos QR seguros de cada mesa. Los clientes escanean para pedir música sin descargas.
           </p>
         </div>
 
@@ -177,9 +364,10 @@ export default function TablesManagementPage() {
           onClick={() => {
             setNewNumber(tables.length + 1);
             setNewLabel(`Mesa ${tables.length + 1}`);
+            setNewZone("MAIN");
             setIsNewTableOpen(true);
           }}
-          className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium text-xs rounded-xl transition-all shadow-lg shadow-purple-600/20 flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+          className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-2xl transition-all shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2 shrink-0 cursor-pointer active:scale-95"
         >
           <Plus className="w-4 h-4" />
           <span>Crear Nueva Mesa</span>
@@ -213,7 +401,9 @@ export default function TablesManagementPage() {
               }`}
             >
               <Building2 className="w-3.5 h-3.5" />
-              <span>{name} ({count})</span>
+              <span>
+                {name} ({count})
+              </span>
             </button>
           );
         })}
@@ -223,57 +413,125 @@ export default function TablesManagementPage() {
       {loading ? (
         <div className="p-16 text-center text-zinc-400 flex flex-col items-center justify-center gap-3">
           <RefreshCw className="w-6 h-6 animate-spin text-purple-400" />
-          <span className="text-xs">Generando códigos QR vectoriales...</span>
+          <span className="text-xs">Cargando mesas y verificando códigos QR vectoriales...</span>
         </div>
       ) : filteredTables.length === 0 ? (
-        <div className="p-16 text-center bg-zinc-900/40 border border-zinc-800 rounded-2xl">
-          <QrCode className="w-10 h-10 text-zinc-600 mx-auto mb-2" />
-          <p className="text-sm text-zinc-400">No hay mesas registradas en este local.</p>
+        <div className="p-16 text-center bg-zinc-900/40 border border-zinc-800 rounded-3xl space-y-3">
+          <QrCode className="w-12 h-12 text-zinc-600 mx-auto" />
+          <p className="text-sm font-bold text-zinc-300">No hay mesas registradas en este local.</p>
+          <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+            Haz clic en &quot;Crear Nueva Mesa&quot; para registrar la primera y generar automáticamente su código QR.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTables.map((table) => (
             <div
               key={table.id}
-              className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 hover:border-purple-600/40 transition-all flex flex-col justify-between space-y-4 shadow-lg group"
+              className={`p-5 rounded-3xl bg-zinc-900/70 border transition-all flex flex-col justify-between space-y-4 shadow-lg group relative ${
+                table.active
+                  ? "border-zinc-800 hover:border-purple-600/40"
+                  : "border-zinc-850 opacity-75 bg-zinc-950/60"
+              }`}
             >
               <div>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-purple-300 border border-zinc-700">
-                      MESA #{table.number}
-                    </span>
+                {/* Cabecera de la Tarjeta con Badges y Acciones Rápidas (Editar / Eliminar) */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-purple-300 border border-zinc-700">
+                        MESA #{table.number}
+                      </span>
+
+                      {/* Badge Activa / Inactiva */}
+                      {table.active ? (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          Activa
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
+                          Inactiva
+                        </span>
+                      )}
+
+                      {/* Badge de Zona */}
+                      {table.zone && (
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-zinc-750">
+                          {table.zone === "MAIN"
+                            ? "Principal"
+                            : table.zone === "DJ"
+                            ? "Zona DJ"
+                            : table.zone === "KARAOKE"
+                            ? "Karaoke"
+                            : table.zone === "VIP"
+                            ? "VIP / Box"
+                            : table.zone === "TERRAZA"
+                            ? "Terraza"
+                            : table.zone}
+                        </span>
+                      )}
+                    </div>
+
                     <h3 className="text-base font-bold text-white mt-1">{table.label}</h3>
-                    <div className="flex items-center gap-2 text-xs text-zinc-400 mt-0.5">
+                    <div className="flex items-center gap-2 text-xs text-zinc-400">
                       <Building2 className="w-3.5 h-3.5 text-zinc-500" />
                       <span>{table.venue.name}</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 text-xs text-zinc-400 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-800">
-                    <Users className="w-3 h-3 text-zinc-500" />
-                    <span>{table.capacity}p</span>
+                  {/* Acciones Superiores: Capacidad + Botones Editar / Eliminar */}
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1 text-xs text-zinc-400 px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800" title="Capacidad en comensales">
+                      <Users className="w-3 h-3 text-zinc-500" />
+                      <span>{table.capacity}p</span>
+                    </div>
+
+                    {/* Botón Editar Mesa */}
+                    <button
+                      onClick={() => handleOpenEdit(table)}
+                      className="p-1.5 rounded-xl bg-zinc-800 hover:bg-purple-950/60 text-zinc-400 hover:text-purple-300 border border-zinc-750 hover:border-purple-600/40 transition-colors cursor-pointer"
+                      title="Editar mesa y opciones de QR"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Botón Eliminar Mesa */}
+                    <button
+                      onClick={() => handleOpenDelete(table)}
+                      className="p-1.5 rounded-xl bg-zinc-800 hover:bg-red-950/60 text-zinc-400 hover:text-red-400 border border-zinc-750 hover:border-red-600/40 transition-colors cursor-pointer"
+                      title="Eliminar mesa e invalidar su QR"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 
-                {/* QR Display */}
-                <div className="mt-4 p-4 rounded-xl bg-white flex items-center justify-center shadow-inner">
+                {/* Visualizador de QR con Marco Limpio */}
+                <div className="mt-4 p-4 rounded-2xl bg-white flex items-center justify-center shadow-inner relative group/qr">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={table.qrDataUrl}
                     alt={`Código QR ${table.label}`}
-                    className="w-36 h-36 object-contain"
+                    className="w-36 h-36 object-contain transition-transform group-hover/qr:scale-105"
                   />
+                  {!table.active && (
+                    <div className="absolute inset-0 bg-zinc-950/80 rounded-2xl backdrop-blur-xs flex flex-col items-center justify-center text-center p-2 text-zinc-300">
+                      <ShieldAlert className="w-6 h-6 text-amber-400 mb-1" />
+                      <span className="text-[11px] font-bold text-white">QR Inactivo</span>
+                      <span className="text-[9px] text-zinc-400">Escaneos bloqueados temporalmente</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="text-center mt-2">
-                  <div className="text-[10px] font-mono text-zinc-500 truncate">
+                  <div className="text-[10px] font-mono text-zinc-500 truncate" title={table.scanUrl}>
                     {table.scanUrl}
                   </div>
                 </div>
               </div>
 
-              {/* Botones de Acción */}
+              {/* Botones de Acción de la Mesa */}
               <div className="space-y-2 pt-2 border-t border-zinc-800/80">
                 <div className="grid grid-cols-2 gap-2">
                   {/* Abrir como Cliente */}
@@ -297,15 +555,35 @@ export default function TablesManagementPage() {
                   </button>
                 </div>
 
+                {/* Fila con Descargas Rápidas de QR */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleDownloadPng(table.qrDataUrl, `${table.venue.name}-${table.label}`)}
+                    className="py-1.5 px-2 rounded-xl bg-zinc-950 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-[11px] text-zinc-300 hover:text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    title="Descargar imagen PNG de alta definición para imprenta o diseño"
+                  >
+                    <Download className="w-3 h-3 text-cyan-400" />
+                    <span>Descargar PNG</span>
+                  </button>
+                  <button
+                    onClick={() => handleDownloadSvg(table.qrSvg, `${table.venue.name}-${table.label}`)}
+                    className="py-1.5 px-2 rounded-xl bg-zinc-950 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-[11px] text-zinc-300 hover:text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    title="Descargar vector SVG escalable sin pérdida de calidad"
+                  >
+                    <Download className="w-3 h-3 text-purple-400" />
+                    <span>Descargar SVG</span>
+                  </button>
+                </div>
+
                 {/* Copiar enlace */}
                 <button
                   onClick={() => handleCopy(table.scanUrl, table.qrToken)}
-                  className="w-full py-1.5 px-3 rounded-lg bg-zinc-950/80 hover:bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400 hover:text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  className="w-full py-1.5 px-3 rounded-xl bg-zinc-950/80 hover:bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400 hover:text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >
                   {copiedToken === table.qrToken ? (
                     <>
                       <Check className="w-3 h-3 text-emerald-400" />
-                      <span className="text-emerald-300">¡Enlace Copiado!</span>
+                      <span className="text-emerald-300 font-bold">¡Enlace Copiado!</span>
                     </>
                   ) : (
                     <>
@@ -319,7 +597,7 @@ export default function TablesManagementPage() {
                 <button
                   onClick={() => handleResetTable(table.id, table.label)}
                   disabled={resettingId === table.id}
-                  className="w-full py-1.5 px-3 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[11px] text-amber-300 hover:text-amber-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  className="w-full py-1.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[11px] text-amber-300 hover:text-amber-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                   title="Cancela pedidos huérfanos y renueva el cupo para los nuevos comensales"
                 >
                   {resettingId === table.id ? (
@@ -343,7 +621,7 @@ export default function TablesManagementPage() {
       {/* 4. Modal de Plantilla Imprimible de Mesa */}
       {printingTable && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
+          <div className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
                 Plantilla para Imprimir
@@ -417,7 +695,7 @@ export default function TablesManagementPage() {
       {/* 5. Modal de Crear Mesa */}
       {isNewTableOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
                 <QrCode className="w-4 h-4 text-purple-400" />
@@ -432,8 +710,9 @@ export default function TablesManagementPage() {
             </div>
 
             {formError && (
-              <div className="p-2.5 rounded-xl bg-red-950/80 border border-red-800 text-red-300 text-xs">
-                {formError}
+              <div className="p-2.5 rounded-xl bg-red-950/80 border border-red-800 text-red-300 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{formError}</span>
               </div>
             )}
 
@@ -462,7 +741,7 @@ export default function TablesManagementPage() {
                     required
                     value={newNumber}
                     onChange={(e) => setNewNumber(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500 font-mono"
                   />
                 </div>
                 <div>
@@ -472,9 +751,24 @@ export default function TablesManagementPage() {
                     min={1}
                     value={newCapacity}
                     onChange={(e) => setNewCapacity(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500 font-mono"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-zinc-300 font-medium mb-1">Zona del Local</label>
+                <select
+                  value={newZone}
+                  onChange={(e) => setNewZone(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                >
+                  <option value="MAIN">Zona Principal / Salón General</option>
+                  <option value="DJ">Cerca a Cabina DJ</option>
+                  <option value="KARAOKE">Zona Karaoke</option>
+                  <option value="VIP">Box VIP / Reservados</option>
+                  <option value="TERRAZA">Terraza / Exteriores</option>
+                </select>
               </div>
 
               <div>
@@ -493,7 +787,7 @@ export default function TablesManagementPage() {
                 <button
                   type="submit"
                   disabled={creating}
-                  className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50 shadow-lg shadow-purple-600/20"
                 >
                   {creating ? "Generando QR..." : "Crear Mesa y Generar QR"}
                 </button>
@@ -506,6 +800,255 @@ export default function TablesManagementPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Modal de Edición de Mesa & Opciones de QR */}
+      {editingTable && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Pencil className="w-4 h-4 text-purple-400" />
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    Editar {editingTable.label} (#{editingTable.number})
+                  </h3>
+                  <p className="text-[10px] text-zinc-400">
+                    Modifica los parámetros de la mesa y gestiona su código QR
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingTable(null)}
+                className="text-zinc-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {editError && (
+              <div className="p-3 rounded-2xl bg-red-950/80 border border-red-800 text-red-300 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{editError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-zinc-300 font-medium mb-1">Local / Sede *</label>
+                <select
+                  value={editVenueId}
+                  onChange={(e) => setEditVenueId(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                >
+                  {venues.map(([id, name]) => (
+                    <option key={id} value={id}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-300 font-medium mb-1">Número de Mesa *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    required
+                    value={editNumber}
+                    onChange={(e) => setEditNumber(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-300 font-medium mb-1">Capacidad (Personas) *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    required
+                    value={editCapacity}
+                    onChange={(e) => setEditCapacity(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-zinc-300 font-medium mb-1">Etiqueta / Nombre Visible *</label>
+                <input
+                  type="text"
+                  required
+                  value={editLabel}
+                  onChange={(e) => setEditLabel(e.target.value)}
+                  placeholder="Ej: Mesa 12 (Terraza) / Box VIP A"
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-300 font-medium mb-1">Zona del Local</label>
+                  <select
+                    value={editZone}
+                    onChange={(e) => setEditZone(e.target.value)}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="MAIN">Zona Principal / General</option>
+                    <option value="DJ">Cerca a Cabina DJ</option>
+                    <option value="KARAOKE">Zona Karaoke</option>
+                    <option value="VIP">Box VIP / Reservados</option>
+                    <option value="TERRAZA">Terraza / Exteriores</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-zinc-300 font-medium mb-1">Estado de la Mesa</label>
+                  <select
+                    value={editActive ? "ACTIVE" : "INACTIVE"}
+                    onChange={(e) => setEditActive(e.target.value === "ACTIVE")}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="ACTIVE">🟢 Activa (Permite escaneos y pedidos)</option>
+                    <option value="INACTIVE">🔴 Inactiva (En mantenimiento / Bloqueada)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* SECCIÓN ESPECIAL: GESTIÓN DE CÓDIGO QR Y REGENERACIÓN */}
+              <div className="p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="w-4 h-4 text-purple-400" />
+                    <span className="font-bold text-white text-xs">Seguridad del Código QR</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-500 truncate max-w-[140px]" title={editingTable.qrToken}>
+                    Token: {editingTable.qrToken}
+                  </span>
+                </div>
+
+                <label className="flex items-start gap-2.5 p-2 rounded-xl bg-zinc-900/80 hover:bg-zinc-900 border border-zinc-800 cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={editRegenerateQr}
+                    onChange={(e) => setEditRegenerateQr(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 accent-purple-500 rounded cursor-pointer shrink-0"
+                  />
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                      <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                      Regenerar nuevo Código QR (Rotación de seguridad)
+                    </span>
+                    <p className="text-[10px] text-zinc-400 leading-relaxed">
+                      Genera una clave criptográfica completamente nueva. <strong>Invalida de inmediato el QR impreso anterior</strong> y cierra sesiones huérfanas. Útil si el QR fue fotografiado y se comparten pedidos no autorizados desde fuera del local.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 shadow-lg shadow-purple-600/25 flex items-center justify-center gap-1.5"
+                >
+                  {savingEdit ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Guardando Cambios...</span>
+                    </>
+                  ) : (
+                    <span>Guardar Cambios</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingTable(null)}
+                  className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 7. Modal de Confirmación de Eliminación de Mesa */}
+      {deletingTable && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-zinc-900 border border-red-900/60 rounded-3xl p-6 space-y-4 shadow-2xl shadow-red-950/40">
+            <div className="flex items-center gap-3 border-b border-zinc-800 pb-3">
+              <div className="p-2.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white">¿Eliminar Mesa y QR?</h3>
+                <p className="text-xs text-zinc-400">Esta acción no se puede deshacer</p>
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="p-3 rounded-2xl bg-red-950/80 border border-red-800 text-red-300 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{deleteError}</span>
+              </div>
+            )}
+
+            <div className="space-y-3 text-xs text-zinc-300">
+              <p>
+                Estás a punto de eliminar permanentemente la mesa{" "}
+                <strong className="text-white">
+                  &quot;{deletingTable.label}&quot; (Mesa #{deletingTable.number})
+                </strong>{" "}
+                del local <strong className="text-white">{deletingTable.venue.name}</strong>.
+              </p>
+
+              <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-2 text-[11px]">
+                <div className="flex items-start gap-2 text-amber-300">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+                  <span>
+                    <strong>El código QR se invalidará inmediatamente:</strong> Si algún cliente escanea el QR físico impreso en la mesa, verá un mensaje informando que la mesa ya no existe.
+                  </span>
+                </div>
+                <div className="flex items-start gap-2 text-zinc-400">
+                  <ShieldAlert className="w-3.5 h-3.5 shrink-0 mt-0.5 text-zinc-500" />
+                  <span>
+                    Se cancelarán pedidos huérfanos pendientes o aceptados vinculados a esta mesa.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={handleDeleteTable}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 shadow-lg shadow-red-600/30 flex items-center justify-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Eliminando mesa y QR...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Sí, Eliminar Mesa y QR</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeletingTable(null)}
+                className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}
