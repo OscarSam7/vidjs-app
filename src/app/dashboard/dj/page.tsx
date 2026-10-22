@@ -1002,8 +1002,19 @@ export default function DjBoothPage() {
   };
 
   // Sincronización de Play/Pause desde la consola con la pantalla de TV (BroadcastChannel 0ms + SSE Remoto)
-  const handlePlaybackControl = (action: "PLAY" | "PAUSE", deckId?: "A" | "B") => {
-    setIsPlaying(action === "PLAY");
+  const handlePlaybackControl = (
+    action: "PLAY" | "PAUSE" | "SEEK",
+    deckId?: "A" | "B",
+    details?: {
+      currentTime?: number;
+      duration?: number;
+      trackTitle?: string;
+      trackArtist?: string;
+      videoId?: string | null;
+    }
+  ) => {
+    if (action === "PLAY") setIsPlaying(true);
+    if (action === "PAUSE") setIsPlaying(false);
 
     const eventId = selectedEventId || data?.event?.id;
     if (!eventId) return;
@@ -1012,7 +1023,17 @@ export default function DjBoothPage() {
     if (typeof window !== "undefined") {
       try {
         const channel = new BroadcastChannel(`vidjs_karaoke_sync_${eventId}`);
-        channel.postMessage({ type: "PLAYBACK_CONTROL", action, deckId, timestamp: Date.now() });
+        channel.postMessage({
+          type: "PLAYBACK_CONTROL",
+          action,
+          deckId,
+          seconds: details?.currentTime,
+          duration: details?.duration,
+          trackTitle: details?.trackTitle,
+          trackArtist: details?.trackArtist,
+          videoId: details?.videoId,
+          timestamp: Date.now(),
+        });
         channel.close();
       } catch {}
     }
@@ -1025,6 +1046,11 @@ export default function DjBoothPage() {
         eventId,
         action,
         deckId,
+        seconds: details?.currentTime,
+        duration: details?.duration,
+        trackTitle: details?.trackTitle,
+        trackArtist: details?.trackArtist,
+        videoId: details?.videoId,
       }),
     }).catch(() => {});
   };

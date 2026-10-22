@@ -78,6 +78,14 @@ export interface PendingDeckLoad {
   timestamp: number;
 }
 
+export interface PlaybackSyncDetails {
+  currentTime?: number;
+  duration?: number;
+  trackTitle?: string;
+  trackArtist?: string;
+  videoId?: string | null;
+}
+
 interface VirtualDjConsoleProps {
   currentPlaying: QueueEntryData | null;
   queue: QueueEntryData[];
@@ -89,7 +97,11 @@ interface VirtualDjConsoleProps {
   setCrossfaderValue: (val: number) => void;
   pendingDeckLoad?: PendingDeckLoad | null;
   onDeckLoaded?: () => void;
-  onPlaybackControl?: (action: "PLAY" | "PAUSE", deckId?: "A" | "B") => void;
+  onPlaybackControl?: (
+    action: "PLAY" | "PAUSE" | "SEEK",
+    deckId?: "A" | "B",
+    details?: PlaybackSyncDetails
+  ) => void;
 }
 
 interface DeckPlayerProps {
@@ -1248,6 +1260,45 @@ export default function VirtualDjConsole({
     showFeedback("success", `📁 Pista local cargada en Deck B: "${cleanName}"`);
   };
 
+  // Helper para generar metadata enriquecida de sincronización con la pantalla de TV
+  const getDeckSyncDetails = useCallback(
+    (deck: "A" | "B"): PlaybackSyncDetails => {
+      if (deck === "A") {
+        const title = trackA?.song?.title || trackA?.customTitle || localAudioNameA || "Pista Deck A";
+        const artist = trackA?.song?.artist?.name || trackA?.customArtist || "DJ Mix";
+        return {
+          currentTime: playbackSecondsA,
+          duration: trackADuration,
+          trackTitle: title,
+          trackArtist: artist,
+          videoId: videoIdA,
+        };
+      } else {
+        const title = trackB?.song?.title || trackB?.customTitle || localAudioNameB || "Pista Deck B";
+        const artist = trackB?.song?.artist?.name || trackB?.customArtist || "DJ Mix";
+        return {
+          currentTime: playbackSecondsB,
+          duration: trackBDuration,
+          trackTitle: title,
+          trackArtist: artist,
+          videoId: videoIdB,
+        };
+      }
+    },
+    [
+      trackA,
+      trackB,
+      localAudioNameA,
+      localAudioNameB,
+      playbackSecondsA,
+      playbackSecondsB,
+      trackADuration,
+      trackBDuration,
+      videoIdA,
+      videoIdB,
+    ]
+  );
+
   // Play / Pause toggles con soporte dual Web Audio / YouTube y desplazamiento de crossfader
   const togglePlayA = () => {
     webDjEngine.unlock();
@@ -1263,11 +1314,11 @@ export default function VirtualDjConsole({
       if (isPlayingA) {
         audioRefA.current.pause();
         setIsPlayingA(false);
-        onPlaybackControl?.("PAUSE", "A");
+        onPlaybackControl?.("PAUSE", "A", getDeckSyncDetails("A"));
       } else {
         audioRefA.current.play().catch(() => {});
         setIsPlayingA(true);
-        onPlaybackControl?.("PLAY", "A");
+        onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
         if (!isPlayingB) {
           animateCrossfaderTo(-100, 500);
         }
@@ -1278,12 +1329,12 @@ export default function VirtualDjConsole({
     if (isPlayingA) {
       if (iframeRefA.current) sendPlayerCommand(iframeRefA.current, "pauseVideo");
       setIsPlayingA(false);
-      onPlaybackControl?.("PAUSE", "A");
+      onPlaybackControl?.("PAUSE", "A", getDeckSyncDetails("A"));
     } else {
       unlockAudioA();
       if (iframeRefA.current) sendPlayerCommand(iframeRefA.current, "playVideo");
       setIsPlayingA(true);
-      onPlaybackControl?.("PLAY", "A");
+      onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
       if (!isPlayingB) {
         animateCrossfaderTo(-100, 500);
       }
@@ -1304,11 +1355,11 @@ export default function VirtualDjConsole({
       if (isPlayingB) {
         audioRefB.current.pause();
         setIsPlayingB(false);
-        onPlaybackControl?.("PAUSE", "B");
+        onPlaybackControl?.("PAUSE", "B", getDeckSyncDetails("B"));
       } else {
         audioRefB.current.play().catch(() => {});
         setIsPlayingB(true);
-        onPlaybackControl?.("PLAY", "B");
+        onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
         if (!isPlayingA) {
           animateCrossfaderTo(100, 500);
         }
@@ -1319,17 +1370,48 @@ export default function VirtualDjConsole({
     if (isPlayingB) {
       if (iframeRefB.current) sendPlayerCommand(iframeRefB.current, "pauseVideo");
       setIsPlayingB(false);
-      onPlaybackControl?.("PAUSE", "B");
+      onPlaybackControl?.("PAUSE", "B", getDeckSyncDetails("B"));
     } else {
       unlockAudioB();
       if (iframeRefB.current) sendPlayerCommand(iframeRefB.current, "playVideo");
       setIsPlayingB(true);
-      onPlaybackControl?.("PLAY", "B");
+      onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
       if (!isPlayingA) {
         animateCrossfaderTo(100, 500);
       }
     }
   };
+
+  // Atajo de teclado: Espacio para Play / Pausa en la bandeja activa
+  useEffect(() => {
+    const handleSpaceKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isInput =
+        activeEl &&
+        (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT");
+      if (isInput) return;
+
+      if (e.code === "Space" || e.key === " ") {
+        e.preventDefault();
+        if (isPlayingA) {
+          togglePlayA();
+        } else if (isPlayingB) {
+          togglePlayB();
+        } else {
+          if (crossfaderValue <= 0 && trackA) {
+            togglePlayA();
+          } else if (trackB) {
+            togglePlayB();
+          } else if (trackA) {
+            togglePlayA();
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleSpaceKeyDown);
+    return () => window.removeEventListener("keydown", handleSpaceKeyDown);
+  }, [isPlayingA, isPlayingB, trackA, trackB, crossfaderValue, togglePlayA, togglePlayB]);
 
   // Actualizar MediaSession para control y persistencia en segundo plano
   useEffect(() => {
@@ -1403,9 +1485,15 @@ export default function VirtualDjConsole({
   useEffect(() => {
     if (prevIsAnyPlayingRef.current !== isAnyPlaying) {
       prevIsAnyPlayingRef.current = isAnyPlaying;
-      onPlaybackControl?.(isAnyPlaying ? "PLAY" : "PAUSE");
+      if (isAnyPlaying) {
+        const activeDeck = isPlayingA ? "A" : "B";
+        onPlaybackControl?.("PLAY", activeDeck, getDeckSyncDetails(activeDeck));
+      } else {
+        const lastDeck = !isPlayingA && isPlayingB ? "B" : "A";
+        onPlaybackControl?.("PAUSE", lastDeck, getDeckSyncDetails(lastDeck));
+      }
     }
-  }, [isAnyPlaying, onPlaybackControl]);
+  }, [isAnyPlaying, isPlayingA, isPlayingB, onPlaybackControl, getDeckSyncDetails]);
 
   // Formato mm:ss
   const formatTime = (secs: number) => {
@@ -1782,11 +1870,12 @@ export default function VirtualDjConsole({
         sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
         sendPlayerCommand(iframeRefB.current, "playVideo");
       }
-      onPlaybackControl?.("PLAY", "B");
+      onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
       animateCrossfaderTo(100, 600);
       setEngancheDirection("B_TO_A");
       showFeedback("info", "🔄 Pista de Deck A finalizada. Crossfader desplazado a Deck B");
     } else {
+      onPlaybackControl?.("PAUSE", "A", getDeckSyncDetails("A"));
       showFeedback("info", "🏁 Pista de Deck A finalizada. Bandeja A vaciada.");
     }
 
@@ -1806,6 +1895,7 @@ export default function VirtualDjConsole({
     deckModeB,
     effectiveVolB,
     onPlaybackControl,
+    getDeckSyncDetails,
     animateCrossfaderTo,
     showFeedback,
     unlockAudioB,
@@ -1835,11 +1925,12 @@ export default function VirtualDjConsole({
         sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
         sendPlayerCommand(iframeRefA.current, "playVideo");
       }
-      onPlaybackControl?.("PLAY", "A");
+      onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
       animateCrossfaderTo(-100, 600);
       setEngancheDirection("A_TO_B");
       showFeedback("info", "🔄 Pista de Deck B finalizada. Crossfader desplazado a Deck A");
     } else {
+      onPlaybackControl?.("PAUSE", "B", getDeckSyncDetails("B"));
       showFeedback("info", "🏁 Pista de Deck B finalizada. Bandeja B vaciada.");
     }
 
@@ -1857,6 +1948,7 @@ export default function VirtualDjConsole({
     deckModeA,
     effectiveVolA,
     onPlaybackControl,
+    getDeckSyncDetails,
     animateCrossfaderTo,
     showFeedback,
     unlockAudioA,
@@ -2854,7 +2946,7 @@ export default function VirtualDjConsole({
     if (deck === "A") {
       if (isPlayingA) {
         setIsPlayingA(false);
-        onPlaybackControl?.("PAUSE", "A");
+        onPlaybackControl?.("PAUSE", "A", { ...getDeckSyncDetails("A"), currentTime: cuePointA });
         setPlaybackSecondsA(cuePointA);
         sendPlayerCommand(iframeRefA.current, "pauseVideo");
         sendPlayerCommand(iframeRefA.current, "seekTo", [cuePointA, true]);
@@ -2865,7 +2957,7 @@ export default function VirtualDjConsole({
     } else {
       if (isPlayingB) {
         setIsPlayingB(false);
-        onPlaybackControl?.("PAUSE", "B");
+        onPlaybackControl?.("PAUSE", "B", { ...getDeckSyncDetails("B"), currentTime: cuePointB });
         setPlaybackSecondsB(cuePointB);
         sendPlayerCommand(iframeRefB.current, "pauseVideo");
         sendPlayerCommand(iframeRefB.current, "seekTo", [cuePointB, true]);
@@ -2883,11 +2975,21 @@ export default function VirtualDjConsole({
     if (deck === "A") {
       const targetTime = hotCuesA[cueNum] ?? 0;
       setPlaybackSecondsA(targetTime);
-      sendPlayerCommand(iframeRefA.current, "seekTo", [targetTime, true]);
+      if (deckModeA === "native" && audioRefA.current) {
+        audioRefA.current.currentTime = targetTime;
+      } else if (iframeRefA.current) {
+        sendPlayerCommand(iframeRefA.current, "seekTo", [targetTime, true]);
+      }
+      onPlaybackControl?.("SEEK", "A", { ...getDeckSyncDetails("A"), currentTime: targetTime });
     } else {
       const targetTime = hotCuesB[cueNum] ?? 0;
       setPlaybackSecondsB(targetTime);
-      sendPlayerCommand(iframeRefB.current, "seekTo", [targetTime, true]);
+      if (deckModeB === "native" && audioRefB.current) {
+        audioRefB.current.currentTime = targetTime;
+      } else if (iframeRefB.current) {
+        sendPlayerCommand(iframeRefB.current, "seekTo", [targetTime, true]);
+      }
+      onPlaybackControl?.("SEEK", "B", { ...getDeckSyncDetails("B"), currentTime: targetTime });
     }
   };
 
@@ -3071,16 +3173,32 @@ export default function VirtualDjConsole({
         {/* Formas de Onda Duales Estilo VirtualDJ */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 relative">
           {/* Waveform Deck A */}
-          <div className="h-12 bg-gradient-to-r from-purple-950/40 via-purple-900/30 to-zinc-950 rounded-xl border border-purple-900/50 relative overflow-hidden flex items-center px-2">
+          <div
+            onClick={(e) => {
+              if (!trackA) return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+              const targetSec = Math.round(ratio * trackADuration);
+              setPlaybackSecondsA(targetSec);
+              if (deckModeA === "native" && audioRefA.current) {
+                audioRefA.current.currentTime = targetSec;
+              } else if (iframeRefA.current) {
+                sendPlayerCommand(iframeRefA.current, "seekTo", [targetSec, true]);
+              }
+              onPlaybackControl?.("SEEK", "A", { ...getDeckSyncDetails("A"), currentTime: targetSec });
+            }}
+            className="h-12 bg-gradient-to-r from-purple-950/40 via-purple-900/30 to-zinc-950 rounded-xl border border-purple-900/50 relative overflow-hidden flex items-center px-2 cursor-pointer hover:border-purple-500/70 transition-all select-none"
+            title="Click para saltar a esta posición en la pista (Seek)"
+          >
             {/* Playhead vertical */}
             <div
-              className="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_white] z-20 transition-all duration-300"
+              className="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_white] z-20 transition-all duration-300 pointer-events-none"
               style={{
                 left: `${Math.min(100, (playbackSecondsA / trackADuration) * 100)}%`,
               }}
             />
             {/* Grilla de beats animados */}
-            <div className="w-full flex items-center justify-between gap-1 opacity-80">
+            <div className="w-full flex items-center justify-between gap-1 opacity-80 pointer-events-none">
               {Array.from({ length: 48 }).map((_, i) => {
                 const height = 15 + Math.sin(i * 0.4) * 20 + Math.cos(i * 0.8) * 10;
                 const isKick = i % 4 === 0;
@@ -3101,7 +3219,7 @@ export default function VirtualDjConsole({
             {Object.entries(hotCuesA).map(([cue, sec]) => (
               <div
                 key={cue}
-                className="absolute top-1 text-[9px] font-black px-1 rounded bg-amber-400 text-black z-30"
+                className="absolute top-1 text-[9px] font-black px-1 rounded bg-amber-400 text-black z-30 pointer-events-none"
                 style={{ left: `${(sec / trackADuration) * 100}%` }}
               >
                 C{cue}
@@ -3110,16 +3228,32 @@ export default function VirtualDjConsole({
           </div>
 
           {/* Waveform Deck B */}
-          <div className="h-12 bg-gradient-to-r from-cyan-950/40 via-cyan-900/30 to-zinc-950 rounded-xl border border-cyan-900/50 relative overflow-hidden flex items-center px-2">
+          <div
+            onClick={(e) => {
+              if (!trackB) return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+              const targetSec = Math.round(ratio * trackBDuration);
+              setPlaybackSecondsB(targetSec);
+              if (deckModeB === "native" && audioRefB.current) {
+                audioRefB.current.currentTime = targetSec;
+              } else if (iframeRefB.current) {
+                sendPlayerCommand(iframeRefB.current, "seekTo", [targetSec, true]);
+              }
+              onPlaybackControl?.("SEEK", "B", { ...getDeckSyncDetails("B"), currentTime: targetSec });
+            }}
+            className="h-12 bg-gradient-to-r from-cyan-950/40 via-cyan-900/30 to-zinc-950 rounded-xl border border-cyan-900/50 relative overflow-hidden flex items-center px-2 cursor-pointer hover:border-cyan-500/70 transition-all select-none"
+            title="Click para saltar a esta posición en la pista (Seek)"
+          >
             {/* Playhead vertical */}
             <div
-              className="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_white] z-20 transition-all duration-300"
+              className="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_white] z-20 transition-all duration-300 pointer-events-none"
               style={{
                 left: `${Math.min(100, (playbackSecondsB / trackBDuration) * 100)}%`,
               }}
             />
             {/* Grilla de beats animados */}
-            <div className="w-full flex items-center justify-between gap-1 opacity-80">
+            <div className="w-full flex items-center justify-between gap-1 opacity-80 pointer-events-none">
               {Array.from({ length: 48 }).map((_, i) => {
                 const height = 15 + Math.cos(i * 0.4) * 20 + Math.sin(i * 0.7) * 12;
                 const isKick = i % 4 === 0;
@@ -3140,7 +3274,7 @@ export default function VirtualDjConsole({
             {Object.entries(hotCuesB).map(([cue, sec]) => (
               <div
                 key={cue}
-                className="absolute top-1 text-[9px] font-black px-1 rounded bg-amber-400 text-black z-30"
+                className="absolute top-1 text-[9px] font-black px-1 rounded bg-amber-400 text-black z-30 pointer-events-none"
                 style={{ left: `${(sec / trackBDuration) * 100}%` }}
               >
                 C{cue}

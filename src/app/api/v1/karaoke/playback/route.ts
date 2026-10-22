@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { eventId, action, seconds, deckId } = body;
+    const { eventId, action, seconds, deckId, duration, trackTitle, trackArtist, videoId } = body;
 
     if (!eventId || !action) {
       return NextResponse.json(
@@ -24,6 +24,10 @@ export async function POST(req: NextRequest) {
     const payload = {
       action: action as "PLAY" | "PAUSE" | "SEEK",
       seconds: typeof seconds === "number" ? seconds : undefined,
+      duration: typeof duration === "number" ? duration : undefined,
+      trackTitle: typeof trackTitle === "string" ? trackTitle : undefined,
+      trackArtist: typeof trackArtist === "string" ? trackArtist : undefined,
+      videoId: typeof videoId === "string" ? videoId : undefined,
       deckId: deckId || null,
       timestamp: new Date().toISOString(),
     };

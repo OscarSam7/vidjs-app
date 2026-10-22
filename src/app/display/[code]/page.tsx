@@ -201,8 +201,14 @@ export default function PublicDisplayScreenPage({
     }
   }, []);
 
-  // Control remoto de YouTube IFrame (Play, Pause, Unmute, Seek)
+  // Control remoto de YouTube IFrame (Play, Pause, Unmute, Seek) y estado TV
   const sendYouTubeCommand = (func: string, args: any[] = []) => {
+    if (func === "playVideo") {
+      setIsTvPaused(false);
+    } else if (func === "pauseVideo") {
+      setIsTvPaused(true);
+    }
+
     if (!karaokeIframeRef.current?.contentWindow) return;
     try {
       karaokeIframeRef.current.contentWindow.postMessage(
@@ -215,7 +221,6 @@ export default function PublicDisplayScreenPage({
       );
 
       if (func === "playVideo") {
-        setIsTvPaused(false);
         // Desmutear y asegurar arranque confiable tras 300ms
         setTimeout(() => {
           if (karaokeIframeRef.current?.contentWindow) {
@@ -229,8 +234,6 @@ export default function PublicDisplayScreenPage({
             );
           }
         }, 300);
-      } else if (func === "pauseVideo") {
-        setIsTvPaused(true);
       }
     } catch (err) {
       console.warn("Error enviando comando a YouTube IFrame en TV:", err);
@@ -360,10 +363,49 @@ export default function PublicDisplayScreenPage({
         }
       } else if (type === "KARAOKE_PLAYBACK_CONTROL") {
         if (payload?.action === "PLAY") {
+          setIsTvPaused(false);
           sendYouTubeCommand("playVideo");
+          if (typeof payload?.seconds === "number") {
+            setElapsedSeconds(payload.seconds);
+          }
+          if (payload?.videoId && payload.videoId !== karaokeVideoId) {
+            setKaraokeVideoId(payload.videoId);
+          }
+          if (payload?.trackTitle) {
+            setData((prev) => {
+              if (!prev) return prev;
+              if (prev.currentPlaying) return prev;
+              return {
+                ...prev,
+                currentPlaying: {
+                  id: "live_dj_active",
+                  status: "PLAYING",
+                  updatedAt: new Date().toISOString(),
+                  youtubeVideoId: payload.videoId || null,
+                  song: {
+                    title: payload.trackTitle,
+                    artist: payload.trackArtist || "DJ Mix",
+                    genre: "General",
+                    durationSeconds: payload.duration || 210,
+                    bpm: null,
+                    key: null,
+                  },
+                  table: { id: "booth", number: 0, label: "Cabina DJ" },
+                  guestName: null,
+                  notes: null,
+                  isFastPass: false,
+                },
+              };
+            });
+          }
         } else if (payload?.action === "PAUSE") {
+          setIsTvPaused(true);
           sendYouTubeCommand("pauseVideo");
+          if (typeof payload?.seconds === "number") {
+            setElapsedSeconds(payload.seconds);
+          }
         } else if (payload?.action === "SEEK" && typeof payload?.seconds === "number") {
+          setElapsedSeconds(payload.seconds);
           sendYouTubeCommand("seekTo", [payload.seconds, true]);
         }
       } else if (
@@ -388,13 +430,52 @@ export default function PublicDisplayScreenPage({
     try {
       const channel = new BroadcastChannel(`vidjs_karaoke_sync_${data.event.id}`);
       channel.onmessage = (e) => {
-        const { type, action, seconds } = e.data || {};
+        const { type, action, seconds, duration, trackTitle, trackArtist, videoId } = e.data || {};
         if (type === "PLAYBACK_CONTROL") {
           if (action === "PLAY") {
+            setIsTvPaused(false);
             sendYouTubeCommand("playVideo");
+            if (typeof seconds === "number") {
+              setElapsedSeconds(seconds);
+            }
+            if (videoId && videoId !== karaokeVideoId) {
+              setKaraokeVideoId(videoId);
+            }
+            if (trackTitle) {
+              setData((prev) => {
+                if (!prev) return prev;
+                if (prev.currentPlaying) return prev;
+                return {
+                  ...prev,
+                  currentPlaying: {
+                    id: "live_dj_active",
+                    status: "PLAYING",
+                    updatedAt: new Date().toISOString(),
+                    youtubeVideoId: videoId || null,
+                    song: {
+                      title: trackTitle,
+                      artist: trackArtist || "DJ Mix",
+                      genre: "General",
+                      durationSeconds: duration || 210,
+                      bpm: null,
+                      key: null,
+                    },
+                    table: { id: "booth", number: 0, label: "Cabina DJ" },
+                    guestName: null,
+                    notes: null,
+                    isFastPass: false,
+                  },
+                };
+              });
+            }
           } else if (action === "PAUSE") {
+            setIsTvPaused(true);
             sendYouTubeCommand("pauseVideo");
+            if (typeof seconds === "number") {
+              setElapsedSeconds(seconds);
+            }
           } else if (action === "SEEK" && typeof seconds === "number") {
+            setElapsedSeconds(seconds);
             sendYouTubeCommand("seekTo", [seconds, true]);
           }
         }
@@ -405,7 +486,7 @@ export default function PublicDisplayScreenPage({
     } catch {
       // Ignorar si BroadcastChannel no está disponible en este entorno
     }
-  }, [data?.event?.id]);
+  }, [data?.event?.id, karaokeVideoId]);
 
   // Temporizador para finalizar el aplausómetro
   useEffect(() => {
@@ -466,9 +547,9 @@ export default function PublicDisplayScreenPage({
     }
   }, [data?.policy?.photoFitMode]);
 
-  // Temporizador visual de progreso
+  // Temporizador visual de progreso (se congela en tiempo real cuando la cabina DJ pausa)
   useEffect(() => {
-    if (!data?.currentPlaying) return;
+    if (!data?.currentPlaying || isTvPaused) return;
     const timer = setInterval(() => {
       setElapsedSeconds((prev) => {
         const max = data.currentPlaying?.song.durationSeconds || 210;
@@ -476,7 +557,7 @@ export default function PublicDisplayScreenPage({
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [data?.currentPlaying]);
+  }, [data?.currentPlaying, isTvPaused]);
 
   // Auto-ocultar cursor y controles en Smart TVs
   useEffect(() => {
@@ -931,13 +1012,16 @@ export default function PublicDisplayScreenPage({
               {/* Vinilo Giratorio Proporcional a la TV (Col 4) */}
               <div className="lg:col-span-4 flex justify-center">
               <div className="relative">
-                <div className="w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-full bg-black border-6 sm:border-8 border-zinc-900 shadow-2xl flex items-center justify-center animate-spin [animation-duration:5s]">
+                <div
+                  className="w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-full bg-black border-6 sm:border-8 border-zinc-900 shadow-2xl flex items-center justify-center animate-spin [animation-duration:5s] transition-all"
+                  style={{ animationPlayState: isTvPaused ? "paused" : "running" }}
+                >
                   {/* Surcos del Vinilo */}
                   <div className="w-38 h-38 sm:w-46 sm:h-46 lg:w-52 lg:h-52 rounded-full border border-zinc-800 flex items-center justify-center">
                     <div className="w-28 h-28 sm:w-34 sm:h-34 lg:w-40 lg:h-40 rounded-full border border-zinc-850 flex items-center justify-center">
                       {/* Centro del Disco con Logo */}
-                      <div className="w-18 h-18 sm:w-22 sm:h-22 lg:w-26 lg:h-26 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 border-2 sm:border-4 border-white flex flex-col items-center justify-center text-center p-1.5">
-                        <Disc3 className="w-5 h-5 text-white" />
+                      <div className="w-18 h-18 sm:w-22 sm:h-22 lg:w-26 lg:h-26 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 border-2 sm:border-4 border-white flex flex-col items-center justify-center text-center p-1.5 shadow-inner">
+                        <Disc3 className={`w-5 h-5 text-white ${!isTvPaused ? "animate-pulse" : ""}`} />
                         <span className="text-[7px] font-black text-white mt-0.5">VIDJS</span>
                         <div className="w-2 h-2 rounded-full bg-black mt-0.5" />
                       </div>
@@ -945,8 +1029,22 @@ export default function PublicDisplayScreenPage({
                   </div>
                 </div>
 
+                {/* Badge Flotante sobre el Vinilo si la Cabina DJ Pausó la Música */}
+                {isTvPaused && (
+                  <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none animate-fadeIn">
+                    <div className="px-3.5 py-1.5 rounded-full bg-black/90 border-2 border-amber-500/80 text-amber-300 text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-2xl shadow-amber-950/80 backdrop-blur-xs">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                      <span>⏸ EN PAUSA</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Glow decorativo */}
-                <div className="absolute inset-0 bg-purple-600/20 rounded-full blur-2xl -z-10" />
+                <div
+                  className={`absolute inset-0 rounded-full blur-2xl -z-10 transition-opacity duration-500 ${
+                    isTvPaused ? "bg-amber-600/10 opacity-40" : "bg-purple-600/25 opacity-100"
+                  }`}
+                />
               </div>
             </div>
 
@@ -954,7 +1052,12 @@ export default function PublicDisplayScreenPage({
             <div className="lg:col-span-8 space-y-3 sm:space-y-4 text-center lg:text-left">
               {/* Badge Al Aire o Celebración */}
               <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap">
-                {isCelebration ? (
+                {isTvPaused ? (
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-black tracking-widest uppercase border bg-amber-950/80 text-amber-300 border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.35)] animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                    <span>⏸ EN PAUSA • CABINA DJ</span>
+                  </div>
+                ) : isCelebration ? (
                   <div className="px-3 py-1.5 rounded-2xl bg-gradient-to-r from-pink-600 via-purple-600 to-amber-500 text-white font-black text-xs sm:text-sm tracking-widest uppercase flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(236,72,153,0.5)] animate-bounce">
                     <span>🎂</span>
                     <span>¡MOMENTO DE CELEBRACIÓN EN EL LOCAL!</span>
@@ -1033,10 +1136,12 @@ export default function PublicDisplayScreenPage({
                 {[45, 80, 60, 95, 30, 75, 90, 50, 85, 40, 70, 100, 55, 90, 65, 80, 45, 95, 60, 85, 50, 75, 90, 35].map((height, i) => (
                   <div
                     key={i}
-                    className="w-1.5 sm:w-2 rounded-t-full bg-gradient-to-t from-purple-600 via-fuchsia-500 to-cyan-400 animate-pulse"
+                    className="w-1.5 sm:w-2 rounded-t-full bg-gradient-to-t from-purple-600 via-fuchsia-500 to-cyan-400 animate-pulse transition-all duration-300"
                     style={{
                       height: `${height}%`,
                       animationDuration: `${0.4 + (i % 5) * 0.15}s`,
+                      animationPlayState: isTvPaused ? "paused" : "running",
+                      opacity: isTvPaused ? 0.3 : 1,
                     }}
                   />
                 ))}
@@ -1046,12 +1151,16 @@ export default function PublicDisplayScreenPage({
               <div className="space-y-1 max-w-xl mx-auto lg:mx-0">
                 <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
                   <div
-                    className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 transition-all duration-1000"
+                    className={`h-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 transition-all duration-1000 ${
+                      isTvPaused ? "opacity-60" : "opacity-100"
+                    }`}
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
                 <div className="flex justify-between text-[11px] font-mono text-zinc-400">
-                  <span>{formatTime(elapsedSeconds)}</span>
+                  <span className={isTvPaused ? "text-amber-400 font-bold" : ""}>
+                    {formatTime(elapsedSeconds)} {isTvPaused && "(En Pausa)"}
+                  </span>
                   <span>{formatTime(duration)}</span>
                 </div>
               </div>
