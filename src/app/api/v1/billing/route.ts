@@ -6,8 +6,8 @@ import { handleApiError } from "@/lib/errors";
 
 export async function GET() {
   try {
-    // 1. Autorización: Se requiere rol OWNER o SUPER_ADMIN
-    await requireRole(["OWNER", "SUPER_ADMIN"]);
+    // 1. Autorización: Se requiere rol OWNER, MANAGER o SUPER_ADMIN
+    await requireRole(["OWNER", "MANAGER", "SUPER_ADMIN"]);
     const { tenantId } = await requireTenantContext();
 
     // 2. Asegurar que los planes PERSONAL y ENTERPRISE existan en la base de datos

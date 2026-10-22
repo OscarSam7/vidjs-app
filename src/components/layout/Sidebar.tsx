@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import {
   LayoutDashboard,
   Building2,
@@ -60,8 +61,8 @@ export function Sidebar({
     { name: "Mesas & Códigos QR", icon: QrCode, href: "/dashboard/tables", badge: "11", active: pathname === "/dashboard/tables" },
     { name: "Marca & White-Label", icon: Palette, href: "/dashboard/branding", active: pathname === "/dashboard/branding", tag: "Nuevo" },
     { name: "Suscripción & Plan", icon: CreditCard, href: "/dashboard/subscription", active: pathname === "/dashboard/subscription" },
-    { name: "Auditoría & Logs", icon: ShieldCheck, href: "#audit" },
-    { name: "Configuración", icon: Settings, href: "#settings" },
+    { name: "Auditoría & Logs", icon: ShieldCheck, href: "/dashboard/audit", active: pathname === "/dashboard/audit" },
+    { name: "Configuración", icon: Settings, href: "/dashboard/settings", active: pathname === "/dashboard/settings" },
   ];
 
   const handleItemClick = (e: React.MouseEvent, item: MenuItem, isMobile = false) => {
@@ -166,7 +167,7 @@ export function Sidebar({
             const Icon = item.icon;
             if (collapsed) {
               return (
-                <a
+                <Link
                   key={item.name}
                   href={item.href}
                   onClick={(e) => handleItemClick(e, item, isMobile)}
@@ -189,12 +190,12 @@ export function Sidebar({
                       {item.badge}
                     </span>
                   )}
-                </a>
+                </Link>
               );
             }
 
             return (
-              <a
+              <Link
                 key={item.name}
                 href={item.href}
                 onClick={(e) => handleItemClick(e, item, isMobile)}
@@ -222,7 +223,7 @@ export function Sidebar({
                     </span>
                   )}
                 </div>
-              </a>
+              </Link>
             );
           })}
         </nav>
