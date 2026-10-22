@@ -52,9 +52,28 @@ export const THEME_PRESETS: Record<string, ThemePreset> = {
   },
 };
 
+const imageSourceSchema = z
+  .string()
+  .refine(
+    (val) => {
+      if (!val || val.trim() === "") return true;
+      const trimmed = val.trim();
+      return (
+        trimmed.startsWith("/") ||
+        trimmed.startsWith("http://") ||
+        trimmed.startsWith("https://") ||
+        trimmed.startsWith("data:image/") ||
+        trimmed.startsWith("blob:")
+      );
+    },
+    { message: "Formato de imagen o ruta inválida" }
+  )
+  .optional()
+  .nullable();
+
 export const brandingSchema = z.object({
-  logoUrl: z.string().url("URL de logo inválida").or(z.string().length(0)).optional().nullable(),
-  bannerUrl: z.string().url("URL de banner inválida").or(z.string().length(0)).optional().nullable(),
+  logoUrl: imageSourceSchema,
+  bannerUrl: imageSourceSchema,
   primaryColor: z.string().regex(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/, "Color hexadecimal inválido").default("#8B5CF6"),
   accentColor: z.string().regex(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/, "Color hexadecimal inválido").default("#06B6D4"),
   themePreset: z.string().default("cyber-purple"),

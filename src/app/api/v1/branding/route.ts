@@ -171,7 +171,7 @@ export async function PUT(req: NextRequest) {
         where: { id: tenantId },
         data: {
           settings: JSON.stringify(existingSettings),
-          logoUrl: parsed.branding.logoUrl || tenant.logoUrl,
+          logoUrl: parsed.branding.logoUrl !== undefined ? parsed.branding.logoUrl : tenant.logoUrl,
         },
       });
 

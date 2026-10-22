@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Palette,
   Sparkles,
@@ -19,6 +19,10 @@ import {
   MessageCircle,
   ExternalLink,
   Eye,
+  Upload,
+  Trash2,
+  Check,
+  Link as LinkIcon,
 } from "lucide-react";
 import { THEME_PRESETS, BrandingConfig, DEFAULT_BRANDING } from "@/lib/branding/config";
 
@@ -35,6 +39,17 @@ export default function BrandingSettingsPage() {
   const [selectedTarget, setSelectedTarget] = useState<"TENANT" | "VENUE">("TENANT");
   const [selectedVenueId, setSelectedVenueId] = useState<string>("");
 
+  // Refs para inputs de archivo
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  // Estados de subida de archivos
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [logoDragOver, setLogoDragOver] = useState(false);
+  const [bannerDragOver, setBannerDragOver] = useState(false);
+  const [showManualUrl, setShowManualUrl] = useState({ logo: false, banner: false });
+
   // Form State
   const [formData, setFormData] = useState<BrandingConfig>(DEFAULT_BRANDING);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -42,6 +57,71 @@ export default function BrandingSettingsPage() {
   const showFeedback = (type: "success" | "error", text: string) => {
     setFeedback({ type, text });
     setTimeout(() => setFeedback(null), 3500);
+  };
+
+  // Función para subir archivo de imagen directamente desde el dispositivo
+  const uploadFile = async (file: File, type: "logo" | "banner") => {
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"];
+    if (!allowed.includes(file.type)) {
+      showFeedback("error", "Formato no válido. Debe ser PNG, JPG, WebP, SVG o GIF.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showFeedback("error", "El archivo excede el tamaño máximo de 10 MB.");
+      return;
+    }
+
+    if (type === "logo") setUploadingLogo(true);
+    else setUploadingBanner(true);
+
+    try {
+      const data = new FormData();
+      data.append("file", file);
+      data.append("type", type);
+
+      const res = await fetch("/api/v1/branding/upload", {
+        method: "POST",
+        body: data,
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const uploadedUrl = json.data?.url;
+        if (uploadedUrl) {
+          setFormData((prev) => ({
+            ...prev,
+            [type === "logo" ? "logoUrl" : "bannerUrl"]: uploadedUrl,
+          }));
+          showFeedback("success", `¡${type === "logo" ? "Logotipo" : "Portada"} subido exitosamente desde tu dispositivo!`);
+        }
+      } else {
+        // Fallback resiliente: leer como base64 data URL para no bloquear al usuario
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64 = e.target?.result as string;
+          setFormData((prev) => ({
+            ...prev,
+            [type === "logo" ? "logoUrl" : "bannerUrl"]: base64,
+          }));
+          showFeedback("success", `¡${type === "logo" ? "Logotipo" : "Portada"} cargado desde tu dispositivo!`);
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        setFormData((prev) => ({
+          ...prev,
+          [type === "logo" ? "logoUrl" : "bannerUrl"]: base64,
+        }));
+        showFeedback("success", `¡${type === "logo" ? "Logotipo" : "Portada"} cargado desde tu dispositivo!`);
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      if (type === "logo") setUploadingLogo(false);
+      else setUploadingBanner(false);
+    }
   };
 
   // Cargar configuración de marca
@@ -315,42 +395,273 @@ export default function BrandingSettingsPage() {
             </div>
           </div>
 
-          {/* Logotipo y Banner */}
-          <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-4">
-            <div className="flex items-center gap-2">
-              <ImageIcon className="w-4 h-4 text-purple-400" />
-              <h2 className="text-sm font-bold text-white">Logotipo & Portada</h2>
+          {/* Logotipo y Banner desde Dispositivo */}
+          <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-purple-400" />
+                <h2 className="text-sm font-bold text-white">Logotipo & Portada del Local</h2>
+              </div>
+              <span className="text-[10px] text-purple-400 bg-purple-950/60 border border-purple-800/60 px-2 py-0.5 rounded-full font-bold">
+                Carga desde dispositivo
+              </span>
             </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className="text-[11px] font-bold text-zinc-300 block mb-1">
-                  URL del Logotipo (PNG / SVG transparente)
+            {/* 1. Logotipo del Establecimiento */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-zinc-300 flex items-center gap-1.5">
+                  <span>Logotipo del Establecimiento</span>
+                  <span className="text-zinc-500 font-normal">(PNG transparente, SVG, WebP o JPG)</span>
                 </label>
-                <input
-                  type="text"
-                  placeholder="https://ejemplo.com/logo-bar.png"
-                  value={formData.logoUrl || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, logoUrl: e.target.value }))
-                  }
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500"
-                />
+                {formData.logoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, logoUrl: null }))}
+                    className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Quitar logo</span>
+                  </button>
+                )}
               </div>
 
-              <div>
-                <label className="text-[11px] font-bold text-zinc-300 block mb-1">
-                  URL del Banner / Portada del Móvil (Opcional)
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadFile(file, "logo");
+                  e.target.value = "";
+                }}
+              />
+
+              {formData.logoUrl ? (
+                /* Card con Logo Cargado */
+                <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col sm:flex-row items-center gap-4">
+                  <div className="w-24 h-24 rounded-lg bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:8px_8px] bg-zinc-900 border border-zinc-800 p-2 flex items-center justify-center shrink-0 overflow-hidden relative group">
+                    <img
+                      src={formData.logoUrl}
+                      alt="Logo cargado"
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+
+                  <div className="flex-1 text-center sm:text-left min-w-0">
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-800/80 text-[10px] font-bold mb-1">
+                      <Check className="w-3 h-3" />
+                      <span>Logotipo activo en Pantalla TV y Móvil</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 truncate max-w-xs sm:max-w-md">
+                      {formData.logoUrl.startsWith("data:")
+                        ? "Archivo cargado en memoria"
+                        : formData.logoUrl.split("/").pop()}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2 justify-center sm:justify-start">
+                      <button
+                        type="button"
+                        onClick={() => logoInputRef.current?.click()}
+                        disabled={uploadingLogo}
+                        className="px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        {uploadingLogo ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="w-3.5 h-3.5" />
+                        )}
+                        <span>Cambiar archivo</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Dropzone de carga */
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setLogoDragOver(true);
+                  }}
+                  onDragLeave={() => setLogoDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setLogoDragOver(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) uploadFile(file, "logo");
+                  }}
+                  onClick={() => logoInputRef.current?.click()}
+                  className={`p-6 rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center flex flex-col items-center justify-center gap-2.5 ${
+                    logoDragOver
+                      ? "border-purple-500 bg-purple-950/20 shadow-lg shadow-purple-500/10"
+                      : "border-zinc-800 bg-zinc-950 hover:border-zinc-700 hover:bg-zinc-950/80"
+                  }`}
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-purple-600/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
+                    {uploadingLogo ? (
+                      <RefreshCw className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <Upload className="w-6 h-6" />
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block">
+                      {uploadingLogo ? "Subiendo archivo..." : "Haz clic o arrastra tu logotipo aquí"}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 block mt-0.5">
+                      Sube el logo de tu local desde este dispositivo (PNG, SVG, WebP o JPG)
+                    </span>
+                  </div>
+                  <span className="px-3 py-1 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold shadow-md shadow-purple-600/30">
+                    Elegir archivo desde el equipo
+                  </span>
+                </div>
+              )}
+
+              {/* Opción secundaria para pegar URL si se desea */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowManualUrl((prev) => ({ ...prev, logo: !prev.logo }))}
+                  className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <LinkIcon className="w-3 h-3" />
+                  <span>{showManualUrl.logo ? "Ocultar opción de enlace URL" : "O pegar enlace web externo"}</span>
+                </button>
+                {showManualUrl.logo && (
+                  <input
+                    type="text"
+                    placeholder="https://ejemplo.com/logo.png"
+                    value={formData.logoUrl || ""}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, logoUrl: e.target.value }))}
+                    className="mt-1.5 w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* 2. Banner / Portada del Móvil */}
+            <div className="space-y-2 pt-4 border-t border-zinc-800/80">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-zinc-300 flex items-center gap-1.5">
+                  <span>Banner / Portada para Móvil de Clientes</span>
+                  <span className="text-zinc-500 font-normal">(Opcional • Recomendado 1200x400)</span>
                 </label>
-                <input
-                  type="text"
-                  placeholder="https://ejemplo.com/banner-fiesta.jpg"
-                  value={formData.bannerUrl || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, bannerUrl: e.target.value }))
-                  }
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500"
-                />
+                {formData.bannerUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, bannerUrl: null }))}
+                    className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Quitar portada</span>
+                  </button>
+                )}
+              </div>
+
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadFile(file, "banner");
+                  e.target.value = "";
+                }}
+              />
+
+              {formData.bannerUrl ? (
+                /* Card con Banner Cargado */
+                <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
+                  <div className="w-full h-28 rounded-lg overflow-hidden border border-zinc-800 relative bg-zinc-900">
+                    <img
+                      src={formData.bannerUrl}
+                      alt="Banner cargado"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-800/80 text-[10px] font-bold">
+                      <Check className="w-3 h-3" />
+                      <span>Portada lista para el móvil de los clientes</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => bannerInputRef.current?.click()}
+                      disabled={uploadingBanner}
+                      className="px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      {uploadingBanner ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5" />
+                      )}
+                      <span>Cambiar portada</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Dropzone de carga */
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setBannerDragOver(true);
+                  }}
+                  onDragLeave={() => setBannerDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setBannerDragOver(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) uploadFile(file, "banner");
+                  }}
+                  onClick={() => bannerInputRef.current?.click()}
+                  className={`p-6 rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center flex flex-col items-center justify-center gap-2.5 ${
+                    bannerDragOver
+                      ? "border-cyan-500 bg-cyan-950/20 shadow-lg shadow-cyan-500/10"
+                      : "border-zinc-800 bg-zinc-950 hover:border-zinc-700 hover:bg-zinc-950/80"
+                  }`}
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-cyan-600/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
+                    {uploadingBanner ? (
+                      <RefreshCw className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <Upload className="w-6 h-6" />
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block">
+                      {uploadingBanner ? "Subiendo archivo..." : "Haz clic o arrastra la imagen de portada aquí"}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 block mt-0.5">
+                      Foto de barra, flyer de la noche o banner horizontal (JPG, PNG, WebP)
+                    </span>
+                  </div>
+                  <span className="px-3 py-1 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] font-bold shadow-md shadow-cyan-600/30">
+                    Elegir portada desde el equipo
+                  </span>
+                </div>
+              )}
+
+              {/* Opción secundaria para pegar URL si se desea */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowManualUrl((prev) => ({ ...prev, banner: !prev.banner }))}
+                  className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <LinkIcon className="w-3 h-3" />
+                  <span>{showManualUrl.banner ? "Ocultar opción de enlace URL" : "O pegar enlace web externo"}</span>
+                </button>
+                {showManualUrl.banner && (
+                  <input
+                    type="text"
+                    placeholder="https://ejemplo.com/banner.jpg"
+                    value={formData.bannerUrl || ""}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, bannerUrl: e.target.value }))}
+                    className="mt-1.5 w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -552,6 +863,17 @@ export default function BrandingSettingsPage() {
             {/* Simulación Móvil del Cliente */}
             <div className="max-w-[320px] mx-auto rounded-3xl bg-zinc-950 border-4 border-zinc-800 p-4 shadow-2xl relative">
               <div className="w-24 h-3 rounded-full bg-zinc-850 mx-auto mb-3" />
+
+              {/* Banner de Portada en Preview si existe */}
+              {formData.bannerUrl && (
+                <div className="mb-3 rounded-xl overflow-hidden h-20 w-full border border-zinc-800 relative bg-zinc-900">
+                  <img
+                    src={formData.bannerUrl}
+                    alt="Portada"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
 
               {/* Header Móvil */}
               <div className="flex items-center justify-between pb-3 border-b border-zinc-800">

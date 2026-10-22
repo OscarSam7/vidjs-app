@@ -1338,6 +1338,17 @@ function GuestContent() {
         {/* PESTAÑA 1: "MI NOCHE" (WELCOME HUB) */}
         {activeTab === "hub" && (
           <div className="space-y-4 w-full">
+            {/* Banner de Portada del Local */}
+            {branding?.bannerUrl && (
+              <div className="w-full h-28 sm:h-36 rounded-2xl overflow-hidden border border-zinc-800 relative shadow-lg bg-zinc-900">
+                <img
+                  src={branding.bannerUrl}
+                  alt="Portada del Local"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+
             {/* 👏 Aplausómetro en Vivo para Comensales */}
             {activeApplause && (
               <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/90 via-zinc-950 to-orange-950/90 border-2 border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.3)] space-y-3 animate-pulse">
