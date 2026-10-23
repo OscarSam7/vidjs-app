@@ -17,6 +17,8 @@ import {
   Mic,
   Headphones,
   RotateCcw,
+  QrCode,
+  Wifi,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -972,620 +974,659 @@ export default function PublicDisplayScreenPage({
         </div>
       )}
 
-      {/* 2. Escenario Central (Duelo en Vivo vs Now Playing vs Idle Mode) */}
-      <main className="flex-1 min-h-0 flex items-center justify-center my-auto py-1 sm:py-2 z-10 relative overflow-hidden">
-        {activeDuel && activeDuel.status === "ACTIVE" ? (
-          /* ESCENARIO DE DUELO MUSICAL EN VIVO */
-          <div className="max-w-5xl mx-auto w-full space-y-6 animate-fadeIn">
-            <div className="text-center space-y-2">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/50 text-xs font-black tracking-widest uppercase animate-bounce">
-                <Swords className="w-4 h-4" />
-                <span>¡BATALLA MUSICAL EN VIVO!</span>
+      {/* 2. Escenario Principal en 3 Columnas (Izquierda: Cola | Centro: Video/Vinilo | Derecha: QR Gigante) */}
+      <main className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 my-auto py-1 sm:py-2 z-10 relative overflow-hidden">
+        {/* COLUMNA 1 (IZQUIERDA - lg:col-span-3 xl:col-span-3): LISTA DE COLA DE PEDIDOS */}
+        <aside className="lg:col-span-3 xl:col-span-3 h-full min-h-0 flex flex-col rounded-3xl bg-zinc-950/85 border border-purple-500/30 p-3 sm:p-4 shadow-2xl backdrop-blur-md overflow-hidden">
+          {/* Encabezado de la Cola */}
+          <div className="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-zinc-800/80 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 sm:p-2 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30">
+                <Clock className="w-4 h-4 text-purple-400 animate-pulse" />
               </div>
-              <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-                ¿QUÉ CANCIÓN DEBE SONAR AHORA?
-              </h2>
-              <p className="text-xs sm:text-sm text-zinc-400">
-                Apunta la cámara de tu celular al QR de tu mesa o en pantalla y vota en vivo
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-11 gap-4 items-center">
-              {/* TRACK A */}
-              <div className="md:col-span-5 p-6 rounded-3xl bg-gradient-to-br from-zinc-900 via-zinc-900 to-amber-950/40 border-2 border-amber-500 shadow-2xl shadow-amber-500/20 space-y-4 text-center md:text-left">
-                <div className="flex items-center justify-between">
-                  <span className="px-3 py-1 rounded-xl bg-amber-500 text-black text-xs font-black uppercase">
-                    OPCIÓN A
-                  </span>
-                  {activeDuel.optionA.tableLabel && (
-                    <span className="text-xs font-mono text-amber-400 font-bold">
-                      de {activeDuel.optionA.tableLabel}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-2xl sm:text-3xl font-black text-white truncate">
-                    {activeDuel.optionA.title}
-                  </h3>
-                  <p className="text-base sm:text-lg font-bold text-amber-300 truncate mt-1">
-                    {activeDuel.optionA.artist}
-                  </p>
-                </div>
-                {/* Barra y Porcentaje */}
-                <div className="space-y-1.5 pt-2">
-                  <div className="flex justify-between text-xs font-bold text-amber-400 font-mono">
-                    <span>{activeDuel.optionA.votes} votos</span>
-                    <span className="text-lg font-black">
-                      {activeDuel.totalVotes > 0
-                        ? Math.round((activeDuel.optionA.votes / activeDuel.totalVotes) * 100)
-                        : 50}
-                      %
-                    </span>
-                  </div>
-                  <div className="w-full h-4 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
-                    <div
-                      className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all duration-500"
-                      style={{
-                        width: `${
-                          activeDuel.totalVotes > 0
-                            ? (activeDuel.optionA.votes / activeDuel.totalVotes) * 100
-                            : 50
-                        }%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* VS BADGE CENTRAL */}
-              <div className="md:col-span-1 text-center py-2 flex flex-col items-center justify-center">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black flex items-center justify-center text-sm shadow-xl animate-pulse">
-                  VS
-                </div>
-                <span className="text-[10px] font-mono text-zinc-500 mt-2">EN VIVO</span>
-              </div>
-
-              {/* TRACK B */}
-              <div className="md:col-span-5 p-6 rounded-3xl bg-gradient-to-bl from-zinc-900 via-zinc-900 to-orange-950/40 border-2 border-orange-500 shadow-2xl shadow-orange-500/20 space-y-4 text-center md:text-right">
-                <div className="flex items-center justify-between md:flex-row-reverse">
-                  <span className="px-3 py-1 rounded-xl bg-orange-500 text-black text-xs font-black uppercase">
-                    OPCIÓN B
-                  </span>
-                  {activeDuel.optionB.tableLabel && (
-                    <span className="text-xs font-mono text-orange-400 font-bold">
-                      de {activeDuel.optionB.tableLabel}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-2xl sm:text-3xl font-black text-white truncate">
-                    {activeDuel.optionB.title}
-                  </h3>
-                  <p className="text-base sm:text-lg font-bold text-orange-300 truncate mt-1">
-                    {activeDuel.optionB.artist}
-                  </p>
-                </div>
-                {/* Barra y Porcentaje */}
-                <div className="space-y-1.5 pt-2">
-                  <div className="flex justify-between md:flex-row-reverse text-xs font-bold text-orange-400 font-mono">
-                    <span>{activeDuel.optionB.votes} votos</span>
-                    <span className="text-lg font-black">
-                      {activeDuel.totalVotes > 0
-                        ? Math.round((activeDuel.optionB.votes / activeDuel.totalVotes) * 100)
-                        : 50}
-                      %
-                    </span>
-                  </div>
-                  <div className="w-full h-4 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
-                    <div
-                      className="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-500 ml-auto"
-                      style={{
-                        width: `${
-                          activeDuel.totalVotes > 0
-                            ? (activeDuel.optionB.votes / activeDuel.totalVotes) * 100
-                            : 50
-                        }%`,
-                      }}
-                    />
-                  </div>
-                </div>
+              <div>
+                <h2 className="text-xs sm:text-sm font-black text-white tracking-wider uppercase">
+                  {isKaraoke ? "Cola Karaoke" : "Próximos Temas"}
+                </h2>
+                <span className="text-[10px] text-zinc-400 font-mono">
+                  {data.upcomingQueue.length} {data.upcomingQueue.length === 1 ? "en espera" : "en espera"}
+                </span>
               </div>
             </div>
+            {data.policy?.queuePaused && (
+              <span className="px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 text-[9px] font-black uppercase animate-pulse">
+                Pausa
+              </span>
+            )}
           </div>
-        ) : track ? (
-          isKaraoke && isKaraokeVideoEnabled ? (
-            /* REPRODUCTOR DE VIDEO KARAOKE EN VIVO (YOUTUBE EMBED) */
-            <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center space-y-3 z-20 animate-fadeIn px-2">
-              {/* Barra Superior de Identificación del Cantante */}
-              <div className="w-full flex items-center justify-between px-2 text-xs">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-3.5 py-1.5 rounded-full bg-cyan-950/90 text-cyan-300 border border-cyan-500/60 font-black tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.35)]">
-                    <Mic className="w-4 h-4 text-cyan-400 animate-pulse" />
-                    <span>
-                      🎤 EN ESCENARIO:{" "}
-                      {track.guestName
-                        ? `${track.guestName} (${track.table.label})`
-                        : track.table.label}
-                    </span>
-                  </span>
-                  {track.isFastPass && (
-                    <span className="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-[10px] font-black">
-                      ⭐ VIP FAST-PASS
-                    </span>
-                  )}
-                </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleResetScreen}
-                    disabled={isResetting}
-                    className="text-[11px] text-rose-300 hover:text-white px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-800 border border-rose-700/60 transition-colors cursor-pointer flex items-center gap-1.5 active:scale-95"
-                    title="Limpiar pantalla y desbloquear para permitir entrar el siguiente pedido"
-                  >
-                    <RotateCcw className={`w-3 h-3 ${isResetting ? "animate-spin" : ""}`} />
-                    <span>Resetear Pista</span>
-                  </button>
-
-                  <button
-                    onClick={() => setIsKaraokeVideoEnabled(false)}
-                    className="text-[11px] text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 transition-colors cursor-pointer flex items-center gap-1.5"
-                    title="Cambiar a visualizador clásico con vinilo"
-                  >
-                    <Disc3 className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Modo Vinilo</span>
-                  </button>
+          {/* Lista de Canciones en Espera */}
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-2 py-2 pr-1 custom-scrollbar">
+            {data.upcomingQueue.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-4 space-y-2 text-zinc-500">
+                <div className="p-3 rounded-2xl bg-zinc-900/60 border border-zinc-800">
+                  <Music className="w-8 h-8 text-zinc-600 animate-bounce" />
                 </div>
+                <p className="text-xs font-bold text-zinc-300">
+                  {isKaraoke ? "¡La cola está libre!" : "¡Sin temas en cola!"}
+                </p>
+                <p className="text-[11px] text-zinc-500 max-w-[180px]">
+                  Sé el primero en pedir escaneando el código QR
+                </p>
               </div>
-
-              {/* Marco Widescreen 16:9 del Video de YouTube */}
-              <div className="w-full relative aspect-video rounded-3xl overflow-hidden border-2 sm:border-4 border-cyan-500/60 shadow-[0_0_50px_rgba(6,182,212,0.3)] bg-black">
-                {karaokeVideoId ? (
-                  <>
-                    <iframe
-                      ref={karaokeIframeRef}
-                      key={karaokeVideoId}
-                      src={`https://www.youtube.com/embed/${karaokeVideoId}?autoplay=1&enablejsapi=1&origin=${typeof window !== "undefined" ? encodeURIComponent(window.location.origin) : ""}`}
-                      title={`Karaoke: ${track.song.title}`}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                      className="w-full h-full border-0"
-                    />
-
-                    {/* HUD Flotante si la consola de DJ pausó el video */}
-                    {isTvPaused && (
-                      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center pointer-events-none animate-fadeIn z-20">
-                        <div className="px-5 py-3 rounded-2xl bg-zinc-950/90 border-2 border-cyan-500/60 text-cyan-300 flex items-center gap-3 shadow-2xl shadow-cyan-950/80">
-                          <span className="w-3 h-3 rounded-full bg-cyan-400 animate-ping" />
-                          <span className="text-sm font-black tracking-widest uppercase">
-                            ⏸ PAUSADO DESDE CONSOLA
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center space-y-3 bg-zinc-950 text-cyan-400 p-6 text-center">
-                    <Disc3 className="w-12 h-12 animate-spin text-cyan-400" />
-                    <span className="text-xs sm:text-sm font-black tracking-widest uppercase text-cyan-300">
-                      Sincronizando pista de Karaoke en YouTube...
-                    </span>
-                    <span className="text-[11px] text-zinc-500 font-mono">
-                      {track.song.title} &bull; {track.song.artist}
-                    </span>
-                  </div>
-                )}
-
-                {/* Dedicatoria Flotante si existe */}
-                {track.notes && (
-                  <div className="absolute bottom-3 left-3 right-3 sm:left-4 sm:right-4 bg-zinc-950/85 backdrop-blur-md px-4 py-2 rounded-2xl border border-cyan-500/40 text-cyan-200 text-xs sm:text-sm font-medium italic shadow-2xl pointer-events-none flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
-                    <span className="truncate">&ldquo;{track.notes}&rdquo;</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Subbarra con información del tema y llamada a la acción */}
-              <div className="w-full flex items-center justify-between px-3 text-[11px] text-zinc-400 flex-wrap gap-2">
-                <div className="flex items-center gap-2 truncate">
-                  <span className="font-black text-white text-xs sm:text-sm">{track.song.title}</span>
-                  <span>&bull;</span>
-                  <span className="text-cyan-300 font-bold">{track.song.artist}</span>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0 text-[10px] font-mono text-zinc-500">
-                  <span>📲 Escanea el código en pantalla para pedir tu canción</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center max-w-6xl mx-auto w-full px-2">
-              {/* Vinilo Giratorio Proporcional a la TV (Col 4) */}
-              <div className="lg:col-span-4 flex justify-center">
-              <div className="relative">
-                <div
-                  className="w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-full bg-black border-6 sm:border-8 border-zinc-900 shadow-2xl flex items-center justify-center animate-spin [animation-duration:5s] transition-all"
-                  style={{ animationPlayState: isTvPaused ? "paused" : "running" }}
-                >
-                  {/* Surcos del Vinilo */}
-                  <div className="w-38 h-38 sm:w-46 sm:h-46 lg:w-52 lg:h-52 rounded-full border border-zinc-800 flex items-center justify-center">
-                    <div className="w-28 h-28 sm:w-34 sm:h-34 lg:w-40 lg:h-40 rounded-full border border-zinc-850 flex items-center justify-center">
-                      {/* Centro del Disco con Logo */}
-                      <div className="w-18 h-18 sm:w-22 sm:h-22 lg:w-26 lg:h-26 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 border-2 sm:border-4 border-white flex flex-col items-center justify-center text-center p-1.5 shadow-inner">
-                        <Disc3 className={`w-5 h-5 text-white ${!isTvPaused ? "animate-pulse" : ""}`} />
-                        <span className="text-[7px] font-black text-white mt-0.5">VIDJS</span>
-                        <div className="w-2 h-2 rounded-full bg-black mt-0.5" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Badge Flotante sobre el Vinilo si la Cabina DJ Pausó la Música */}
-                {isTvPaused && (
-                  <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none animate-fadeIn">
-                    <div className="px-3.5 py-1.5 rounded-full bg-black/90 border-2 border-amber-500/80 text-amber-300 text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-2xl shadow-amber-950/80 backdrop-blur-xs">
-                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                      <span>⏸ EN PAUSA</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Glow decorativo */}
-                <div
-                  className={`absolute inset-0 rounded-full blur-2xl -z-10 transition-opacity duration-500 ${
-                    isTvPaused ? "bg-amber-600/10 opacity-40" : "bg-purple-600/25 opacity-100"
-                  }`}
-                />
-              </div>
-            </div>
-
-            {/* Información del Tema & Dedicatoria (Col 8) */}
-            <div className="lg:col-span-8 space-y-3 sm:space-y-4 text-center lg:text-left">
-              {/* Badge Al Aire o Celebración */}
-              <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap">
-                {isTvPaused ? (
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-black tracking-widest uppercase border bg-amber-950/80 text-amber-300 border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.35)] animate-pulse">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                    <span>⏸ EN PAUSA • CABINA DJ</span>
-                  </div>
-                ) : isCelebration ? (
-                  <div className="px-3 py-1.5 rounded-2xl bg-gradient-to-r from-pink-600 via-purple-600 to-amber-500 text-white font-black text-xs sm:text-sm tracking-widest uppercase flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(236,72,153,0.5)] animate-bounce">
-                    <span>🎂</span>
-                    <span>¡MOMENTO DE CELEBRACIÓN EN EL LOCAL!</span>
-                    <span>🎉</span>
-                  </div>
-                ) : (
+            ) : (
+              data.upcomingQueue.map((item) => {
+                const isNext = item.order === 1;
+                return (
                   <div
-                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase border ${
-                      isKaraoke
-                        ? "bg-cyan-950/80 text-cyan-300 border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
-                        : "bg-purple-600/30 text-purple-300 border-purple-500/40"
+                    key={item.id}
+                    className={`p-2.5 rounded-2xl border transition-all ${
+                      isNext
+                        ? isKaraoke
+                          ? "bg-gradient-to-r from-cyan-950/90 via-zinc-900/90 to-zinc-900 border-cyan-500/70 shadow-[0_0_20px_rgba(6,182,212,0.3)] animate-pulse"
+                          : "bg-gradient-to-r from-purple-950/90 via-zinc-900/90 to-zinc-900 border-purple-500/70 shadow-[0_0_20px_rgba(168,85,247,0.3)]"
+                        : "bg-zinc-900/70 border-zinc-800/80 hover:border-zinc-700"
                     }`}
                   >
-                    <Radio className={`w-3.5 h-3.5 animate-pulse ${isKaraoke ? "text-cyan-400" : "text-purple-400"}`} />
-                    <span>{isKaraoke ? `🎤 CANTANDO AHORA: ${track.table.label}` : "SONANDO EN LA PISTA"}</span>
-                  </div>
-                )}
-                {track.isFastPass && (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-xs font-black tracking-widest uppercase shadow-lg shadow-amber-500/20 animate-pulse">
-                    <Sparkles className="w-3 h-3 text-amber-400" />
-                    <span>⭐ VIP FAST-PASS</span>
-                  </div>
-                )}
-                {isKaraoke && (
-                  <button
-                    onClick={() => setIsKaraokeVideoEnabled(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/90 text-cyan-300 border border-cyan-500/50 text-xs font-bold hover:bg-cyan-900 transition-colors cursor-pointer shadow-sm"
-                    title="Activar video de YouTube con letra en la TV"
-                  >
-                    <Mic className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>📺 Ver Video Karaoke</span>
-                  </button>
-                )}
+                    <div className="flex items-start gap-2.5">
+                      <span
+                        className={`w-6 h-6 rounded-xl font-mono font-black flex items-center justify-center text-xs shrink-0 mt-0.5 ${
+                          isNext
+                            ? isKaraoke
+                              ? "bg-cyan-400 text-black shadow-md shadow-cyan-400/50"
+                              : "bg-purple-500 text-white shadow-md shadow-purple-500/50"
+                            : "bg-zinc-800 text-zinc-300"
+                        }`}
+                      >
+                        #{item.order}
+                      </span>
 
-                {/* Botón Resetear / Limpiar Pista en modo vinilo */}
-                <button
-                  onClick={handleResetScreen}
-                  disabled={isResetting}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white border border-rose-600/60 hover:border-rose-400 text-xs font-bold transition-colors cursor-pointer shadow-sm active:scale-95"
-                  title="Limpiar y liberar pantalla para que entre el siguiente pedido"
-                >
-                  <RotateCcw className={`w-3 h-3 ${isResetting ? "animate-spin" : ""}`} />
-                  <span>Limpiar / Siguiente Pedido</span>
-                </button>
-              </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="font-bold text-white text-xs sm:text-sm truncate">
+                            {item.title}
+                          </div>
+                          {item.isFastPass && (
+                            <span className="text-[8px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/50 shrink-0">
+                              ⭐ VIP
+                            </span>
+                          )}
+                        </div>
 
-              {/* Título y Artista */}
-              <div className="space-y-1">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-none drop-shadow-lg truncate">
-                  {track.song.title}
-                </h1>
-                <p className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 truncate">
-                  {track.song.artist}
+                        <div className="text-[11px] text-zinc-400 truncate mt-0.5">
+                          {item.artist}
+                        </div>
+
+                        <div className="flex items-center justify-between mt-1 text-[10px] font-mono">
+                          <span
+                            className={`px-1.5 py-0.5 rounded border ${
+                              isNext
+                                ? isKaraoke
+                                  ? "bg-cyan-950 text-cyan-300 border-cyan-800"
+                                  : "bg-purple-950 text-purple-300 border-purple-800"
+                                : "bg-black/60 text-zinc-400 border-zinc-800"
+                            }`}
+                          >
+                            {item.table}
+                          </span>
+                          {isNext && (
+                            <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">
+                              ¡Siguiente!
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Pie de la Columna Izquierda */}
+          <div className="pt-2 border-t border-zinc-800/80 text-center shrink-0">
+            <p className="text-[10px] font-semibold text-zinc-500 flex items-center justify-center gap-1">
+              <Sparkles className="w-3 h-3 text-purple-400" />
+              <span>Pide el tuyo con el QR 👉</span>
+            </p>
+          </div>
+        </aside>
+
+        {/* COLUMNA 2 (CENTRAL - lg:col-span-6 xl:col-span-6): ESCENARIO (VIDEO / VINILO / IDLE / DUELO) */}
+        <div className="lg:col-span-6 xl:col-span-6 h-full min-h-0 flex flex-col items-center justify-center relative overflow-hidden px-1">
+          {activeDuel && activeDuel.status === "ACTIVE" ? (
+            /* ESCENARIO DE DUELO MUSICAL EN VIVO */
+            <div className="max-w-5xl mx-auto w-full space-y-5 animate-fadeIn">
+              <div className="text-center space-y-1.5">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/50 text-xs font-black tracking-widest uppercase animate-bounce">
+                  <Swords className="w-4 h-4" />
+                  <span>¡BATALLA MUSICAL EN VIVO!</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl xl:text-4xl font-black text-white tracking-tight">
+                  ¿QUÉ CANCIÓN DEBE SONAR AHORA?
+                </h2>
+                <p className="text-xs text-zinc-400">
+                  Apunta la cámara de tu celular al QR de la derecha o de tu mesa y vota en vivo
                 </p>
               </div>
 
-              {/* Caja de Dedicatoria y Mesa del Comensal */}
-              <div
-                className={`p-3 sm:p-4 rounded-2xl border shadow-xl space-y-1.5 text-left ${
-                  track.isFastPass
-                    ? "bg-gradient-to-r from-amber-950/60 via-zinc-900/90 to-zinc-900/80 border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]"
-                    : isCelebration
-                    ? "bg-gradient-to-r from-pink-950/70 via-purple-950/80 to-zinc-900 border-pink-500/60 shadow-[0_0_20px_rgba(236,72,153,0.3)]"
-                    : "bg-gradient-to-r from-purple-950/60 via-zinc-900/90 to-zinc-900/80 border-purple-500/40"
-                }`}
-              >
-                <div className="flex items-center gap-2 text-xs text-purple-300 font-bold uppercase tracking-wider">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Pedido por: {track.table.label}</span>
-                  {track.guestName && (
-                    <span className="text-white">({track.guestName})</span>
-                  )}
-                  {track.isFastPass && (
-                    <span className="text-amber-400 font-black">⭐ FAST-PASS</span>
-                  )}
+              <div className="grid grid-cols-1 md:grid-cols-11 gap-3 sm:gap-4 items-center">
+                {/* TRACK A */}
+                <div className="md:col-span-5 p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-zinc-900 via-zinc-900 to-amber-950/40 border-2 border-amber-500 shadow-2xl shadow-amber-500/20 space-y-3 text-center md:text-left">
+                  <div className="flex items-center justify-between">
+                    <span className="px-3 py-1 rounded-xl bg-amber-500 text-black text-xs font-black uppercase">
+                      OPCIÓN A
+                    </span>
+                    {activeDuel.optionA.tableLabel && (
+                      <span className="text-xs font-mono text-amber-400 font-bold">
+                        de {activeDuel.optionA.tableLabel}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-xl sm:text-2xl font-black text-white truncate">
+                      {activeDuel.optionA.title}
+                    </h3>
+                    <p className="text-sm sm:text-base font-bold text-amber-300 truncate mt-0.5">
+                      {activeDuel.optionA.artist}
+                    </p>
+                  </div>
+                  {/* Barra y Porcentaje */}
+                  <div className="space-y-1 pt-1">
+                    <div className="flex justify-between text-xs font-bold text-amber-400 font-mono">
+                      <span>{activeDuel.optionA.votes} votos</span>
+                      <span className="text-base font-black">
+                        {activeDuel.totalVotes > 0
+                          ? Math.round((activeDuel.optionA.votes / activeDuel.totalVotes) * 100)
+                          : 50}
+                        %
+                      </span>
+                    </div>
+                    <div className="w-full h-3 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+                      <div
+                        className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all duration-500"
+                        style={{
+                          width: `${
+                            activeDuel.totalVotes > 0
+                              ? (activeDuel.optionA.votes / activeDuel.totalVotes) * 100
+                              : 50
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                {track.notes && (
-                  <p className="text-sm sm:text-base text-white font-medium italic line-clamp-2">
-                    &ldquo;{track.notes}&rdquo;
-                  </p>
-                )}
-              </div>
-
-              {/* Ecualizador Visual Animado */}
-              <div className="flex items-end justify-center lg:justify-start gap-1 h-8 sm:h-9 pt-1">
-                {[45, 80, 60, 95, 30, 75, 90, 50, 85, 40, 70, 100, 55, 90, 65, 80, 45, 95, 60, 85, 50, 75, 90, 35].map((height, i) => (
-                  <div
-                    key={i}
-                    className="w-1.5 sm:w-2 rounded-t-full bg-gradient-to-t from-purple-600 via-fuchsia-500 to-cyan-400 animate-pulse transition-all duration-300"
-                    style={{
-                      height: `${height}%`,
-                      animationDuration: `${0.4 + (i % 5) * 0.15}s`,
-                      animationPlayState: isTvPaused ? "paused" : "running",
-                      opacity: isTvPaused ? 0.3 : 1,
-                    }}
-                  />
-                ))}
-              </div>
-
-              {/* Barra de Progreso */}
-              <div className="space-y-1 max-w-xl mx-auto lg:mx-0">
-                <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
-                  <div
-                    className={`h-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 transition-all duration-1000 ${
-                      isTvPaused ? "opacity-60" : "opacity-100"
-                    }`}
-                    style={{ width: `${progressPercent}%` }}
-                  />
+                {/* VS BADGE CENTRAL */}
+                <div className="md:col-span-1 text-center py-1 flex flex-col items-center justify-center">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black flex items-center justify-center text-xs shadow-xl animate-pulse">
+                    VS
+                  </div>
+                  <span className="text-[9px] font-mono text-zinc-500 mt-1">EN VIVO</span>
                 </div>
-                <div className="flex justify-between text-[11px] font-mono text-zinc-400">
-                  <span className={isTvPaused ? "text-amber-400 font-bold" : ""}>
-                    {formatTime(elapsedSeconds)} {isTvPaused && "(En Pausa)"}
-                  </span>
-                  <span>{formatTime(duration)}</span>
+
+                {/* TRACK B */}
+                <div className="md:col-span-5 p-4 sm:p-5 rounded-3xl bg-gradient-to-bl from-zinc-900 via-zinc-900 to-orange-950/40 border-2 border-orange-500 shadow-2xl shadow-orange-500/20 space-y-3 text-center md:text-right">
+                  <div className="flex items-center justify-between md:flex-row-reverse">
+                    <span className="px-3 py-1 rounded-xl bg-orange-500 text-black text-xs font-black uppercase">
+                      OPCIÓN B
+                    </span>
+                    {activeDuel.optionB.tableLabel && (
+                      <span className="text-xs font-mono text-orange-400 font-bold">
+                        de {activeDuel.optionB.tableLabel}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-xl sm:text-2xl font-black text-white truncate">
+                      {activeDuel.optionB.title}
+                    </h3>
+                    <p className="text-sm sm:text-base font-bold text-orange-300 truncate mt-0.5">
+                      {activeDuel.optionB.artist}
+                    </p>
+                  </div>
+                  {/* Barra y Porcentaje */}
+                  <div className="space-y-1 pt-1">
+                    <div className="flex justify-between md:flex-row-reverse text-xs font-bold text-orange-400 font-mono">
+                      <span>{activeDuel.optionB.votes} votos</span>
+                      <span className="text-base font-black">
+                        {activeDuel.totalVotes > 0
+                          ? Math.round((activeDuel.optionB.votes / activeDuel.totalVotes) * 100)
+                          : 50}
+                        %
+                      </span>
+                    </div>
+                    <div className="w-full h-3 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+                      <div
+                        className="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-500 ml-auto"
+                        style={{
+                          width: `${
+                            activeDuel.totalVotes > 0
+                              ? (activeDuel.optionB.votes / activeDuel.totalVotes) * 100
+                              : 50
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          )
-        ) : (
-          /* MODO INTERMEDIO (IDLE): Widescreen 16:9 con QR Central Proporcional */
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-10 items-center max-w-5xl mx-auto w-full px-4">
-            {/* Columna Izquierda: Información de Apertura y Wi-Fi */}
-            <div className="md:col-span-7 space-y-3 sm:space-y-4 text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start gap-3">
-                <div className="p-2.5 rounded-2xl bg-purple-600/20 border border-purple-500/30 text-purple-400 shadow-xl glow-purple shrink-0">
-                  <Disc3 className="w-7 h-7 sm:w-8 sm:h-8 animate-spin [animation-duration:10s]" />
+          ) : track ? (
+            isKaraoke && isKaraokeVideoEnabled ? (
+              /* REPRODUCTOR DE VIDEO KARAOKE EN VIVO (YOUTUBE EMBED) */
+              <div className="w-full h-full flex flex-col items-center justify-center space-y-2 z-20 animate-fadeIn">
+                {/* Barra Superior de Identificación del Cantante */}
+                <div className="w-full flex items-center justify-between px-1 text-xs shrink-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-3 py-1 rounded-full bg-cyan-950/90 text-cyan-300 border border-cyan-500/60 font-black tracking-wider flex items-center gap-1.5 shadow-[0_0_20px_rgba(6,182,212,0.35)] text-xs">
+                      <Mic className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                      <span className="truncate max-w-[200px] sm:max-w-none">
+                        EN ESCENARIO:{" "}
+                        {track.guestName
+                          ? `${track.guestName} (${track.table.label})`
+                          : track.table.label}
+                      </span>
+                    </span>
+                    {track.isFastPass && (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-[10px] font-black">
+                        ⭐ VIP
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={handleResetScreen}
+                      disabled={isResetting}
+                      className="text-[11px] text-rose-300 hover:text-white px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-800 border border-rose-700/60 transition-colors cursor-pointer flex items-center gap-1.5 active:scale-95"
+                      title="Limpiar pantalla y desbloquear para permitir entrar el siguiente pedido"
+                    >
+                      <RotateCcw className={`w-3 h-3 ${isResetting ? "animate-spin" : ""}`} />
+                      <span>Reset</span>
+                    </button>
+
+                    <button
+                      onClick={() => setIsKaraokeVideoEnabled(false)}
+                      className="text-[11px] text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 transition-colors cursor-pointer flex items-center gap-1.5"
+                      title="Cambiar a visualizador clásico con vinilo"
+                    >
+                      <Disc3 className="w-3.5 h-3.5 text-purple-400" />
+                      <span className="hidden sm:inline">Modo Vinilo</span>
+                    </button>
+                  </div>
                 </div>
-                <span className="px-3 py-1 rounded-full bg-purple-950 text-purple-300 border border-purple-800 text-xs font-black uppercase tracking-wider">
-                  {isKaraoke ? "🎤 Escenario Karaoke Listo" : "🎧 Pista DJ Abierta"}
-                </span>
+
+                {/* Marco Widescreen 16:9 del Video de YouTube */}
+                <div className="w-full flex-1 min-h-0 relative aspect-video max-h-[64vh] rounded-3xl overflow-hidden border-2 sm:border-4 border-cyan-500/60 shadow-[0_0_50px_rgba(6,182,212,0.3)] bg-black">
+                  {karaokeVideoId ? (
+                    <>
+                      <iframe
+                        ref={karaokeIframeRef}
+                        key={karaokeVideoId}
+                        src={`https://www.youtube.com/embed/${karaokeVideoId}?autoplay=1&enablejsapi=1&origin=${typeof window !== "undefined" ? encodeURIComponent(window.location.origin) : ""}`}
+                        title={`Karaoke: ${track.song.title}`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        className="w-full h-full border-0"
+                      />
+
+                      {/* HUD Flotante si la consola de DJ pausó el video */}
+                      {isTvPaused && (
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center pointer-events-none animate-fadeIn z-20">
+                          <div className="px-5 py-3 rounded-2xl bg-zinc-950/90 border-2 border-cyan-500/60 text-cyan-300 flex items-center gap-3 shadow-2xl shadow-cyan-950/80">
+                            <span className="w-3 h-3 rounded-full bg-cyan-400 animate-ping" />
+                            <span className="text-sm font-black tracking-widest uppercase">
+                              ⏸ PAUSADO DESDE CONSOLA
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center space-y-3 bg-zinc-950 text-cyan-400 p-6 text-center">
+                      <Disc3 className="w-12 h-12 animate-spin text-cyan-400" />
+                      <span className="text-xs sm:text-sm font-black tracking-widest uppercase text-cyan-300">
+                        Sincronizando pista de Karaoke en YouTube...
+                      </span>
+                      <span className="text-[11px] text-zinc-500 font-mono">
+                        {track.song.title} &bull; {track.song.artist}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Dedicatoria Flotante si existe */}
+                  {track.notes && (
+                    <div className="absolute bottom-3 left-3 right-3 sm:left-4 sm:right-4 bg-zinc-950/85 backdrop-blur-md px-4 py-2 rounded-2xl border border-cyan-500/40 text-cyan-200 text-xs sm:text-sm font-medium italic shadow-2xl pointer-events-none flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span className="truncate">&ldquo;{track.notes}&rdquo;</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Subbarra con información del tema */}
+                <div className="w-full flex items-center justify-between px-2 text-[11px] text-zinc-400 shrink-0">
+                  <div className="flex items-center gap-2 truncate">
+                    <span className="font-black text-white text-xs sm:text-sm truncate">{track.song.title}</span>
+                    <span>&bull;</span>
+                    <span className="text-cyan-300 font-bold truncate">{track.song.artist}</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-500 shrink-0">
+                    🎤 Pista Sincronizada
+                  </span>
+                </div>
+              </div>
+            ) : (
+              /* REPRODUCTOR VISUAL DE VINILO (DJ / AUDIO MODE) */
+              <div className="w-full h-full flex flex-col items-center justify-center space-y-3 sm:space-y-4 py-1 text-center animate-fadeIn">
+                {/* Badge Al Aire o Celebración + Reset */}
+                <div className="flex items-center justify-center gap-2 flex-wrap shrink-0">
+                  {isTvPaused ? (
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-black tracking-widest uppercase border bg-amber-950/80 text-amber-300 border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.35)] animate-pulse">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                      <span>⏸ EN PAUSA • CABINA DJ</span>
+                    </div>
+                  ) : isCelebration ? (
+                    <div className="px-3 py-1 rounded-2xl bg-gradient-to-r from-pink-600 via-purple-600 to-amber-500 text-white font-black text-xs sm:text-sm tracking-widest uppercase flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(236,72,153,0.5)] animate-bounce">
+                      <span>🎂 ¡MOMENTO DE CELEBRACIÓN! 🎉</span>
+                    </div>
+                  ) : (
+                    <div
+                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase border ${
+                        isKaraoke
+                          ? "bg-cyan-950/80 text-cyan-300 border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                          : "bg-purple-600/30 text-purple-300 border-purple-500/40"
+                      }`}
+                    >
+                      <Radio className={`w-3.5 h-3.5 animate-pulse ${isKaraoke ? "text-cyan-400" : "text-purple-400"}`} />
+                      <span>{isKaraoke ? `🎤 CANTANDO: ${track.table.label}` : "SONANDO EN LA PISTA"}</span>
+                    </div>
+                  )}
+
+                  {track.isFastPass && (
+                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-xs font-black">
+                      <Sparkles className="w-3 h-3 text-amber-400" />
+                      <span>⭐ FAST-PASS</span>
+                    </div>
+                  )}
+
+                  {isKaraoke && (
+                    <button
+                      onClick={() => setIsKaraokeVideoEnabled(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/90 text-cyan-300 border border-cyan-500/50 text-xs font-bold hover:bg-cyan-900 transition-colors cursor-pointer shadow-sm"
+                      title="Activar video de YouTube con letra en la TV"
+                    >
+                      <Mic className="w-3 h-3 text-cyan-400" />
+                      <span>📺 Ver Video Karaoke</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={handleResetScreen}
+                    disabled={isResetting}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white border border-rose-600/60 hover:border-rose-400 text-xs font-bold transition-colors cursor-pointer shadow-sm active:scale-95"
+                    title="Limpiar y liberar pantalla para que entre el siguiente pedido"
+                  >
+                    <RotateCcw className={`w-3 h-3 ${isResetting ? "animate-spin" : ""}`} />
+                    <span>Limpiar</span>
+                  </button>
+                </div>
+
+                {/* Vinilo Giratorio Proporcional */}
+                <div className="relative my-auto shrink-0">
+                  <div
+                    className="w-40 h-40 sm:w-48 sm:h-48 xl:w-56 xl:h-56 rounded-full bg-black border-6 sm:border-8 border-zinc-900 shadow-2xl flex items-center justify-center animate-spin [animation-duration:5s] transition-all"
+                    style={{ animationPlayState: isTvPaused ? "paused" : "running" }}
+                  >
+                    {/* Surcos del Vinilo */}
+                    <div className="w-32 h-32 sm:w-40 sm:h-40 xl:w-46 xl:h-46 rounded-full border border-zinc-800 flex items-center justify-center">
+                      <div className="w-24 h-24 sm:w-30 sm:h-30 xl:w-34 xl:h-34 rounded-full border border-zinc-850 flex items-center justify-center">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 xl:w-22 xl:h-22 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 border-2 sm:border-4 border-white flex flex-col items-center justify-center text-center p-1 shadow-inner">
+                          <Disc3 className={`w-5 h-5 text-white ${!isTvPaused ? "animate-pulse" : ""}`} />
+                          <span className="text-[7px] font-black text-white mt-0.5">VIDJS</span>
+                          <div className="w-2 h-2 rounded-full bg-black mt-0.5" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Badge de Pausa */}
+                  {isTvPaused && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none animate-fadeIn">
+                      <div className="px-3 py-1 rounded-full bg-black/90 border-2 border-amber-500/80 text-amber-300 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-2xl backdrop-blur-xs">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                        <span>⏸ EN PAUSA</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Glow decorativo */}
+                  <div
+                    className={`absolute inset-0 rounded-full blur-2xl -z-10 transition-opacity duration-500 ${
+                      isTvPaused ? "bg-amber-600/10 opacity-40" : "bg-purple-600/25 opacity-100"
+                    }`}
+                  />
+                </div>
+
+                {/* Título & Artista */}
+                <div className="space-y-0.5 max-w-lg w-full shrink-0">
+                  <h1 className="text-2xl sm:text-3xl xl:text-4xl font-black text-white tracking-tight leading-tight truncate">
+                    {track.song.title}
+                  </h1>
+                  <p className="text-lg sm:text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 truncate">
+                    {track.song.artist}
+                  </p>
+                </div>
+
+                {/* Caja de Dedicatoria */}
+                <div
+                  className={`p-2.5 sm:p-3 rounded-2xl border shadow-xl space-y-1 text-center max-w-md w-full shrink-0 ${
+                    track.isFastPass
+                      ? "bg-gradient-to-r from-amber-950/60 via-zinc-900/90 to-zinc-900/80 border-amber-500/50"
+                      : isCelebration
+                      ? "bg-gradient-to-r from-pink-950/70 via-purple-950/80 to-zinc-900 border-pink-500/60"
+                      : "bg-gradient-to-r from-purple-950/60 via-zinc-900/90 to-zinc-900/80 border-purple-500/40"
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2 text-xs text-purple-300 font-bold uppercase tracking-wider">
+                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Pedido por: {track.table.label}</span>
+                    {track.guestName && <span className="text-white">({track.guestName})</span>}
+                  </div>
+                  {track.notes && (
+                    <p className="text-xs sm:text-sm text-white font-medium italic line-clamp-2">
+                      &ldquo;{track.notes}&rdquo;
+                    </p>
+                  )}
+                </div>
+
+                {/* Ecualizador Animado */}
+                <div className="flex items-end justify-center gap-1 h-6 sm:h-7 pt-1 shrink-0">
+                  {[45, 80, 60, 95, 30, 75, 90, 50, 85, 40, 70, 100, 55, 90, 65, 80, 45, 95].map((height, i) => (
+                    <div
+                      key={i}
+                      className="w-1.5 rounded-t-full bg-gradient-to-t from-purple-600 via-fuchsia-500 to-cyan-400 animate-pulse transition-all duration-300"
+                      style={{
+                        height: `${height}%`,
+                        animationDuration: `${0.4 + (i % 5) * 0.15}s`,
+                        animationPlayState: isTvPaused ? "paused" : "running",
+                        opacity: isTvPaused ? 0.3 : 1,
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* Barra de Progreso */}
+                <div className="space-y-1 w-full max-w-md shrink-0">
+                  <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+                    <div
+                      className={`h-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 transition-all duration-1000 ${
+                        isTvPaused ? "opacity-60" : "opacity-100"
+                      }`}
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[11px] font-mono text-zinc-400">
+                    <span className={isTvPaused ? "text-amber-400 font-bold" : ""}>
+                      {formatTime(elapsedSeconds)} {isTvPaused && "(Pausa)"}
+                    </span>
+                    <span>{formatTime(duration)}</span>
+                  </div>
+                </div>
+              </div>
+            )
+          ) : (
+            /* MODO INTERMEDIO (IDLE): Pantalla de Bienvenida y Animación */
+            <div className="w-full h-full flex flex-col items-center justify-center space-y-4 p-4 text-center animate-fadeIn">
+              <div className="p-4 sm:p-5 rounded-3xl bg-purple-600/20 border-2 border-purple-500/40 text-purple-400 shadow-2xl glow-purple">
+                <Disc3 className="w-14 h-14 sm:w-16 sm:h-16 animate-spin [animation-duration:10s]" />
               </div>
 
-              <div className="space-y-1.5">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+              <div className="space-y-2">
+                <span className="px-3.5 py-1 rounded-full bg-purple-950 text-purple-300 border border-purple-800 text-xs font-black uppercase tracking-wider">
+                  {isKaraoke ? "🎤 Escenario Karaoke Listo" : "🎧 Pista DJ Abierta"}
+                </span>
+                <h1 className="text-3xl sm:text-4xl xl:text-5xl font-black text-white tracking-tight leading-tight">
                   ¡LA PISTA ESTÁ ABIERTA!
                 </h1>
-                <p className="text-sm sm:text-base text-zinc-300">
+                <p className="text-sm sm:text-base text-zinc-300 max-w-md mx-auto">
                   Sé el primero en pedir tu canción favorita para cantar o bailar en{" "}
                   <span className="text-purple-300 font-bold">{data.event.tenantName}</span>
                 </p>
               </div>
 
-              {/* Banner de Instrucciones */}
-              <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 text-xs text-zinc-300 space-y-1 inline-block text-left shadow-lg">
-                <div className="font-bold text-white flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-                  <span>Pide canciones desde tu mesa con tu celular</span>
+              <div className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 text-xs text-zinc-300 space-y-1.5 max-w-md mx-auto shadow-xl">
+                <div className="font-bold text-white flex items-center justify-center gap-2">
+                  <Sparkles className="w-4 h-4 text-yellow-400" />
+                  <span>Pide música desde tu mesa con tu celular</span>
                 </div>
                 <p className="text-[11px] text-zinc-400">
-                  Sin descargar aplicaciones ni registros. Apunta la cámara y selecciona tus temas.
+                  Apunta la cámara al código QR de la derecha para elegir tus temas favoritos al instante.
                 </p>
               </div>
-
-              {/* Wi-Fi si está configurado */}
-              {data.branding?.wifiSsid && (
-                <div className="text-xs text-zinc-300 flex items-center justify-center md:justify-start gap-2 pt-0.5">
-                  <span className="text-cyan-400 font-bold">📶 Wi-Fi:</span>
-                  <span className="font-bold text-white bg-zinc-900 px-2 py-0.5 rounded-lg border border-zinc-800">
-                    {data.branding.wifiSsid}
-                  </span>
-                  {data.branding.wifiPassword && (
-                    <span className="font-mono text-zinc-400">({data.branding.wifiPassword})</span>
-                  )}
-                </div>
-              )}
             </div>
+          )}
 
-            {/* Columna Derecha: Tarjeta con QR Proporcional que cabe 100% en la TV */}
-            <div className="md:col-span-5 flex justify-center">
-              <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 border-2 border-purple-500/40 shadow-2xl shadow-purple-500/20 text-center space-y-2.5 max-w-[270px] sm:max-w-[290px]">
-                <div className="p-3 bg-white rounded-2xl inline-block shadow-inner">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={data.qr.dataUrl}
-                    alt="Escanea para pedir"
-                    className="w-36 h-36 sm:w-44 sm:h-44 lg:w-48 lg:h-48 object-contain"
-                  />
-                </div>
-                <div className="text-xs font-black text-white tracking-wider">
-                  📱 APUNTA TU CÁMARA AQUÍ
-                </div>
-                <span className="text-[10px] font-semibold text-purple-300 block">
-                  Catálogo en vivo sin descargas
+          {/* Floating Social Lounge Polaroid Showcase en la esquina del centro */}
+          {approvedPhotos.length > 0 && (
+            <div
+              key={approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.id || currentPhotoIdx}
+              className="hidden 2xl:block absolute bottom-2 right-2 z-20 w-44 bg-zinc-950/95 border-2 border-pink-500/40 rounded-2xl p-2 shadow-2xl shadow-pink-500/20 rotate-1 hover:rotate-0 transition-all animate-fadeIn"
+            >
+              <div className="flex items-center justify-between text-[9px] font-bold text-pink-400 uppercase mb-1">
+                <span className="flex items-center gap-1">
+                  <Camera className="w-3 h-3" />
+                  <span>Social Lounge</span>
+                </span>
+                <span className="font-mono text-zinc-400">
+                  {approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.table.label}
                 </span>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Floating Social Lounge Polaroid Showcase */}
-        {approvedPhotos.length > 0 && (
-          <div
-            key={approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.id || currentPhotoIdx}
-            className="hidden xl:block absolute bottom-12 right-2 z-20 w-56 bg-zinc-950/95 border-2 border-pink-500/40 rounded-2xl p-2.5 shadow-2xl shadow-pink-500/20 rotate-1 hover:rotate-0 transition-all animate-fadeIn"
-          >
-            <div className="flex items-center justify-between text-[10px] font-bold text-pink-400 uppercase mb-1.5">
-              <span className="flex items-center gap-1">
-                <Camera className="w-3 h-3" />
-                <span>Social Lounge</span>
-              </span>
-              <span className="font-mono text-zinc-400">
-                {approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.table.label}
-              </span>
-            </div>
-            <div className="aspect-square rounded-xl overflow-hidden bg-black border border-zinc-800 relative">
-              {photoFitMode === "BLUR_FILL" ? (
-                <>
-                  {/* Fondo ambiental difuminado cinemático para Smart TV */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.imageUrl}
-                    alt=""
-                    aria-hidden="true"
-                    className="absolute inset-0 w-full h-full object-cover blur-xl opacity-50 scale-125 pointer-events-none"
-                  />
-                  {/* Foto original nítida centrada con proporción intacta */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+              <div className="aspect-square rounded-xl overflow-hidden bg-black border border-zinc-800 relative">
+                {photoFitMode === "BLUR_FILL" ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.imageUrl}
+                      alt=""
+                      aria-hidden="true"
+                      className="absolute inset-0 w-full h-full object-cover blur-xl opacity-50 scale-125 pointer-events-none"
+                    />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.imageUrl}
+                      alt="Foto del público"
+                      className="relative z-10 w-full h-full object-contain drop-shadow-md"
+                    />
+                  </>
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.imageUrl}
                     alt="Foto del público"
-                    className="relative z-10 w-full h-full object-contain drop-shadow-md"
+                    className={`w-full h-full ${photoFitMode === "CONTAIN" ? "object-contain" : "object-cover"}`}
                   />
-                </>
-              ) : (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.imageUrl}
-                  alt="Foto del público"
-                  className={`w-full h-full ${photoFitMode === "CONTAIN" ? "object-contain" : "object-cover"}`}
-                />
-              )}
-            </div>
-            <div className="mt-1.5 text-center">
-              {approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.caption && (
-                <p className="text-xs text-white italic line-clamp-1">
-                  &ldquo;{approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.caption}&rdquo;
-                </p>
-              )}
-              <span className="text-[10px] text-pink-300 font-semibold block mt-0.5">
-                &mdash; {approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.guestName}
-              </span>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* 3. Barra Inferior (Próximos Temas & QR Lateral) - Siempre Visible al Fondo */}
-      <footer className="z-10 pt-2 sm:pt-2.5 border-t border-zinc-800/60 flex flex-col md:flex-row items-center justify-between gap-3 shrink-0">
-        {/* Próximos Temas en Cola */}
-        <div className="flex-1 min-w-0 space-y-1.5 text-center md:text-left">
-          <div className="flex items-center justify-center md:justify-start gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest flex-wrap">
-            <Clock className="w-3.5 h-3.5 text-purple-400" />
-            <span>
-              {isKaraoke
-                ? `🎤 Turnos de Karaoke (${data.upcomingQueue.length} mesas en espera)`
-                : `A continuación en la cola (${data.upcomingQueue.length})`}
-            </span>
-            {data.policy?.queuePaused && (
-              <span className="px-2 py-0.5 rounded-full bg-red-950 text-red-300 border border-red-800 text-[10px] font-bold animate-pulse">
-                ⏸ Pedidos en pausa momentánea
-              </span>
-            )}
-          </div>
-
-          {data.upcomingQueue.length === 0 ? (
-            <p className="text-xs text-zinc-500">
-              {isKaraoke
-                ? "No hay más mesas en espera para cantar. ¡Sé el primero en pedir desde tu mesa!"
-                : "No hay más canciones en espera. ¡Envía tu pedido desde tu mesa!"}
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-              {data.upcomingQueue.map((item) => (
-                <div
-                  key={item.id}
-                  className={`px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs shadow-md border ${
-                    item.order === 1 && isKaraoke
-                      ? "bg-gradient-to-r from-cyan-950/80 to-zinc-900 border-cyan-500/60 shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse"
-                      : "bg-zinc-900/90 border-zinc-800"
-                  }`}
-                >
-                  <span
-                    className={`w-5 h-5 rounded-md font-mono font-bold flex items-center justify-center text-[10px] ${
-                      item.order === 1 && isKaraoke
-                        ? "bg-cyan-400 text-black font-black"
-                        : "bg-purple-600/30 text-purple-300"
-                    }`}
-                  >
-                    #{item.order}
-                  </span>
-                  <div className="truncate max-w-[150px]">
-                    <div className="font-bold text-white truncate">{item.title}</div>
-                    <div className="text-[10px] text-zinc-400 truncate">{item.artist}</div>
-                  </div>
-                  <span
-                    className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${
-                      item.order === 1 && isKaraoke
-                        ? "bg-cyan-950 text-cyan-200 border-cyan-700 font-bold"
-                        : "bg-zinc-950 text-purple-300 border-zinc-800"
-                    }`}
-                  >
-                    {item.order === 1 && isKaraoke ? `🎤 Siguiente: ${item.table}` : item.table}
-                  </span>
-                  {item.isFastPass && (
-                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-800 shrink-0">
-                      ⭐ VIP
-                    </span>
-                  )}
-                </div>
-              ))}
+                )}
+              </div>
+              <div className="mt-1 text-center">
+                {approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.caption && (
+                  <p className="text-[10px] text-white italic line-clamp-1">
+                    &ldquo;{approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.caption}&rdquo;
+                  </p>
+                )}
+                <span className="text-[9px] text-pink-300 font-semibold block mt-0.5">
+                  &mdash; {approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.guestName}
+                </span>
+              </div>
             </div>
           )}
         </div>
 
-        {/* QR Escaneable en la Esquina */}
-        {track && (
-          <div className="flex items-center gap-2.5 p-2 rounded-2xl bg-zinc-900/90 border border-purple-500/30 shadow-xl shrink-0">
-            <div className="p-1 bg-white rounded-xl shadow-inner">
+        {/* COLUMNA 3 (DERECHA - lg:col-span-3 xl:col-span-3): QR GIGANTE QUE CUBRE EL ESPACIO */}
+        <aside className="lg:col-span-3 xl:col-span-3 h-full min-h-0 flex flex-col items-center justify-between rounded-3xl bg-zinc-950/85 border border-purple-500/30 p-3 sm:p-4 xl:p-5 shadow-2xl backdrop-blur-md overflow-hidden text-center">
+          {/* Encabezado del QR */}
+          <div className="space-y-1 w-full shrink-0">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-600/20 text-purple-300 border border-purple-500/40 text-[11px] font-black uppercase tracking-wider">
+              <QrCode className="w-3.5 h-3.5 text-purple-400" />
+              <span>Pide desde tu Mesa</span>
+            </div>
+            <h3 className="text-sm sm:text-base xl:text-lg font-black text-white tracking-tight leading-tight">
+              {isKaraoke ? "¡CANTA TU TEMA!" : "¿QUÉ QUIERES ESCUCHAR?"}
+            </h3>
+            <p className="text-[11px] text-zinc-400">
+              Apunta la cámara de tu celular
+            </p>
+          </div>
+
+          {/* Tarjeta del Código QR Gigante */}
+          <div className="my-auto py-2 flex flex-col items-center justify-center shrink-0 w-full">
+            <div className="p-3 sm:p-3.5 xl:p-4 bg-white rounded-3xl shadow-[0_0_40px_rgba(168,85,247,0.35)] border-4 border-purple-400/50 inline-block transition-transform duration-300 hover:scale-[1.02]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={data.qr.dataUrl}
-                alt="QR en pantalla"
-                className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
+                alt="Escanea para pedir música o karaoke"
+                className="w-44 h-44 sm:w-52 sm:h-52 lg:w-48 lg:h-48 xl:w-60 xl:h-60 2xl:w-72 2xl:h-72 object-contain"
               />
             </div>
-            <div className="text-left space-y-0.5">
-              <div className="text-[10px] font-black text-white flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-purple-400" />
-                <span>¿QUÉ QUIERES ESCUCHAR?</span>
-              </div>
-              <p className="text-[9px] text-zinc-400 max-w-[130px]">
-                Escanea desde tu mesa y pide tu tema
-              </p>
+            <div className="mt-2.5 px-3 py-1 rounded-xl bg-purple-950/90 border border-purple-600/60 text-purple-200 font-mono text-xs font-black tracking-widest shadow-md">
+              CÓDIGO: {data.event.code}
             </div>
           </div>
-        )}
-      </footer>
+
+          {/* Guía en 3 Pasos y Wi-Fi */}
+          <div className="w-full space-y-2 pt-2 border-t border-zinc-800/80 shrink-0">
+            <div className="grid grid-cols-3 gap-1 text-center">
+              <div className="p-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800">
+                <span className="text-[10px] font-black text-purple-400 block">1. CÁMARA</span>
+                <span className="text-[9px] text-zinc-400 block leading-tight">Abre tu app</span>
+              </div>
+              <div className="p-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800">
+                <span className="text-[10px] font-black text-cyan-400 block">2. ESCANEA</span>
+                <span className="text-[9px] text-zinc-400 block leading-tight">Apunta al QR</span>
+              </div>
+              <div className="p-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800">
+                <span className="text-[10px] font-black text-amber-400 block">3. PIDE</span>
+                <span className="text-[9px] text-zinc-400 block leading-tight">Elige tu tema</span>
+              </div>
+            </div>
+
+            {data.branding?.wifiSsid && (
+              <div className="flex items-center justify-center gap-1.5 text-[10px] text-zinc-300 bg-zinc-900/90 py-1 px-2 rounded-xl border border-zinc-800">
+                <Wifi className="w-3 h-3 text-cyan-400 shrink-0" />
+                <span className="text-zinc-400">Wi-Fi:</span>
+                <span className="font-bold text-white truncate max-w-[90px]">{data.branding.wifiSsid}</span>
+                {data.branding.wifiPassword && (
+                  <span className="font-mono text-cyan-300 truncate max-w-[80px]">({data.branding.wifiPassword})</span>
+                )}
+              </div>
+            )}
+
+            <span className="text-[10px] font-semibold text-zinc-500 block">
+              ⚡ Catálogo digital sin descargas
+            </span>
+          </div>
+        </aside>
+      </main>
 
       {/* 🚀 Capa de Reacciones Flotantes en Vivo (SSE 0ms) */}
       <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden">
@@ -1794,6 +1835,20 @@ export default function PublicDisplayScreenPage({
         }
         .animate-reactionFloat {
           animation: reactionFloat 3.8s ease-out forwards;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(24, 24, 27, 0.4);
+          border-radius: 9999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(168, 85, 247, 0.4);
+          border-radius: 9999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(168, 85, 247, 0.8);
         }
       `}</style>
     </div>
