@@ -918,10 +918,18 @@ export default function NightControlDashboard({
 
           {/* Listado de Locales */}
           <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-3">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-purple-400" />
-              <span>Locales Registrados</span>
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-purple-400" />
+                <span>Locales Registrados</span>
+              </h3>
+              <Link
+                href="/dashboard/events"
+                className="text-xs font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+              >
+                <span>Administrar Eventos &rarr;</span>
+              </Link>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {initialVenues.map((venue) => (

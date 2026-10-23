@@ -58,7 +58,7 @@ export function Sidebar({
     { name: "Cabina Karaoke (KJ)", icon: Mic, href: "/dashboard/karaoke", active: pathname === "/dashboard/karaoke", badge: "KJ" },
     { name: "Biblioteca Musical", icon: ListMusic, href: "/dashboard/library", active: pathname === "/dashboard/library", tag: "HQ" },
     { name: "Locales (Venues)", icon: Building2, href: "/dashboard#venues", badge: "2" },
-    { name: "Eventos & Noches", icon: CalendarCheck2, href: "/dashboard#events", badge: "2 activos" },
+    { name: "Eventos & Noches", icon: CalendarCheck2, href: "/dashboard/events", active: pathname === "/dashboard/events", badge: "Noches" },
     { name: "Mesas & Códigos QR", icon: QrCode, href: "/dashboard/tables", badge: "11", active: pathname === "/dashboard/tables" },
     { name: "Equipo & Roles", icon: Users, href: "/dashboard/team", active: pathname === "/dashboard/team", badge: "Roles" },
     { name: "Marca & White-Label", icon: Palette, href: "/dashboard/branding", active: pathname === "/dashboard/branding", tag: "Nuevo" },
