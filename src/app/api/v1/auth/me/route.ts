@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUserSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
-import { ROLE_PERMISSIONS, Role } from "@/lib/rbac/permissions";
+import { Role, getEffectiveRolePermissions } from "@/lib/rbac/permissions";
 import { handleApiError } from "@/lib/errors";
 
 export async function GET() {
@@ -24,6 +24,7 @@ export async function GET() {
             slug: true,
             status: true,
             logoUrl: true,
+            settings: true,
           },
         },
       },
@@ -33,11 +34,32 @@ export async function GET() {
       return NextResponse.json({ user: null }, { status: 401 });
     }
 
-    const permissions = ROLE_PERMISSIONS[user.role as Role] || [];
+    let customRolePermissions: Record<string, string[]> | null = null;
+    if (user.tenant?.settings) {
+      try {
+        const parsed = JSON.parse(user.tenant.settings);
+        if (parsed.rolePermissions) {
+          customRolePermissions = parsed.rolePermissions;
+        }
+      } catch (err) {
+        // ignore parse error
+      }
+    }
+
+    const permissions = getEffectiveRolePermissions(user.role as Role, customRolePermissions);
+
+    // Omit settings from client payload for security
+    const { settings, ...safeTenant } = user.tenant || {};
 
     return NextResponse.json({
       user: {
-        ...user,
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        phone: user.phone,
+        status: user.status,
+        tenant: user.tenant ? safeTenant : null,
         permissions,
       },
     });

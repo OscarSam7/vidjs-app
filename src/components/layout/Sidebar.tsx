@@ -20,6 +20,7 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  Users,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -59,6 +60,7 @@ export function Sidebar({
     { name: "Locales (Venues)", icon: Building2, href: "/dashboard#venues", badge: "2" },
     { name: "Eventos & Noches", icon: CalendarCheck2, href: "/dashboard#events", badge: "2 activos" },
     { name: "Mesas & Códigos QR", icon: QrCode, href: "/dashboard/tables", badge: "11", active: pathname === "/dashboard/tables" },
+    { name: "Equipo & Roles", icon: Users, href: "/dashboard/team", active: pathname === "/dashboard/team", badge: "Roles" },
     { name: "Marca & White-Label", icon: Palette, href: "/dashboard/branding", active: pathname === "/dashboard/branding", tag: "Nuevo" },
     { name: "Suscripción & Plan", icon: CreditCard, href: "/dashboard/subscription", active: pathname === "/dashboard/subscription" },
     { name: "Auditoría & Logs", icon: ShieldCheck, href: "/dashboard/audit", active: pathname === "/dashboard/audit" },

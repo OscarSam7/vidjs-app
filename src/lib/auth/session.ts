@@ -39,7 +39,26 @@ export async function requireRole(allowedRoles: Role[]): Promise<SessionPayload>
 
 export async function requirePermission(permission: Permission): Promise<SessionPayload> {
   const session = await requireUserSession();
-  if (!hasPermission(session.role, permission)) {
+
+  let customRolePermissions: Record<string, string[]> | null = null;
+  if (session.tenantId) {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: session.tenantId },
+      select: { settings: true },
+    });
+    if (tenant?.settings) {
+      try {
+        const parsed = JSON.parse(tenant.settings);
+        if (parsed.rolePermissions) {
+          customRolePermissions = parsed.rolePermissions;
+        }
+      } catch (err) {
+        // ignore json parse error
+      }
+    }
+  }
+
+  if (!hasPermission(session.role, permission, customRolePermissions)) {
     throw new ForbiddenError(`Permiso denegado: Se requiere '${permission}'`);
   }
   return session;

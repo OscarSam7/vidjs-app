@@ -758,6 +758,25 @@ export default function SettingsPage() {
                 Ver Auditoría & Logs
               </a>
             </div>
+
+            {/* Acceso a Gestión de Equipo, Roles y Permisos */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-purple-950/40 via-zinc-950 to-indigo-950/40 border border-purple-500/30 flex items-center justify-between gap-3">
+              <div className="space-y-1">
+                <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-purple-400" />
+                  Roles y Permisos de Personal (Manager y DJ)
+                </span>
+                <p className="text-[11px] text-zinc-400">
+                  Asigna roles a los miembros de tu equipo y personaliza la matriz de permisos para cabina y sala.
+                </p>
+              </div>
+              <a
+                href="/dashboard/team"
+                className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shrink-0"
+              >
+                Administrar Equipo &rarr;
+              </a>
+            </div>
           </div>
         )}
 
