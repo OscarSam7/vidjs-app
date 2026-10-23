@@ -19,6 +19,7 @@ import {
   RotateCcw,
   QrCode,
   Wifi,
+  Tv,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -193,6 +194,7 @@ export default function PublicDisplayScreenPage({
   const karaokeIframeRef = useRef<HTMLIFrameElement>(null);
   const [isTvPaused, setIsTvPaused] = useState<boolean>(false);
   const [forceKaraokeMode, setForceKaraokeMode] = useState<boolean>(false);
+  const [mobileTab, setMobileTab] = useState<"player" | "queue" | "qr">("player");
 
   // Detección reactiva de parámetro ?mode=karaoke en URL
   useEffect(() => {
@@ -276,6 +278,7 @@ export default function PublicDisplayScreenPage({
       if (action === "PLAY") {
         setIsTvPaused(false);
         sendYouTubeCommand("playVideo");
+        setMobileTab("player");
 
         if (typeof seconds === "number") {
           setElapsedSeconds(seconds);
@@ -844,7 +847,7 @@ export default function PublicDisplayScreenPage({
   );
 
   return (
-    <div className="h-screen max-h-screen w-screen bg-[#040406] text-zinc-100 flex flex-col justify-between p-3 sm:p-5 lg:p-6 relative overflow-hidden select-none">
+    <div className="h-[100dvh] max-h-[100dvh] w-screen bg-[#040406] text-zinc-100 flex flex-col justify-between p-2 sm:p-4 lg:p-6 relative overflow-hidden select-none">
       {/* Luces de fondo y resplandor estilo discoteca */}
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none" />
@@ -859,13 +862,11 @@ export default function PublicDisplayScreenPage({
         </div>
       )}
 
-
-
       {/* 1. Encabezado Superior (Logo del Local y Código) */}
-      <header className="flex items-center justify-between z-10 border-b border-zinc-800/60 pb-2.5 sm:pb-3 shrink-0">
-        <div className="flex items-center gap-3 sm:gap-4">
+      <header className="flex items-center justify-between z-10 border-b border-zinc-800/60 pb-2 sm:pb-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           {data.branding?.logoUrl || data.event.logoUrl ? (
-            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-zinc-900 border border-zinc-700/80 p-1 flex items-center justify-center overflow-hidden shadow-xl shrink-0">
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-zinc-900 border border-zinc-700/80 p-0.5 sm:p-1 flex items-center justify-center overflow-hidden shadow-xl shrink-0">
               <img
                 src={data.branding?.logoUrl || data.event.logoUrl || ""}
                 alt={data.event.tenantName}
@@ -873,31 +874,31 @@ export default function PublicDisplayScreenPage({
               />
             </div>
           ) : (
-            <div className="p-2.5 rounded-2xl bg-purple-600/20 border border-purple-500/30 text-purple-400 shrink-0">
-              <Disc3 className="w-6 h-6 animate-spin [animation-duration:12s]" />
+            <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-purple-600/20 border border-purple-500/30 text-purple-400 shrink-0">
+              <Disc3 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin [animation-duration:12s]" />
             </div>
           )}
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg sm:text-xl font-black text-white tracking-wider">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <span className="text-sm sm:text-xl font-black text-white tracking-wider truncate max-w-[120px] sm:max-w-none">
                 {data.branding?.welcomeTitle || data.event.tenantName.toUpperCase()}
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800 text-[11px] font-bold font-mono">
+              <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800 text-[10px] sm:text-[11px] font-bold font-mono">
                 {data.event.venueName}
               </span>
               {isKaraoke && (
-                <span className="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-[11px] font-bold font-mono animate-pulse">
+                <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-[10px] sm:text-[11px] font-bold font-mono animate-pulse">
                   🎤 MODO KARAOKE
                 </span>
               )}
             </div>
-            <p className="text-xs text-zinc-400 font-medium">
+            <p className="text-[11px] sm:text-xs text-zinc-400 font-medium truncate">
               {data.event.name}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {data.branding?.instagramHandle && (
             <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-purple-950/80 to-pink-950/80 border border-purple-700/60 text-purple-200 text-xs font-bold">
               <span>📸 {data.branding.instagramHandle}</span>
@@ -916,15 +917,15 @@ export default function PublicDisplayScreenPage({
             </span>
           </div>
 
-          <div className="px-3 py-1.5 rounded-xl bg-purple-900/40 border border-purple-600/50 text-purple-200 font-mono text-xs font-extrabold tracking-wider">
-            CÓDIGO: {data.event.code}
+          <div className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-purple-900/40 border border-purple-600/50 text-purple-200 font-mono text-[11px] sm:text-xs font-extrabold tracking-wider">
+            <span className="hidden sm:inline">CÓDIGO: </span>{data.event.code}
           </div>
 
           {/* Botón para Limpiar / Resetear pantalla y permitir que entre el siguiente pedido */}
           <button
             onClick={handleResetScreen}
             disabled={isResetting}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-950/80 to-red-950/80 hover:from-rose-600 hover:to-red-600 border border-rose-600/60 hover:border-rose-400 text-rose-200 hover:text-white text-xs font-black shadow-md shadow-rose-950/60 transition-all cursor-pointer active:scale-95"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-rose-950/80 to-red-950/80 hover:from-rose-600 hover:to-red-600 border border-rose-600/60 hover:border-rose-400 text-rose-200 hover:text-white text-xs font-black shadow-md shadow-rose-950/60 transition-all cursor-pointer active:scale-95"
             title="Limpiar / Resetear pantalla para dar paso al siguiente pedido si un tema se quedó trabado o desincronizado"
           >
             <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? "animate-spin text-white" : "text-rose-400"}`} />
@@ -935,28 +936,27 @@ export default function PublicDisplayScreenPage({
           {/* Botón para volver a la Consola y Panel de Control del DJ */}
           <Link
             href="/dashboard/dj"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black shadow-md shadow-purple-950/60 transition-all cursor-pointer border border-purple-400/40 active:scale-95"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black shadow-md shadow-purple-950/60 transition-all cursor-pointer border border-purple-400/40 active:scale-95"
             title="Volver a la Consola y Panel de Control del DJ"
           >
-            <Headphones className="w-4 h-4" />
-            <span className="hidden sm:inline">Volver al Panel DJ</span>
-            <span className="sm:hidden">Panel DJ</span>
+            <Headphones className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Panel DJ</span>
           </Link>
 
           <button
             onClick={toggleFullscreen}
-            className="p-2 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white transition-colors flex items-center justify-center cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white transition-colors flex items-center justify-center cursor-pointer"
             title={isFullscreen ? "Salir de pantalla completa" : "Pantalla Completa (F11)"}
           >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
           </button>
         </div>
       </header>
 
       {/* Marquesina de Anuncios y Promociones */}
       {data.branding?.marqueeText && (
-        <div className="z-10 -mx-3 sm:-mx-5 lg:-mx-6 my-1 bg-gradient-to-r from-purple-950/90 via-zinc-950 to-purple-950/90 border-y border-purple-500/30 py-1 overflow-hidden shadow-xl shrink-0">
-          <div className="flex animate-pulse whitespace-nowrap justify-center gap-6 font-bold text-xs text-purple-200 tracking-wider px-4">
+        <div className="z-10 -mx-2 sm:-mx-4 lg:-mx-6 my-0.5 sm:my-1 bg-gradient-to-r from-purple-950/90 via-zinc-950 to-purple-950/90 border-y border-purple-500/30 py-0.5 sm:py-1 overflow-hidden shadow-xl shrink-0">
+          <div className="flex animate-pulse whitespace-nowrap justify-center gap-6 font-bold text-[11px] sm:text-xs text-purple-200 tracking-wider px-3 sm:px-4">
             <span>✨ {data.branding.marqueeText}</span>
           </div>
         </div>
@@ -964,20 +964,61 @@ export default function PublicDisplayScreenPage({
 
       {/* Marquesina de Flash Deals de Barra */}
       {data.flashDeal && (
-        <div className="z-10 -mx-3 sm:-mx-5 lg:-mx-6 my-0.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-black py-1 px-4 shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2.5 font-black text-xs tracking-wider animate-pulse shrink-0">
-          <span className="px-1.5 py-0.2 rounded bg-black text-amber-300 text-[9px] uppercase font-mono">
+        <div className="z-10 -mx-2 sm:-mx-4 lg:-mx-6 my-0.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-black py-0.5 sm:py-1 px-3 sm:px-4 shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 font-black text-[11px] sm:text-xs tracking-wider animate-pulse shrink-0">
+          <span className="px-1.5 py-0.2 rounded bg-black text-amber-300 text-[8px] sm:text-[9px] uppercase font-mono">
             {data.flashDeal.badgeText || "PROMO BARRA"}
           </span>
           <span>⚡ {data.flashDeal.title}:</span>
-          <span className="font-semibold text-zinc-950">{data.flashDeal.discount || data.flashDeal.subtitle}</span>
-          <span className="text-[9px] font-mono uppercase bg-black/20 px-1.5 py-0.2 rounded">¡Pide en barra!</span>
+          <span className="font-semibold text-zinc-950 truncate">{data.flashDeal.discount || data.flashDeal.subtitle}</span>
+          <span className="text-[8px] sm:text-[9px] font-mono uppercase bg-black/20 px-1.5 py-0.2 rounded hidden sm:inline">¡Pide en barra!</span>
         </div>
       )}
 
+      {/* 📱 Selector de Pestañas para Vista Móvil / App */}
+      <div className="lg:hidden flex items-center justify-center p-1 bg-zinc-900/90 border border-zinc-800 rounded-2xl shrink-0 my-1 gap-1 z-20 shadow-lg">
+        <button
+          onClick={() => setMobileTab("player")}
+          className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+            mobileTab === "player"
+              ? "bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-md shadow-purple-950/50"
+              : "text-zinc-400 hover:text-white"
+          }`}
+        >
+          <Tv className="w-3.5 h-3.5" />
+          <span>En Vivo</span>
+        </button>
+        <button
+          onClick={() => setMobileTab("queue")}
+          className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+            mobileTab === "queue"
+              ? "bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-md shadow-purple-950/50"
+              : "text-zinc-400 hover:text-white"
+          }`}
+        >
+          <Clock className="w-3.5 h-3.5" />
+          <span>Cola ({data.upcomingQueue?.length ?? 0})</span>
+        </button>
+        <button
+          onClick={() => setMobileTab("qr")}
+          className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+            mobileTab === "qr"
+              ? "bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-md shadow-purple-950/50"
+              : "text-zinc-400 hover:text-white"
+          }`}
+        >
+          <QrCode className="w-3.5 h-3.5" />
+          <span>Pedir QR</span>
+        </button>
+      </div>
+
       {/* 2. Escenario Principal en 3 Columnas (Izquierda: Cola | Centro: Video/Vinilo | Derecha: QR Gigante) */}
-      <main className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 my-auto py-1 sm:py-2 z-10 relative overflow-hidden">
+      <main className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:gap-4 my-auto py-1 sm:py-2 z-10 relative overflow-hidden">
         {/* COLUMNA 1 (IZQUIERDA - lg:col-span-3 xl:col-span-3): LISTA DE COLA DE PEDIDOS */}
-        <aside className="lg:col-span-3 xl:col-span-3 h-full min-h-0 flex flex-col rounded-3xl bg-zinc-950/85 border border-purple-500/30 p-3 sm:p-4 shadow-2xl backdrop-blur-md overflow-hidden">
+        <aside
+          className={`${
+            mobileTab === "queue" ? "flex flex-1" : "hidden"
+          } lg:flex lg:col-span-3 xl:col-span-3 h-full min-h-0 flex-col rounded-3xl bg-zinc-950/85 border border-purple-500/30 p-3 sm:p-4 shadow-2xl backdrop-blur-md overflow-hidden`}
+        >
           {/* Encabezado de la Cola */}
           <div className="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-zinc-800/80 shrink-0">
             <div className="flex items-center gap-2">
@@ -1085,15 +1126,22 @@ export default function PublicDisplayScreenPage({
 
           {/* Pie de la Columna Izquierda */}
           <div className="pt-2 border-t border-zinc-800/80 text-center shrink-0">
-            <p className="text-[10px] font-semibold text-zinc-500 flex items-center justify-center gap-1">
+            <button
+              onClick={() => setMobileTab("qr")}
+              className="w-full text-[10px] font-semibold text-zinc-400 hover:text-white flex items-center justify-center gap-1 cursor-pointer transition-colors"
+            >
               <Sparkles className="w-3 h-3 text-purple-400" />
               <span>Pide el tuyo con el QR 👉</span>
-            </p>
+            </button>
           </div>
         </aside>
 
         {/* COLUMNA 2 (CENTRAL - lg:col-span-6 xl:col-span-6): ESCENARIO (VIDEO / VINILO / IDLE / DUELO) */}
-        <div className="lg:col-span-6 xl:col-span-6 h-full min-h-0 flex flex-col items-center justify-center relative overflow-hidden px-1">
+        <div
+          className={`${
+            mobileTab === "player" ? "flex flex-1" : "hidden"
+          } lg:flex lg:col-span-6 xl:col-span-6 h-full min-h-0 flex-col items-center justify-center relative overflow-hidden px-1`}
+        >
           {activeDuel && activeDuel.status === "ACTIVE" ? (
             /* ESCENARIO DE DUELO MUSICAL EN VIVO */
             <div className="max-w-5xl mx-auto w-full space-y-5 animate-fadeIn">
@@ -1495,7 +1543,7 @@ export default function PublicDisplayScreenPage({
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 text-xs text-zinc-300 space-y-1.5 max-w-md mx-auto shadow-xl">
+              <div className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 text-xs text-zinc-300 space-y-2 max-w-md mx-auto shadow-xl">
                 <div className="font-bold text-white flex items-center justify-center gap-2">
                   <Sparkles className="w-4 h-4 text-yellow-400" />
                   <span>Pide música desde tu mesa con tu celular</span>
@@ -1503,6 +1551,23 @@ export default function PublicDisplayScreenPage({
                 <p className="text-[11px] text-zinc-400">
                   Apunta la cámara al código QR de la derecha para elegir tus temas favoritos al instante.
                 </p>
+                {/* Atajos rápidos en versión móvil */}
+                <div className="lg:hidden pt-1 flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => setMobileTab("qr")}
+                    className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-purple-900/40 active:scale-95 transition-all"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>Ver QR para Pedir</span>
+                  </button>
+                  <button
+                    onClick={() => setMobileTab("queue")}
+                    className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs flex items-center gap-1.5 border border-zinc-700 active:scale-95 transition-all"
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Ver Cola ({data.upcomingQueue?.length ?? 0})</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1563,7 +1628,11 @@ export default function PublicDisplayScreenPage({
         </div>
 
         {/* COLUMNA 3 (DERECHA - lg:col-span-3 xl:col-span-3): QR GIGANTE QUE CUBRE EL ESPACIO */}
-        <aside className="lg:col-span-3 xl:col-span-3 h-full min-h-0 flex flex-col items-center justify-between rounded-3xl bg-zinc-950/85 border border-purple-500/30 p-3 sm:p-4 xl:p-5 shadow-2xl backdrop-blur-md overflow-hidden text-center">
+        <aside
+          className={`${
+            mobileTab === "qr" ? "flex flex-1" : "hidden"
+          } lg:flex lg:col-span-3 xl:col-span-3 h-full min-h-0 flex-col items-center justify-between rounded-3xl bg-zinc-950/85 border border-purple-500/30 p-3 sm:p-4 xl:p-5 shadow-2xl backdrop-blur-md overflow-hidden text-center`}
+        >
           {/* Encabezado del QR */}
           <div className="space-y-1 w-full shrink-0">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-600/20 text-purple-300 border border-purple-500/40 text-[11px] font-black uppercase tracking-wider">
@@ -1588,9 +1657,22 @@ export default function PublicDisplayScreenPage({
                 className="w-44 h-44 sm:w-52 sm:h-52 lg:w-48 lg:h-48 xl:w-60 xl:h-60 2xl:w-72 2xl:h-72 object-contain"
               />
             </div>
-            <div className="mt-2.5 px-3 py-1 rounded-xl bg-purple-950/90 border border-purple-600/60 text-purple-200 font-mono text-xs font-black tracking-widest shadow-md">
+            <div className="mt-2 px-3 py-1 rounded-xl bg-purple-950/90 border border-purple-600/60 text-purple-200 font-mono text-xs font-black tracking-widest shadow-md">
               CÓDIGO: {data.event.code}
             </div>
+
+            {/* Enlace directo para abrir la app o catálogo web desde el mismo dispositivo móvil */}
+            {data.qr?.scanUrl && (
+              <a
+                href={data.qr.scanUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="lg:hidden mt-2 px-3 py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all w-full max-w-[240px]"
+              >
+                <QrCode className="w-3.5 h-3.5 text-purple-400" />
+                <span>Pedir directamente aquí</span>
+              </a>
+            )}
           </div>
 
           {/* Guía en 3 Pasos y Wi-Fi */}
