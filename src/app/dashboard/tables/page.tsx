@@ -955,7 +955,7 @@ export default function TablesManagementPage() {
             >
               <div className="flex items-center justify-center gap-2 text-purple-400">
                 <Disc3 className="w-5 h-5 text-purple-400 animate-spin [animation-duration:12s]" />
-                <span className="font-extrabold text-sm tracking-wider text-white">VIDJS LIVE</span>
+                <span className="font-extrabold text-sm tracking-wider text-white">VIDJEIS LIVE</span>
               </div>
 
               <div>

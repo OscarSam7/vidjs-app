@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Vidjs - Night Experience OS",
-    short_name: "Vidjs",
+    name: "Vidjeis - Night Experience OS",
+    short_name: "Vidjeis",
     description:
       "Sistema Operativo Digital del Entretenimiento Nocturno para Bares, Karaokes, DJs y Eventos",
     start_url: "/",

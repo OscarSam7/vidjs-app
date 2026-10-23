@@ -106,7 +106,7 @@ export function Sidebar({
                 </div>
                 <div className="truncate">
                   <span className="font-extrabold text-sm tracking-wide text-white block truncate">
-                    VIDJS PLATFORM
+                    VIDJEIS PLATFORM
                   </span>
                   <span className="text-[10px] text-zinc-400 block font-medium truncate">
                     Entertainment SaaS

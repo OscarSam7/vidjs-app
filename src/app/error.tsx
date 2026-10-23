@@ -22,7 +22,7 @@ export default function GlobalErrorBoundary({
       </div>
 
       <h1 className="text-2xl font-black text-white tracking-tight mb-2">
-        Vidjs Entertainment OS
+        Vidjeis Entertainment OS
       </h1>
 
       <p className="text-sm text-zinc-400 max-w-md mb-6 leading-relaxed">

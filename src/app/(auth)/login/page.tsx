@@ -68,7 +68,7 @@ export default function LoginPage() {
             <Disc3 className="w-8 h-8 animate-spin text-purple-400 [animation-duration:12s]" />
           </div>
           <h1 className="text-3xl font-black tracking-tight text-white flex items-center justify-center gap-2">
-            VIDJS <span className="text-xs px-2 py-0.5 rounded-full bg-purple-600/30 text-purple-300 font-semibold border border-purple-500/30">ENTERTAINMENT</span>
+            VIDJEIS <span className="text-xs px-2 py-0.5 rounded-full bg-purple-600/30 text-purple-300 font-semibold border border-purple-500/30">ENTERTAINMENT</span>
           </h1>
           <p className="text-sm text-zinc-400 mt-2">
             Plataforma SaaS para Bares, Karaokes, Clubes y DJs

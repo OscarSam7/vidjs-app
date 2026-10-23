@@ -33,7 +33,7 @@ export default async function DashboardLayout({
     }).catch(() => null);
     if (tenant) tenantName = tenant.name;
   } else if (session.role === "SUPER_ADMIN") {
-    tenantName = "Vidjs Global SaaS (Admin)";
+    tenantName = "Vidjeis Global SaaS (Admin)";
   }
 
   return (

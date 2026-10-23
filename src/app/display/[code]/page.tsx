@@ -1431,7 +1431,7 @@ export default function PublicDisplayScreenPage({
                       <div className="w-24 h-24 sm:w-30 sm:h-30 xl:w-34 xl:h-34 rounded-full border border-zinc-850 flex items-center justify-center">
                         <div className="w-16 h-16 sm:w-20 sm:h-20 xl:w-22 xl:h-22 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 border-2 sm:border-4 border-white flex flex-col items-center justify-center text-center p-1 shadow-inner">
                           <Disc3 className={`w-5 h-5 text-white ${!isTvPaused ? "animate-pulse" : ""}`} />
-                          <span className="text-[7px] font-black text-white mt-0.5">VIDJS</span>
+                          <span className="text-[7px] font-black text-white mt-0.5">VIDJEIS</span>
                           <div className="w-2 h-2 rounded-full bg-black mt-0.5" />
                         </div>
                       </div>

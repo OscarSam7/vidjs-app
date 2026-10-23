@@ -11,7 +11,7 @@ const envSchema = z.object({
     .default("vidjs-development-super-secret-key-must-be-32-chars-or-more"),
   JWT_EXPIRES_IN: z.string().default("8h"),
   COOKIE_NAME: z.string().default("vidjs_session"),
-  NEXT_PUBLIC_APP_NAME: z.string().default("Vidjs Entertainment SaaS"),
+  NEXT_PUBLIC_APP_NAME: z.string().default("Vidjeis Entertainment SaaS"),
 });
 
 export const env = envSchema.parse({

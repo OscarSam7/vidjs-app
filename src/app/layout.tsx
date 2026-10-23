@@ -11,14 +11,14 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Vidjs - SaaS para Bares, DJs, Karaokes y Eventos",
+  title: "Vidjeis - SaaS para Bares, DJs, Karaokes y Eventos",
   description:
     "Sistema Operativo Digital del Entretenimiento Nocturno: solicitudes por QR, duelos en vivo, muro de fotos y gestión en caliente para locales y DJs.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Vidjs",
+    title: "Vidjeis",
   },
   icons: {
     icon: [
