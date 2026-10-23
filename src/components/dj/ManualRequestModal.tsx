@@ -28,6 +28,7 @@ interface ManualRequestModalProps {
   tables: TableItem[];
   onSuccess: () => void;
   isKaraokeMode?: boolean;
+  initialTableId?: string;
 }
 
 interface CatalogSongResult {
@@ -45,10 +46,11 @@ export default function ManualRequestModal({
   tables,
   onSuccess,
   isKaraokeMode = false,
+  initialTableId,
 }: ManualRequestModalProps) {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
-  const [tableId, setTableId] = useState("");
+  const [tableId, setTableId] = useState(initialTableId || "");
   const [guestName, setGuestName] = useState("");
   const [notes, setNotes] = useState("");
   const [directToQueue, setDirectToQueue] = useState(true);
@@ -78,8 +80,10 @@ export default function ManualRequestModal({
       setSearchResults([]);
       setYoutubeResults([]);
       setSelectedSongId(null);
+    } else if (initialTableId) {
+      setTableId(initialTableId);
     }
-  }, [isOpen]);
+  }, [isOpen, initialTableId]);
 
   // Buscar canciones en vivo mientras escribe en el campo de búsqueda rápida
   const handleSearchChange = (val: string) => {

@@ -31,11 +31,44 @@ export async function GET(req: NextRequest) {
         venue: {
           select: { id: true, name: true },
         },
+        guestSessions: {
+          where: { expiresAt: { gt: new Date() } },
+          select: {
+            id: true,
+            guestName: true,
+            deviceFingerprint: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+        songRequests: {
+          where: { status: { in: ["PENDING", "ACCEPTED", "PLAYING"] } },
+          select: {
+            id: true,
+            status: true,
+            customTitle: true,
+            customArtist: true,
+            song: { select: { title: true } },
+          },
+          take: 5,
+        },
       },
       orderBy: [{ venueId: "asc" }, { number: "asc" }],
     });
 
-    // Generar QR para cada mesa
+    // Buscar evento activo relevante para pedidos en sala
+    const activeEvent = await prisma.event.findFirst({
+      where: {
+        tenantId,
+        status: "ACTIVE",
+        ...(venueId ? { venueId } : {}),
+      },
+      select: { id: true, name: true, code: true, venueId: true },
+      orderBy: { startsAt: "desc" },
+    });
+
+    // Generar QR y calcular estado de ocupación para cada mesa
     const tablesWithQr = await Promise.all(
       tables.map(async (table) => {
         const qrUrl = `${origin}/qr/${table.qrToken}`;
@@ -44,11 +77,53 @@ export async function GET(req: NextRequest) {
           generateQrSvg(qrUrl),
         ]);
 
+        const activeSession = table.guestSessions?.[0] || null;
+        let occupancyStatus: "LIBRE" | "OCUPADA_STAFF" | "OCUPADA_QR" = "LIBRE";
+        let staffName: string | null = null;
+        let staffRole: string | null = null;
+        let customerReference: string | null = null;
+
+        if (activeSession) {
+          if (
+            activeSession.deviceFingerprint?.startsWith("STAFF_MANUAL") ||
+            activeSession.deviceFingerprint?.startsWith("STAFF_ASSIGNED")
+          ) {
+            occupancyStatus = "OCUPADA_STAFF";
+            const parts = activeSession.deviceFingerprint.split(":");
+            staffRole = parts[1] || null;
+            staffName = parts[2] || null;
+            customerReference = parts[3] || null;
+          } else {
+            occupancyStatus = "OCUPADA_QR";
+          }
+        }
+
         return {
-          ...table,
+          id: table.id,
+          tenantId: table.tenantId,
+          venueId: table.venueId,
+          number: table.number,
+          label: table.label,
+          qrToken: table.qrToken,
+          qrCodeUrl: table.qrCodeUrl,
+          capacity: table.capacity,
+          zone: table.zone,
+          active: table.active,
+          createdAt: table.createdAt,
+          updatedAt: table.updatedAt,
+          venue: table.venue,
           scanUrl: qrUrl,
           qrDataUrl: dataUrl,
           qrSvg: svg,
+          occupancy: {
+            status: occupancyStatus,
+            staffName,
+            staffRole,
+            customerReference,
+            guestName: activeSession?.guestName || null,
+            assignedAt: activeSession?.createdAt ? activeSession.createdAt.toISOString() : null,
+            activeRequestsCount: table.songRequests?.length || 0,
+          },
         };
       })
     );
@@ -56,6 +131,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: tablesWithQr,
+      activeEvent: activeEvent || null,
     });
   } catch (error) {
     return handleApiError(error);

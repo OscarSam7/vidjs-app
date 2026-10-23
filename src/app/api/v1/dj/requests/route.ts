@@ -16,6 +16,7 @@ const createManualRequestSchema = z.object({
   directToQueue: z.boolean().default(true),
   isFastPass: z.boolean().optional(),
   tipAmountCents: z.number().int().min(0).max(100000).optional(),
+  markTableAsStaffOccupied: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -82,21 +83,51 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Crear sesión de comensal ligera si se ingresó un nombre de persona
+    // 4. Vincular con sesión activa o registrar mesa como atendida por DJ / Staff
     let guestSessionId: string | null = null;
     const cleanGuestName = data.guestName?.trim();
-    if (cleanGuestName) {
+
+    const existingSession = await prisma.guestSession.findFirst({
+      where: {
+        tableId: targetTable.id,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (existingSession) {
+      guestSessionId = existingSession.id;
+    } else {
+      // Crear nueva sesión ligera para la mesa asignada al DJ / Staff
+      const staffGuestName = cleanGuestName
+        ? `${cleanGuestName} (Atendido por ${session.name})`
+        : `Atendido por ${session.name} (${session.role})`;
+
       const gSession = await prisma.guestSession.create({
         data: {
           tenantId,
           eventId: event.id,
           tableId: targetTable.id,
           sessionToken: `manual_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-          guestName: cleanGuestName,
-          expiresAt: new Date(Date.now() + 24 * 3600 * 1000),
+          guestName: staffGuestName,
+          deviceFingerprint: `STAFF_MANUAL:${session.role}:${session.name}${
+            cleanGuestName ? `:${cleanGuestName}` : ""
+          }`,
+          expiresAt: new Date(Date.now() + 16 * 3600 * 1000),
         },
       });
       guestSessionId = gSession.id;
+
+      realtimeBus.broadcast(event.id, "TABLE_OCCUPANCY_CHANGED" as any, {
+        tableId: targetTable.id,
+        tableLabel: targetTable.label,
+        status: "OCUPADA_STAFF",
+        staffName: session.name,
+        staffRole: session.role,
+        customerReference: cleanGuestName || null,
+        assignedBy: session.name,
+        assignedAt: new Date().toISOString(),
+      });
     }
 
     // 5. Vincular con canción del catálogo si existe o si vino songId

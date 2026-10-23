@@ -23,9 +23,16 @@ import {
   Layers,
   Power,
   Sliders,
+  UserCheck,
+  User,
+  Headphones,
+  Mic,
+  Clock,
 } from "lucide-react";
+import ManualRequestModal from "@/components/dj/ManualRequestModal";
+import { useRealtime } from "@/hooks/use-realtime";
 
-interface TableWithQr {
+export interface TableWithQr {
   id: string;
   number: number;
   label: string;
@@ -39,6 +46,15 @@ interface TableWithQr {
   venue: {
     id: string;
     name: string;
+  };
+  occupancy?: {
+    status: "LIBRE" | "OCUPADA_STAFF" | "OCUPADA_QR";
+    staffName?: string | null;
+    staffRole?: string | null;
+    customerReference?: string | null;
+    guestName?: string | null;
+    assignedAt?: string | null;
+    activeRequestsCount?: number;
   };
 }
 
@@ -92,6 +108,29 @@ export default function TablesManagementPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Estados de Ocupación por Staff / DJ (Atención presencial / sin registro QR de cliente)
+  const [occupyingTable, setOccupyingTable] = useState<TableWithQr | null>(null);
+  const [staffMembers, setStaffMembers] = useState<{ id: string; name: string; role: string }[]>([]);
+  const [selectedStaffName, setSelectedStaffName] = useState("");
+  const [customStaffName, setCustomStaffName] = useState("");
+  const [customerReference, setCustomerReference] = useState("");
+  const [isSavingOccupy, setIsSavingOccupy] = useState(false);
+  const [filterOccupancy, setFilterOccupancy] = useState<"ALL" | "LIBRE" | "OCUPADA_STAFF" | "OCUPADA_QR">("ALL");
+
+  // Estado para Cargar Pedidos Verbales directamente a nombre de la Mesa
+  const [orderingTable, setOrderingTable] = useState<TableWithQr | null>(null);
+  const [activeEvent, setActiveEvent] = useState<{ id: string; name: string; code: string; venueId?: string } | null>(null);
+
+  const fetchStaffMembers = async () => {
+    try {
+      const res = await fetch("/api/v1/tables/staff-members");
+      if (res.ok) {
+        const json = await res.json();
+        setStaffMembers(json.data || []);
+      }
+    } catch {}
+  };
+
   const fetchTables = async () => {
     try {
       setLoading(true);
@@ -99,6 +138,9 @@ export default function TablesManagementPage() {
       if (res.ok) {
         const data = await res.json();
         setTables(data.data);
+        if (data.activeEvent) {
+          setActiveEvent(data.activeEvent);
+        }
         if (data.data.length > 0 && !newVenueId) {
           setNewVenueId(data.data[0].venue.id);
         }
@@ -113,17 +155,120 @@ export default function TablesManagementPage() {
 
   useEffect(() => {
     fetchTables();
+    fetchStaffMembers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sincronización en tiempo real vía Server-Sent Events (SSE)
+  useRealtime({
+    eventId: activeEvent?.id,
+    onEvent: (type) => {
+      if (
+        type === "TABLE_OCCUPANCY_CHANGED" ||
+        type === "TABLE_RELEASED" ||
+        type === "QUEUE_UPDATE" ||
+        type === "QUEUE_SLOT_UNLOCKED"
+      ) {
+        fetchTables();
+      }
+    },
+  });
 
   const venues = Array.from(
     new Map(tables.map((t) => [t.venue.id, t.venue.name])).entries()
   );
 
-  const filteredTables =
-    selectedVenue === "ALL"
-      ? tables
-      : tables.filter((t) => t.venue.id === selectedVenue);
+  const venueTables = selectedVenue === "ALL" ? tables : tables.filter((t) => t.venue.id === selectedVenue);
+  const totalCount = venueTables.length;
+  const freeCount = venueTables.filter((t) => t.occupancy?.status === "LIBRE").length;
+  const staffCount = venueTables.filter((t) => t.occupancy?.status === "OCUPADA_STAFF").length;
+  const qrCount = venueTables.filter((t) => t.occupancy?.status === "OCUPADA_QR").length;
+
+  const filteredTables = venueTables.filter((t) => {
+    if (filterOccupancy === "LIBRE" && t.occupancy?.status !== "LIBRE") return false;
+    if (filterOccupancy === "OCUPADA_STAFF" && t.occupancy?.status !== "OCUPADA_STAFF") return false;
+    if (filterOccupancy === "OCUPADA_QR" && t.occupancy?.status !== "OCUPADA_QR") return false;
+    return true;
+  });
+
+  // Abrir modal de asignación de DJ / Staff a una mesa
+  const handleOpenOccupy = (table: TableWithQr) => {
+    setOccupyingTable(table);
+    setSelectedStaffName(table.occupancy?.staffName || staffMembers[0]?.name || "Cabina DJ");
+    setCustomStaffName("");
+    setCustomerReference(table.occupancy?.customerReference || "");
+  };
+
+  // Confirmar y guardar la asignación de la mesa al DJ o miembro del staff
+  const handleConfirmOccupy = async () => {
+    if (!occupyingTable) return;
+    setIsSavingOccupy(true);
+    try {
+      const finalName = selectedStaffName === "custom" ? customStaffName.trim() : selectedStaffName;
+      if (!finalName) {
+        showToast("error", "Por favor ingresa o selecciona el nombre del staff o DJ");
+        setIsSavingOccupy(false);
+        return;
+      }
+
+      const res = await fetch(`/api/v1/tables/${occupyingTable.id}/occupy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "OCCUPY",
+          staffName: finalName,
+          customerReference: customerReference.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        showToast("success", data.message || `Mesa ${occupyingTable.label} asignada a ${finalName}`);
+        setOccupyingTable(null);
+        await fetchTables();
+      } else {
+        showToast("error", data.error?.message || "Error al asignar mesa");
+      }
+    } catch {
+      showToast("error", "Error de red al asignar mesa");
+    } finally {
+      setIsSavingOccupy(false);
+    }
+  };
+
+  // Liberar mesa atendida por staff o clientes
+  const handleReleaseTableStaff = async (tableId: string, label: string) => {
+    if (!confirm(`¿Confirmas desocupar y liberar la ${label}? Esto cancelará pedidos huérfanos pendientes y la dejará disponible.`)) return;
+    setResettingId(tableId);
+    try {
+      const res = await fetch(`/api/v1/tables/${tableId}/occupy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "RELEASE" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast("success", data.message || `Mesa ${label} liberada con éxito.`);
+        if (occupyingTable?.id === tableId) setOccupyingTable(null);
+        await fetchTables();
+      } else {
+        showToast("error", data.error?.message || "Error al liberar la mesa");
+      }
+    } catch {
+      showToast("error", "Error de conexión al liberar la mesa");
+    } finally {
+      setResettingId(null);
+    }
+  };
+
+  // Abrir modal de carga de pedido verbal para una mesa
+  const handleOpenOrder = (table: TableWithQr) => {
+    if (!activeEvent?.id) {
+      showToast("error", "No hay una noche o evento activo para recibir pedidos. Inicia un evento en el panel.");
+      return;
+    }
+    setOrderingTable(table);
+  };
 
   const handleCopy = (url: string, token: string) => {
     navigator.clipboard.writeText(url);
@@ -374,7 +519,74 @@ export default function TablesManagementPage() {
         </button>
       </div>
 
-      {/* 2. Filtro por Sede */}
+      {/* 2. Métricas de Ocupación en Tiempo Real y Filtros Rápidos */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <button
+          onClick={() => setFilterOccupancy("ALL")}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+            filterOccupancy === "ALL"
+              ? "bg-purple-950/40 border-purple-500/80 shadow-lg shadow-purple-950/50 ring-1 ring-purple-500/50"
+              : "bg-zinc-900/80 border-zinc-800 hover:border-zinc-700"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-zinc-400">Total Mesas</span>
+            <Building2 className="w-4 h-4 text-zinc-500" />
+          </div>
+          <div className="text-2xl font-black text-white mt-1.5">{totalCount}</div>
+          <span className="text-[10px] text-zinc-500 mt-0.5 block">Todas las configuradas</span>
+        </button>
+
+        <button
+          onClick={() => setFilterOccupancy("LIBRE")}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+            filterOccupancy === "LIBRE"
+              ? "bg-emerald-950/40 border-emerald-500/80 shadow-lg shadow-emerald-950/50 ring-1 ring-emerald-500/50"
+              : "bg-zinc-900/80 border-zinc-800 hover:border-emerald-600/40"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-emerald-400">Libres / Disponibles</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+          </div>
+          <div className="text-2xl font-black text-emerald-300 mt-1.5">{freeCount}</div>
+          <span className="text-[10px] text-emerald-400/70 mt-0.5 block">Listas para nuevos comensales</span>
+        </button>
+
+        <button
+          onClick={() => setFilterOccupancy("OCUPADA_STAFF")}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+            filterOccupancy === "OCUPADA_STAFF"
+              ? "bg-amber-950/50 border-amber-500/80 shadow-lg shadow-amber-950/50 ring-1 ring-amber-500/50"
+              : "bg-zinc-900/80 border-zinc-800 hover:border-amber-600/40"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-amber-400">Atendidas DJ / Staff</span>
+            <Headphones className="w-4 h-4 text-amber-400" />
+          </div>
+          <div className="text-2xl font-black text-amber-300 mt-1.5">{staffCount}</div>
+          <span className="text-[10px] text-amber-400/70 mt-0.5 block">Sin registro QR (verbales)</span>
+        </button>
+
+        <button
+          onClick={() => setFilterOccupancy("OCUPADA_QR")}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+            filterOccupancy === "OCUPADA_QR"
+              ? "bg-indigo-950/50 border-indigo-500/80 shadow-lg shadow-indigo-950/50 ring-1 ring-indigo-500/50"
+              : "bg-zinc-900/80 border-zinc-800 hover:border-indigo-600/40"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-indigo-400">Clientes con QR</span>
+            <UserCheck className="w-4 h-4 text-indigo-400" />
+          </div>
+          <div className="text-2xl font-black text-indigo-300 mt-1.5">{qrCount}</div>
+          <span className="text-[10px] text-indigo-400/70 mt-0.5 block">Escaneado desde su móvil</span>
+        </button>
+      </div>
+
+      {/* 3. Filtro por Sede */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
         <span className="text-zinc-500 font-medium mr-2">Filtrar por Local:</span>
         <button
@@ -507,6 +719,61 @@ export default function TablesManagementPage() {
                   </div>
                 </div>
 
+                {/* Banner de Estado de Ocupación */}
+                {table.occupancy?.status === "OCUPADA_STAFF" ? (
+                  <div className="mt-3 p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="p-1.5 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
+                        <Headphones className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-amber-300 truncate">
+                          Staff: {table.occupancy.staffName}
+                        </div>
+                        {table.occupancy.customerReference ? (
+                          <div className="text-[10px] text-zinc-400 truncate">
+                            Ref: {table.occupancy.customerReference}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-amber-400/70">Atención presencial / verbal</div>
+                        )}
+                      </div>
+                    </div>
+                    {typeof table.occupancy.activeRequestsCount === "number" && table.occupancy.activeRequestsCount > 0 ? (
+                      <span className="shrink-0 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold text-[10px] border border-amber-500/40">
+                        {table.occupancy.activeRequestsCount} pedidos
+                      </span>
+                    ) : null}
+                  </div>
+                ) : table.occupancy?.status === "OCUPADA_QR" ? (
+                  <div className="mt-3 p-2.5 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="p-1.5 rounded-xl bg-purple-500/20 text-purple-400 shrink-0">
+                        <UserCheck className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-purple-300 truncate">
+                          Cliente QR: {table.occupancy.guestName || "Escaneado"}
+                        </div>
+                        <div className="text-[10px] text-purple-300/70">Pedido desde móvil</div>
+                      </div>
+                    </div>
+                    {typeof table.occupancy.activeRequestsCount === "number" && table.occupancy.activeRequestsCount > 0 ? (
+                      <span className="shrink-0 px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold text-[10px] border border-purple-500/40">
+                        {table.occupancy.activeRequestsCount} pedidos
+                      </span>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="mt-3 p-2 rounded-xl bg-zinc-950/60 border border-zinc-800/80 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[11px] font-medium text-emerald-400">Mesa Libre / Disponible</span>
+                    </div>
+                    <span className="text-[10px] text-zinc-500">Sin pedidos activos</span>
+                  </div>
+                )}
+
                 {/* Visualizador de QR con Marco Limpio */}
                 <div className="mt-4 p-4 rounded-2xl bg-white flex items-center justify-center shadow-inner relative group/qr">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -533,6 +800,53 @@ export default function TablesManagementPage() {
 
               {/* Botones de Acción de la Mesa */}
               <div className="space-y-2 pt-2 border-t border-zinc-800/80">
+                {/* Asignación a Staff / DJ y Carga de Pedido Verbal */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleOpenOccupy(table)}
+                    className={`p-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border ${
+                      table.occupancy?.status === "OCUPADA_STAFF"
+                        ? "bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-500/40"
+                        : "bg-zinc-800 hover:bg-zinc-750 text-zinc-200 border-zinc-750 hover:border-zinc-700"
+                    }`}
+                    title="Enmarcar al DJ o staff para atender clientes sin QR"
+                  >
+                    <Headphones className="w-3.5 h-3.5 text-amber-400" />
+                    <span>
+                      {table.occupancy?.status === "OCUPADA_STAFF" ? "Cambiar Staff" : "Asignar DJ/Staff"}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => handleOpenOrder(table)}
+                    className="p-2 rounded-xl bg-gradient-to-r from-pink-600/25 to-purple-600/25 hover:from-pink-600/35 hover:to-purple-600/35 border border-pink-500/40 text-pink-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                    title="Cargar pedido verbal directamente a nombre de esta mesa"
+                  >
+                    <Mic className="w-3.5 h-3.5 text-pink-400" />
+                    <span>Cargar Pedido</span>
+                  </button>
+                </div>
+
+                {/* Si está ocupada por Staff, botón para desocupar directamente */}
+                {table.occupancy?.status === "OCUPADA_STAFF" && (
+                  <button
+                    onClick={() => handleReleaseTableStaff(table.id, table.label)}
+                    disabled={resettingId === table.id}
+                    className="w-full py-1.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[11px] text-amber-300 hover:text-amber-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {resettingId === table.id ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Desocupando mesa...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Desocupar Mesa (Liberar Staff)</span>
+                      </>
+                    )}
+                  </button>
+                )}
                 <div className="grid grid-cols-2 gap-2">
                   {/* Abrir como Cliente */}
                   <a
@@ -1051,6 +1365,158 @@ export default function TablesManagementPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 8. Modal de Asignación de Mesa a DJ / Staff */}
+      {occupyingTable && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  <Headphones className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    Enmarcar Mesa: {occupyingTable.label}
+                  </h3>
+                  <p className="text-[10px] text-zinc-400">
+                    Asignar al DJ o staff cuando los clientes no se registran por QR
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setOccupyingTable(null)}
+                className="text-zinc-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs flex items-start gap-2">
+              <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] leading-relaxed">
+                Esta opción marca la mesa como ocupada físicamente y permite que el staff o DJ tome y cargue pedidos verbales directamente a su cuenta.
+              </p>
+            </div>
+
+            <div className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-zinc-300 font-medium mb-1">
+                  Atendido por (DJ / Miembro del Staff) *
+                </label>
+                <select
+                  value={selectedStaffName}
+                  onChange={(e) => setSelectedStaffName(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-amber-500"
+                >
+                  <option value="Cabina DJ">🎧 Cabina DJ (General)</option>
+                  <option value="Barra / Mozo">🍹 Barra / Mozo de Turno</option>
+                  {staffMembers.map((member) => (
+                    <option key={member.id} value={member.name}>
+                      👤 {member.name} ({member.role})
+                    </option>
+                  ))}
+                  <option value="custom">✏️ Otro / Ingresar nombre manualmente...</option>
+                </select>
+              </div>
+
+              {selectedStaffName === "custom" && (
+                <div>
+                  <label className="block text-zinc-300 font-medium mb-1">
+                    Nombre o Apodo del Responsable *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={customStaffName}
+                    onChange={(e) => setCustomStaffName(e.target.value)}
+                    placeholder="Ej: Mozo Lucas / DJ Residente / Barra VIP"
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-amber-500"
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-zinc-300 font-medium mb-1">
+                  Referencia o Descripción de los Clientes (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={customerReference}
+                  onChange={(e) => setCustomerReference(e.target.value)}
+                  placeholder="Ej: Grupo cumpleaños remeras negras / Pareja junto a la ventana"
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-amber-500"
+                />
+                <span className="text-[10px] text-zinc-500 mt-1 block">
+                  Ayuda a identificar la mesa al entregar o reproducir pedidos.
+                </span>
+              </div>
+
+              <div className="pt-2 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={handleConfirmOccupy}
+                  disabled={isSavingOccupy}
+                  className="w-full py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-black rounded-xl transition-all cursor-pointer disabled:opacity-50 shadow-lg shadow-amber-600/25 flex items-center justify-center gap-2"
+                >
+                  {isSavingOccupy ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Guardando asignación...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="w-4 h-4" />
+                      <span>Confirmar y Enmarcar Mesa</span>
+                    </>
+                  )}
+                </button>
+
+                {occupyingTable.occupancy?.status === "OCUPADA_STAFF" && (
+                  <button
+                    type="button"
+                    onClick={() => handleReleaseTableStaff(occupyingTable.id, occupyingTable.label)}
+                    disabled={isSavingOccupy}
+                    className="w-full py-2 bg-zinc-800 hover:bg-red-950/40 text-red-300 border border-zinc-700 hover:border-red-600/40 rounded-xl font-bold transition-colors cursor-pointer"
+                  >
+                    Desocupar / Liberar Mesa
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setOccupyingTable(null)}
+                  className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-xl font-semibold transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 9. Modal de Carga de Pedido Verbal para la Mesa */}
+      {orderingTable && (
+        <ManualRequestModal
+          isOpen={!!orderingTable}
+          onClose={() => setOrderingTable(null)}
+          eventId={activeEvent?.id || ""}
+          tables={tables.map((t) => ({
+            id: t.id,
+            number: t.number,
+            label: t.label,
+            zone: t.zone,
+          }))}
+          initialTableId={orderingTable.id}
+          onSuccess={() => {
+            showToast("success", `Pedido cargado exitosamente para ${orderingTable.label}`);
+            setOrderingTable(null);
+            fetchTables();
+          }}
+        />
       )}
     </div>
   );
