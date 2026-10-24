@@ -343,11 +343,11 @@ export default function SettingsPage() {
             <div className="pt-5 border-t border-zinc-800/80 space-y-3">
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Palette className="w-4 h-4 text-purple-400" />
-                  <span>Tema de la Aplicación (Ajustes de Interfaz)</span>
+                  <Palette className="w-4 h-4 text-blue-400" />
+                  <span>Tema de la Aplicación</span>
                 </h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Elige entre Sistema (Ajustes de tu equipo), Modo Claro o Modo Oscuro
+                  Elige entre el Modo Oscuro nativo o el elegante Azul Francia de alto contraste
                 </p>
               </div>
               <ThemeToggle variant="cards" />
@@ -361,16 +361,16 @@ export default function SettingsPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1.5">
-                    <Palette className="w-3 h-3 text-purple-400" />
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1.5">
+                    <Palette className="w-3 h-3 text-blue-400" />
                     APARIENCIA VISUAL
                   </span>
                 </div>
                 <h2 className="text-base font-bold text-white mt-1">
-                  Tema de la Aplicación (Ajustes de Interfaz)
+                  Tema de la Aplicación
                 </h2>
                 <p className="text-xs text-zinc-400">
-                  Personaliza cómo se visualiza el panel de Vidjeis en tu dispositivo: automático con el sistema, modo claro diurno o modo oscuro nocturno.
+                  Personaliza cómo se visualiza el panel de Vidjeis en tu dispositivo: Modo Oscuro o Azul Francia.
                 </p>
               </div>
             </div>
@@ -384,34 +384,24 @@ export default function SettingsPage() {
             </div>
 
             {/* Explicación de cada modo */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
               <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-2">
                 <div className="flex items-center gap-2 text-purple-400 font-bold text-xs">
-                  <Monitor className="w-4 h-4" />
-                  <span>Sistema (Ajustes)</span>
-                </div>
-                <p className="text-[11px] text-zinc-400 leading-relaxed">
-                  Se sincroniza automáticamente con la configuración de tu computadora o teléfono. Si tu sistema operativo cambia al anochecer, Vidjeis cambiará solo.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-2">
-                <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
-                  <Sun className="w-4 h-4" />
-                  <span>Modo Claro</span>
-                </div>
-                <p className="text-[11px] text-zinc-400 leading-relaxed">
-                  Fondo blanco limpio con texto de alto contraste. Ideal para tareas de oficina de día, carga de eventos, revisión de reportes y facturación.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-2">
-                <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs">
                   <Moon className="w-4 h-4" />
-                  <span>Modo Oscuro</span>
+                  <span>Modo Oscuro (Obsidian)</span>
                 </div>
                 <p className="text-[11px] text-zinc-400 leading-relaxed">
-                  Fondo oscuro con acentos neón. El modo nativo para clubes, boliches y cabinas de DJ para no encandilar en ambientes con luces bajas.
+                  Fondo negro azabache con acentos de neón vibrantes. El modo por defecto para clubes, discotecas y cabinas de DJ para evitar encandilamiento en ambientes nocturnos.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-2">
+                <div className="flex items-center gap-2 text-blue-400 font-bold text-xs">
+                  <Sparkles className="w-4 h-4" />
+                  <span>Modo Azul Francia (French Blue)</span>
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Fondo azul francia real profundo de alta gama con tipografía ultra nítida en blanco y azul cobalto. Perfecto para una visibilidad premium sin fatiga visual.
                 </p>
               </div>
             </div>

@@ -1315,9 +1315,9 @@ export default function DjBoothPage() {
                     href={`/display/${data.event.code}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-purple-950/60 border border-zinc-800 hover:border-purple-500/50 text-purple-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                    className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-purple-950/60 border border-zinc-800 hover:border-purple-500/50 text-purple-300 text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0"
                   >
-                    <Radio className="w-3.5 h-3.5" />
+                    <Radio className="w-3.5 h-3.5 shrink-0" />
                     <span>Pantalla TV</span>
                   </a>
 
@@ -1328,35 +1328,37 @@ export default function DjBoothPage() {
                       }
                       setIsShareModalOpen(true);
                     }}
-                    className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-pink-600/30 via-purple-600/30 to-indigo-600/30 hover:from-pink-600/50 hover:to-indigo-600/50 border border-pink-500/40 text-pink-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                    className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-pink-600/30 via-purple-600/30 to-indigo-600/30 hover:from-pink-600/50 hover:to-indigo-600/50 border border-pink-500/40 text-pink-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm whitespace-nowrap shrink-0"
                     title="Compartir QR o Link de WhatsApp con tus amigos"
                   >
-                    <QrCode className="w-3.5 h-3.5 text-pink-400" />
+                    <QrCode className="w-3.5 h-3.5 text-pink-400 shrink-0" />
                     <span>📲 Invitar Amigos</span>
                   </button>
 
                   <button
                     onClick={() => setIsBridgeModalOpen(true)}
-                    className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-cyan-950/60 border border-zinc-800 hover:border-cyan-500/50 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-cyan-950/60 border border-zinc-800 hover:border-cyan-500/50 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0"
                   >
-                    <Laptop className="w-3.5 h-3.5" />
+                    <Laptop className="w-3.5 h-3.5 shrink-0" />
                     <span>DJ Bridge</span>
                   </button>
 
                   <button
                     onClick={() => setIsManualModalOpen(true)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm border ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm border whitespace-nowrap shrink-0 ${
                       queuePolicy.zone === "KARAOKE"
                         ? "bg-cyan-600/20 hover:bg-cyan-600/30 border-cyan-500/40 text-cyan-200"
                         : "bg-purple-600/20 hover:bg-purple-600/30 border-purple-500/40 text-purple-200"
                     }`}
                     title="Cargar manualmente pedidos recibidos de palabra o fuera de la app"
                   >
-                    <PlusCircle className="w-3.5 h-3.5" />
+                    <PlusCircle className="w-3.5 h-3.5 shrink-0" />
                     <span>{queuePolicy.zone === "KARAOKE" ? "➕ Cantante" : "➕ Pedido"}</span>
                   </button>
 
-                  <PwaInstallButton variant="dj" />
+                  <div className="shrink-0 whitespace-nowrap">
+                    <PwaInstallButton variant="dj" />
+                  </div>
                 </>
               )}
             </div>
@@ -1417,31 +1419,31 @@ export default function DjBoothPage() {
             <Sliders className="w-3.5 h-3.5 text-purple-400" />
             <span>Modalidad:</span>
           </span>
-          <div className="grid grid-cols-2 p-1 rounded-xl bg-zinc-900/90 border border-zinc-800 w-full sm:w-auto gap-1">
+          <div className="grid grid-cols-2 p-1 rounded-xl bg-zinc-900/90 border border-zinc-800 w-full sm:w-auto gap-1 shrink-0">
             <button
               onClick={() => handleUpdatePolicy({ zone: "DJ", nightMode: "DJ_ONLY" })}
               disabled={policyLoading}
-              className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
                 queuePolicy.zone === "DJ"
                   ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/40"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               }`}
             >
               <Disc3 className={`w-4 h-4 shrink-0 ${queuePolicy.zone === "DJ" ? "animate-spin [animation-duration:4s]" : ""}`} />
-              <span className="truncate">🎧 Modo DJ</span>
+              <span className="whitespace-nowrap">🎧 Modo DJ</span>
             </button>
 
             <button
               onClick={handleActivateKaraokeMode}
               disabled={policyLoading}
-              className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
                 queuePolicy.zone === "KARAOKE"
                   ? "bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-lg shadow-cyan-600/40"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               }`}
             >
               <Mic className="w-4 h-4 text-cyan-200 shrink-0" />
-              <span className="truncate">🎤 Modo Karaoke</span>
+              <span className="whitespace-nowrap">🎤 Modo Karaoke</span>
             </button>
           </div>
 
@@ -1449,7 +1451,7 @@ export default function DjBoothPage() {
           <button
             onClick={handleToggleAutoPlay}
             disabled={policyLoading}
-            className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 border shadow-lg ${
+            className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 border shadow-lg whitespace-nowrap shrink-0 ${
               queuePolicy.autoPlayRequests
                 ? "bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 text-white border-emerald-400 shadow-emerald-600/40 ring-2 ring-emerald-400/60"
                 : "bg-zinc-900 text-zinc-300 hover:text-white hover:bg-zinc-800 border-zinc-700 hover:border-zinc-500"
@@ -1467,7 +1469,7 @@ export default function DjBoothPage() {
                   : "text-amber-400"
               }`}
             />
-            <span className="tracking-wide">
+            <span className="tracking-wide whitespace-nowrap">
               {queuePolicy.autoPlayRequests ? "Auto-Play: ACTIVADO" : "Auto-Play Pedidos"}
             </span>
             <span
@@ -1620,16 +1622,16 @@ export default function DjBoothPage() {
 
             <button
               onClick={() => setIsDuelModalOpen(true)}
-              className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+              className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
               title="Lanzar un duelo musical para que la sala vote en tiempo real"
             >
-              <Swords className="w-3.5 h-3.5 text-amber-400" />
-              <span>Duelo Musical</span>
+              <Swords className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="whitespace-nowrap">Duelo Musical</span>
             </button>
 
             <button
               onClick={() => setShowPhotoDrawer(!showPhotoDrawer)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border shrink-0 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border shrink-0 whitespace-nowrap ${
                 showPhotoDrawer
                   ? "bg-pink-600 text-white border-pink-400 shadow-md shadow-pink-600/30"
                   : pendingPhotos.length > 0
@@ -1638,9 +1640,9 @@ export default function DjBoothPage() {
               }`}
               title="Abrir o colapsar el Muro de Fotos en Vivo"
             >
-              <Camera className="w-3.5 h-3.5 text-pink-400" />
-              <span>Muro de Fotos</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-pink-950 text-pink-200 border border-pink-700 text-[10px] font-mono font-bold">
+              <Camera className="w-3.5 h-3.5 text-pink-400 shrink-0" />
+              <span className="whitespace-nowrap">Muro de Fotos</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-pink-950 text-pink-200 border border-pink-700 text-[10px] font-mono font-bold shrink-0">
                 {pendingPhotos.length + approvedPhotos.length + removedPhotos.length}
               </span>
             </button>
@@ -1648,40 +1650,40 @@ export default function DjBoothPage() {
             <button
               onClick={handleFairRotation}
               disabled={data.queue.length <= 1}
-              className="px-3 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shrink-0"
+              className="px-3 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shrink-0 whitespace-nowrap"
               title="Intercala mesas automáticamente para balance"
             >
-              <Shuffle className="w-3.5 h-3.5 text-purple-400" />
-              <span>Rotación Justa</span>
+              <Shuffle className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              <span className="whitespace-nowrap">Rotación Justa</span>
             </button>
 
             <button
               onClick={handlePrioritizeCelebrations}
-              className="px-3 py-1.5 rounded-xl bg-fuchsia-600/20 hover:bg-fuchsia-600/30 border border-fuchsia-500/30 text-fuchsia-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+              className="px-3 py-1.5 rounded-xl bg-fuchsia-600/20 hover:bg-fuchsia-600/30 border border-fuchsia-500/30 text-fuchsia-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
               title="Acepta y sube a la cola pedidos de cumpleaños"
             >
-              <Cake className="w-3.5 h-3.5 text-fuchsia-400" />
-              <span>Priorizar Festejos</span>
+              <Cake className="w-3.5 h-3.5 text-fuchsia-400 shrink-0" />
+              <span className="whitespace-nowrap">Priorizar Festejos</span>
             </button>
 
             <button
               onClick={() => setIsApplauseModalOpen(true)}
               disabled={interactiveLoading}
-              className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shrink-0"
+              className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shrink-0 whitespace-nowrap"
               title="Activar Aplausómetro en la TV para calificar show o mesa"
             >
               <span>👏</span>
-              <span>Aplausómetro</span>
+              <span className="whitespace-nowrap">Aplausómetro</span>
             </button>
 
             <button
               onClick={handleSpinRoulette}
               disabled={interactiveLoading}
-              className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shrink-0"
+              className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shrink-0 whitespace-nowrap"
               title="Girar ruleta de mesas en la TV para sortear tragos"
             >
-              <Dices className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Ruleta Sorteo</span>
+              <Dices className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="whitespace-nowrap">Ruleta Sorteo</span>
             </button>
           </div>
         </div>

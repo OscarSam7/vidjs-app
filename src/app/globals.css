@@ -30,52 +30,31 @@
   --brand-red: #ef4444;
 }
 
-html.light {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card-bg: #ffffff;
-  --card-bg-elevated: #ffffff;
-  --card-bg-subtle: #f1f5f9;
-  --card-border: #e2e8f0;
-  --card-border-subtle: #f1f5f9;
-  --card-border-hover: #cbd5e1;
-
-  --text-heading: #0f172a;
-  --text-body: #1e293b;
-  --text-muted: #475569;
-  --text-subtle: #64748b;
-
-  --brand-purple: #7e22ce;
-  --brand-purple-dark: #6b21a8;
-  --brand-cyan: #0e7490;
-  --brand-amber: #92400e;
-  --brand-emerald: #065f46;
-  --brand-pink: #9d174d;
-  --brand-red: #991b1b;
-}
-
-html.dark {
-  --background: #09090b;
-  --foreground: #f4f4f5;
-  --card-bg: #121217;
-  --card-bg-elevated: #18181f;
-  --card-bg-subtle: #1f1f28;
-  --card-border: #272732;
-  --card-border-subtle: #1e1e26;
-  --card-border-hover: #3f3f50;
+/* ========================================================================= */
+/* MODO AZUL FRANCIA (FRENCH BLUE / BLEU DE FRANCE THEME)                   */
+/* ========================================================================= */
+html.blue {
+  --background: #081226;
+  --foreground: #f0f6ff;
+  --card-bg: #0f224a;
+  --card-bg-elevated: #132b5e;
+  --card-bg-subtle: #16326e;
+  --card-border: #1e428a;
+  --card-border-subtle: #17336e;
+  --card-border-hover: #2563eb;
 
   --text-heading: #ffffff;
-  --text-body: #e4e4e7;
-  --text-muted: #a1a1aa;
-  --text-subtle: #71717a;
+  --text-body: #e0e7ff;
+  --text-muted: #93c5fd;
+  --text-subtle: #60a5fa;
 
-  --brand-purple: #a855f7;
-  --brand-purple-dark: #7e22ce;
-  --brand-cyan: #06b6d4;
-  --brand-amber: #f59e0b;
-  --brand-emerald: #10b981;
-  --brand-pink: #ec4899;
-  --brand-red: #ef4444;
+  --brand-purple: #3b82f6;
+  --brand-purple-dark: #2563eb;
+  --brand-cyan: #38bdf8;
+  --brand-amber: #fbbf24;
+  --brand-emerald: #34d399;
+  --brand-pink: #f472b6;
+  --brand-red: #f87171;
 }
 
 body {
@@ -104,12 +83,12 @@ body {
   background: #52525b;
 }
 
-html.light ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+html.blue ::-webkit-scrollbar-thumb {
+  background: #1e428a;
 }
 
-html.light ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+html.blue ::-webkit-scrollbar-thumb:hover {
+  background: #2563eb;
 }
 
 /* Efectos de brillo / nightlife */
@@ -121,327 +100,184 @@ html.light ::-webkit-scrollbar-thumb:hover {
   box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.3);
 }
 
-/* ========================================================================= */
-/* INMUNIDAD SMART TV (PANTALLA DE TV GIGANTE PERMANECE DARK NIGHTLIFE)      */
-/* ========================================================================= */
-html.light .tv-screen,
-html.light [data-display="tv"],
-html.light [data-display="tv"] * {
-  /* No sobreescribir estilos del Smart TV */
+.glow-blue {
+  box-shadow: 0 0 25px -5px rgba(37, 99, 235, 0.4);
 }
 
 /* ========================================================================= */
-/* ADAPTACIÓN MODO CLARO (LIGHT THEME) PROFESIONAL & DE ALTO CONTRASTE        */
+/* INMUNIDAD SMART TV (PANTALLA DE TV GIGANTE PERMANECE SIEMPRE EN MODO NOCHE) */
 /* ========================================================================= */
-
-html.light body:not(:has([data-display="tv"])) {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
+html.blue .tv-screen,
+html.blue [data-display="tv"],
+html.blue [data-display="tv"] * {
+  /* No sobreescribir estilos cinemáticos del Smart TV */
 }
 
-/* 1. FONDOS GENERALES DE PÁGINA Y CANVASES */
-html.light:not(:has([data-display="tv"])) .bg-\[\#070709\],
-html.light:not(:has([data-display="tv"])) .bg-\[\#09090b\],
-html.light:not(:has([data-display="tv"])) .bg-\[\#050507\] {
-  background-color: #f8fafc !important;
+/* ========================================================================= */
+/* ESTILOS Y CONTRASTE PARA MODO AZUL FRANCIA                                */
+/* ========================================================================= */
+
+html.blue body:not(:has([data-display="tv"])) {
+  background-color: #081226 !important;
+  color: #f0f6ff !important;
+}
+
+/* 1. FONDOS GENERALES DE PÁGINA */
+html.blue:not(:has([data-display="tv"])) .bg-\[\#070709\],
+html.blue:not(:has([data-display="tv"])) .bg-\[\#09090b\],
+html.blue:not(:has([data-display="tv"])) .bg-\[\#050507\],
+html.blue:not(:has([data-display="tv"])) .bg-slate-50 {
+  background-color: #081226 !important;
 }
 
 /* 2. TARJETAS Y CONTENEDORES PRINCIPALES (zinc-950, zinc-900) */
-html.light:not(:has([data-display="tv"])) .bg-zinc-950,
-html.light:not(:has([data-display="tv"])) .bg-zinc-900,
-html.light:not(:has([data-display="tv"])) [class^="bg-zinc-950"]:not([class*="hover:"]),
-html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-950"]:not([class*="hover:"]),
-html.light:not(:has([data-display="tv"])) [class^="bg-zinc-900"]:not([class*="hover:"]),
-html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-900"]:not([class*="hover:"]) {
-  background-color: #ffffff !important;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.03);
+html.blue:not(:has([data-display="tv"])) .bg-zinc-950,
+html.blue:not(:has([data-display="tv"])) .bg-zinc-900,
+html.blue:not(:has([data-display="tv"])) .bg-white,
+html.blue:not(:has([data-display="tv"])) [class^="bg-zinc-950"]:not([class*="hover:"]),
+html.blue:not(:has([data-display="tv"])) [class*=" bg-zinc-950"]:not([class*="hover:"]),
+html.blue:not(:has([data-display="tv"])) [class^="bg-zinc-900"]:not([class*="hover:"]),
+html.blue:not(:has([data-display="tv"])) [class*=" bg-zinc-900"]:not([class*="hover:"]) {
+  background-color: #0f224a !important;
+  border-color: #1e428a !important;
+  box-shadow: 0 4px 20px -2px rgba(8, 18, 38, 0.5);
 }
 
-/* 3. CONTENEDORES SECUNDARIOS / WELLS / FILAS INTERNAS (zinc-850, zinc-800) */
-html.light:not(:has([data-display="tv"])) .bg-zinc-850,
-html.light:not(:has([data-display="tv"])) .bg-zinc-800,
-html.light:not(:has([data-display="tv"])) [class^="bg-zinc-850"]:not([class*="hover:"]),
-html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-850"]:not([class*="hover:"]),
-html.light:not(:has([data-display="tv"])) [class^="bg-zinc-800"]:not([class*="hover:"]),
-html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-800"]:not([class*="hover:"]) {
-  background-color: #f1f5f9 !important;
+/* 3. CONTENEDORES SECUNDARIOS / WELLS / TABLAS (zinc-850, zinc-800) */
+html.blue:not(:has([data-display="tv"])) .bg-zinc-850,
+html.blue:not(:has([data-display="tv"])) .bg-zinc-800,
+html.blue:not(:has([data-display="tv"])) .bg-slate-100,
+html.blue:not(:has([data-display="tv"])) [class^="bg-zinc-850"]:not([class*="hover:"]),
+html.blue:not(:has([data-display="tv"])) [class*=" bg-zinc-850"]:not([class*="hover:"]),
+html.blue:not(:has([data-display="tv"])) [class^="bg-zinc-800"]:not([class*="hover:"]),
+html.blue:not(:has([data-display="tv"])) [class*=" bg-zinc-800"]:not([class*="hover:"]) {
+  background-color: #132b5e !important;
+  border-color: #1e428a !important;
 }
 
-/* 4. ESTADOS INTERACTIVOS HOVER (Crucial para experiencia de usuario) */
-html.light:not(:has([data-display="tv"])) .hover\:bg-zinc-900:hover,
-html.light:not(:has([data-display="tv"])) [class*="hover:bg-zinc-900"]:hover,
-html.light:not(:has([data-display="tv"])) .hover\:bg-zinc-800:hover,
-html.light:not(:has([data-display="tv"])) [class*="hover:bg-zinc-800"]:hover {
-  background-color: #f1f5f9 !important;
+/* 4. HOVER EN MODO AZUL FRANCIA */
+html.blue:not(:has([data-display="tv"])) .hover\:bg-zinc-900:hover,
+html.blue:not(:has([data-display="tv"])) [class*="hover:bg-zinc-900"]:hover,
+html.blue:not(:has([data-display="tv"])) .hover\:bg-zinc-800:hover,
+html.blue:not(:has([data-display="tv"])) [class*="hover:bg-zinc-800"]:hover,
+html.blue:not(:has([data-display="tv"])) .hover\:bg-slate-100:hover {
+  background-color: #183777 !important;
 }
 
-html.light:not(:has([data-display="tv"])) .hover\:bg-zinc-700:hover,
-html.light:not(:has([data-display="tv"])) [class*="hover:bg-zinc-700"]:hover {
-  background-color: #e2e8f0 !important;
+html.blue:not(:has([data-display="tv"])) .hover\:bg-zinc-700:hover,
+html.blue:not(:has([data-display="tv"])) [class*="hover:bg-zinc-700"]:hover {
+  background-color: #1d4392 !important;
 }
 
-html.light:not(:has([data-display="tv"])) .hover\:text-white:hover,
-html.light:not(:has([data-display="tv"])) [class*="hover:text-white"]:hover {
-  color: #0f172a !important;
-}
-
-html.light:not(:has([data-display="tv"])) .hover\:border-zinc-700:hover,
-html.light:not(:has([data-display="tv"])) [class*="hover:border-zinc-700"]:hover,
-html.light:not(:has([data-display="tv"])) .hover\:border-zinc-800:hover,
-html.light:not(:has([data-display="tv"])) [class*="hover:border-zinc-800"]:hover {
-  border-color: #cbd5e1 !important;
-}
-
-/* 5. BORDES DEFINIDOS */
-html.light:not(:has([data-display="tv"])) .border-zinc-800,
-html.light:not(:has([data-display="tv"])) .border-zinc-850,
-html.light:not(:has([data-display="tv"])) .border-zinc-750,
-html.light:not(:has([data-display="tv"])) .border-zinc-700,
-html.light:not(:has([data-display="tv"])) [class*="border-zinc-800"],
-html.light:not(:has([data-display="tv"])) [class*="border-zinc-850"],
-html.light:not(:has([data-display="tv"])) [class*="border-zinc-750"],
-html.light:not(:has([data-display="tv"])) [class*="border-zinc-700"] {
-  border-color: #e2e8f0 !important;
-}
-
-/* 6. TIPOGRAFÍA Y JERARQUÍA DE TEXTOS */
-html.light:not(:has([data-display="tv"])) h1,
-html.light:not(:has([data-display="tv"])) h2,
-html.light:not(:has([data-display="tv"])) h3,
-html.light:not(:has([data-display="tv"])) h4,
-html.light:not(:has([data-display="tv"])) h5,
-html.light:not(:has([data-display="tv"])) h6 {
-  color: #0f172a !important;
-}
-
-html.light:not(:has([data-display="tv"])) p,
-html.light:not(:has([data-display="tv"])) .text-zinc-100,
-html.light:not(:has([data-display="tv"])) .text-zinc-200 {
-  color: #1e293b !important;
-}
-
-html.light:not(:has([data-display="tv"])) .text-zinc-300 {
-  color: #334155 !important;
-}
-
-html.light:not(:has([data-display="tv"])) .text-zinc-400 {
-  color: #475569 !important;
-}
-
-html.light:not(:has([data-display="tv"])) .text-zinc-500 {
-  color: #64748b !important;
-}
-
-/* 7. PALETA SEMÁNTICA DE COLORES DE ALTO CONTRASTE (JEWEL TONES) */
-/* Purple (Brand / DJ / Core) */
-html.light:not(:has([data-display="tv"])) .text-purple-100,
-html.light:not(:has([data-display="tv"])) .text-purple-200,
-html.light:not(:has([data-display="tv"])) .text-purple-300 {
-  color: #6b21a8 !important; /* purple-800 */
-}
-html.light:not(:has([data-display="tv"])) .text-purple-400 {
-  color: #7e22ce !important; /* purple-700 */
-}
-html.light:not(:has([data-display="tv"])) [class*="bg-purple-600/"],
-html.light:not(:has([data-display="tv"])) [class*="bg-purple-500/"],
-html.light:not(:has([data-display="tv"])) [class*="bg-purple-950"] {
-  background-color: #f3e8ff !important;
-  border-color: #d8b4fe !important;
-  color: #6b21a8 !important;
-}
-
-/* Indigo (Managers / Audits) */
-html.light:not(:has([data-display="tv"])) .text-indigo-100,
-html.light:not(:has([data-display="tv"])) .text-indigo-200,
-html.light:not(:has([data-display="tv"])) .text-indigo-300 {
-  color: #3730a3 !important; /* indigo-800 */
-}
-html.light:not(:has([data-display="tv"])) .text-indigo-400 {
-  color: #4338ca !important; /* indigo-700 */
-}
-html.light:not(:has([data-display="tv"])) [class*="bg-indigo-600/"],
-html.light:not(:has([data-display="tv"])) [class*="bg-indigo-500/"],
-html.light:not(:has([data-display="tv"])) [class*="bg-indigo-950"] {
-  background-color: #e0e7ff !important;
-  border-color: #c7d2fe !important;
-  color: #3730a3 !important;
-}
-
-/* Cyan (Screen TV / Live SSE / Karaoke) */
-html.light:not(:has([data-display="tv"])) .text-cyan-100,
-html.light:not(:has([data-display="tv"])) .text-cyan-200,
-html.light:not(:has([data-display="tv"])) .text-cyan-300 {
-  color: #0e7490 !important; /* cyan-800 */
-}
-html.light:not(:has([data-display="tv"])) .text-cyan-400 {
-  color: #0891b2 !important; /* cyan-700 */
-}
-html.light:not(:has([data-display="tv"])) [class*="bg-cyan-600/"],
-html.light:not(:has([data-display="tv"])) [class*="bg-cyan-500/"],
-html.light:not(:has([data-display="tv"])) [class*="bg-cyan-950"] {
-  background-color: #ecfeff !important;
-  border-color: #a5f3fc !important;
-  color: #0e7490 !important;
-}
-
-/* Amber / Gold (VIP / Tips / FairPlay / Pending) */
-html.light:not(:has([data-display="tv"])) .text-amber-100,
-html.light:not(:has([data-display="tv"])) .text-amber-200,
-html.light:not(:has([data-display="tv"])) .text-amber-300,
-html.light:not(:has([data-display="tv"])) .text-yellow-100,
-html.light:not(:has([data-display="tv"])) .text-yellow-200,
-html.light:not(:has([data-display="tv"])) .text-yellow-300 {
-  color: #92400e !important; /* amber-800 */
-}
-html.light:not(:has([data-display="tv"])) .text-amber-400,
-html.light:not(:has([data-display="tv"])) .text-yellow-400 {
-  color: #b45309 !important; /* amber-700 */
-}
-html.light:not(:has([data-display="tv"])) [class*="bg-amber-500/"],
-html.light:not(:has([data-display="tv"])) [class*="bg-amber-950"],
-html.light:not(:has([data-display="tv"])) [class*="bg-yellow-950"] {
-  background-color: #fef3c7 !important;
-  border-color: #fde68a !important;
-  color: #92400e !important;
-}
-
-/* Emerald / Green (Success / Active / Occupied / Played) */
-html.light:not(:has([data-display="tv"])) .text-emerald-100,
-html.light:not(:has([data-display="tv"])) .text-emerald-200,
-html.light:not(:has([data-display="tv"])) .text-emerald-300,
-html.light:not(:has([data-display="tv"])) .text-green-100,
-html.light:not(:has([data-display="tv"])) .text-green-200,
-html.light:not(:has([data-display="tv"])) .text-green-300 {
-  color: #065f46 !important; /* emerald-800 */
-}
-html.light:not(:has([data-display="tv"])) .text-emerald-400,
-html.light:not(:has([data-display="tv"])) .text-green-400 {
-  color: #047857 !important; /* emerald-700 */
-}
-html.light:not(:has([data-display="tv"])) [class*="bg-emerald-500/"],
-html.light:not(:has([data-display="tv"])) [class*="bg-emerald-950"],
-html.light:not(:has([data-display="tv"])) [class*="bg-green-950"] {
-  background-color: #ecfdf5 !important;
-  border-color: #a7f3d0 !important;
-  color: #065f46 !important;
-}
-
-/* Pink / Fuchsia (Party / Duelo / Celebrations / Invitar Amigos) */
-html.light:not(:has([data-display="tv"])) .text-pink-100,
-html.light:not(:has([data-display="tv"])) .text-pink-200,
-html.light:not(:has([data-display="tv"])) .text-pink-300 {
-  color: #9d174d !important; /* pink-800 */
-}
-html.light:not(:has([data-display="tv"])) .text-pink-400 {
-  color: #be185d !important; /* pink-700 */
-}
-html.light:not(:has([data-display="tv"])) .text-fuchsia-100,
-html.light:not(:has([data-display="tv"])) .text-fuchsia-200,
-html.light:not(:has([data-display="tv"])) .text-fuchsia-300 {
-  color: #86198f !important; /* fuchsia-800 */
-}
-html.light:not(:has([data-display="tv"])) .text-fuchsia-400 {
-  color: #a21caf !important; /* fuchsia-700 */
-}
-html.light:not(:has([data-display="tv"])) [class*="bg-pink-600/"],
-html.light:not(:has([data-display="tv"])) [class*="bg-pink-500/"],
-html.light:not(:has([data-display="tv"])) [class*="bg-pink-950"],
-html.light:not(:has([data-display="tv"])) [class*="bg-fuchsia-950"] {
-  background-color: #fdf2f8 !important;
-  border-color: #fbcfe8 !important;
-  color: #9d174d !important;
-}
-
-/* Red / Rose (Danger / Rejected / Offline / End session) */
-html.light:not(:has([data-display="tv"])) .text-red-100,
-html.light:not(:has([data-display="tv"])) .text-red-200,
-html.light:not(:has([data-display="tv"])) .text-red-300 {
-  color: #991b1b !important; /* red-800 */
-}
-html.light:not(:has([data-display="tv"])) .text-red-400 {
-  color: #b91c1c !important; /* red-700 */
-}
-html.light:not(:has([data-display="tv"])) [class*="bg-red-950"],
-html.light:not(:has([data-display="tv"])) [class*="bg-red-900/"] {
-  background-color: #fef2f2 !important;
-  border-color: #fecaca !important;
-  color: #991b1b !important;
-}
-
-/* 8. BOTONES PRIMARIOS RELLENOS: MANTENER TEXTO E ÍCONOS EN BLANCO PURO */
-html.light:not(:has([data-display="tv"])) button.bg-purple-600,
-html.light:not(:has([data-display="tv"])) button.bg-pink-600,
-html.light:not(:has([data-display="tv"])) button.bg-cyan-600,
-html.light:not(:has([data-display="tv"])) button.bg-emerald-600,
-html.light:not(:has([data-display="tv"])) button.bg-red-600,
-html.light:not(:has([data-display="tv"])) button.bg-black,
-html.light:not(:has([data-display="tv"])) button[class*="from-purple-"],
-html.light:not(:has([data-display="tv"])) button[class*="from-pink-"],
-html.light:not(:has([data-display="tv"])) button[class*="from-cyan-"],
-html.light:not(:has([data-display="tv"])) button[class*="from-emerald-"],
-html.light:not(:has([data-display="tv"])) a.bg-purple-600,
-html.light:not(:has([data-display="tv"])) a.bg-pink-600,
-html.light:not(:has([data-display="tv"])) .bg-gradient-to-r.from-purple-600,
-html.light:not(:has([data-display="tv"])) .bg-gradient-to-r.from-pink-600,
-html.light:not(:has([data-display="tv"])) .bg-gradient-to-r.from-cyan-600,
-html.light:not(:has([data-display="tv"])) .bg-gradient-to-r.from-emerald-600 {
+html.blue:not(:has([data-display="tv"])) .hover\:text-white:hover,
+html.blue:not(:has([data-display="tv"])) [class*="hover:text-white"]:hover {
   color: #ffffff !important;
 }
 
-html.light:not(:has([data-display="tv"])) button.bg-purple-600 *,
-html.light:not(:has([data-display="tv"])) button.bg-pink-600 *,
-html.light:not(:has([data-display="tv"])) button.bg-cyan-600 *,
-html.light:not(:has([data-display="tv"])) button.bg-emerald-600 *,
-html.light:not(:has([data-display="tv"])) button.bg-red-600 *,
-html.light:not(:has([data-display="tv"])) button.bg-black *,
-html.light:not(:has([data-display="tv"])) button[class*="from-purple-"] *,
-html.light:not(:has([data-display="tv"])) button[class*="from-pink-"] *,
-html.light:not(:has([data-display="tv"])) button[class*="from-cyan-"] *,
-html.light:not(:has([data-display="tv"])) button[class*="from-emerald-"] *,
-html.light:not(:has([data-display="tv"])) a.bg-purple-600 *,
-html.light:not(:has([data-display="tv"])) a.bg-pink-600 *,
-html.light:not(:has([data-display="tv"])) .bg-gradient-to-r.from-purple-600 *,
-html.light:not(:has([data-display="tv"])) .bg-gradient-to-r.from-pink-600 *,
-html.light:not(:has([data-display="tv"])) .bg-gradient-to-r.from-cyan-600 *,
-html.light:not(:has([data-display="tv"])) .bg-gradient-to-r.from-emerald-600 * {
+html.blue:not(:has([data-display="tv"])) .hover\:border-zinc-700:hover,
+html.blue:not(:has([data-display="tv"])) [class*="hover:border-zinc-700"]:hover,
+html.blue:not(:has([data-display="tv"])) .hover\:border-zinc-800:hover,
+html.blue:not(:has([data-display="tv"])) [class*="hover:border-zinc-800"]:hover {
+  border-color: #2563eb !important;
+}
+
+/* 5. BORDES EN MODO AZUL FRANCIA */
+html.blue:not(:has([data-display="tv"])) .border-zinc-800,
+html.blue:not(:has([data-display="tv"])) .border-zinc-850,
+html.blue:not(:has([data-display="tv"])) .border-zinc-750,
+html.blue:not(:has([data-display="tv"])) .border-zinc-700,
+html.blue:not(:has([data-display="tv"])) .border-slate-200,
+html.blue:not(:has([data-display="tv"])) [class*="border-zinc-800"],
+html.blue:not(:has([data-display="tv"])) [class*="border-zinc-850"],
+html.blue:not(:has([data-display="tv"])) [class*="border-zinc-750"],
+html.blue:not(:has([data-display="tv"])) [class*="border-zinc-700"] {
+  border-color: #1e428a !important;
+}
+
+/* 6. TIPOGRAFÍA EN MODO AZUL FRANCIA */
+html.blue:not(:has([data-display="tv"])) h1,
+html.blue:not(:has([data-display="tv"])) h2,
+html.blue:not(:has([data-display="tv"])) h3,
+html.blue:not(:has([data-display="tv"])) h4,
+html.blue:not(:has([data-display="tv"])) h5,
+html.blue:not(:has([data-display="tv"])) h6 {
   color: #ffffff !important;
 }
 
-/* 9. TARJETAS ESPECIALES Y GRADIENTES */
-html.light:not(:has([data-display="tv"])) [class*="via-purple-950"] {
-  background: linear-gradient(to right, #ffffff, #faf5ff, #ffffff) !important;
-  border-color: #e9d5ff !important;
+html.blue:not(:has([data-display="tv"])) p,
+html.blue:not(:has([data-display="tv"])) .text-zinc-100,
+html.blue:not(:has([data-display="tv"])) .text-zinc-200,
+html.blue:not(:has([data-display="tv"])) .text-slate-900 {
+  color: #f0f6ff !important;
 }
 
-/* 10. SELECTORES DE MODALIDAD Y SEGMENTED CONTROLS */
-html.light:not(:has([data-display="tv"])) [class*="bg-zinc-900/90"] {
-  background-color: #f1f5f9 !important;
-  border-color: #e2e8f0 !important;
+html.blue:not(:has([data-display="tv"])) .text-zinc-300,
+html.blue:not(:has([data-display="tv"])) .text-slate-700 {
+  color: #dbeafe !important;
 }
 
-/* 11. FORMULARIOS, INPUTS Y SELECTS */
-html.light:not(:has([data-display="tv"])) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
-html.light:not(:has([data-display="tv"])) select,
-html.light:not(:has([data-display="tv"])) textarea {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-color: #cbd5e1 !important;
+html.blue:not(:has([data-display="tv"])) .text-zinc-400,
+html.blue:not(:has([data-display="tv"])) .text-slate-500 {
+  color: #93c5fd !important;
 }
 
-html.light:not(:has([data-display="tv"])) input::placeholder,
-html.light:not(:has([data-display="tv"])) textarea::placeholder {
-  color: #94a3b8 !important;
+html.blue:not(:has([data-display="tv"])) .text-zinc-500,
+html.blue:not(:has([data-display="tv"])) .text-slate-400 {
+  color: #60a5fa !important;
 }
 
-html.light:not(:has([data-display="tv"])) input:focus,
-html.light:not(:has([data-display="tv"])) select:focus,
-html.light:not(:has([data-display="tv"])) textarea:focus {
-  background-color: #ffffff !important;
-  border-color: #9333ea !important;
-  box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.15) !important;
+/* 7. BOTONES PRIMARIOS Y ACENTOS EN MODO AZUL FRANCIA */
+html.blue:not(:has([data-display="tv"])) button.bg-purple-600,
+html.blue:not(:has([data-display="tv"])) a.bg-purple-600,
+html.blue:not(:has([data-display="tv"])) .bg-gradient-to-r.from-purple-600 {
+  background: linear-gradient(to right, #1d4ed8, #2563eb) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.4) !important;
 }
 
-/* 12. TABLAS Y FILAS HOVER */
-html.light:not(:has([data-display="tv"])) tr:hover {
-  background-color: #f8fafc !important;
+/* Sidebar en Modo Azul Francia */
+html.blue:not(:has([data-display="tv"])) aside {
+  background-color: #0b1736 !important;
+  border-color: #1e428a !important;
+}
+
+html.blue:not(:has([data-display="tv"])) a.bg-purple-100,
+html.blue:not(:has([data-display="tv"])) a.bg-purple-600\/15 {
+  background-color: #1d4ed8 !important;
+  border-color: #3b82f6 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 15px rgba(37, 99, 235, 0.3) !important;
+}
+html.blue:not(:has([data-display="tv"])) a.bg-purple-100 span,
+html.blue:not(:has([data-display="tv"])) a.bg-purple-600\/15 span,
+html.blue:not(:has([data-display="tv"])) a.bg-purple-100 svg,
+html.blue:not(:has([data-display="tv"])) a.bg-purple-600\/15 svg {
+  color: #ffffff !important;
+}
+
+/* Topbar en Modo Azul Francia */
+html.blue:not(:has([data-display="tv"])) header {
+  background-color: rgba(11, 23, 54, 0.9) !important;
+  border-color: #1e428a !important;
+}
+
+/* Formularios en Modo Azul Francia */
+html.blue:not(:has([data-display="tv"])) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+html.blue:not(:has([data-display="tv"])) select,
+html.blue:not(:has([data-display="tv"])) textarea {
+  background-color: #0f224a !important;
+  color: #f0f6ff !important;
+  border-color: #1e428a !important;
+}
+
+html.blue:not(:has([data-display="tv"])) input::placeholder,
+html.blue:not(:has([data-display="tv"])) textarea::placeholder {
+  color: #60a5fa !important;
+}
+
+html.blue:not(:has([data-display="tv"])) input:focus,
+html.blue:not(:has([data-display="tv"])) select:focus,
+html.blue:not(:has([data-display="tv"])) textarea:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
 }

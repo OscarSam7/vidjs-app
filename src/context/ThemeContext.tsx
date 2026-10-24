@@ -2,60 +2,47 @@
 
 import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
 
-export type Theme = "system" | "light" | "dark";
+export type Theme = "dark" | "blue";
 
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  resolvedTheme: "light" | "dark";
+  resolvedTheme: "dark" | "blue";
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("system");
+  const [theme, setThemeState] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
-  const [systemIsDark, setSystemIsDark] = useState<boolean>(true);
 
-  // Cargar preferencia guardada de localStorage al montar
+  // Cargar preferencia guardada de localStorage al montar (migrando sistema/claro -> oscuro/azul)
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("vidjeis_theme") as Theme | null;
-      if (saved && (saved === "system" || saved === "light" || saved === "dark")) {
-        setThemeState(saved);
+      const saved = localStorage.getItem("vidjeis_theme");
+      if (saved === "blue" || saved === "french-blue" || saved === "light") {
+        setThemeState("blue");
+      } else {
+        setThemeState("dark");
       }
     } catch {}
 
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    setSystemIsDark(mediaQuery.matches);
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      setSystemIsDark(e.matches);
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
     setMounted(true);
-
-    return () => {
-      mediaQuery.removeEventListener("change", handleChange);
-    };
   }, []);
 
-  const resolvedTheme: "light" | "dark" = useMemo(() => {
-    if (theme === "system") {
-      return systemIsDark ? "dark" : "light";
-    }
-    return theme;
-  }, [theme, systemIsDark]);
+  const resolvedTheme: "dark" | "blue" = useMemo(() => {
+    return theme === "blue" ? "blue" : "dark";
+  }, [theme]);
 
   useEffect(() => {
     if (!mounted) return;
     const root = document.documentElement;
-    if (resolvedTheme === "light") {
+    root.classList.remove("light");
+    if (resolvedTheme === "blue") {
       root.classList.remove("dark");
-      root.classList.add("light");
+      root.classList.add("blue");
     } else {
-      root.classList.remove("light");
+      root.classList.remove("blue");
       root.classList.add("dark");
     }
   }, [resolvedTheme, mounted]);

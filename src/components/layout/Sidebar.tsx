@@ -211,16 +211,16 @@ export function Sidebar({
                   <Icon
                     className={`w-4 h-4 shrink-0 ${item.active ? "text-purple-700 dark:text-purple-400" : "text-slate-500 dark:text-zinc-400"}`}
                   />
-                  <span className="truncate">{item.name}</span>
+                  <span className="truncate whitespace-nowrap">{item.name}</span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {item.badge && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 font-bold">
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 font-bold whitespace-nowrap shrink-0">
                       {item.badge}
                     </span>
                   )}
                   {item.tag && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 font-bold">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 font-bold whitespace-nowrap shrink-0">
                       {item.tag}
                     </span>
                   )}

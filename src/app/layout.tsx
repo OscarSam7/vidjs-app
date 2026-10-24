@@ -42,14 +42,12 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                const storedTheme = localStorage.getItem('vidjeis_theme') || 'system';
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                const resolved = storedTheme === 'system' ? (prefersDark ? 'dark' : 'light') : storedTheme;
-                if (resolved === 'light') {
-                  document.documentElement.classList.remove('dark');
-                  document.documentElement.classList.add('light');
+                const storedTheme = localStorage.getItem('vidjeis_theme') || 'dark';
+                if (storedTheme === 'blue' || storedTheme === 'french-blue' || storedTheme === 'light') {
+                  document.documentElement.classList.remove('dark', 'light');
+                  document.documentElement.classList.add('blue');
                 } else {
-                  document.documentElement.classList.remove('light');
+                  document.documentElement.classList.remove('blue', 'light');
                   document.documentElement.classList.add('dark');
                 }
               } catch (e) {}
