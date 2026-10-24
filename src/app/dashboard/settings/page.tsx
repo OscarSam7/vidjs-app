@@ -19,7 +19,12 @@ import {
   Camera,
   QrCode,
   Lock,
+  Palette,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 interface ClubSettings {
   general: {
@@ -61,7 +66,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<ClubSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"general" | "dj" | "requests" | "screen" | "security">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "appearance" | "dj" | "requests" | "screen" | "security">("general");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const fetchSettings = async () => {
@@ -191,6 +196,18 @@ export default function SettingsPage() {
         </button>
 
         <button
+          onClick={() => setActiveTab("appearance")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            activeTab === "appearance"
+              ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
+              : "bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800"
+          }`}
+        >
+          <Palette className="w-4 h-4" />
+          <span>Tema & Apariencia</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab("dj")}
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "dj"
@@ -278,6 +295,7 @@ export default function SettingsPage() {
                   }
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 cursor-pointer"
                 >
+                  <option value="America/Asuncion">América / Asunción - Paraguay (UTC-3 / UTC-4)</option>
                   <option value="America/Montevideo">América / Montevideo (UTC-3)</option>
                   <option value="America/Buenos_Aires">América / Buenos Aires (UTC-3)</option>
                   <option value="America/Santiago">América / Santiago (UTC-3 / UTC-4)</option>
@@ -299,7 +317,7 @@ export default function SettingsPage() {
                       general: { ...settings.general, phone: e.target.value },
                     })
                   }
-                  placeholder="+598 99 000 000"
+                  placeholder="+595 981 000 000"
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 transition-colors"
                 />
               </div>
@@ -315,9 +333,86 @@ export default function SettingsPage() {
                       general: { ...settings.general, address: e.target.value },
                     })
                   }
-                  placeholder="Rambla esq. Solís 456"
+                  placeholder="Av. Monseñor Rodríguez esq. Boquerón, CDE"
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 transition-colors"
                 />
+              </div>
+            </div>
+
+            {/* Selector Rápido de Tema de Aplicación */}
+            <div className="pt-5 border-t border-zinc-800/80 space-y-3">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Palette className="w-4 h-4 text-purple-400" />
+                  <span>Tema de la Aplicación (Ajustes de Interfaz)</span>
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Elige entre Sistema (Ajustes de tu equipo), Modo Claro o Modo Oscuro
+                </p>
+              </div>
+              <ThemeToggle variant="cards" />
+            </div>
+          </div>
+        )}
+
+        {/* TAB TEMA & APARIENCIA */}
+        {activeTab === "appearance" && (
+          <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1.5">
+                    <Palette className="w-3 h-3 text-purple-400" />
+                    APARIENCIA VISUAL
+                  </span>
+                </div>
+                <h2 className="text-base font-bold text-white mt-1">
+                  Tema de la Aplicación (Ajustes de Interfaz)
+                </h2>
+                <p className="text-xs text-zinc-400">
+                  Personaliza cómo se visualiza el panel de Vidjeis en tu dispositivo: automático con el sistema, modo claro diurno o modo oscuro nocturno.
+                </p>
+              </div>
+            </div>
+
+            {/* Selector de Tema en Tarjetas Grandes */}
+            <div className="space-y-3">
+              <label className="text-xs font-semibold text-zinc-300 block">
+                Selecciona tu modo preferido
+              </label>
+              <ThemeToggle variant="cards" />
+            </div>
+
+            {/* Explicación de cada modo */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+              <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-2">
+                <div className="flex items-center gap-2 text-purple-400 font-bold text-xs">
+                  <Monitor className="w-4 h-4" />
+                  <span>Sistema (Ajustes)</span>
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Se sincroniza automáticamente con la configuración de tu computadora o teléfono. Si tu sistema operativo cambia al anochecer, Vidjeis cambiará solo.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-2">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                  <Sun className="w-4 h-4" />
+                  <span>Modo Claro</span>
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Fondo blanco limpio con texto de alto contraste. Ideal para tareas de oficina de día, carga de eventos, revisión de reportes y facturación.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-2">
+                <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs">
+                  <Moon className="w-4 h-4" />
+                  <span>Modo Oscuro</span>
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                  Fondo oscuro con acentos neón. El modo nativo para clubes, boliches y cabinas de DJ para no encandilar en ambientes con luces bajas.
+                </p>
               </div>
             </div>
           </div>

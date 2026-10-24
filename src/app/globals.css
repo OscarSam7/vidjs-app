@@ -5,11 +5,27 @@
 :root {
   --background: #09090b;
   --foreground: #f4f4f5;
+  --card-bg: #18181b;
+  --card-border: #27272a;
+}
+
+html.light {
+  --background: #f8fafc;
+  --foreground: #09090b;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+}
+
+html.dark {
+  --background: #09090b;
+  --foreground: #f4f4f5;
+  --card-bg: #18181b;
+  --card-border: #27272a;
 }
 
 body {
   color: var(--foreground);
-  background: var(--background);
+  background-color: var(--background);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   min-height: 100vh;
 }
@@ -21,16 +37,24 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #121216;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: #3f3f46;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: #52525b;
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* Efectos de brillo / nightlife */
@@ -40,4 +64,93 @@ body {
 
 .glow-cyan {
   box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.3);
+}
+
+/* ========================================================================= */
+/* ADAPTACIÓN MODO CLARO (LIGHT THEME) PARA VIDJEIS                         */
+/* ========================================================================= */
+html.light body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Fondos oscuros convertidos a fondos claros elegantes */
+html.light .bg-\[\#070709\],
+html.light .bg-\[\#040406\],
+html.light .bg-\[\#09090b\] {
+  background-color: #f8fafc !important;
+}
+
+html.light .bg-zinc-950,
+html.light .bg-zinc-950\/80,
+html.light .bg-zinc-950\/90,
+html.light .bg-zinc-950\/95,
+html.light .bg-zinc-950\/60,
+html.light .bg-zinc-950\/40 {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-zinc-900,
+html.light .bg-zinc-900\/80,
+html.light .bg-zinc-900\/70,
+html.light .bg-zinc-900\/60,
+html.light .bg-zinc-900\/50,
+html.light .bg-zinc-900\/40 {
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+}
+
+html.light .bg-zinc-800,
+html.light .bg-zinc-800\/80,
+html.light .bg-zinc-800\/60,
+html.light .bg-zinc-800\/40 {
+  background-color: #f1f5f9 !important;
+}
+
+/* Bordes en Modo Claro */
+html.light .border-zinc-800,
+html.light .border-zinc-850,
+html.light .border-zinc-750,
+html.light .border-zinc-700 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Textos legibles en Modo Claro */
+html.light .text-white {
+  color: #0f172a !important;
+}
+
+html.light .text-zinc-100,
+html.light .text-zinc-200,
+html.light .text-zinc-300 {
+  color: #1e293b !important;
+}
+
+html.light .text-zinc-400 {
+  color: #475569 !important;
+}
+
+html.light .text-zinc-500 {
+  color: #64748b !important;
+}
+
+/* Formularios en Modo Claro */
+html.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input:focus,
+html.light select:focus,
+html.light textarea:focus {
+  background-color: #ffffff !important;
+  border-color: #9333ea !important;
+}
+
+/* Tablas y filas hover */
+html.light tr:hover {
+  background-color: #f8fafc !important;
 }

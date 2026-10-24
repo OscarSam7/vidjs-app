@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import PwaRegistrar from "@/components/pwa/PwaRegistrar";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 export const viewport: Viewport = {
   themeColor: "#040406",
@@ -35,10 +36,32 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className="dark">
-      <body className="bg-[#09090b] text-[#f4f4f5] antialiased selection:bg-purple-600 selection:text-white">
-        <PwaRegistrar />
-        {children}
+    <html lang="es" className="dark" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const storedTheme = localStorage.getItem('vidjeis_theme') || 'system';
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const resolved = storedTheme === 'system' ? (prefersDark ? 'dark' : 'light') : storedTheme;
+                if (resolved === 'light') {
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.classList.add('light');
+                } else {
+                  document.documentElement.classList.remove('light');
+                  document.documentElement.classList.add('dark');
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
+      <body className="bg-[var(--background)] text-[var(--foreground)] antialiased selection:bg-purple-600 selection:text-white transition-colors duration-200">
+        <ThemeProvider>
+          <PwaRegistrar />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -2,6 +2,7 @@
 
 import { LogOut, User, Shield, Sparkles, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useState } from "react";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 interface TopbarProps {
   user: {
@@ -85,6 +86,9 @@ export function Topbar({ user, tenantName, isSidebarCollapsed, onToggleSidebar }
             {user.role}
           </span>
         </div>
+
+        {/* Selector Rápido de Tema (Sistema, Claro, Oscuro) */}
+        <ThemeToggle variant="dropdown" />
 
         {/* Logout Button */}
         <button
