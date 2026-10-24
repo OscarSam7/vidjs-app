@@ -56,7 +56,7 @@ export function DashboardShell({ children, user, tenantName }: DashboardShellPro
   }, [pathname]);
 
   return (
-    <div className="flex min-h-screen bg-[#070709] text-zinc-100 overflow-x-hidden">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-[#070709] text-slate-900 dark:text-zinc-100 overflow-x-hidden">
       {/* Sidebar Desktop y Drawer Móvil */}
       <Sidebar
         role={user.role}

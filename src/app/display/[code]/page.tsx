@@ -847,7 +847,10 @@ export default function PublicDisplayScreenPage({
   );
 
   return (
-    <div className="h-[100dvh] max-h-[100dvh] w-screen bg-[#040406] text-zinc-100 flex flex-col justify-between p-2 sm:p-4 lg:p-6 relative overflow-hidden select-none">
+    <div
+      data-display="tv"
+      className="tv-screen dark h-[100dvh] max-h-[100dvh] w-screen bg-[#040406] text-zinc-100 flex flex-col justify-between p-2 sm:p-4 lg:p-6 relative overflow-hidden select-none"
+    >
       {/* Luces de fondo y resplandor estilo discoteca */}
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none" />

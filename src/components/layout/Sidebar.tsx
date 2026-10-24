@@ -86,29 +86,29 @@ export function Sidebar({
         <div
           className={`h-16 flex items-center ${
             collapsed ? "justify-center px-2" : "justify-between px-4"
-          } border-b border-zinc-800/80 shrink-0 transition-all`}
+          } border-b border-slate-200 dark:border-zinc-800/80 shrink-0 transition-all`}
         >
           {collapsed ? (
             <button
               type="button"
               onClick={onToggleCollapse}
-              className="p-2 rounded-xl bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/20 text-purple-400 transition-all cursor-pointer group"
+              className="p-2 rounded-xl bg-purple-100 dark:bg-purple-600/10 hover:bg-purple-200 dark:hover:bg-purple-600/20 border border-purple-200 dark:border-purple-500/20 text-purple-700 dark:text-purple-400 transition-all cursor-pointer group"
               title="Expandir menú de herramientas"
               aria-label="Expandir menú"
             >
-              <ChevronRight className="w-5 h-5 text-purple-400 group-hover:translate-x-0.5 transition-transform" />
+              <ChevronRight className="w-5 h-5 text-purple-600 dark:text-purple-400 group-hover:translate-x-0.5 transition-transform" />
             </button>
           ) : (
             <>
               <div className="flex items-center gap-3 overflow-hidden">
-                <div className="p-2 rounded-xl bg-purple-600/10 border border-purple-500/20 text-purple-400 shrink-0">
-                  <Disc3 className="w-5 h-5 text-purple-400" />
+                <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-600/10 border border-purple-200 dark:border-purple-500/20 text-purple-700 dark:text-purple-400 shrink-0">
+                  <Disc3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div className="truncate">
-                  <span className="font-extrabold text-sm tracking-wide text-white block truncate">
+                  <span className="font-extrabold text-sm tracking-wide text-slate-900 dark:text-white block truncate">
                     VIDJEIS PLATFORM
                   </span>
-                  <span className="text-[10px] text-zinc-400 block font-medium truncate">
+                  <span className="text-[10px] text-slate-500 dark:text-zinc-400 block font-medium truncate">
                     Entertainment SaaS
                   </span>
                 </div>
@@ -119,7 +119,7 @@ export function Sidebar({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
+                    className="p-1.5 rounded-lg text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-900 transition-colors"
                     aria-label="Cerrar menú"
                   >
                     <X className="w-5 h-5" />
@@ -129,7 +129,7 @@ export function Sidebar({
                 <button
                   type="button"
                   onClick={onToggleCollapse}
-                  className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-900 border border-transparent hover:border-slate-200 dark:hover:border-zinc-800 transition-colors cursor-pointer"
                   title="Minimizar menú hacia la izquierda"
                   aria-label="Minimizar menú hacia la izquierda"
                 >
@@ -143,20 +143,20 @@ export function Sidebar({
         {/* Tenant Context Badge */}
         {collapsed ? (
           <div
-            className="mx-auto my-3 w-10 h-10 rounded-xl bg-zinc-900/90 border border-zinc-800 shrink-0 flex items-center justify-center relative cursor-pointer group"
+            className="mx-auto my-3 w-10 h-10 rounded-xl bg-slate-100 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 shrink-0 flex items-center justify-center relative cursor-pointer group"
             title={`Establecimiento: ${tenantName} (Tenant Aislado)`}
             onClick={onToggleCollapse}
           >
-            <Building2 className="w-4 h-4 text-zinc-400 group-hover:text-purple-300 transition-colors" />
+            <Building2 className="w-4 h-4 text-slate-600 dark:text-zinc-400 group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors" />
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse absolute top-1 right-1" />
           </div>
         ) : (
-          <div className="p-3.5 mx-3 my-3 rounded-xl bg-zinc-900/90 border border-zinc-800 shrink-0">
-            <div className="text-[10px] uppercase font-semibold text-zinc-400 tracking-wider">
+          <div className="p-3.5 mx-3 my-3 rounded-xl bg-slate-50 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 shrink-0">
+            <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-zinc-400 tracking-wider">
               Establecimiento
             </div>
-            <div className="text-sm font-bold text-white truncate mt-0.5">{tenantName}</div>
-            <div className="inline-flex items-center gap-1.5 mt-2 text-[11px] text-emerald-400 font-medium">
+            <div className="text-sm font-bold text-slate-900 dark:text-white truncate mt-0.5">{tenantName}</div>
+            <div className="inline-flex items-center gap-1.5 mt-2 text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>Tenant Aislado</span>
             </div>
@@ -176,15 +176,15 @@ export function Sidebar({
                   title={item.name}
                   className={`w-11 h-11 mx-auto flex items-center justify-center rounded-xl transition-all relative group ${
                     item.active
-                      ? "bg-purple-600/20 text-purple-300 border border-purple-500/40 shadow-[0_0_12px_rgba(168,85,247,0.25)]"
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-900/80 border border-transparent hover:border-zinc-800"
+                      ? "bg-purple-100 dark:bg-purple-600/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/40 shadow-sm"
+                      : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-900/80 border border-transparent hover:border-slate-200 dark:hover:border-zinc-800"
                   }`}
                 >
                   <Icon
                     className={`w-5 h-5 shrink-0 ${
                       item.active
-                        ? "text-purple-400"
-                        : "text-zinc-400 group-hover:text-zinc-200 group-hover:scale-110"
+                        ? "text-purple-600 dark:text-purple-400"
+                        : "text-slate-500 dark:text-zinc-400 group-hover:text-slate-900 dark:group-hover:text-zinc-200 group-hover:scale-110"
                     } transition-transform`}
                   />
                   {item.badge && (
@@ -201,26 +201,26 @@ export function Sidebar({
                 key={item.name}
                 href={item.href}
                 onClick={(e) => handleItemClick(e, item, isMobile)}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-colors ${
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
                   item.active
-                    ? "bg-purple-600/15 text-purple-300 border border-purple-500/20 font-semibold"
-                    : "text-zinc-400 hover:text-white hover:bg-zinc-900/60"
+                    ? "bg-purple-100 dark:bg-purple-600/15 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-500/20 font-bold"
+                    : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-900/60"
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <Icon
-                    className={`w-4 h-4 shrink-0 ${item.active ? "text-purple-400" : "text-zinc-400"}`}
+                    className={`w-4 h-4 shrink-0 ${item.active ? "text-purple-700 dark:text-purple-400" : "text-slate-500 dark:text-zinc-400"}`}
                   />
                   <span className="truncate">{item.name}</span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {item.badge && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700">
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 font-bold">
                       {item.badge}
                     </span>
                   )}
                   {item.tag && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-800/60 font-semibold">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 font-bold">
                       {item.tag}
                     </span>
                   )}
@@ -231,30 +231,30 @@ export function Sidebar({
         </nav>
 
         {/* Footer System Info & Collapse Action */}
-        <div className="p-3 border-t border-zinc-800/80 shrink-0">
+        <div className="p-3 border-t border-slate-200 dark:border-zinc-800/80 shrink-0">
           {collapsed ? (
             <button
               type="button"
               onClick={onToggleCollapse}
-              className="w-10 h-10 mx-auto rounded-xl bg-zinc-900/60 hover:bg-zinc-900 border border-zinc-800/80 hover:border-purple-500/40 text-zinc-400 hover:text-purple-300 flex items-center justify-center transition-all cursor-pointer"
+              className="w-10 h-10 mx-auto rounded-xl bg-slate-100 dark:bg-zinc-900/60 hover:bg-slate-200 dark:hover:bg-zinc-900 border border-slate-200 dark:border-zinc-800/80 hover:border-purple-300 dark:hover:border-purple-500/40 text-slate-600 dark:text-zinc-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center justify-center transition-all cursor-pointer"
               title="Expandir menú de módulos"
               aria-label="Expandir menú"
             >
-              <PanelLeftOpen className="w-4 h-4 text-purple-400" />
+              <PanelLeftOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             </button>
           ) : (
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-[11px] text-zinc-400 px-1">
+              <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400 px-1">
                 <span>
-                  Rol: <strong className="text-white">{role}</strong>
+                  Rol: <strong className="text-slate-900 dark:text-white font-bold">{role}</strong>
                 </span>
-                <span className="text-zinc-400 font-mono">v0.1.0</span>
+                <span className="text-slate-500 dark:text-zinc-400 font-mono">v0.1.0</span>
               </div>
               {!isMobile && (
                 <button
                   type="button"
                   onClick={onToggleCollapse}
-                  className="w-full flex items-center justify-center gap-2 py-1.5 px-2 rounded-xl bg-zinc-900/70 hover:bg-zinc-900 border border-zinc-800/80 text-zinc-400 hover:text-white text-xs font-medium transition-all cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 py-1.5 px-2 rounded-xl bg-slate-100 dark:bg-zinc-900/70 hover:bg-slate-200 dark:hover:bg-zinc-900 border border-slate-200 dark:border-zinc-800/80 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold transition-all cursor-pointer"
                   title="Minimizar hacia la izquierda"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
@@ -274,7 +274,7 @@ export function Sidebar({
       <aside
         className={`hidden lg:flex ${
           isCollapsed ? "w-[68px]" : "w-64"
-        } bg-zinc-950 border-r border-zinc-800/80 flex-col shrink-0 min-h-screen sticky top-0 h-screen overflow-y-auto transition-all duration-300 select-none z-30`}
+        } bg-white dark:bg-zinc-950 border-r border-slate-200 dark:border-zinc-800/80 flex-col shrink-0 min-h-screen sticky top-0 h-screen overflow-y-auto transition-all duration-300 select-none z-30`}
       >
         {renderContent(false)}
       </aside>
@@ -284,13 +284,13 @@ export function Sidebar({
         <div className="fixed inset-0 z-50 lg:hidden">
           {/* Backdrop con blur */}
           <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-slate-950/60 dark:bg-black/80 backdrop-blur-sm transition-opacity"
             onClick={onClose}
             aria-hidden="true"
           />
 
           {/* Drawer Deslizante */}
-          <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-zinc-950 border-r border-zinc-800 flex flex-col z-50 shadow-2xl h-full animate-in slide-in-from-left duration-200">
+          <aside className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white dark:bg-zinc-950 border-r border-slate-200 dark:border-zinc-800 flex flex-col z-50 shadow-2xl h-full animate-in slide-in-from-left duration-200">
             {renderContent(true)}
           </aside>
         </div>
