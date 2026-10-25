@@ -981,6 +981,370 @@ class DjSoundEffectsEngine {
       this.playVinylNudgeForward(intensity);
     }
   }
+
+  /**
+   * 🔫 Disparo Láser EDM (Sintetizador de frecuencia descendente ultra rápida con resonancia)
+   */
+  public playLaser() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(3200, now);
+    osc.frequency.exponentialRampToValueAtTime(140, now + 0.16);
+
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(2400, now);
+    filter.frequency.exponentialRampToValueAtTime(350, now + 0.16);
+    filter.Q.value = 4.5;
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.18);
+  }
+
+  /**
+   * 🚨 Sirena Rave / Alarma de Club (Modulación de dos tonos estilo discoteca)
+   */
+  public playSiren() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const duration = 0.88;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(680, now);
+    osc.frequency.linearRampToValueAtTime(1080, now + 0.22);
+    osc.frequency.linearRampToValueAtTime(680, now + 0.44);
+    osc.frequency.linearRampToValueAtTime(1080, now + 0.66);
+    osc.frequency.exponentialRampToValueAtTime(280, now + duration);
+
+    gain.gain.setValueAtTime(0.28, now);
+    gain.gain.linearRampToValueAtTime(0.32, now + 0.6);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 2200;
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  /**
+   * 🚀 Subida Riser / Build-Up de Tensión (Subida de tono y barrido de filtro pre-drop)
+   */
+  public playRiser(duration = 1.3) {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampToValueAtTime(1400, now + duration);
+
+    oscGain.gain.setValueAtTime(0.05, now);
+    oscGain.gain.linearRampToValueAtTime(0.28, now + duration * 0.85);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    const noiseBuffer = this.createNoiseBuffer(duration);
+    if (noiseBuffer) {
+      const noise = ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(300, now);
+      filter.frequency.exponentialRampToValueAtTime(3600, now + duration);
+      filter.Q.value = 3.5;
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.08, now);
+      noiseGain.gain.linearRampToValueAtTime(0.32, now + duration * 0.9);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+      noise.start(now);
+      noise.stop(now + duration);
+    }
+
+    osc.connect(oscGain);
+    oscGain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  /**
+   * 💥 Impacto / Boom Explosivo (Golpe de subgrave profundo + estallido cinemático)
+   */
+  public playImpact() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(150, now);
+    osc.frequency.exponentialRampToValueAtTime(28, now + 0.9);
+
+    oscGain.gain.setValueAtTime(0.55, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+
+    osc.connect(oscGain);
+    oscGain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 1.1);
+
+    const noiseBuffer = this.createNoiseBuffer(0.4);
+    if (noiseBuffer) {
+      const noise = ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(800, now);
+      filter.frequency.exponentialRampToValueAtTime(80, now + 0.35);
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.35, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+      noise.start(now);
+      noise.stop(now + 0.4);
+    }
+  }
+
+  /**
+   * 🗣️ Grito de Fiesta / Crowd Hype (Grito colectivo de euforia en pista)
+   */
+  public playCrowdCheer() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const duration = 0.85;
+
+    const noiseBuffer = this.createNoiseBuffer(duration);
+    if (!noiseBuffer) return;
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    const f1 = ctx.createBiquadFilter();
+    f1.type = "bandpass";
+    f1.frequency.setValueAtTime(850, now);
+    f1.frequency.linearRampToValueAtTime(1200, now + 0.3);
+    f1.Q.value = 3.0;
+
+    const f2 = ctx.createBiquadFilter();
+    f2.type = "bandpass";
+    f2.frequency.setValueAtTime(2200, now);
+    f2.frequency.linearRampToValueAtTime(2800, now + 0.3);
+    f2.Q.value = 2.5;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.linearRampToValueAtTime(0.4, now + 0.2);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    noise.connect(f1);
+    noise.connect(f2);
+    f1.connect(gain);
+    f2.connect(gain);
+    gain.connect(ctx.destination);
+
+    noise.start(now);
+    noise.stop(now + duration);
+  }
+
+  /**
+   * 🎺 Fanfarria de Victoria (4 notas triunfales para festejo en Karaoke)
+   */
+  public playFanfare() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    const notes = [
+      { freq: 523.25, time: 0, dur: 0.14 },    // C5
+      { freq: 659.25, time: 0.14, dur: 0.14 }, // E5
+      { freq: 783.99, time: 0.28, dur: 0.16 }, // G5
+      { freq: 1046.5, time: 0.44, dur: 0.75 }, // C6 triunfal
+    ];
+
+    notes.forEach(({ freq, time, dur }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(freq, now + time);
+
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(2600, now + time);
+
+      gain.gain.setValueAtTime(0.3, now + time);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + time + dur);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + time);
+      osc.stop(now + time + dur);
+    });
+  }
+
+  /**
+   * 🎙️ Test de Micrófono / Ping Estéreo (Doble toque de comprobación)
+   */
+  public playMicCheck() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    [0, 0.16].forEach((offset) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(1760, now + offset); // A6
+      osc.frequency.exponentialRampToValueAtTime(880, now + offset + 0.1);
+
+      gain.gain.setValueAtTime(0.25, now + offset);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.12);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + offset);
+      osc.stop(now + offset + 0.12);
+    });
+  }
+
+  /**
+   * ⏳ Tensión & Suspenso (Drone pulsante de votación o anuncio)
+   */
+  public playSuspense() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const duration = 1.3;
+
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc1.type = "sawtooth";
+    osc1.frequency.setValueAtTime(55, now);
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(58, now);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(320, now);
+
+    gain.gain.setValueAtTime(0.05, now);
+    gain.gain.linearRampToValueAtTime(0.38, now + 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + duration);
+    osc2.stop(now + duration);
+  }
+
+  /**
+   * 🛎️ Gong Resonante / Campana Final (Remate de canción o cierre de turno)
+   */
+  public playGong() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const duration = 1.6;
+
+    const partials = [
+      { freq: 240, gain: 0.35 },
+      { freq: 382, gain: 0.25 },
+      { freq: 512, gain: 0.18 },
+      { freq: 730, gain: 0.12 },
+    ];
+
+    partials.forEach((p) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(p.freq, now);
+
+      g.gain.setValueAtTime(p.gain, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      osc.connect(g);
+      g.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + duration);
+    });
+  }
+
+  /**
+   * ⏱️ Conteo 3-2-1 para Entrar a Cantar (3 toques de aviso + 1 tono de salida)
+   */
+  public playCountdown() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    const beeps = [
+      { time: 0, freq: 880, dur: 0.08, vol: 0.2 },
+      { time: 0.35, freq: 880, dur: 0.08, vol: 0.2 },
+      { time: 0.70, freq: 880, dur: 0.08, vol: 0.2 },
+      { time: 1.05, freq: 1760, dur: 0.35, vol: 0.35 },
+    ];
+
+    beeps.forEach((b) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(b.freq, now + b.time);
+
+      gain.gain.setValueAtTime(b.vol, now + b.time);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + b.time + b.dur);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + b.time);
+      osc.stop(now + b.time + b.dur);
+    });
+  }
 }
 
 export const djSoundEffects = new DjSoundEffectsEngine();
