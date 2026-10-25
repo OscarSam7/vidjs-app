@@ -194,7 +194,61 @@ export function BottomNavigationDock() {
             </button>
           ) : (
             <>
-              {/* 1. BANDEJA A */}
+              {/* 1. PANTALLA TV */}
+              <button
+                type="button"
+                onClick={handleOpenTv}
+                className="flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl hover:bg-emerald-500/10 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-300 border border-transparent hover:border-emerald-500/30 transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px]"
+                title="Abrir Pantalla TV en ventana de proyección para Smart TV o proyector"
+              >
+                <div className="relative">
+                  <Tv className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-emerald-500 group-hover:scale-110 transition-transform" />
+                  <ExternalLink className="w-2.5 h-2.5 text-emerald-400 absolute -top-1 -right-2" />
+                </div>
+                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full">
+                  Pantalla TV
+                </span>
+                <span className="text-[7px] sm:text-[8px] font-mono text-emerald-600 dark:text-emerald-400 font-bold uppercase leading-none hidden sm:inline mt-0.5">
+                  Proyección
+                </span>
+              </button>
+
+              {/* 2. BIBLIOTECA */}
+              <button
+                type="button"
+                onClick={handleOpenLibrary}
+                className="flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl hover:bg-amber-500/10 dark:hover:bg-amber-950/40 text-slate-700 dark:text-zinc-300 hover:text-amber-600 dark:hover:text-amber-300 border border-transparent hover:border-amber-500/30 transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px]"
+                title="Abrir o desplazar a la Biblioteca Musical"
+              >
+                <ListMusic className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-500 group-hover:scale-110 transition-transform" />
+                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full">
+                  Biblioteca
+                </span>
+                <span className="text-[7px] sm:text-[8px] font-mono text-amber-600 dark:text-amber-400 font-bold uppercase leading-none hidden sm:inline mt-0.5">
+                  Pistas
+                </span>
+              </button>
+
+              {/* 3. SOLICITUDES / COLA */}
+              <button
+                type="button"
+                onClick={handleScrollToQueue}
+                className="flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl hover:bg-rose-500/10 dark:hover:bg-rose-950/40 text-slate-700 dark:text-zinc-300 hover:text-rose-600 dark:hover:text-rose-300 border border-transparent hover:border-rose-500/30 transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px]"
+                title="Desplazar a Solicitudes de Mesas y Cola de Reproducción"
+              >
+                <Flame className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-rose-500 group-hover:scale-110 transition-transform" />
+                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full">
+                  Solicitudes/Cola
+                </span>
+                <span className="text-[7px] sm:text-[8px] font-mono text-rose-600 dark:text-rose-400 font-bold uppercase leading-none hidden sm:inline mt-0.5">
+                  En Vivo
+                </span>
+              </button>
+
+              {/* Separador sutil */}
+              <div className="w-[1px] h-6 bg-slate-200 dark:bg-zinc-800 shrink-0 hidden sm:block" />
+
+              {/* 4. BANDEJA A */}
               <button
                 type="button"
                 onClick={handleScrollToDeckA}
@@ -215,7 +269,7 @@ export function BottomNavigationDock() {
                 </span>
               </button>
 
-              {/* 2. BANDEJA B */}
+              {/* 5. BANDEJA B */}
               <button
                 type="button"
                 onClick={handleScrollToDeckB}
@@ -238,57 +292,6 @@ export function BottomNavigationDock() {
 
               {/* Separador sutil */}
               <div className="w-[1px] h-6 bg-slate-200 dark:bg-zinc-800 shrink-0 hidden sm:block" />
-
-              {/* 3. BIBLIOTECA */}
-              <button
-                type="button"
-                onClick={handleOpenLibrary}
-                className="flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl hover:bg-amber-500/10 dark:hover:bg-amber-950/40 text-slate-700 dark:text-zinc-300 hover:text-amber-600 dark:hover:text-amber-300 border border-transparent hover:border-amber-500/30 transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px]"
-                title="Abrir o desplazar a la Biblioteca Musical"
-              >
-                <ListMusic className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-500 group-hover:scale-110 transition-transform" />
-                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full">
-                  Biblioteca
-                </span>
-                <span className="text-[7px] sm:text-[8px] font-mono text-amber-600 dark:text-amber-400 font-bold uppercase leading-none hidden sm:inline mt-0.5">
-                  Pistas
-                </span>
-              </button>
-
-              {/* 4. PANTALLA TV */}
-              <button
-                type="button"
-                onClick={handleOpenTv}
-                className="flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl hover:bg-emerald-500/10 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-300 border border-transparent hover:border-emerald-500/30 transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px]"
-                title="Abrir Pantalla TV en ventana de proyección para Smart TV o proyector"
-              >
-                <div className="relative">
-                  <Tv className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-emerald-500 group-hover:scale-110 transition-transform" />
-                  <ExternalLink className="w-2.5 h-2.5 text-emerald-400 absolute -top-1 -right-2" />
-                </div>
-                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full">
-                  Pantalla TV
-                </span>
-                <span className="text-[7px] sm:text-[8px] font-mono text-emerald-600 dark:text-emerald-400 font-bold uppercase leading-none hidden sm:inline mt-0.5">
-                  Proyección
-                </span>
-              </button>
-
-              {/* 5. SOLICITUDES / COLA */}
-              <button
-                type="button"
-                onClick={handleScrollToQueue}
-                className="flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl hover:bg-rose-500/10 dark:hover:bg-rose-950/40 text-slate-700 dark:text-zinc-300 hover:text-rose-600 dark:hover:text-rose-300 border border-transparent hover:border-rose-500/30 transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px]"
-                title="Desplazar a Solicitudes de Mesas y Cola de Reproducción"
-              >
-                <Flame className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-rose-500 group-hover:scale-110 transition-transform" />
-                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full">
-                  Solicitudes/Cola
-                </span>
-                <span className="text-[7px] sm:text-[8px] font-mono text-rose-600 dark:text-rose-400 font-bold uppercase leading-none hidden sm:inline mt-0.5">
-                  En Vivo
-                </span>
-              </button>
 
               {/* 6. PANTALLA MODO CLIENTE */}
               <button
