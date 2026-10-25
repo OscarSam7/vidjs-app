@@ -780,6 +780,12 @@ export default function VirtualDjConsole({
       if (e?.detail?.targetDeck) {
         setLibraryTargetDeckHint(e.detail.targetDeck);
       }
+      setTimeout(() => {
+        const libEl = document.getElementById("dj-library-section");
+        if (libEl) {
+          libEl.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 120);
     };
     const handleToggle = () => {
       setIsLibraryOpen((prev) => !prev);
@@ -3279,7 +3285,7 @@ export default function VirtualDjConsole({
         {/* ========================================== */}
         {/* DECK A (Canal 1 - Violeta / Púrpura)       */}
         {/* ========================================== */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-purple-950/30 border-2 border-purple-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative w-full max-w-full overflow-hidden">
+        <div id="deck-a" className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-purple-950/30 border-2 border-purple-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative w-full max-w-full overflow-hidden scroll-mt-24 transition-all duration-300">
           {/* Header de Deck A */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -4300,7 +4306,7 @@ export default function VirtualDjConsole({
         {/* ========================================== */}
         {/* DECK B (Canal 2 - Cian Eléctrico)          */}
         {/* ========================================== */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-bl from-zinc-950 via-zinc-900 to-cyan-950/30 border-2 border-cyan-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative w-full max-w-full overflow-hidden">
+        <div id="deck-b" className="p-4 sm:p-5 rounded-2xl bg-gradient-to-bl from-zinc-950 via-zinc-900 to-cyan-950/30 border-2 border-cyan-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative w-full max-w-full overflow-hidden scroll-mt-24 transition-all duration-300">
           {/* Header de Deck B con Selector de Pista */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -4940,7 +4946,7 @@ export default function VirtualDjConsole({
       {/* 4. PANEL SPLIT-SCREEN: BIBLIOTECA MUSICAL EN VIVO (ESTILO VIRTUALDJ)      */}
       {/* ========================================================================= */}
       {isLibraryOpen && libraryViewMode === "split" && (
-        <section className="rounded-3xl border border-amber-500/40 bg-zinc-950/95 backdrop-blur-md p-4 sm:p-5 shadow-2xl transition-all animate-in fade-in duration-200">
+        <section id="dj-library-section" className="rounded-3xl border border-amber-500/40 bg-zinc-950/95 backdrop-blur-md p-4 sm:p-5 shadow-2xl transition-all animate-in fade-in duration-200 scroll-mt-24">
           <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-3 border-b border-zinc-800">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">

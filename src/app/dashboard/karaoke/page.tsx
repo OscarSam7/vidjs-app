@@ -196,6 +196,12 @@ export default function KaraokeBoothPage() {
         const json = await res.json();
         setData(json.data);
 
+        if (json.data?.event?.code) {
+          try {
+            localStorage.setItem("vidjs_current_event_code", json.data.event.code);
+          } catch {}
+        }
+
         if (!selectedEventId && json.data.event) {
           setSelectedEventId(json.data.event.id);
         }
@@ -1065,7 +1071,7 @@ export default function KaraokeBoothPage() {
       <DjSoundboard mode="KARAOKE" />
 
       {/* 4. COLUMNAS DIVIDIDAS: Bandeja de Solicitudes Entrantes & Dinámicas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div id="solicitudes-cola-section" className="grid grid-cols-1 lg:grid-cols-2 gap-6 scroll-mt-24 transition-all duration-300">
         {/* COLUMNA IZQUIERDA: Solicitudes de Cantantes (Bandeja de Moderación) */}
         <div className="p-6 rounded-3xl bg-zinc-900/70 border border-zinc-800 space-y-4">
           <div className="flex items-center justify-between">

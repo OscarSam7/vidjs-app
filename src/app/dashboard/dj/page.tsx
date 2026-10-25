@@ -262,6 +262,11 @@ export default function DjBoothPage() {
       if (res.ok) {
         const json = await res.json();
         setData(json.data);
+        if (json.data?.event?.code) {
+          try {
+            localStorage.setItem("vidjs_current_event_code", json.data.event.code);
+          } catch {}
+        }
         const currentId = json.data.event?.id || selectedEventId;
         if (!selectedEventId && json.data.event) {
           setSelectedEventId(json.data.event.id);
@@ -2336,9 +2341,9 @@ export default function DjBoothPage() {
       <DjSoundboard mode="DJ" />
 
       {/* 3. COLUMNAS DIVIDIDAS: Bandeja de Moderación & Cola en Vivo */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div id="solicitudes-cola-section" className="grid grid-cols-1 lg:grid-cols-2 gap-6 scroll-mt-24 transition-all duration-300">
         {/* COLUMNA IZQUIERDA: Solicitudes Entrantes (Bandeja de Moderación) */}
-        <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-4">
+        <div id="solicitudes-section" className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-4 scroll-mt-24">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <Flame className="w-5 h-5 text-amber-400" />
@@ -2518,7 +2523,7 @@ export default function DjBoothPage() {
         </div>
 
         {/* COLUMNA DERECHA: Cola de Reproducción en Vivo */}
-        <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-4">
+        <div id="cola-section" className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-4 scroll-mt-24">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {queuePolicy.zone === "KARAOKE" ? (

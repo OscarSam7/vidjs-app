@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { BottomNavigationDock } from "@/components/layout/BottomNavigationDock";
 
 interface DashboardShellProps {
   children: React.ReactNode;
@@ -75,9 +76,12 @@ export function DashboardShell({ children, user, tenantName }: DashboardShellPro
           isSidebarCollapsed={isCollapsed}
           onToggleSidebar={handleToggleSidebar}
         />
-        <main className="flex-1 p-3 sm:p-5 md:p-8 max-w-7xl w-full mx-auto overflow-y-auto overflow-x-hidden max-w-full">
+        <main className="flex-1 p-3 sm:p-5 md:p-8 pb-20 sm:pb-24 max-w-7xl w-full mx-auto overflow-y-auto overflow-x-hidden max-w-full">
           {children}
         </main>
+
+        {/* Barra de Acceso Rápido Estática en el pie del app */}
+        <BottomNavigationDock />
       </div>
     </div>
   );
