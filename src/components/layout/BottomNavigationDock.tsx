@@ -13,10 +13,14 @@ import {
   ExternalLink,
   Layers,
 } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext";
 
 export function BottomNavigationDock() {
   const pathname = usePathname();
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
+  const isBlue = resolvedTheme === "blue";
+
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeToast, setActiveToast] = useState<string | null>(null);
   const [currentEventCode, setCurrentEventCode] = useState<string | null>(null);
@@ -93,29 +97,15 @@ export function BottomNavigationDock() {
     }
   };
 
-  // 1. Desplazar a Bandeja A
-  const handleScrollToDeckA = () => {
-    const el = document.getElementById("deck-a");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      triggerHighlight(el, "ring-purple-500", "shadow-[0_0_35px_rgba(168,85,247,0.7)]");
-    } else {
-      router.push("/dashboard/dj#deck-a");
-    }
+  // 1. Abrir Pantalla TV (Proyección en Smart TV / Proyector)
+  const handleOpenTv = () => {
+    const code = getSavedEventCode();
+    const url = code ? `/display/${code}` : "/display";
+    window.open(url, "vidjs_tv_display");
+    showToast(code ? `📺 Pantalla TV abierta (Evento ${code})` : "📺 Abriendo lanzador de Pantalla TV...");
   };
 
-  // 2. Desplazar a Bandeja B
-  const handleScrollToDeckB = () => {
-    const el = document.getElementById("deck-b");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      triggerHighlight(el, "ring-cyan-500", "shadow-[0_0_35px_rgba(6,182,212,0.7)]");
-    } else {
-      router.push("/dashboard/dj#deck-b");
-    }
-  };
-
-  // 3. Desplazar / Abrir Biblioteca
+  // 2. Desplazar / Abrir Biblioteca
   const handleOpenLibrary = () => {
     if (pathname === "/dashboard/dj") {
       window.dispatchEvent(new CustomEvent("open-dj-library"));
@@ -131,15 +121,7 @@ export function BottomNavigationDock() {
     }
   };
 
-  // 4. Abrir Pantalla TV (Proyección en Smart TV / Proyector)
-  const handleOpenTv = () => {
-    const code = getSavedEventCode();
-    const url = code ? `/display/${code}` : "/display";
-    window.open(url, "vidjs_tv_display");
-    showToast(code ? `📺 Pantalla TV abierta (Evento ${code})` : "📺 Abriendo lanzador de Pantalla TV...");
-  };
-
-  // 5. Desplazar a Solicitudes / Cola
+  // 3. Desplazar a Solicitudes / Cola
   const handleScrollToQueue = () => {
     const el = document.getElementById("solicitudes-cola-section");
     if (el) {
@@ -156,6 +138,28 @@ export function BottomNavigationDock() {
     }
   };
 
+  // 4. Desplazar a Bandeja A
+  const handleScrollToDeckA = () => {
+    const el = document.getElementById("deck-a");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      triggerHighlight(el, "ring-purple-500", "shadow-[0_0_35px_rgba(168,85,247,0.7)]");
+    } else {
+      router.push("/dashboard/dj#deck-a");
+    }
+  };
+
+  // 5. Desplazar a Bandeja B
+  const handleScrollToDeckB = () => {
+    const el = document.getElementById("deck-b");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      triggerHighlight(el, "ring-cyan-500", "shadow-[0_0_35px_rgba(6,182,212,0.7)]");
+    } else {
+      router.push("/dashboard/dj#deck-b");
+    }
+  };
+
   // 6. Abrir Pantalla Modo Cliente (Portal de Invitados / Mesas)
   const handleOpenClientMode = () => {
     const code = getSavedEventCode();
@@ -168,7 +172,14 @@ export function BottomNavigationDock() {
     <>
       {/* Toast flotante de confirmación de acción rápida */}
       {activeToast && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-zinc-900/95 dark:bg-zinc-950/95 text-white border border-purple-500/40 shadow-2xl backdrop-blur-md text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div
+          id="bottom-navigation-dock-toast"
+          className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 shadow-2xl backdrop-blur-md border ${
+            isBlue
+              ? "bg-[#0f224a]/95 text-blue-50 border-blue-500/60 shadow-blue-950/80"
+              : "bg-zinc-950/95 text-white border-purple-500/40 shadow-black/80"
+          }`}
+        >
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
           <span>{activeToast}</span>
         </div>
@@ -177,18 +188,30 @@ export function BottomNavigationDock() {
       {/* Dock Estático en el pie del app */}
       <nav
         aria-label="Navegación rápida de cabina"
+        data-dock="navigation"
         className="fixed bottom-2 sm:bottom-3 left-1/2 -translate-x-1/2 z-40 max-w-2xl w-[calc(100%-1rem)] sm:w-auto transition-all duration-300"
       >
-        <div className="bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border border-slate-200 dark:border-zinc-800/80 shadow-[0_10px_35px_rgba(0,0,0,0.5)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.85)] rounded-2xl p-1.5 sm:p-2 flex items-center justify-between sm:justify-center gap-1 sm:gap-1.5">
+        <div
+          id="bottom-navigation-dock"
+          className={`backdrop-blur-xl border rounded-2xl p-1.5 sm:p-2 flex items-center justify-between sm:justify-center gap-1 sm:gap-1.5 transition-colors duration-200 ${
+            isBlue
+              ? "bg-[#0b1c3d]/95 border-[#1e428a] text-blue-100 shadow-[0_12px_40px_rgba(4,10,24,0.95)]"
+              : "bg-zinc-950/95 border-zinc-800/80 text-zinc-200 shadow-[0_12px_40px_rgba(0,0,0,0.85)]"
+          }`}
+        >
           {/* Si está colapsado: muestra solo una barra ultra delgada con botón para expandir */}
           {isCollapsed ? (
             <button
               type="button"
               onClick={toggleCollapsed}
-              className="px-3 py-1.5 rounded-xl bg-purple-600/10 hover:bg-purple-600/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer select-none"
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer select-none border ${
+                isBlue
+                  ? "bg-blue-600/20 hover:bg-blue-600/30 text-blue-200 border-blue-500/40"
+                  : "bg-purple-600/10 hover:bg-purple-600/20 text-purple-300 border-purple-500/30"
+              }`}
               title="Expandir barra de acceso rápido"
             >
-              <Layers className="w-3.5 h-3.5 text-purple-500" />
+              <Layers className="w-3.5 h-3.5 text-purple-400" />
               <span>Navegación Rápida</span>
               <ChevronUp className="w-3.5 h-3.5" />
             </button>
@@ -198,17 +221,25 @@ export function BottomNavigationDock() {
               <button
                 type="button"
                 onClick={handleOpenTv}
-                className="flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl hover:bg-emerald-500/10 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-300 border border-transparent hover:border-emerald-500/30 transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px]"
+                className={`flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl border border-transparent transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px] ${
+                  isBlue
+                    ? "hover:bg-blue-600/20 hover:border-blue-500/40 text-blue-100 hover:text-white"
+                    : "hover:bg-emerald-500/10 hover:border-emerald-500/30 text-zinc-300 hover:text-white"
+                }`}
                 title="Abrir Pantalla TV en ventana de proyección para Smart TV o proyector"
               >
                 <div className="relative">
-                  <Tv className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-emerald-500 group-hover:scale-110 transition-transform" />
-                  <ExternalLink className="w-2.5 h-2.5 text-emerald-400 absolute -top-1 -right-2" />
+                  <Tv className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                  <ExternalLink className="w-2.5 h-2.5 text-emerald-300 absolute -top-1 -right-2" />
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full">
+                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full text-zinc-100 group-hover:text-white">
                   Pantalla TV
                 </span>
-                <span className="text-[7px] sm:text-[8px] font-mono text-emerald-600 dark:text-emerald-400 font-bold uppercase leading-none hidden sm:inline mt-0.5">
+                <span
+                  className={`text-[7px] sm:text-[8px] font-mono font-bold uppercase leading-none hidden sm:inline mt-0.5 ${
+                    isBlue ? "text-blue-300" : "text-emerald-400"
+                  }`}
+                >
                   Proyección
                 </span>
               </button>
@@ -217,14 +248,22 @@ export function BottomNavigationDock() {
               <button
                 type="button"
                 onClick={handleOpenLibrary}
-                className="flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl hover:bg-amber-500/10 dark:hover:bg-amber-950/40 text-slate-700 dark:text-zinc-300 hover:text-amber-600 dark:hover:text-amber-300 border border-transparent hover:border-amber-500/30 transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px]"
+                className={`flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl border border-transparent transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px] ${
+                  isBlue
+                    ? "hover:bg-blue-600/20 hover:border-blue-500/40 text-blue-100 hover:text-white"
+                    : "hover:bg-amber-500/10 hover:border-amber-500/30 text-zinc-300 hover:text-white"
+                }`}
                 title="Abrir o desplazar a la Biblioteca Musical"
               >
-                <ListMusic className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-500 group-hover:scale-110 transition-transform" />
-                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full">
+                <ListMusic className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full text-zinc-100 group-hover:text-white">
                   Biblioteca
                 </span>
-                <span className="text-[7px] sm:text-[8px] font-mono text-amber-600 dark:text-amber-400 font-bold uppercase leading-none hidden sm:inline mt-0.5">
+                <span
+                  className={`text-[7px] sm:text-[8px] font-mono font-bold uppercase leading-none hidden sm:inline mt-0.5 ${
+                    isBlue ? "text-blue-300" : "text-amber-400"
+                  }`}
+                >
                   Pistas
                 </span>
               </button>
@@ -233,38 +272,58 @@ export function BottomNavigationDock() {
               <button
                 type="button"
                 onClick={handleScrollToQueue}
-                className="flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl hover:bg-rose-500/10 dark:hover:bg-rose-950/40 text-slate-700 dark:text-zinc-300 hover:text-rose-600 dark:hover:text-rose-300 border border-transparent hover:border-rose-500/30 transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px]"
+                className={`flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl border border-transparent transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px] ${
+                  isBlue
+                    ? "hover:bg-blue-600/20 hover:border-blue-500/40 text-blue-100 hover:text-white"
+                    : "hover:bg-rose-500/10 hover:border-rose-500/30 text-zinc-300 hover:text-white"
+                }`}
                 title="Desplazar a Solicitudes de Mesas y Cola de Reproducción"
               >
-                <Flame className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-rose-500 group-hover:scale-110 transition-transform" />
-                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full">
+                <Flame className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-rose-400 group-hover:scale-110 transition-transform" />
+                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full text-zinc-100 group-hover:text-white">
                   Solicitudes/Cola
                 </span>
-                <span className="text-[7px] sm:text-[8px] font-mono text-rose-600 dark:text-rose-400 font-bold uppercase leading-none hidden sm:inline mt-0.5">
+                <span
+                  className={`text-[7px] sm:text-[8px] font-mono font-bold uppercase leading-none hidden sm:inline mt-0.5 ${
+                    isBlue ? "text-blue-300" : "text-rose-400"
+                  }`}
+                >
                   En Vivo
                 </span>
               </button>
 
               {/* Separador sutil */}
-              <div className="w-[1px] h-6 bg-slate-200 dark:bg-zinc-800 shrink-0 hidden sm:block" />
+              <div
+                className={`w-[1px] h-6 shrink-0 hidden sm:block ${
+                  isBlue ? "bg-[#1e428a]" : "bg-zinc-800"
+                }`}
+              />
 
               {/* 4. BANDEJA A */}
               <button
                 type="button"
                 onClick={handleScrollToDeckA}
-                className="flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl hover:bg-purple-500/10 dark:hover:bg-purple-950/40 text-slate-700 dark:text-zinc-300 hover:text-purple-600 dark:hover:text-purple-300 border border-transparent hover:border-purple-500/30 transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px]"
+                className={`flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl border border-transparent transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px] ${
+                  isBlue
+                    ? "hover:bg-blue-600/20 hover:border-blue-500/40 text-blue-100 hover:text-white"
+                    : "hover:bg-purple-500/10 hover:border-purple-500/30 text-zinc-300 hover:text-white"
+                }`}
                 title="Desplazar a Bandeja A (Canal 1)"
               >
                 <div className="relative">
-                  <Disc3 className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-purple-500 group-hover:scale-110 transition-transform" />
+                  <Disc3 className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-purple-400 group-hover:scale-110 transition-transform" />
                   <span className="absolute -top-1 -right-1.5 px-1 py-0.2 rounded-full bg-purple-600 text-white text-[7px] font-black leading-none">
                     A
                   </span>
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full">
+                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full text-zinc-100 group-hover:text-white">
                   Bandeja A
                 </span>
-                <span className="text-[7px] sm:text-[8px] font-mono text-purple-600 dark:text-purple-400 font-bold uppercase leading-none hidden sm:inline mt-0.5">
+                <span
+                  className={`text-[7px] sm:text-[8px] font-mono font-bold uppercase leading-none hidden sm:inline mt-0.5 ${
+                    isBlue ? "text-blue-300" : "text-purple-400"
+                  }`}
+                >
                   Canal 1
                 </span>
               </button>
@@ -273,41 +332,61 @@ export function BottomNavigationDock() {
               <button
                 type="button"
                 onClick={handleScrollToDeckB}
-                className="flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl hover:bg-cyan-500/10 dark:hover:bg-cyan-950/40 text-slate-700 dark:text-zinc-300 hover:text-cyan-600 dark:hover:text-cyan-300 border border-transparent hover:border-cyan-500/30 transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px]"
+                className={`flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl border border-transparent transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px] ${
+                  isBlue
+                    ? "hover:bg-blue-600/20 hover:border-blue-500/40 text-blue-100 hover:text-white"
+                    : "hover:bg-cyan-500/10 hover:border-cyan-500/30 text-zinc-300 hover:text-white"
+                }`}
                 title="Desplazar a Bandeja B (Canal 2)"
               >
                 <div className="relative">
-                  <Disc3 className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-cyan-500 group-hover:scale-110 transition-transform" />
+                  <Disc3 className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-cyan-400 group-hover:scale-110 transition-transform" />
                   <span className="absolute -top-1 -right-1.5 px-1 py-0.2 rounded-full bg-cyan-600 text-white text-[7px] font-black leading-none">
                     B
                   </span>
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full">
+                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full text-zinc-100 group-hover:text-white">
                   Bandeja B
                 </span>
-                <span className="text-[7px] sm:text-[8px] font-mono text-cyan-600 dark:text-cyan-400 font-bold uppercase leading-none hidden sm:inline mt-0.5">
+                <span
+                  className={`text-[7px] sm:text-[8px] font-mono font-bold uppercase leading-none hidden sm:inline mt-0.5 ${
+                    isBlue ? "text-blue-300" : "text-cyan-400"
+                  }`}
+                >
                   Canal 2
                 </span>
               </button>
 
               {/* Separador sutil */}
-              <div className="w-[1px] h-6 bg-slate-200 dark:bg-zinc-800 shrink-0 hidden sm:block" />
+              <div
+                className={`w-[1px] h-6 shrink-0 hidden sm:block ${
+                  isBlue ? "bg-[#1e428a]" : "bg-zinc-800"
+                }`}
+              />
 
               {/* 6. PANTALLA MODO CLIENTE */}
               <button
                 type="button"
                 onClick={handleOpenClientMode}
-                className="flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl hover:bg-blue-500/10 dark:hover:bg-blue-950/40 text-slate-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-300 border border-transparent hover:border-blue-500/30 transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px]"
+                className={`flex-1 sm:flex-none flex flex-col items-center justify-center py-1 px-1.5 sm:px-3 rounded-xl border border-transparent transition-all cursor-pointer select-none group min-w-[50px] sm:min-w-[74px] ${
+                  isBlue
+                    ? "hover:bg-blue-600/20 hover:border-blue-500/40 text-blue-100 hover:text-white"
+                    : "hover:bg-blue-500/10 hover:border-blue-500/30 text-zinc-300 hover:text-white"
+                }`}
                 title="Abrir Portal Modo Cliente (Vista de mesas & pedidos por QR)"
               >
                 <div className="relative">
-                  <Smartphone className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-blue-500 group-hover:scale-110 transition-transform" />
-                  <ExternalLink className="w-2.5 h-2.5 text-blue-400 absolute -top-1 -right-2" />
+                  <Smartphone className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-blue-400 group-hover:scale-110 transition-transform" />
+                  <ExternalLink className="w-2.5 h-2.5 text-blue-300 absolute -top-1 -right-2" />
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full">
+                <span className="text-[9px] sm:text-[10px] font-black tracking-tight mt-1 leading-none truncate max-w-full text-zinc-100 group-hover:text-white">
                   Modo Cliente
                 </span>
-                <span className="text-[7px] sm:text-[8px] font-mono text-blue-600 dark:text-blue-400 font-bold uppercase leading-none hidden sm:inline mt-0.5">
+                <span
+                  className={`text-[7px] sm:text-[8px] font-mono font-bold uppercase leading-none hidden sm:inline mt-0.5 ${
+                    isBlue ? "text-blue-300" : "text-blue-400"
+                  }`}
+                >
                   Mesas QR
                 </span>
               </button>
@@ -316,7 +395,11 @@ export function BottomNavigationDock() {
               <button
                 type="button"
                 onClick={toggleCollapsed}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer shrink-0 ml-0.5"
+                className={`p-1 rounded-lg transition-colors cursor-pointer shrink-0 ml-0.5 ${
+                  isBlue
+                    ? "text-blue-300 hover:text-white hover:bg-blue-900/40"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                }`}
                 title="Minimizar barra inferior"
               >
                 <ChevronDown className="w-3.5 h-3.5" />

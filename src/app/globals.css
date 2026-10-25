@@ -281,3 +281,31 @@ html.blue:not(:has([data-display="tv"])) textarea:focus {
   border-color: #3b82f6 !important;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
 }
+
+/* ========================================================================= */
+/* DOCK DE NAVEGACIÓN EN EL PIE DEL APP EN MODO AZUL FRANCIA                 */
+/* ========================================================================= */
+html.blue:not(:has([data-display="tv"])) #bottom-navigation-dock,
+html.blue:not(:has([data-display="tv"])) [data-dock="navigation"] > div {
+  background-color: rgba(11, 28, 61, 0.95) !important;
+  border-color: #1e428a !important;
+  box-shadow: 0 12px 40px rgba(4, 10, 24, 0.95), 0 0 25px -5px rgba(37, 99, 235, 0.35) !important;
+}
+
+html.blue:not(:has([data-display="tv"])) #bottom-navigation-dock button,
+html.blue:not(:has([data-display="tv"])) [data-dock="navigation"] button {
+  color: #e0e7ff !important;
+}
+
+html.blue:not(:has([data-display="tv"])) #bottom-navigation-dock button:hover,
+html.blue:not(:has([data-display="tv"])) [data-dock="navigation"] button:hover {
+  background-color: rgba(24, 55, 119, 0.5) !important;
+  border-color: #2563eb !important;
+}
+
+html.blue:not(:has([data-display="tv"])) #bottom-navigation-dock-toast {
+  background-color: #0f224a !important;
+  border-color: #2563eb !important;
+  color: #f0f6ff !important;
+  box-shadow: 0 10px 30px rgba(4, 10, 24, 0.9) !important;
+}
