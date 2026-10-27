@@ -41,6 +41,8 @@ import {
   BookmarkPlus,
   BookmarkCheck,
   Loader2,
+  Video,
+  FileVideo,
 } from "lucide-react";
 import { calculateCrossfaderGains, djSoundEffects, webDjEngine, AudioLevels } from "@/lib/audio/dj-audio-engine";
 import { MusicLibraryView, Song as LibSong } from "@/components/library/MusicLibraryView";
@@ -87,6 +89,8 @@ export interface PlaybackSyncDetails {
   trackTitle?: string;
   trackArtist?: string;
   videoId?: string | null;
+  fileUrl?: string | null;
+  isVideo?: boolean;
 }
 
 interface VirtualDjConsoleProps {
@@ -118,6 +122,10 @@ interface DeckPlayerProps {
   deckMode: "youtube" | "native";
   localFileName?: string | null;
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
+  mediaRef?: React.RefObject<HTMLVideoElement | null>;
+  isVideo?: boolean;
+  onTimeUpdate?: () => void;
+  onEnded?: () => void;
 }
 
 interface StableIframeProps {
@@ -207,14 +215,18 @@ const DeckPlayer = memo(
     deckMode,
     localFileName,
     iframeRef,
+    mediaRef,
+    isVideo = false,
+    onTimeUpdate,
+    onEnded,
   }: DeckPlayerProps) {
     const isA = deckId === "A";
     const borderColor = isA ? "border-purple-500/40" : "border-cyan-500/40";
     const textColor = isA ? "text-purple-300" : "text-cyan-300";
     const spinnerColor = isA ? "text-purple-400" : "text-cyan-400";
     const emptyText = isA
-      ? "Bandeja A vacía — Carga desde cola, YouTube o arrastra MP3"
-      : "Bandeja B vacía — Carga desde cola, YouTube o arrastra MP3";
+      ? "Bandeja A vacía — Carga desde cola, YouTube o arrastra MP4 / MP3"
+      : "Bandeja B vacía — Carga desde cola, YouTube o arrastra MP4 / MP3";
     const chLabel = isA ? "CH 1" : "CH 2";
     const hasActiveTrack = (deckMode === "native" || Boolean(videoId)) && !isEjected;
 
@@ -222,59 +234,81 @@ const DeckPlayer = memo(
       <div
         className={`relative aspect-video max-h-36 w-full rounded-xl overflow-hidden border ${borderColor} bg-black shadow-inner`}
       >
-        {deckMode === "native" && hasActiveTrack ? (
-          /* Visualizador de Alta Fidelidad Nativo Web Audio API */
-          <div className="w-full h-full flex flex-col items-center justify-center p-3 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black relative overflow-hidden select-none">
-            {/* Anillos giratorios de vinilo digital */}
-            <div className="absolute inset-0 opacity-20 flex items-center justify-center pointer-events-none">
-              <div
-                className={`w-40 h-40 rounded-full border border-dashed ${borderColor} ${
-                  isPlaying ? "animate-spin [animation-duration:8s]" : ""
-                }`}
-              />
-              <div
-                className={`absolute w-24 h-24 rounded-full border ${borderColor} ${
-                  isPlaying ? "animate-pulse" : ""
-                }`}
-              />
-            </div>
+        {/* Elemento de Video / Audio Nativo Web Media & Web Audio API (Siempre montado para preservar grafo) */}
+        {mediaRef && (
+          <video
+            ref={mediaRef}
+            playsInline
+            crossOrigin="anonymous"
+            onTimeUpdate={onTimeUpdate}
+            onEnded={onEnded}
+            className={`w-full h-full object-contain bg-black ${
+              deckMode === "native" && hasActiveTrack && isVideo ? "block" : "hidden"
+            }`}
+          />
+        )}
 
-            <div className="relative z-10 flex flex-col items-center gap-1.5 text-center px-4 w-full">
-              <div className="flex items-center gap-1.5">
-                <span
-                  className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1 ${
-                    isA
-                      ? "bg-purple-950 text-purple-300 border border-purple-800"
-                      : "bg-cyan-950 text-cyan-300 border border-cyan-800"
+        {deckMode === "native" && hasActiveTrack ? (
+          isVideo ? (
+            /* Badge de Video MP4 para VJ */
+            <div className="absolute bottom-1.5 left-2 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-xs text-[9px] font-bold text-amber-300 border border-amber-500/40 flex items-center gap-1 z-10 pointer-events-none">
+              <Video className="w-2.5 h-2.5 text-amber-400" />
+              <span>MP4 VIDEO VJ</span>
+            </div>
+          ) : (
+            /* Visualizador de Alta Fidelidad Nativo Web Audio API */
+            <div className="w-full h-full flex flex-col items-center justify-center p-3 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black relative overflow-hidden select-none">
+              {/* Anillos giratorios de vinilo digital */}
+              <div className="absolute inset-0 opacity-20 flex items-center justify-center pointer-events-none">
+                <div
+                  className={`w-40 h-40 rounded-full border border-dashed ${borderColor} ${
+                    isPlaying ? "animate-spin [animation-duration:8s]" : ""
                   }`}
-                >
-                  <Zap className="w-2.5 h-2.5" />
-                  WEB AUDIO API 44.1kHz
-                </span>
-                <span className="px-1.5 py-0.5 rounded bg-zinc-800/80 text-emerald-400 text-[9px] font-mono font-bold border border-zinc-700">
-                  0 LATENCIA
-                </span>
+                />
+                <div
+                  className={`absolute w-24 h-24 rounded-full border ${borderColor} ${
+                    isPlaying ? "animate-pulse" : ""
+                  }`}
+                />
               </div>
-              <p className="text-xs font-bold text-white truncate max-w-[220px]">
-                {localFileName || "Pista Local (Web Audio)"}
-              </p>
-              {/* Espectro de barras animado */}
-              <div className="flex items-end justify-center gap-1 h-4 mt-0.5">
-                {Array.from({ length: 16 }).map((_, i) => {
-                  const barH = isPlaying ? Math.max(3, (Math.sin(i * 0.5 + 1) + 1) * 6 + 3) : 2;
-                  return (
-                    <div
-                      key={i}
-                      style={{ height: `${barH}px` }}
-                      className={`w-1 rounded-full ${
-                        isA ? "bg-purple-400" : "bg-cyan-400"
-                      } transition-all duration-75`}
-                    />
-                  );
-                })}
+
+              <div className="relative z-10 flex flex-col items-center gap-1.5 text-center px-4 w-full">
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                      isA
+                        ? "bg-purple-950 text-purple-300 border border-purple-800"
+                        : "bg-cyan-950 text-cyan-300 border border-cyan-800"
+                    }`}
+                  >
+                    <Zap className="w-2.5 h-2.5" />
+                    WEB AUDIO API 44.1kHz
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded bg-zinc-800/80 text-emerald-400 text-[9px] font-mono font-bold border border-zinc-700">
+                    0 LATENCIA
+                  </span>
+                </div>
+                <p className="text-xs font-bold text-white truncate max-w-[220px]">
+                  {localFileName || "Pista Local (Web Audio)"}
+                </p>
+                {/* Espectro de barras animado */}
+                <div className="flex items-end justify-center gap-1 h-4 mt-0.5">
+                  {Array.from({ length: 16 }).map((_, i) => {
+                    const barH = isPlaying ? Math.max(3, (Math.sin(i * 0.5 + 1) + 1) * 6 + 3) : 2;
+                    return (
+                      <div
+                        key={i}
+                        style={{ height: `${barH}px` }}
+                        className={`w-1 rounded-full ${
+                          isA ? "bg-purple-400" : "bg-cyan-400"
+                        } transition-all duration-75`}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
+          )
         ) : (
           /* Iframe aislado de YouTube */
           <StableIframe deckId={deckId} videoId={videoId} isEjected={isEjected} iframeRef={iframeRef} />
@@ -424,8 +458,10 @@ export default function VirtualDjConsole({
   const [localAudioNameB, setLocalAudioNameB] = useState<string | null>(null);
   const [isDraggingA, setIsDraggingA] = useState(false);
   const [isDraggingB, setIsDraggingB] = useState(false);
-  const audioRefA = useRef<HTMLAudioElement | null>(null);
-  const audioRefB = useRef<HTMLAudioElement | null>(null);
+  const audioRefA = useRef<HTMLVideoElement | null>(null);
+  const audioRefB = useRef<HTMLVideoElement | null>(null);
+  const [isVideoA, setIsVideoA] = useState(false);
+  const [isVideoB, setIsVideoB] = useState(false);
   const fileInputRefA = useRef<HTMLInputElement | null>(null);
   const fileInputRefB = useRef<HTMLInputElement | null>(null);
 
@@ -1189,9 +1225,12 @@ export default function VirtualDjConsole({
     }
   }, [pitchB, isKeyLockB, deckModeB]);
 
-  // Controladores de carga de archivos locales MP3 / WAV
+  // Controladores de carga de archivos locales MP3 / WAV / MP4 Video
   const handleLoadLocalFileA = (file: File) => {
     if (!file) return;
+    const isVideo = file.type.startsWith("video/") || Boolean(file.name.match(/\.(mp4|webm|mov|m4v|mkv|avi)$/i));
+    setIsVideoA(isVideo);
+
     const url = URL.createObjectURL(file);
     setLocalAudioUrlA(url);
     const cleanName = file.name.replace(/\.[^/.]+$/, "");
@@ -1203,7 +1242,7 @@ export default function VirtualDjConsole({
       id: `local-a-${Date.now()}`,
       status: "PLAYING",
       customTitle: cleanName,
-      customArtist: "Pista Local (Web Audio)",
+      customArtist: isVideo ? "Video MP4 (Web Media)" : "Pista Local (Web Audio)",
       notes: null,
       createdAt: new Date().toISOString(),
       table: { id: "local", number: 0, label: "Cabina DJ" },
@@ -1212,10 +1251,10 @@ export default function VirtualDjConsole({
         id: `local-song-${Date.now()}`,
         title: cleanName,
         durationSeconds: 240,
-        genre: "DJ Mix",
+        genre: isVideo ? "Video Musical / VJ" : "DJ Mix",
         bpm: 126,
         key: "8A / Am",
-        artist: { name: "Pista Local (Web Audio)" },
+        artist: { name: isVideo ? "Video MP4 (Web Media)" : "Pista Local (Web Audio)" },
       },
     };
 
@@ -1234,11 +1273,14 @@ export default function VirtualDjConsole({
       audioRefA.current.play().catch(() => {});
     }
 
-    showFeedback("success", `📁 Pista local cargada en Deck A: "${cleanName}"`);
+    showFeedback("success", `📁 ${isVideo ? "Video MP4" : "Pista local"} cargada en Deck A: "${cleanName}"`);
   };
 
   const handleLoadLocalFileB = (file: File) => {
     if (!file) return;
+    const isVideo = file.type.startsWith("video/") || Boolean(file.name.match(/\.(mp4|webm|mov|m4v|mkv|avi)$/i));
+    setIsVideoB(isVideo);
+
     const url = URL.createObjectURL(file);
     setLocalAudioUrlB(url);
     const cleanName = file.name.replace(/\.[^/.]+$/, "");
@@ -1250,7 +1292,7 @@ export default function VirtualDjConsole({
       id: `local-b-${Date.now()}`,
       status: "PLAYING",
       customTitle: cleanName,
-      customArtist: "Pista Local (Web Audio)",
+      customArtist: isVideo ? "Video MP4 (Web Media)" : "Pista Local (Web Audio)",
       notes: null,
       createdAt: new Date().toISOString(),
       table: { id: "local", number: 0, label: "Cabina DJ" },
@@ -1259,10 +1301,10 @@ export default function VirtualDjConsole({
         id: `local-song-b-${Date.now()}`,
         title: cleanName,
         durationSeconds: 240,
-        genre: "DJ Mix",
+        genre: isVideo ? "Video Musical / VJ" : "DJ Mix",
         bpm: 128,
         key: "9A / Em",
-        artist: { name: "Pista Local (Web Audio)" },
+        artist: { name: isVideo ? "Video MP4 (Web Media)" : "Pista Local (Web Audio)" },
       },
     };
 
@@ -1281,7 +1323,7 @@ export default function VirtualDjConsole({
       audioRefB.current.play().catch(() => {});
     }
 
-    showFeedback("success", `📁 Pista local cargada en Deck B: "${cleanName}"`);
+    showFeedback("success", `📁 ${isVideo ? "Video MP4" : "Pista local"} cargada en Deck B: "${cleanName}"`);
   };
 
   // Helper para generar metadata enriquecida de sincronización con la pantalla de TV
@@ -1296,6 +1338,8 @@ export default function VirtualDjConsole({
           trackTitle: title,
           trackArtist: artist,
           videoId: videoIdA,
+          fileUrl: (trackA?.song as any)?.fileUrl || localAudioUrlA || null,
+          isVideo: isVideoA,
         };
       } else {
         const title = trackB?.song?.title || trackB?.customTitle || localAudioNameB || "Pista Deck B";
@@ -1306,6 +1350,8 @@ export default function VirtualDjConsole({
           trackTitle: title,
           trackArtist: artist,
           videoId: videoIdB,
+          fileUrl: (trackB?.song as any)?.fileUrl || localAudioUrlB || null,
+          isVideo: isVideoB,
         };
       }
     },
@@ -1314,12 +1360,16 @@ export default function VirtualDjConsole({
       trackB,
       localAudioNameA,
       localAudioNameB,
+      localAudioUrlA,
+      localAudioUrlB,
       playbackSecondsA,
       playbackSecondsB,
       trackADuration,
       trackBDuration,
       videoIdA,
       videoIdB,
+      isVideoA,
+      isVideoB,
     ]
   );
 
@@ -1922,6 +1972,7 @@ export default function VirtualDjConsole({
     setPlaybackSecondsA(0);
     setActiveLoopA(null);
     setIsLoadingVideoA(false);
+    setIsVideoA(false);
   };
 
   // Limpiar / Expulsar pista de DECK B (Aislamiento Total: Deck A NUNCA es afectada)
@@ -1952,6 +2003,7 @@ export default function VirtualDjConsole({
     setPlaybackSecondsB(0);
     setActiveLoopB(null);
     setIsLoadingVideoB(false);
+    setIsVideoB(false);
     setIsSyncedB(false);
   };
 
@@ -2983,6 +3035,8 @@ export default function VirtualDjConsole({
     };
 
     if (song.fileUrl) {
+      const isVideo = Boolean(song.fileUrl.match(/\.(mp4|webm|mov|m4v|mkv)/i));
+      setIsVideoA(isVideo);
       setDeckModeA("native");
       setLocalAudioUrlA(song.fileUrl);
       setLocalAudioNameA(song.title);
@@ -2998,6 +3052,7 @@ export default function VirtualDjConsole({
         }
       }
     } else {
+      setIsVideoA(false);
       loadTrackIntoDeckA(syntheticTrack);
     }
 
@@ -3028,6 +3083,8 @@ export default function VirtualDjConsole({
     };
 
     if (song.fileUrl) {
+      const isVideo = Boolean(song.fileUrl.match(/\.(mp4|webm|mov|m4v|mkv)/i));
+      setIsVideoB(isVideo);
       setDeckModeB("native");
       setLocalAudioUrlB(song.fileUrl);
       setLocalAudioNameB(song.title);
@@ -3043,6 +3100,7 @@ export default function VirtualDjConsole({
         }
       }
     } else {
+      setIsVideoB(false);
       loadTrackIntoDeckB(syntheticTrack);
     }
 
@@ -3527,7 +3585,7 @@ export default function VirtualDjConsole({
                       </div>
                     </button>
 
-                    {/* Botón para subir archivo MP3/WAV local (Web Audio API) */}
+                    {/* Botón para subir archivo MP3/WAV/MP4 local */}
                     <button
                       type="button"
                       onClick={() => {
@@ -3538,8 +3596,8 @@ export default function VirtualDjConsole({
                     >
                       <Upload className="w-4 h-4 text-purple-400 shrink-0" />
                       <div className="flex flex-col">
-                        <span>📁 Subir MP3 / Archivo local</span>
-                        <span className="text-[10px] text-purple-400 font-normal">Motor Web Audio API &bull; 0 Latencia &bull; Offline</span>
+                        <span>📁 Subir MP4 Video / MP3 Local</span>
+                        <span className="text-[10px] text-purple-400 font-normal">Soporta Video MP4 y Audio MP3/WAV &bull; 0 Latencia</span>
                       </div>
                     </button>
 
@@ -3725,6 +3783,16 @@ export default function VirtualDjConsole({
             deckMode={deckModeA}
             localFileName={localAudioNameA}
             iframeRef={iframeRefA}
+            mediaRef={audioRefA}
+            isVideo={isVideoA}
+            onTimeUpdate={() => {
+              if (audioRefA.current && deckModeA === "native") {
+                setPlaybackSecondsA(Math.floor(audioRefA.current.currentTime));
+              }
+            }}
+            onEnded={() => {
+              handleDeckAEndedRef.current?.();
+            }}
           />
 
           {/* Platter / Jogwheel Deck A & Pitch Fader */}
@@ -4614,7 +4682,7 @@ export default function VirtualDjConsole({
                       </div>
                     </button>
 
-                    {/* Botón para subir archivo MP3/WAV local (Web Audio API) */}
+                    {/* Botón para subir archivo MP3/WAV/MP4 local */}
                     <button
                       type="button"
                       onClick={() => {
@@ -4625,8 +4693,8 @@ export default function VirtualDjConsole({
                     >
                       <Upload className="w-4 h-4 text-cyan-400 shrink-0" />
                       <div className="flex flex-col">
-                        <span>📁 Subir MP3 / Archivo local</span>
-                        <span className="text-[10px] text-cyan-400 font-normal">Motor Web Audio API &bull; 0 Latencia &bull; Offline</span>
+                        <span>📁 Subir MP4 Video / MP3 Local</span>
+                        <span className="text-[10px] text-cyan-400 font-normal">Soporta Video MP4 y Audio MP3/WAV &bull; 0 Latencia</span>
                       </div>
                     </button>
 
@@ -4813,6 +4881,16 @@ export default function VirtualDjConsole({
             deckMode={deckModeB}
             localFileName={localAudioNameB}
             iframeRef={iframeRefB}
+            mediaRef={audioRefB}
+            isVideo={isVideoB}
+            onTimeUpdate={() => {
+              if (audioRefB.current && deckModeB === "native") {
+                setPlaybackSecondsB(Math.floor(audioRefB.current.currentTime));
+              }
+            }}
+            onEnded={() => {
+              handleDeckBEndedRef.current?.();
+            }}
           />
 
           {/* Platter / Jogwheel Deck B & Pitch Fader */}
@@ -5251,34 +5329,6 @@ export default function VirtualDjConsole({
         </section>
       )}
 
-      {/* Elementos de Audio Nativo Web Audio API (conectados al grafo de 44.1kHz) */}
-      <audio
-        ref={audioRefA}
-        crossOrigin="anonymous"
-        onTimeUpdate={() => {
-          if (audioRefA.current && deckModeA === "native") {
-            setPlaybackSecondsA(Math.floor(audioRefA.current.currentTime));
-          }
-        }}
-        onEnded={() => {
-          handleDeckAEndedRef.current?.();
-        }}
-        className="hidden"
-      />
-      <audio
-        ref={audioRefB}
-        crossOrigin="anonymous"
-        onTimeUpdate={() => {
-          if (audioRefB.current && deckModeB === "native") {
-            setPlaybackSecondsB(Math.floor(audioRefB.current.currentTime));
-          }
-        }}
-        onEnded={() => {
-          handleDeckBEndedRef.current?.();
-        }}
-        className="hidden"
-      />
-
       {/* Ancla de Audio Silencioso de Fondo (Garantiza que iOS y Android no suspendan la pestaña al salir a WhatsApp) */}
       <audio
         ref={silentAudioRef}
@@ -5288,11 +5338,11 @@ export default function VirtualDjConsole({
         className="hidden"
       />
 
-      {/* Selectores de archivo ocultos para carga de MP3 / WAV local */}
+      {/* Selectores de archivo ocultos para carga de MP4 / MP3 / WAV local */}
       <input
         type="file"
         ref={fileInputRefA}
-        accept="audio/*"
+        accept="audio/*,video/mp4,video/*,.mp4,.webm,.m4v,.mov,.mp3,.wav,.ogg"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -5303,7 +5353,7 @@ export default function VirtualDjConsole({
       <input
         type="file"
         ref={fileInputRefB}
-        accept="audio/*"
+        accept="audio/*,video/mp4,video/*,.mp4,.webm,.m4v,.mov,.mp3,.wav,.ogg"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

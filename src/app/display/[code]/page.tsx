@@ -20,6 +20,7 @@ import {
   QrCode,
   Wifi,
   Tv,
+  Video,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -188,10 +189,12 @@ export default function PublicDisplayScreenPage({
   // 🎤 Llamado a Cantante al Escenario (Karaoke Stage Call)
   const [singerCall, setSingerCall] = useState<SingerCallState | null>(null);
 
-  // 📺 Video de Karaoke (YouTube IFrame Embed sincronizado con cabina DJ)
+  // 📺 Video de Karaoke o Video MP4 Directo (sincronizado con cabina DJ)
   const [karaokeVideoId, setKaraokeVideoId] = useState<string | null>(null);
+  const [mediaFileUrl, setMediaFileUrl] = useState<string | null>(null);
   const [isKaraokeVideoEnabled, setIsKaraokeVideoEnabled] = useState<boolean>(true);
   const karaokeIframeRef = useRef<HTMLIFrameElement>(null);
+  const directVideoRef = useRef<HTMLVideoElement | null>(null);
   const [isTvPaused, setIsTvPaused] = useState<boolean>(false);
   const [forceKaraokeMode, setForceKaraokeMode] = useState<boolean>(false);
   const [mobileTab, setMobileTab] = useState<"player" | "queue" | "qr">("player");
@@ -206,12 +209,23 @@ export default function PublicDisplayScreenPage({
     }
   }, []);
 
-  // Control remoto de YouTube IFrame (Play, Pause, Unmute, Seek) y estado TV
+  // Control remoto de Video (YouTube IFrame o Video MP4 local) y estado TV
   const sendYouTubeCommand = (func: string, args: any[] = []) => {
     if (func === "playVideo") {
       setIsTvPaused(false);
     } else if (func === "pauseVideo") {
       setIsTvPaused(true);
+    }
+
+    // Si hay un video MP4 directo montado en la pantalla
+    if (directVideoRef.current) {
+      if (func === "playVideo") {
+        directVideoRef.current.play().catch(() => {});
+      } else if (func === "pauseVideo") {
+        directVideoRef.current.pause();
+      } else if (func === "seekTo" && typeof args[0] === "number") {
+        directVideoRef.current.currentTime = args[0];
+      }
     }
 
     if (!karaokeIframeRef.current?.contentWindow) return;
@@ -257,14 +271,17 @@ export default function PublicDisplayScreenPage({
       trackTitle?: string;
       trackArtist?: string;
       videoId?: string | null;
+      fileUrl?: string | null;
+      isVideo?: boolean;
     }) => {
       if (!payload?.action) return;
-      const { action, seconds, duration, trackTitle, trackArtist, videoId } = payload;
+      const { action, seconds, duration, trackTitle, trackArtist, videoId, fileUrl, isVideo } = payload;
 
       if (action === "RESET") {
         setIsTvPaused(false);
         sendYouTubeCommand("pauseVideo");
         setKaraokeVideoId(null);
+        setMediaFileUrl(null);
         setElapsedSeconds(0);
         setData((prev) => (prev ? { ...prev, currentPlaying: null } : null));
         if (typeof window !== "undefined") {
@@ -277,6 +294,11 @@ export default function PublicDisplayScreenPage({
 
       if (action === "PLAY") {
         setIsTvPaused(false);
+        if (fileUrl) {
+          setMediaFileUrl(fileUrl);
+        } else if (fileUrl === null) {
+          setMediaFileUrl(null);
+        }
         sendYouTubeCommand("playVideo");
         setMobileTab("player");
 
@@ -388,6 +410,7 @@ export default function PublicDisplayScreenPage({
       setIsTvPaused(false);
       sendYouTubeCommand("pauseVideo");
       setKaraokeVideoId(null);
+      setMediaFileUrl(null);
       setElapsedSeconds(0);
       setData((prev) => (prev ? { ...prev, currentPlaying: null } : null));
 
@@ -579,6 +602,9 @@ export default function PublicDisplayScreenPage({
         }
         if (payload?.isVideoEnabled !== undefined) {
           setIsKaraokeVideoEnabled(payload.isVideoEnabled);
+        }
+        if (payload?.fileUrl !== undefined) {
+          setMediaFileUrl(payload.fileUrl);
         }
       } else if (type === "KARAOKE_PLAYBACK_CONTROL") {
         handleIncomingPlaybackControl(payload);
@@ -784,11 +810,20 @@ export default function PublicDisplayScreenPage({
   };
 
   const isKaraoke = forceKaraokeMode || data?.policy?.zone === "KARAOKE";
+  const isDirectVideo = Boolean(
+    mediaFileUrl &&
+      (mediaFileUrl.endsWith(".mp4") ||
+        mediaFileUrl.endsWith(".webm") ||
+        mediaFileUrl.endsWith(".m4v") ||
+        mediaFileUrl.endsWith(".mov") ||
+        mediaFileUrl.includes("/uploads/media/") ||
+        mediaFileUrl.startsWith("blob:"))
+  );
 
   // Auto-resolución de video de YouTube para el tema al aire (Karaoke TV)
   useEffect(() => {
     const current = data?.currentPlaying;
-    if (!isKaraoke || !current) return;
+    if (!isKaraoke || !current || isDirectVideo) return;
     if (karaokeVideoId) return;
 
     let isMounted = true;
@@ -1264,20 +1299,29 @@ export default function PublicDisplayScreenPage({
               </div>
             </div>
           ) : track ? (
-            isKaraoke && isKaraokeVideoEnabled ? (
-              /* REPRODUCTOR DE VIDEO KARAOKE EN VIVO (YOUTUBE EMBED) */
+            ((isKaraoke || isDirectVideo) && isKaraokeVideoEnabled) ? (
+              /* REPRODUCTOR DE VIDEO KARAOKE O VIDEO MP4 EN VIVO */
               <div className="w-full h-full flex flex-col items-center justify-center space-y-2 z-20 animate-fadeIn">
-                {/* Barra Superior de Identificación del Cantante */}
+                {/* Barra Superior de Identificación del Cantante o VJ MP4 */}
                 <div className="w-full flex items-center justify-between px-1 text-xs shrink-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="px-3 py-1 rounded-full bg-cyan-950/90 text-cyan-300 border border-cyan-500/60 font-black tracking-wider flex items-center gap-1.5 shadow-[0_0_20px_rgba(6,182,212,0.35)] text-xs">
-                      <Mic className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                      <span className="truncate max-w-[200px] sm:max-w-none">
-                        EN ESCENARIO:{" "}
-                        {track.guestName
-                          ? `${track.guestName} (${track.table.label})`
-                          : track.table.label}
-                      </span>
+                      {isDirectVideo ? (
+                        <>
+                          <Video className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                          <span>VIDEO MP4 (CABINA DJ)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                          <span className="truncate max-w-[200px] sm:max-w-none">
+                            EN ESCENARIO:{" "}
+                            {track.guestName
+                              ? `${track.guestName} (${track.table.label})`
+                              : track.table.label}
+                          </span>
+                        </>
+                      )}
                     </span>
                     {track.isFastPass && (
                       <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-[10px] font-black">
@@ -1308,9 +1352,33 @@ export default function PublicDisplayScreenPage({
                   </div>
                 </div>
 
-                {/* Marco Widescreen 16:9 del Video de YouTube */}
+                {/* Marco Widescreen 16:9 del Video (MP4 Directo o YouTube) */}
                 <div className="w-full flex-1 min-h-0 relative aspect-video max-h-[64vh] rounded-3xl overflow-hidden border-2 sm:border-4 border-cyan-500/60 shadow-[0_0_50px_rgba(6,182,212,0.3)] bg-black">
-                  {karaokeVideoId ? (
+                  {isDirectVideo ? (
+                    <>
+                      <video
+                        ref={directVideoRef}
+                        key={mediaFileUrl}
+                        src={mediaFileUrl!}
+                        autoPlay
+                        playsInline
+                        controls={false}
+                        className="w-full h-full object-contain bg-black"
+                      />
+
+                      {/* HUD Flotante si la consola de DJ pausó el video */}
+                      {isTvPaused && (
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center pointer-events-none animate-fadeIn z-20">
+                          <div className="px-5 py-3 rounded-2xl bg-zinc-950/90 border-2 border-cyan-500/60 text-cyan-300 flex items-center gap-3 shadow-2xl shadow-cyan-950/80">
+                            <span className="w-3 h-3 rounded-full bg-cyan-400 animate-ping" />
+                            <span className="text-sm font-black tracking-widest uppercase">
+                              ⏸ PAUSADO DESDE CONSOLA
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : karaokeVideoId ? (
                     <>
                       <iframe
                         ref={karaokeIframeRef}
@@ -1363,7 +1431,7 @@ export default function PublicDisplayScreenPage({
                     <span className="text-cyan-300 font-bold truncate">{track.song.artist}</span>
                   </div>
                   <span className="text-[10px] font-mono text-zinc-500 shrink-0">
-                    🎤 Pista Sincronizada
+                    {isDirectVideo ? "🎬 Video MP4 Local" : "🎤 Pista Sincronizada"}
                   </span>
                 </div>
               </div>
@@ -1401,14 +1469,14 @@ export default function PublicDisplayScreenPage({
                     </div>
                   )}
 
-                  {isKaraoke && (
+                  {(isKaraoke || isDirectVideo) && (
                     <button
                       onClick={() => setIsKaraokeVideoEnabled(true)}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/90 text-cyan-300 border border-cyan-500/50 text-xs font-bold hover:bg-cyan-900 transition-colors cursor-pointer shadow-sm"
-                      title="Activar video de YouTube con letra en la TV"
+                      title="Activar video en la TV"
                     >
-                      <Mic className="w-3 h-3 text-cyan-400" />
-                      <span>📺 Ver Video Karaoke</span>
+                      <Video className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>📺 Ver Video {isDirectVideo ? "MP4" : "Karaoke"}</span>
                     </button>
                   )}
 

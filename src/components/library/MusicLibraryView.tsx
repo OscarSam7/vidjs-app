@@ -23,6 +23,9 @@ import {
   AlertTriangle,
   Volume2,
   Sparkles,
+  Upload,
+  Video,
+  Loader2,
 } from "lucide-react";
 
 export interface Artist {
@@ -115,12 +118,18 @@ export function MusicLibraryView({
   const [previewVolume, setPreviewVolume] = useState(0.7);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Modales
+  // Modales y Subida de Archivos Multimedia (MP4, MP3, etc.)
   const [isAddSongModalOpen, setIsAddSongModalOpen] = useState(false);
   const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
   const [songToDelete, setSongToDelete] = useState<Song | null>(null);
   const [deletingSongId, setDeletingSongId] = useState<string | null>(null);
   const [actionSuccessNotice, setActionSuccessNotice] = useState<string | null>(null);
+
+  // Subida de archivos MP4 / Audio
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const libraryFileInputRef = useRef<HTMLInputElement | null>(null);
+  const modalFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Formularios
   const [newSongForm, setNewSongForm] = useState({
@@ -395,6 +404,41 @@ export function MusicLibraryView({
     }
   };
 
+  // Subir archivo MP4 o de audio a la biblioteca
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+    setIsUploadingMedia(true);
+    setUploadedFileName(file.name);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/v1/library/upload", {
+        method: "POST",
+        body: fd,
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setNewSongForm((prev) => ({
+          ...prev,
+          title: prev.title || json.data.cleanTitle,
+          artistName: prev.artistName || json.data.artistName,
+          fileUrl: json.data.url,
+          genre: prev.genre || (json.data.isVideo ? "Video Musical / Set" : "DJ Mix"),
+          type: json.data.isVideo ? "BOTH" : prev.type,
+        }));
+        showNotice(`✅ ${json.data.isVideo ? "Video MP4" : "Archivo de audio"} subido: "${json.data.originalName}"`);
+        setIsAddSongModalOpen(true);
+      } else {
+        alert(json.error?.message || json.error || "Error al subir el archivo multimedia.");
+      }
+    } catch (err) {
+      console.error("Error subiendo archivo:", err);
+      alert("Error de red al subir el archivo multimedia.");
+    } finally {
+      setIsUploadingMedia(false);
+    }
+  };
+
   // Crear nueva Playlist
   const handleCreatePlaylistSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -515,6 +559,31 @@ export function MusicLibraryView({
 
             {/* Botones de Acción Superior */}
             <div className="flex flex-wrap items-center gap-3">
+              <input
+                type="file"
+                ref={libraryFileInputRef}
+                accept="audio/*,video/mp4,video/*,.mp4,.webm,.m4v,.mov,.mp3,.wav,.ogg"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(file);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => libraryFileInputRef.current?.click()}
+                disabled={isUploadingMedia}
+                className="px-4 py-2.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-700/60 text-emerald-200 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-lg hover:border-emerald-400"
+                title="Subir archivo MP4 de video o MP3 de audio directamente a la biblioteca"
+              >
+                {isUploadingMedia ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                ) : (
+                  <Upload className="w-4 h-4 text-emerald-400" />
+                )}
+                <span>Subir MP4 / Audio</span>
+              </button>
               <button
                 onClick={() => setIsCreatePlaylistModalOpen(true)}
                 className="px-4 py-2.5 rounded-xl bg-zinc-800/90 hover:bg-zinc-700/90 border border-zinc-700 text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-lg hover:border-purple-500/50"
@@ -1053,9 +1122,17 @@ export function MusicLibraryView({
                             {formatDuration(song.durationSeconds)}
                           </td>
 
-                          {/* Col 7: Tipo (DJ / Karaoke) */}
+                          {/* Col 7: Tipo (DJ / Karaoke / Video) */}
                           <td className="py-3 px-3.5 text-center">
                             <div className="inline-flex items-center gap-1">
+                              {song.fileUrl && (song.fileUrl.endsWith(".mp4") || song.fileUrl.endsWith(".webm") || song.fileUrl.includes("video") || song.fileUrl.includes("/uploads/media/")) && (
+                                <span
+                                  className="p-1 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                                  title="Video MP4 / Visual"
+                                >
+                                  <Video className="w-3 h-3" />
+                                </span>
+                              )}
                               {song.isDjTrack && (
                                 <span
                                   className="p-1 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30"
@@ -1159,6 +1236,19 @@ export function MusicLibraryView({
             </button>
           </div>
 
+          {/* Si es Video MP4, reproductor en vivo en la tarjeta de pre-escucha */}
+          {previewTrack.fileUrl && (previewTrack.fileUrl.endsWith(".mp4") || previewTrack.fileUrl.endsWith(".webm") || previewTrack.fileUrl.includes("video") || previewTrack.fileUrl.includes("/uploads/media/")) && (
+            <div className="w-full aspect-video rounded-xl bg-black overflow-hidden mb-3 border border-purple-500/40 shadow-inner flex items-center justify-center">
+              <video
+                src={previewTrack.fileUrl}
+                autoPlay
+                playsInline
+                controls
+                className="w-full h-full object-contain"
+              />
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center text-white shrink-0 shadow-md">
               <Music className="w-5 h-5" />
@@ -1255,6 +1345,43 @@ export function MusicLibraryView({
               </button>
             </div>
 
+            {/* ZONA DE SUBIDA RÁPIDA DE ARCHIVOS MP4 / AUDIO */}
+            <div className="p-4 rounded-2xl border-2 border-dashed border-purple-500/40 hover:border-purple-400 bg-purple-950/20 hover:bg-purple-950/30 transition-all text-center relative group">
+              <input
+                type="file"
+                ref={modalFileInputRef}
+                accept="audio/*,video/mp4,video/*,.mp4,.webm,.m4v,.mov,.mp3,.wav,.ogg"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(file);
+                  e.target.value = "";
+                }}
+              />
+              {isUploadingMedia ? (
+                <div className="flex flex-col items-center justify-center py-2 gap-2 text-purple-300">
+                  <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+                  <span className="text-xs font-bold">Subiendo archivo multimedia ({uploadedFileName})...</span>
+                  <span className="text-[10px] text-zinc-400 font-mono">Almacenando en servidor local...</span>
+                </div>
+              ) : (
+                <div
+                  onClick={() => modalFileInputRef.current?.click()}
+                  className="cursor-pointer flex flex-col items-center justify-center py-1 gap-1"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform">
+                    <Upload className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div className="text-xs font-bold text-white mt-1">
+                    Arrastra o haz clic para subir archivo <span className="text-amber-400 font-black">MP4 (Video)</span> o <span className="text-purple-400 font-black">MP3 (Audio)</span>
+                  </div>
+                  <p className="text-[10px] text-zinc-400">
+                    Auto-completa título, artista y URL. Formatos soportados: MP4, WebM, MOV, MP3, WAV (Hasta 200 MB)
+                  </p>
+                </div>
+              )}
+            </div>
+
             <form onSubmit={handleCreateSongSubmit} className="space-y-4">
               <div>
                 <label className="text-[11px] font-bold text-zinc-300 block mb-1">Título de la Canción *</label>
@@ -1329,10 +1456,17 @@ export function MusicLibraryView({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-zinc-300 block mb-1">Enlace / URL de Audio o Video (Opcional)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-bold text-zinc-300 block">Enlace / URL de Audio o Video (Opcional)</label>
+                  {newSongForm.fileUrl && (newSongForm.fileUrl.endsWith(".mp4") || newSongForm.fileUrl.endsWith(".webm") || newSongForm.fileUrl.includes("video") || newSongForm.fileUrl.includes("/uploads/media/")) && (
+                    <span className="text-[10px] font-bold text-amber-400 flex items-center gap-1">
+                      <Video className="w-3 h-3" /> Archivo MP4 / Video Vinculado
+                    </span>
+                  )}
+                </div>
                 <input
-                  type="url"
-                  placeholder="https://... (MP3, WAV o enlace directo)"
+                  type="text"
+                  placeholder="https://... o /uploads/media/... (MP3, WAV, MP4)"
                   value={newSongForm.fileUrl}
                   onChange={(e) => setNewSongForm({ ...newSongForm, fileUrl: e.target.value })}
                   className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500"

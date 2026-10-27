@@ -1071,6 +1071,8 @@ export default function DjBoothPage() {
       trackTitle?: string;
       trackArtist?: string;
       videoId?: string | null;
+      fileUrl?: string | null;
+      isVideo?: boolean;
     }
   ) => {
     if (action === "PLAY") setIsPlaying(true);
@@ -1088,6 +1090,8 @@ export default function DjBoothPage() {
       trackTitle: details?.trackTitle,
       trackArtist: details?.trackArtist,
       videoId: details?.videoId,
+      fileUrl: details?.fileUrl,
+      isVideo: details?.isVideo,
       eventId,
       code: eventCode,
       timestamp: Date.now(),

@@ -22,7 +22,7 @@ export function calculateCrossfaderGains(sliderValue: number) {
 }
 
 export interface DeckChannelNodes {
-  audioElement: HTMLAudioElement | null;
+  audioElement: HTMLMediaElement | null;
   sourceNode: MediaElementAudioSourceNode | null;
   eqLow: BiquadFilterNode;
   eqMid: BiquadFilterNode;
@@ -45,7 +45,7 @@ class WebDjAudioEngine {
   private masterLimiter: DynamicsCompressorNode | null = null;
   private masterAnalyser: AnalyserNode | null = null;
   private channels: { A: DeckChannelNodes | null; B: DeckChannelNodes | null } = { A: null, B: null };
-  private connectedElements = new WeakMap<HTMLAudioElement, MediaElementAudioSourceNode>();
+  private connectedElements = new WeakMap<HTMLMediaElement, MediaElementAudioSourceNode>();
   private isUnlocked = false;
 
   public getContext(): AudioContext | null {
@@ -178,9 +178,9 @@ class WebDjAudioEngine {
   }
 
   /**
-   * Conecta un elemento HTMLAudioElement a la cadena de audio de la bandeja
+   * Conecta un elemento HTMLMediaElement (audio o video MP4) a la cadena de audio de la bandeja
    */
-  public attachAudioElement(deckId: "A" | "B", audioEl: HTMLAudioElement) {
+  public attachAudioElement(deckId: "A" | "B", audioEl: HTMLMediaElement) {
     const ctx = this.getContext();
     if (!ctx) return;
     const channel = this.getOrCreateChannel(deckId);
