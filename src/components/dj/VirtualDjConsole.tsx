@@ -38,6 +38,9 @@ import {
   Maximize2,
   Minimize2,
   X,
+  BookmarkPlus,
+  BookmarkCheck,
+  Loader2,
 } from "lucide-react";
 import { calculateCrossfaderGains, djSoundEffects, webDjEngine, AudioLevels } from "@/lib/audio/dj-audio-engine";
 import { MusicLibraryView, Song as LibSong } from "@/components/library/MusicLibraryView";
@@ -468,6 +471,12 @@ export default function VirtualDjConsole({
   const [libraryViewMode, setLibraryViewMode] = useState<"drawer" | "split">("drawer");
   const [libraryTargetDeckHint, setLibraryTargetDeckHint] = useState<"A" | "B" | null>(null);
 
+  // ==================== GUARDAR EN BIBLIOTECA (TRACKS EN REPRODUCCIÓN) ====================
+  const [savingDeckA, setSavingDeckA] = useState(false);
+  const [savedDeckA, setSavedDeckA] = useState(false);
+  const [savingDeckB, setSavingDeckB] = useState(false);
+  const [savedDeckB, setSavedDeckB] = useState(false);
+
   // ==================== 2-TOUCH SAFETY: CROSSFADER & RESET ====================
   const [isCrossfaderActive, setIsCrossfaderActive] = useState(false);
   const crossfaderTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -738,6 +747,15 @@ export default function VirtualDjConsole({
   const trackBDuration = trackB?.song?.durationSeconds || 210;
   const baseBpmB = trackB?.song?.bpm || 126;
   const effectiveBpmB = Number((baseBpmB * (1 + pitchB / 100)).toFixed(1));
+
+  // Reiniciar estado de guardado cuando cambia la pista montada en Deck A o Deck B
+  useEffect(() => {
+    setSavedDeckA(false);
+  }, [trackA?.id, trackA?.customTitle, videoIdA, localAudioNameA]);
+
+  useEffect(() => {
+    setSavedDeckB(false);
+  }, [trackB?.id, trackB?.customTitle, videoIdB, localAudioNameB]);
 
   // Rotación física continua del vinilo a ~33 1/3 RPM sincronizado con BPM y pitch
   useEffect(() => {
@@ -1302,6 +1320,104 @@ export default function VirtualDjConsole({
       trackBDuration,
       videoIdA,
       videoIdB,
+    ]
+  );
+
+  // Guardar en la Biblioteca Musical la pista cargada / en reproducción de cualquier bandeja
+  const handleSaveDeckToLibrary = useCallback(
+    async (deck: "A" | "B") => {
+      const isDeckA = deck === "A";
+      const track = isDeckA ? trackA : trackB;
+      const videoId = isDeckA ? videoIdA : videoIdB;
+      const localName = isDeckA ? localAudioNameA : localAudioNameB;
+      const duration = isDeckA ? trackADuration : trackBDuration;
+      const bpm = isDeckA ? baseBpmA : baseBpmB;
+
+      if (!track && !videoId && !localName) {
+        showFeedback("info", "No hay ninguna pista en la bandeja para guardar.");
+        return;
+      }
+
+      let rawTitle = track?.song?.title || track?.customTitle || localName || `Pista en Bandeja ${deck}`;
+      let rawArtist = track?.song?.artist?.name || track?.customArtist || "";
+
+      // Si el título contiene " - ", intentar separar Artista y Título
+      if (!rawArtist && rawTitle.includes(" - ")) {
+        const parts = rawTitle.split(" - ");
+        rawArtist = parts[0].trim();
+        rawTitle = parts.slice(1).join(" - ").trim();
+      }
+
+      // Limpiar sufijos típicos de YouTube ("(Official Video)", "[Audio Oficial]", etc.)
+      const cleanTitle = rawTitle
+        .replace(/\s*[\(\[](official\s*video|audio\s*oficial|video\s*oficial|letra|lyrics|hd|4k|videoclip|video)[\)\]]/gi, "")
+        .replace(/\.[^/.]+$/, "") // Quitar extensión si es archivo local
+        .trim();
+
+      if (!rawArtist) {
+        rawArtist = "Artista Cabina DJ";
+      }
+
+      const fileUrl = videoId
+        ? `https://www.youtube.com/watch?v=${videoId}`
+        : (track?.song as any)?.fileUrl || null;
+
+      const payload = {
+        title: cleanTitle || rawTitle,
+        artistName: rawArtist,
+        genre: track?.song?.genre || (isDeckA ? "Boliche / DJ Mix" : "Electro / House"),
+        bpm: bpm ? Math.round(bpm) : 124,
+        key: track?.song?.key || "8A / Am",
+        durationSeconds: duration || 210,
+        fileUrl: fileUrl,
+        type: "BOTH",
+      };
+
+      const setSaving = isDeckA ? setSavingDeckA : setSavingDeckB;
+      const setSaved = isDeckA ? setSavedDeckA : setSavedDeckB;
+
+      setSaving(true);
+      try {
+        const res = await fetch("/api/v1/library", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const json = await res.json();
+        if (res.ok && json.success) {
+          setSaved(true);
+          const feedbackMsg = json.alreadyExists
+            ? `ℹ️ "${payload.title}" ya formaba parte de tu biblioteca.`
+            : `📚 ¡"${payload.title}" guardada con éxito en la biblioteca!`;
+          showFeedback("success", feedbackMsg);
+
+          // Disparar evento para que la vista de biblioteca se refresque automáticamente
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("vidjs-library-updated", { detail: json.data }));
+          }
+        } else {
+          showFeedback("error", json.error || "No se pudo guardar la pista en la biblioteca.");
+        }
+      } catch (err) {
+        console.error("Error al guardar pista en biblioteca:", err);
+        showFeedback("error", "Error de conexión al guardar en la biblioteca.");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [
+      trackA,
+      trackB,
+      videoIdA,
+      videoIdB,
+      localAudioNameA,
+      localAudioNameB,
+      trackADuration,
+      trackBDuration,
+      baseBpmA,
+      baseBpmB,
+      showFeedback,
     ]
   );
 
@@ -3303,8 +3419,47 @@ export default function VirtualDjConsole({
               )}
             </div>
 
-            {/* Acciones Deck A: Limpiar y Cargar Pista */}
-            <div className="flex items-center gap-1.5">
+            {/* Acciones Deck A: Guardar en Biblioteca, Limpiar y Cargar Pista */}
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              {trackA && (
+                <button
+                  type="button"
+                  onClick={() => handleSaveDeckToLibrary("A")}
+                  disabled={savingDeckA || savedDeckA}
+                  className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer select-none ${
+                    savedDeckA
+                      ? "bg-emerald-950/70 border-emerald-500/60 text-emerald-300 shadow-sm"
+                      : isPlayingA
+                      ? "bg-purple-900/80 hover:bg-purple-800 border-purple-500/60 text-purple-100 shadow-md shadow-purple-600/30 animate-pulse"
+                      : "bg-zinc-900 hover:bg-purple-950/60 border-zinc-800 hover:border-purple-500/40 text-purple-300"
+                  }`}
+                  title={
+                    savedDeckA
+                      ? "Pista guardada en la biblioteca"
+                      : isPlayingA
+                      ? "Guardar la pista en reproducción actual en la Biblioteca Musical"
+                      : "Guardar esta pista cargada en la Biblioteca Musical"
+                  }
+                >
+                  {savedDeckA ? (
+                    <>
+                      <BookmarkCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="hidden sm:inline">En Biblioteca</span>
+                    </>
+                  ) : savingDeckA ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <BookmarkPlus className="w-3.5 h-3.5 text-purple-400" />
+                      <span>{isPlayingA ? "⭐ Guardar en Biblioteca" : "Guardar en Biblioteca"}</span>
+                    </>
+                  )}
+                </button>
+              )}
+
               {trackA && (
                 <button
                   type="button"
@@ -3507,12 +3662,39 @@ export default function VirtualDjConsole({
           <div className="min-h-[64px] flex flex-col justify-center">
             {trackA ? (
               <div className="space-y-0.5">
-                <h3 className="text-sm font-black text-white truncate">
-                  {trackA.song?.title || trackA.customTitle}
-                </h3>
-                <p className="text-xs font-semibold text-purple-300 truncate">
-                  {trackA.song?.artist?.name || trackA.customArtist}
-                </p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-black text-white truncate">
+                      {trackA.song?.title || trackA.customTitle}
+                    </h3>
+                    <p className="text-xs font-semibold text-purple-300 truncate">
+                      {trackA.song?.artist?.name || trackA.customArtist}
+                    </p>
+                  </div>
+                  {/* Botón flotante para guardar en biblioteca */}
+                  <button
+                    type="button"
+                    onClick={() => handleSaveDeckToLibrary("A")}
+                    disabled={savingDeckA || savedDeckA}
+                    className={`px-2 py-0.5 rounded-md border text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0 select-none ${
+                      savedDeckA
+                        ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300"
+                        : isPlayingA
+                        ? "bg-purple-900/60 hover:bg-purple-800 border-purple-500/60 text-purple-200 shadow-sm"
+                        : "bg-zinc-900 hover:bg-zinc-800 border-zinc-800 text-zinc-400 hover:text-white"
+                    }`}
+                    title={savedDeckA ? "Guardada en biblioteca" : "Guardar en biblioteca"}
+                  >
+                    {savedDeckA ? (
+                      <BookmarkCheck className="w-3 h-3 text-emerald-400" />
+                    ) : savingDeckA ? (
+                      <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
+                    ) : (
+                      <BookmarkPlus className="w-3 h-3 text-purple-400" />
+                    )}
+                    <span>{savedDeckA ? "Guardado" : "Guardar"}</span>
+                  </button>
+                </div>
                 <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-zinc-400">
                   <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
                     KEY: {trackA.song?.key || "8A / Am"}
@@ -4324,8 +4506,47 @@ export default function VirtualDjConsole({
               ) : null}
             </div>
 
-            {/* Acciones Deck B: Limpiar y Cargar Pista */}
-            <div className="flex items-center gap-1.5">
+            {/* Acciones Deck B: Guardar en Biblioteca, Limpiar y Cargar Pista */}
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              {trackB && (
+                <button
+                  type="button"
+                  onClick={() => handleSaveDeckToLibrary("B")}
+                  disabled={savingDeckB || savedDeckB}
+                  className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer select-none ${
+                    savedDeckB
+                      ? "bg-emerald-950/70 border-emerald-500/60 text-emerald-300 shadow-sm"
+                      : isPlayingB
+                      ? "bg-cyan-900/80 hover:bg-cyan-800 border-cyan-500/60 text-cyan-100 shadow-md shadow-cyan-600/30 animate-pulse"
+                      : "bg-zinc-900 hover:bg-cyan-950/60 border-zinc-800 hover:border-cyan-500/40 text-cyan-300"
+                  }`}
+                  title={
+                    savedDeckB
+                      ? "Pista guardada en la biblioteca"
+                      : isPlayingB
+                      ? "Guardar la pista en reproducción actual en la Biblioteca Musical"
+                      : "Guardar esta pista cargada en la Biblioteca Musical"
+                  }
+                >
+                  {savedDeckB ? (
+                    <>
+                      <BookmarkCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="hidden sm:inline">En Biblioteca</span>
+                    </>
+                  ) : savingDeckB ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <BookmarkPlus className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>{isPlayingB ? "⭐ Guardar en Biblioteca" : "Guardar en Biblioteca"}</span>
+                    </>
+                  )}
+                </button>
+              )}
+
               {trackB && (
                 <button
                   type="button"
@@ -4529,12 +4750,39 @@ export default function VirtualDjConsole({
           <div className="min-h-[64px] flex flex-col justify-center">
             {trackB ? (
               <div className="space-y-0.5">
-                <h3 className="text-sm font-black text-white truncate">
-                  {trackB.song?.title || trackB.customTitle}
-                </h3>
-                <p className="text-xs font-semibold text-cyan-300 truncate">
-                  {trackB.song?.artist?.name || trackB.customArtist}
-                </p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-black text-white truncate">
+                      {trackB.song?.title || trackB.customTitle}
+                    </h3>
+                    <p className="text-xs font-semibold text-cyan-300 truncate">
+                      {trackB.song?.artist?.name || trackB.customArtist}
+                    </p>
+                  </div>
+                  {/* Botón flotante para guardar en biblioteca */}
+                  <button
+                    type="button"
+                    onClick={() => handleSaveDeckToLibrary("B")}
+                    disabled={savingDeckB || savedDeckB}
+                    className={`px-2 py-0.5 rounded-md border text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0 select-none ${
+                      savedDeckB
+                        ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300"
+                        : isPlayingB
+                        ? "bg-cyan-900/60 hover:bg-cyan-800 border-cyan-500/60 text-cyan-200 shadow-sm"
+                        : "bg-zinc-900 hover:bg-zinc-800 border-zinc-800 text-zinc-400 hover:text-white"
+                    }`}
+                    title={savedDeckB ? "Guardada en biblioteca" : "Guardar en biblioteca"}
+                  >
+                    {savedDeckB ? (
+                      <BookmarkCheck className="w-3 h-3 text-emerald-400" />
+                    ) : savingDeckB ? (
+                      <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
+                    ) : (
+                      <BookmarkPlus className="w-3 h-3 text-cyan-400" />
+                    )}
+                    <span>{savedDeckB ? "Guardado" : "Guardar"}</span>
+                  </button>
+                </div>
                 <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-zinc-400">
                   <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
                     KEY: {trackB.song?.key || "9A / Em"}

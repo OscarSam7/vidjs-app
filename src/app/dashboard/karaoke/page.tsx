@@ -34,6 +34,9 @@ import {
   Send,
   EyeOff,
   Plus,
+  BookmarkPlus,
+  BookmarkCheck,
+  Loader2,
 } from "lucide-react";
 import KaraokeVideoModal from "@/components/dj/KaraokeVideoModal";
 import DjSoundboard from "@/components/dj/DjSoundboard";
@@ -177,6 +180,10 @@ export default function KaraokeBoothPage() {
     text: string;
   } | null>(null);
 
+  // Guardar pista al aire en Biblioteca Musical
+  const [savingKaraokeTrack, setSavingKaraokeTrack] = useState(false);
+  const [savedKaraokeTrack, setSavedKaraokeTrack] = useState(false);
+
   const showFeedback = (type: "success" | "error" | "info", text: string) => {
     setFeedback({ type, text });
     setTimeout(() => setFeedback(null), 3500);
@@ -299,10 +306,15 @@ export default function KaraokeBoothPage() {
   // Reset de tiempo cuando cambia la canción al aire
   useEffect(() => {
     setPlaybackSeconds(0);
+    setSavedKaraokeTrack(false);
     if (data?.currentPlaying?.youtubeVideoId) {
       setSelectedKaraokeVideoId(data.currentPlaying.youtubeVideoId);
     }
   }, [data?.currentPlaying?.id]);
+
+  useEffect(() => {
+    setSavedKaraokeTrack(false);
+  }, [selectedKaraokeVideoId]);
 
   // 4. Suscripción en Tiempo Real (SSE)
   useRealtime({
@@ -678,6 +690,77 @@ export default function KaraokeBoothPage() {
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
+  // Guardar canción en reproducción del Karaoke en la Biblioteca Musical
+  const handleSaveCurrentKaraokeToLibrary = async () => {
+    const currentSong = data?.currentPlaying?.songRequest;
+    if (!currentSong && !selectedKaraokeVideoId) {
+      showFeedback("info", "No hay ninguna canción al aire para guardar en la biblioteca.");
+      return;
+    }
+
+    let rawTitle = currentSong?.song?.title || currentSong?.customTitle || "Karaoke en Escenario";
+    let rawArtist = currentSong?.song?.artist?.name || currentSong?.customArtist || "";
+
+    if (!rawArtist && rawTitle.includes(" - ")) {
+      const parts = rawTitle.split(" - ");
+      rawArtist = parts[0].trim();
+      rawTitle = parts.slice(1).join(" - ").trim();
+    }
+
+    const cleanTitle = rawTitle
+      .replace(/\s*[\(\[](karaoke|letra|lyrics|instrumental|hd|4k|official\s*video|audio\s*oficial|video\s*oficial)[\)\]]/gi, "")
+      .trim();
+
+    if (!rawArtist) {
+      rawArtist = "Karaoke Stage";
+    }
+
+    const videoId = selectedKaraokeVideoId || data?.currentPlaying?.youtubeVideoId;
+    const fileUrl = videoId
+      ? `https://www.youtube.com/watch?v=${videoId}`
+      : (currentSong?.song as any)?.fileUrl || null;
+
+    const payload = {
+      title: cleanTitle || rawTitle,
+      artistName: rawArtist,
+      genre: currentSong?.song?.genre || "Karaoke / Pop",
+      bpm: currentSong?.song?.bpm || 120,
+      key: currentSong?.song?.key || "Original",
+      durationSeconds: currentSong?.song?.durationSeconds || 240,
+      fileUrl: fileUrl,
+      type: "KARAOKE",
+    };
+
+    setSavingKaraokeTrack(true);
+    try {
+      const res = await fetch("/api/v1/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setSavedKaraokeTrack(true);
+        const feedbackMsg = json.alreadyExists
+          ? `ℹ️ "${payload.title}" ya formaba parte de tu biblioteca.`
+          : `📚 ¡"${payload.title}" guardada con éxito en la biblioteca!`;
+        showFeedback("success", feedbackMsg);
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("vidjs-library-updated", { detail: json.data }));
+        }
+      } else {
+        showFeedback("error", json.error || "No se pudo guardar la canción en la biblioteca.");
+      }
+    } catch (err) {
+      console.error("Error al guardar karaoke en biblioteca:", err);
+      showFeedback("error", "Error de conexión al guardar en la biblioteca.");
+    } finally {
+      setSavingKaraokeTrack(false);
+    }
+  };
+
   const currentTrack = data?.currentPlaying?.songRequest;
   const trackDuration = currentTrack?.song?.durationSeconds || 240;
   const progressPercent = Math.min(100, Math.round((playbackSeconds / trackDuration) * 100));
@@ -806,11 +889,48 @@ export default function KaraokeBoothPage() {
               ) : null}
             </div>
 
-            {currentTrack?.table && (
-              <span className="px-3 py-1 rounded-xl bg-zinc-950 text-cyan-300 border border-cyan-500/40 text-xs font-mono font-black">
-                {currentTrack.table.label}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {currentTrack && (
+                <button
+                  type="button"
+                  onClick={handleSaveCurrentKaraokeToLibrary}
+                  disabled={savingKaraokeTrack || savedKaraokeTrack}
+                  className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer select-none shrink-0 ${
+                    savedKaraokeTrack
+                      ? "bg-emerald-950/70 border-emerald-500/60 text-emerald-300 shadow-sm"
+                      : "bg-cyan-950/70 hover:bg-cyan-900 border-cyan-500/60 text-cyan-200 shadow-md shadow-cyan-900/40"
+                  }`}
+                  title={
+                    savedKaraokeTrack
+                      ? "Canción ya registrada en la biblioteca"
+                      : "Guardar esta canción en la Biblioteca Musical"
+                  }
+                >
+                  {savedKaraokeTrack ? (
+                    <>
+                      <BookmarkCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="hidden sm:inline">En Biblioteca</span>
+                    </>
+                  ) : savingKaraokeTrack ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <BookmarkPlus className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Guardar en Biblioteca</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {currentTrack?.table && (
+                <span className="px-3 py-1 rounded-xl bg-zinc-950 text-cyan-300 border border-cyan-500/40 text-xs font-mono font-black">
+                  {currentTrack.table.label}
+                </span>
+              )}
+            </div>
           </div>
 
           {currentTrack ? (
@@ -845,6 +965,26 @@ export default function KaraokeBoothPage() {
                     <span className="px-2 py-0.5 rounded bg-zinc-950 text-purple-300 border border-zinc-800 font-bold">
                       REGLA: Canta y Libera
                     </span>
+                    <button
+                      type="button"
+                      onClick={handleSaveCurrentKaraokeToLibrary}
+                      disabled={savingKaraokeTrack || savedKaraokeTrack}
+                      className={`px-2 py-0.5 rounded-md border text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0 select-none ${
+                        savedKaraokeTrack
+                          ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300"
+                          : "bg-cyan-900/60 hover:bg-cyan-800 border-cyan-500/60 text-cyan-200 shadow-sm"
+                      }`}
+                      title={savedKaraokeTrack ? "Guardada en biblioteca" : "Guardar en biblioteca"}
+                    >
+                      {savedKaraokeTrack ? (
+                        <BookmarkCheck className="w-3 h-3 text-emerald-400" />
+                      ) : savingKaraokeTrack ? (
+                        <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
+                      ) : (
+                        <BookmarkPlus className="w-3 h-3 text-cyan-400" />
+                      )}
+                      <span>{savedKaraokeTrack ? "Guardado" : "Guardar"}</span>
+                    </button>
                   </div>
                 </div>
               </div>

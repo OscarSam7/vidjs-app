@@ -162,6 +162,15 @@ export function MusicLibraryView({
 
   useEffect(() => {
     fetchLibraryData();
+
+    const handleLibraryUpdated = () => {
+      fetchLibraryData();
+    };
+
+    window.addEventListener("vidjs-library-updated", handleLibraryUpdated);
+    return () => {
+      window.removeEventListener("vidjs-library-updated", handleLibraryUpdated);
+    };
   }, []);
 
   // Notificación flash de éxito

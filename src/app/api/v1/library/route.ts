@@ -333,10 +333,17 @@ export async function POST(req: NextRequest) {
     const cleanArtistName = sanitizeText(data.artistName);
     const cleanGenre = data.genre ? sanitizeText(data.genre) : "Varios";
 
+    let targetTenantId = session.tenantId;
+    if (!targetTenantId) {
+      const firstTenant = await prisma.tenant.findFirst({ select: { id: true } });
+      targetTenantId = firstTenant?.id || null;
+    }
+
     // 1. Buscar o crear el artista
     let artist = await prisma.artist.findFirst({
       where: {
         name: { equals: cleanArtistName, mode: "insensitive" },
+        ...(targetTenantId ? { tenantId: targetTenantId } : {}),
       },
     });
 
@@ -344,17 +351,46 @@ export async function POST(req: NextRequest) {
       artist = await prisma.artist.create({
         data: {
           name: cleanArtistName,
-          tenantId: session.tenantId,
+          tenantId: targetTenantId,
         },
       });
     }
 
-    // 2. Crear la canción en la base de datos
+    // 2. Comprobar si la pista ya existe en la biblioteca
+    const existingSong = await prisma.song.findFirst({
+      where: {
+        ...(targetTenantId ? { tenantId: targetTenantId } : {}),
+        title: { equals: cleanTitle, mode: "insensitive" },
+        artistId: artist.id,
+      },
+      include: {
+        artist: { select: { id: true, name: true, imageUrl: true } },
+      },
+    });
+
+    if (existingSong) {
+      // Si la pista tiene enlace de YouTube o archivo nuevo y el existente no, actualizarlo
+      if (!existingSong.fileUrl && data.fileUrl) {
+        await prisma.song.update({
+          where: { id: existingSong.id },
+          data: { fileUrl: data.fileUrl.trim() },
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `La pista "${cleanTitle}" ya se encuentra registrada en la biblioteca.`,
+        data: existingSong,
+        alreadyExists: true,
+      });
+    }
+
+    // 3. Crear la canción en la base de datos
     const newSong = await prisma.song.create({
       data: {
         title: cleanTitle,
         artistId: artist.id,
-        tenantId: session.tenantId,
+        tenantId: targetTenantId,
         genre: cleanGenre,
         bpm: data.bpm || null,
         key: data.key?.trim() || null,
@@ -370,6 +406,7 @@ export async function POST(req: NextRequest) {
       success: true,
       message: `¡Pista "${cleanTitle}" agregada a la biblioteca con éxito!`,
       data: newSong,
+      alreadyExists: false,
     });
   } catch (error) {
     return handleApiError(error);
