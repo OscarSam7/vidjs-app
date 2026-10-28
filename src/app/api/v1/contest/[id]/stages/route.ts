@@ -104,7 +104,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
 /**
  * PATCH /api/v1/contest/[id]/stages
- * Actualiza el estado de una fecha o la activa como fecha en vivo
+ * Actualiza el estado, título, tipo, fecha o notas de una fecha / gala
  */
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
@@ -115,7 +115,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     }
 
     const body = await req.json();
-    const { stageId, status, title, notes, setActive } = body;
+    const { stageId, status, title, stageType, date, notes, setActive } = body;
 
     if (!stageId) {
       return NextResponse.json({ success: false, error: "stageId requerido" }, { status: 400 });
@@ -125,7 +125,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       where: { id: stageId },
       data: {
         status: status || undefined,
-        title: title || undefined,
+        title: title ? title.trim() : undefined,
+        stageType: stageType || undefined,
+        date: date ? new Date(date) : undefined,
         notes: notes !== undefined ? notes : undefined,
       },
     });
@@ -145,7 +147,63 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       data: updatedStage,
-      message: "Gala actualizada con éxito",
+      message: `Gala "${updatedStage.title}" actualizada con éxito`,
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+/**
+ * DELETE /api/v1/contest/[id]/stages?stageId=...
+ * Elimina una fecha / gala del concurso
+ */
+export async function DELETE(req: NextRequest, { params }: RouteParams) {
+  try {
+    const { id } = await params;
+    const session = await getCurrentSession();
+    if (!session?.tenantId) {
+      throw new UnauthorizedError("Debes iniciar sesión para eliminar fechas");
+    }
+
+    const { searchParams } = new URL(req.url);
+    const stageId = searchParams.get("stageId");
+
+    if (!stageId) {
+      return NextResponse.json({ success: false, error: "stageId requerido" }, { status: 400 });
+    }
+
+    const stage = await prisma.contestStage.findFirst({
+      where: { id: stageId, contestId: id },
+    });
+    if (!stage) throw new NotFoundError("Gala no encontrada");
+
+    const contest = await prisma.karaokeContest.findUnique({
+      where: { id },
+      select: { activeStageId: true, eventId: true },
+    });
+
+    await prisma.contestStage.delete({ where: { id: stageId } });
+
+    if (contest?.activeStageId === stageId) {
+      const nextStage = await prisma.contestStage.findFirst({
+        where: { contestId: id },
+        orderBy: { orderIndex: "asc" },
+      });
+      await prisma.karaokeContest.update({
+        where: { id },
+        data: { activeStageId: nextStage?.id || null },
+      });
+    }
+
+    broadcastContestEvent(id, contest?.eventId || null, "CONTEST_STAGE_CHANGE", {
+      type: "STAGE_DELETED",
+      stageId,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Gala "${stage.title}" eliminada correctamente`,
     });
   } catch (error) {
     return handleApiError(error);

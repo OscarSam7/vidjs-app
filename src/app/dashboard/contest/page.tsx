@@ -192,7 +192,20 @@ export default function ContestDashboardPage() {
   const [newStageForm, setNewStageForm] = useState({
     title: "",
     stageType: "QUALIFIERS",
+    date: new Date().toISOString().split("T")[0],
     notes: "",
+    setActive: false,
+  });
+
+  // Form State para Editar Gala / Fecha
+  const [editingStage, setEditingStage] = useState<ContestStage | null>(null);
+  const [editStageForm, setEditStageForm] = useState({
+    title: "",
+    stageType: "QUALIFIERS",
+    status: "SCHEDULED",
+    date: new Date().toISOString().split("T")[0],
+    notes: "",
+    setActive: false,
   });
 
   // Form State para Nuevo Juez
@@ -662,6 +675,122 @@ export default function ContestDashboardPage() {
       }
     } catch {
       showFeedback("error", "Error de conexión al eliminar criterio");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Crear Nueva Fecha / Gala
+  const handleCreateStage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contest) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/stages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newStageForm.title.trim(),
+          stageType: newStageForm.stageType,
+          date: newStageForm.date ? new Date(newStageForm.date).toISOString() : new Date().toISOString(),
+          notes: newStageForm.notes.trim() || null,
+          setActive: newStageForm.setActive,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", json.message || "Gala creada con éxito");
+        setShowNewStageModal(false);
+        setNewStageForm({
+          title: "",
+          stageType: "QUALIFIERS",
+          date: new Date().toISOString().split("T")[0],
+          notes: "",
+          setActive: false,
+        });
+        fetchContestDetail(contest.id);
+        fetchReports(contest.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo crear la gala");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión al crear gala");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Abrir Modal de Edición de Gala
+  const handleOpenEditStage = (st: ContestStage) => {
+    setEditingStage(st);
+    setEditStageForm({
+      title: st.title,
+      stageType: st.stageType || "QUALIFIERS",
+      status: st.status || "SCHEDULED",
+      date: st.date ? new Date(st.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+      notes: st.notes || "",
+      setActive: st.id === contest?.activeStageId,
+    });
+  };
+
+  // Guardar Cambios de Gala
+  const handleUpdateStage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contest || !editingStage) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/stages`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stageId: editingStage.id,
+          title: editStageForm.title.trim(),
+          stageType: editStageForm.stageType,
+          status: editStageForm.status,
+          date: editStageForm.date ? new Date(editStageForm.date).toISOString() : undefined,
+          notes: editStageForm.notes.trim() || null,
+          setActive: editStageForm.setActive,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", json.message || "Gala actualizada con éxito");
+        setEditingStage(null);
+        fetchContestDetail(contest.id);
+        fetchReports(contest.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo actualizar la gala");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión al actualizar gala");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Eliminar Gala del Certamen
+  const handleDeleteStage = async (st: ContestStage) => {
+    if (!contest) return;
+    const confirmDelete = window.confirm(
+      `¿Estás seguro de que deseas eliminar la gala "${st.title}"?\nSe desvincularán las actuaciones programadas en esta fecha.`
+    );
+    if (!confirmDelete) return;
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/stages?stageId=${st.id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", json.message || "Gala eliminada");
+        fetchContestDetail(contest.id);
+        fetchReports(contest.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo eliminar la gala");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión al eliminar la gala");
     } finally {
       setActionLoading(false);
     }
@@ -1459,12 +1588,21 @@ export default function ContestDashboardPage() {
                 Fechas y Rondas del Concurso Multidía
               </h3>
               <p className="text-xs text-zinc-400">
-                Organiza galas por días o semanas (Audiciones, Semifinal, Gran Final)
+                Organiza galas por días o semanas (Audiciones, Clasificatorias, Semifinal, Gran Final)
               </p>
             </div>
             <button
-              onClick={() => setShowNewStageModal(true)}
-              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md"
+              onClick={() => {
+                setNewStageForm({
+                  title: "",
+                  stageType: "QUALIFIERS",
+                  date: new Date().toISOString().split("T")[0],
+                  notes: "",
+                  setActive: false,
+                });
+                setShowNewStageModal(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md transition-transform active:scale-95"
             >
               <Plus className="w-4 h-4" />
               <span>+ Nueva Fecha / Gala</span>
@@ -1472,55 +1610,141 @@ export default function ContestDashboardPage() {
           </div>
 
           <div className="space-y-3 pt-2">
-            {contest.stages.map((st, i) => (
-              <div
-                key={st.id}
-                className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                  st.id === contest.activeStageId
-                    ? "bg-amber-950/30 border-amber-500/60 shadow-lg"
-                    : "bg-zinc-950 border-zinc-800"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-xl bg-zinc-800 text-amber-400 font-mono font-bold text-xs flex items-center justify-center">
-                    G{i + 1}
-                  </span>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-black text-white">{st.title}</h4>
-                      {st.id === contest.activeStageId && (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40">
-                          ACTIVA EN VIVO
+            {contest.stages.length > 0 ? (
+              contest.stages.map((st, i) => (
+                <div
+                  key={st.id}
+                  className={`p-4 sm:p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all ${
+                    st.id === contest.activeStageId
+                      ? "bg-amber-950/30 border-amber-500/60 shadow-lg shadow-amber-950/20"
+                      : "bg-zinc-950 border-zinc-800 hover:border-zinc-700"
+                  }`}
+                >
+                  <div className="flex items-start sm:items-center gap-3.5">
+                    <span
+                      className={`w-10 h-10 rounded-2xl font-mono font-black text-sm flex items-center justify-center shrink-0 ${
+                        st.id === contest.activeStageId
+                          ? "bg-amber-500 text-zinc-950 shadow-md shadow-amber-500/30"
+                          : "bg-zinc-800 text-amber-400"
+                      }`}
+                    >
+                      G{i + 1}
+                    </span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-sm sm:text-base font-black text-white">{st.title}</h4>
+                        {st.id === contest.activeStageId && (
+                          <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-zinc-950 text-[10px] font-black uppercase tracking-wider shadow-sm animate-pulse">
+                            Gala Activa en Vivo
+                          </span>
+                        )}
+                        <span
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${
+                            st.status === "LIVE"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                              : st.status === "COMPLETED"
+                              ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
+                              : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                          }`}
+                        >
+                          {st.status === "LIVE"
+                            ? "🔴 En Vivo"
+                            : st.status === "COMPLETED"
+                            ? "✅ Concluida"
+                            : "⏳ Programada"}
                         </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-zinc-400 flex-wrap">
+                        <span className="flex items-center gap-1 font-medium">
+                          <Award className="w-3.5 h-3.5 text-amber-400" />
+                          {st.stageType === "AUDITIONS"
+                            ? "Audiciones"
+                            : st.stageType === "QUALIFIERS"
+                            ? "Clasificatorias"
+                            : st.stageType === "SEMIFINALS"
+                            ? "Semifinal"
+                            : "Gran Final"}
+                        </span>
+                        {st.date && (
+                          <span className="flex items-center gap-1 font-mono text-zinc-300">
+                            <Calendar className="w-3.5 h-3.5 text-zinc-400" />
+                            {new Date(st.date).toLocaleDateString("es-ES", {
+                              weekday: "short",
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1 font-mono text-zinc-400">
+                          <Mic className="w-3.5 h-3.5 text-zinc-500" />
+                          {st.performances?.length || 0} actuaciones
+                        </span>
+                      </div>
+                      {st.notes && (
+                        <p className="text-xs text-zinc-400 italic bg-zinc-900/60 px-2.5 py-1 rounded-lg border border-zinc-800/80 inline-block mt-1">
+                          {st.notes}
+                        </p>
                       )}
                     </div>
-                    <p className="text-xs text-zinc-400">
-                      Tipo: {st.stageType} &bull; Estado: {st.status} &bull;{" "}
-                      {st.performances?.length || 0} actuaciones
-                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 flex-wrap">
+                    {st.id !== contest.activeStageId ? (
+                      <button
+                        onClick={async () => {
+                          await fetch(`/api/v1/contest/${contest.id}/stages`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ stageId: st.id, setActive: true, status: "LIVE" }),
+                          });
+                          fetchContestDetail(contest.id);
+                          showFeedback("success", `Gala "${st.title}" fijada como activa.`);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-200 transition-colors cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Play className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Activar Esta Gala</span>
+                      </button>
+                    ) : (
+                      <span className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>En Curso</span>
+                      </span>
+                    )}
+                    <button
+                      onClick={() => handleOpenEditStage(st)}
+                      title="Editar Gala / Fecha"
+                      className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteStage(st)}
+                      title="Eliminar Gala"
+                      className="p-2 rounded-xl bg-zinc-800 hover:bg-red-950/80 text-zinc-400 hover:text-red-400 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  {st.id !== contest.activeStageId && (
-                    <button
-                      onClick={async () => {
-                        await fetch(`/api/v1/contest/${contest.id}/stages`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ stageId: st.id, setActive: true, status: "LIVE" }),
-                        });
-                        fetchContestDetail(contest.id);
-                        showFeedback("success", `Gala "${st.title}" fijada como activa.`);
-                      }}
-                      className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-200 transition-colors cursor-pointer"
-                    >
-                      Activar Esta Gala
-                    </button>
-                  )}
-                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center bg-zinc-950 rounded-2xl border border-zinc-800 space-y-3">
+                <Calendar className="w-10 h-10 text-zinc-600 mx-auto" />
+                <p className="text-sm font-bold text-zinc-300">No hay galas registradas</p>
+                <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+                  Crea la primera fecha o gala para comenzar a programar las actuaciones y clasificaciones del certamen.
+                </p>
+                <button
+                  onClick={() => setShowNewStageModal(true)}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 shadow-md"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Crear Primera Gala</span>
+                </button>
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}
@@ -2506,6 +2730,225 @@ export default function ContestDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setEditingCriteria(null)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {actionLoading ? "Guardando..." : "Guardar Cambios"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: NUEVA FECHA / GALA                                    */}
+      {/* ============================================================ */}
+      {showNewStageModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-amber-400" />
+                <span>Nueva Fecha / Gala</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowNewStageModal(false)}
+                className="text-zinc-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateStage} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Título de la Gala *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej: Clasificatorias Día 1 / Semifinal / Gran Final"
+                  value={newStageForm.title}
+                  onChange={(e) => setNewStageForm({ ...newStageForm, title: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Tipo de Ronda *</label>
+                  <select
+                    value={newStageForm.stageType}
+                    onChange={(e) => setNewStageForm({ ...newStageForm, stageType: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
+                  >
+                    <option value="AUDITIONS">Audiciones / Filtro</option>
+                    <option value="QUALIFIERS">Clasificatorias</option>
+                    <option value="SEMIFINALS">Semifinal</option>
+                    <option value="FINALS">Gran Final</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Fecha Programada</label>
+                  <input
+                    type="date"
+                    value={newStageForm.date}
+                    onChange={(e) => setNewStageForm({ ...newStageForm, date: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 font-mono text-xs outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Notas / Descripción (Opcional)</label>
+                <textarea
+                  rows={2}
+                  placeholder="Ej: Clasifican los 3 mejores puntajes de la noche para la Gran Final."
+                  value={newStageForm.notes}
+                  onChange={(e) => setNewStageForm({ ...newStageForm, notes: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+
+              <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+                <div>
+                  <span className="block text-xs font-bold text-white">Activar Inmediatamente</span>
+                  <span className="text-[11px] text-zinc-400">Fijar como la gala activa para la cabina y votaciones en vivo</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={newStageForm.setActive}
+                  onChange={(e) => setNewStageForm({ ...newStageForm, setActive: e.target.checked })}
+                  className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewStageModal(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {actionLoading ? "Guardando..." : "Crear Gala"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: EDITAR FECHA / GALA                                   */}
+      {/* ============================================================ */}
+      {editingStage && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-amber-400" />
+                <span>Editar Fecha / Gala</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingStage(null)}
+                className="text-zinc-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateStage} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Título de la Gala *</label>
+                <input
+                  type="text"
+                  required
+                  value={editStageForm.title}
+                  onChange={(e) => setEditStageForm({ ...editStageForm, title: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Tipo de Ronda</label>
+                  <select
+                    value={editStageForm.stageType}
+                    onChange={(e) => setEditStageForm({ ...editStageForm, stageType: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
+                  >
+                    <option value="AUDITIONS">Audiciones / Filtro</option>
+                    <option value="QUALIFIERS">Clasificatorias</option>
+                    <option value="SEMIFINALS">Semifinal</option>
+                    <option value="FINALS">Gran Final</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Estado de la Gala</label>
+                  <select
+                    value={editStageForm.status}
+                    onChange={(e) => setEditStageForm({ ...editStageForm, status: e.target.value as any })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
+                  >
+                    <option value="SCHEDULED">Programada</option>
+                    <option value="LIVE">En Vivo / Activa</option>
+                    <option value="COMPLETED">Concluida</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Fecha Programada</label>
+                <input
+                  type="date"
+                  value={editStageForm.date}
+                  onChange={(e) => setEditStageForm({ ...editStageForm, date: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 font-mono text-xs outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Notas / Instrucciones</label>
+                <textarea
+                  rows={2}
+                  value={editStageForm.notes}
+                  onChange={(e) => setEditStageForm({ ...editStageForm, notes: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+
+              <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+                <div>
+                  <span className="block text-xs font-bold text-white">Marcar como Gala Activa</span>
+                  <span className="text-[11px] text-zinc-400">Los puntajes y actuaciones se sincronizarán con esta gala</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={editStageForm.setActive}
+                  onChange={(e) => setEditStageForm({ ...editStageForm, setActive: e.target.checked })}
+                  className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingStage(null)}
                   className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
                 >
                   Cancelar
