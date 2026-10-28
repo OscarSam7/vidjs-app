@@ -239,7 +239,7 @@ function GuestContent() {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<"hub" | "catalog" | "my-requests">("hub");
+  const [activeTab, setActiveTab] = useState<"hub" | "catalog" | "my-requests" | "contest">("hub");
   const [session, setSession] = useState<GuestSessionInfo | null>(null);
   const [tableAllowance, setTableAllowance] = useState<TableAllowanceInfo | null>(null);
   const [currentPlaying, setCurrentPlaying] = useState<CurrentPlayingInfo | null>(null);
@@ -250,6 +250,17 @@ function GuestContent() {
   const [branding, setBranding] = useState<BrandingInfo | null>(null);
   const [copiedWifi, setCopiedWifi] = useState(false);
   const [loadingSession, setLoadingSession] = useState(true);
+
+  // 🏆 Información del Certamen de Karaoke Activo esta Noche
+  const [activeContestInfo, setActiveContestInfo] = useState<{
+    id: string;
+    name: string;
+    code: string;
+    stageTitle: string;
+    scoringMode: string;
+    publicVoteWeight: number;
+    activePerformance?: any;
+  } | null>(null);
 
   // 🏆 Votación del Público para Concurso de Karaoke
   const [activeContestVote, setActiveContestVote] = useState<{
@@ -460,6 +471,35 @@ function GuestContent() {
         if (data.data.session?.event?.id) {
           fetchDuelState(data.data.session.event.id);
         }
+
+        // 🏆 Cargar Concurso activo si existe en la noche o local
+        if (data.data.contest) {
+          setActiveContestInfo(data.data.contest);
+          if (data.data.contest.activePerformance) {
+            const perf = data.data.contest.activePerformance;
+            setActiveContestVote({
+              contestId: data.data.contest.id,
+              performance: {
+                id: perf.id,
+                songTitle: perf.songTitle,
+                artistName: perf.artistName,
+                participantName: perf.participantName,
+                stageName: perf.stageName,
+                tableLabel: perf.tableLabel,
+              },
+            });
+            if (typeof window !== "undefined") {
+              const saved = localStorage.getItem(`vidjs_voted_${perf.id}`);
+              setContestVoteSubmitted(Boolean(saved));
+              if (saved) {
+                try {
+                  const p = JSON.parse(saved);
+                  if (p.stars) setContestStars(p.stars);
+                } catch {}
+              }
+            }
+          }
+        }
       } else {
         setSession(null);
       }
@@ -527,6 +567,7 @@ function GuestContent() {
   // Sincronización Realtime nativa SSE (0 ms) para comensales de mesa
   const { isConnected: isRealtime } = useRealtime({
     eventId: session?.event?.id,
+    code: session?.event?.code,
     onEvent: async (type: RealtimeEventType, payload: any) => {
       if (type === "DUEL_UPDATE") {
         setActiveDuel(payload || null);
@@ -562,34 +603,61 @@ function GuestContent() {
             setCurrentPlaying(data.data.currentPlaying || null);
             if (data.data.flashDeal) setFlashDeal(data.data.flashDeal);
             if (data.data.tableAllowance) setTableAllowance(data.data.tableAllowance);
+            if (data.data.contest) {
+              setActiveContestInfo(data.data.contest);
+            }
           }
         } catch {}
-      } else if (type === "CONTEST_VOTING_OPEN" || type === "CONTEST_PERFORMANCE_UPDATE") {
-        if (payload?.performance && (payload.performance.status === "VOTING_OPEN" || type === "CONTEST_VOTING_OPEN")) {
-          setActiveContestVote({
-            contestId: payload.contestId || payload.performance.contestId,
-            performance: {
-              id: payload.performance.id,
-              songTitle: payload.performance.songTitle,
-              artistName: payload.performance.artistName,
-              participantName: payload.performance.participant?.name || "Cantante",
-              stageName: payload.performance.participant?.stageName,
-              tableLabel: payload.performance.participant?.tableLabel,
-            },
-          });
-          setContestVoteSubmitted(false);
-          setContestStars(5);
-        } else if (payload?.performance?.status === "VOTING_CLOSED" || payload?.performance?.status === "REVEALED") {
+      } else if (
+        type === "CONTEST_STAGE_CHANGE" ||
+        type === "CONTEST_PERFORMANCE_UPDATE" ||
+        type === "CONTEST_VOTING_OPEN" ||
+        type === "CONTEST_VOTING_CLOSED" ||
+        type === "CONTEST_REVEAL_SCORES" ||
+        type === "CONTEST_LEADERBOARD_UPDATE"
+      ) {
+        if (payload?.contestName || payload?.stageTitle) {
+          setActiveContestInfo((prev) => ({
+            id: payload.contestId || prev?.id || "contest",
+            name: payload.contestName || prev?.name || "Campeonato de Karaoke",
+            code: payload.contestCode || prev?.code || "",
+            stageTitle: payload.stageTitle || prev?.stageTitle || "Gala Oficial",
+            scoringMode: prev?.scoringMode || "AVERAGE",
+            publicVoteWeight: prev?.publicVoteWeight || 30,
+          }));
+        }
+
+        if (
+          type === "CONTEST_VOTING_OPEN" ||
+          (type === "CONTEST_PERFORMANCE_UPDATE" && payload?.performance?.status === "VOTING_OPEN")
+        ) {
+          const perf = payload?.performance;
+          if (perf) {
+            setActiveContestVote({
+              contestId: payload.contestId || perf.contestId,
+              performance: {
+                id: perf.id,
+                songTitle: perf.songTitle,
+                artistName: perf.artistName,
+                participantName: perf.participant?.name || "Cantante",
+                stageName: perf.participant?.stageName,
+                tableLabel: perf.participant?.tableLabel,
+              },
+            });
+            if (typeof window !== "undefined") {
+              const saved = localStorage.getItem(`vidjs_voted_${perf.id}`);
+              setContestVoteSubmitted(Boolean(saved));
+            } else {
+              setContestVoteSubmitted(false);
+            }
+            setContestStars(5);
+          }
+        } else if (type === "CONTEST_VOTING_CLOSED" || type === "CONTEST_REVEAL_SCORES") {
           setTimeout(() => {
             setActiveContestVote(null);
             setContestVoteSubmitted(false);
-          }, 3500);
+          }, 4000);
         }
-      } else if (type === "CONTEST_VOTING_CLOSED" || type === "CONTEST_REVEAL_SCORES") {
-        setTimeout(() => {
-          setActiveContestVote(null);
-          setContestVoteSubmitted(false);
-        }, 3500);
       }
     },
   });
@@ -601,6 +669,12 @@ function GuestContent() {
     if (session?.event?.code) {
       channelNames.push(`vidjs_contest_sync_${session.event.code}`);
       channelNames.push(`vidjs_contest_sync_${session.event.code.toUpperCase()}`);
+    }
+    if (session?.event?.id) {
+      channelNames.push(`vidjs_contest_sync_${session.event.id}`);
+    }
+    if (activeContestInfo?.id) {
+      channelNames.push(`vidjs_contest_sync_${activeContestInfo.id}`);
     }
     const openChannels: BroadcastChannel[] = [];
     channelNames.forEach((name) => {
@@ -1465,13 +1539,84 @@ function GuestContent() {
             </span>
           )}
         </button>
+
+        {activeContestInfo && (
+          <button
+            onClick={() => setActiveTab("contest")}
+            className={`flex-1 py-3 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === "contest"
+                ? "border-amber-500 text-amber-300 bg-amber-950/30"
+                : "border-transparent text-amber-400 hover:text-amber-200"
+            }`}
+          >
+            <Trophy className="w-3.5 h-3.5 text-amber-400" />
+            <span>Concurso</span>
+            {activeContestVote && (
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+            )}
+          </button>
+        )}
       </div>
+
+      {/* 🔴 Aviso Flotante de Votación Abierta cuando estás en otra pestaña */}
+      {activeContestVote && activeTab !== "hub" && activeTab !== "contest" && (
+        <div
+          onClick={() => setActiveTab("hub")}
+          className="mx-3.5 mt-2.5 p-3 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-black font-black flex items-center justify-between shadow-2xl cursor-pointer animate-pulse"
+        >
+          <div className="flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-black shrink-0" />
+            <div className="text-left leading-tight">
+              <span className="text-[10px] uppercase tracking-wider block font-black">
+                ¡VOTACIÓN ABIERTA EN EL CONCURSO!
+              </span>
+              <span className="text-xs truncate block font-bold">
+                {activeContestVote.performance.stageName || activeContestVote.performance.participantName} - {activeContestVote.performance.songTitle}
+              </span>
+            </div>
+          </div>
+          <span className="text-[11px] px-2.5 py-1 rounded-xl bg-black text-amber-300 font-extrabold shrink-0 shadow-md">
+            Calificar ⭐
+          </span>
+        </div>
+      )}
 
       {/* 3. Contenido Principal */}
       <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto w-full overflow-x-hidden">
         {/* PESTAÑA 1: "MI NOCHE" (WELCOME HUB) */}
         {activeTab === "hub" && (
           <div className="space-y-4 w-full">
+            {/* 🏆 Concurso Oficial de Karaoke Activo esta Noche */}
+            {activeContestInfo && (
+              <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-950/80 via-zinc-950 to-zinc-950 border-2 border-amber-500/60 shadow-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="p-2 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      <Trophy className="w-5 h-5 text-amber-400" />
+                    </span>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
+                        CERTAMEN OFICIAL &bull; EN CURSO ESTA NOCHE
+                      </span>
+                      <h2 className="text-base font-black text-white">{activeContestInfo.name}</h2>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+                    {activeContestInfo.stageTitle}
+                  </span>
+                </div>
+
+                {!activeContestVote && (
+                  <div className="p-3 rounded-2xl bg-black/60 border border-zinc-800 flex items-center gap-2 text-xs text-zinc-300">
+                    <Mic className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      ¡Atención a tu mesa! Cuando el próximo cantante suba al escenario, podrás evaluarlo con 1 a 5 estrellas directamente desde aquí.
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Banner de Portada del Local */}
             {branding?.bannerUrl && (
               <div className="w-full h-28 sm:h-36 rounded-2xl overflow-hidden border border-zinc-800 relative shadow-lg bg-zinc-900">
@@ -2453,6 +2598,156 @@ function GuestContent() {
                   </div>
                 );
               })
+            )}
+          </div>
+        )}
+
+        {/* PESTAÑA 4: CONCURSO DE KARAOKE EN VIVO */}
+        {activeTab === "contest" && activeContestInfo && (
+          <div className="space-y-4 animate-fadeIn">
+            {/* Cabecera del Concurso */}
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-amber-950/90 via-zinc-950 to-zinc-950 border-2 border-amber-500/80 shadow-2xl space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="p-3 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    <Trophy className="w-7 h-7 text-amber-400" />
+                  </span>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 block">
+                      CERTAMEN OFICIAL EN VIVO
+                    </span>
+                    <h2 className="text-xl font-black text-white">{activeContestInfo.name}</h2>
+                  </div>
+                </div>
+                <div className="inline-block px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-black self-start sm:self-auto">
+                  {activeContestInfo.stageTitle}
+                </div>
+              </div>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                ¡Bienvenido a la votación popular de la gala! Tu mesa y cada celular tienen derecho a calificar a los cantantes con estrellas. El veredicto del público incide directamente en el resultado final.
+              </p>
+            </div>
+
+            {/* Tarjeta de Votación Activa */}
+            {activeContestVote ? (
+              <div className="p-5 rounded-3xl bg-gradient-to-br from-amber-950 via-zinc-950 to-purple-950 border-2 border-amber-400 shadow-[0_0_40px_rgba(245,158,11,0.4)] space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
+                      🎤 ACTUACIÓN EN ESCENARIO
+                    </span>
+                    <span className="text-base font-black text-white block">
+                      {activeContestVote.performance.stageName || activeContestVote.performance.participantName}
+                    </span>
+                    <span className="text-[10px] text-zinc-400">
+                      📱 Voto individual por cada celular de la mesa
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-amber-500 text-black font-black animate-pulse">
+                    VOTACIÓN ABIERTA
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-black/70 border border-zinc-800 space-y-0.5">
+                  <div className="text-sm font-black text-amber-300">
+                    {activeContestVote.performance.songTitle}
+                  </div>
+                  <div className="text-xs text-zinc-400 font-medium">
+                    {activeContestVote.performance.artistName}
+                  </div>
+                </div>
+
+                {!contestVoteSubmitted ? (
+                  <div className="space-y-3">
+                    <div className="text-center space-y-2">
+                      <span className="text-xs font-bold text-zinc-300 block">
+                        ¿Qué puntaje le otorgas a esta presentación?
+                      </span>
+                      <div className="flex items-center justify-center gap-2 py-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setContestStars(star)}
+                            className={`p-3 rounded-2xl transition-all cursor-pointer ${
+                              contestStars >= star
+                                ? "bg-amber-500 text-black scale-110 shadow-lg shadow-amber-500/40"
+                                : "bg-zinc-900 text-zinc-600 hover:text-zinc-400"
+                            }`}
+                          >
+                            <Star className="w-7 h-7 fill-current" />
+                          </button>
+                        ))}
+                      </div>
+                      <div className="text-xs font-black text-amber-400">
+                        {contestStars === 5
+                          ? "⭐⭐⭐⭐⭐ ¡IMPRESIONANTE!"
+                          : contestStars === 4
+                          ? "⭐⭐⭐⭐ ¡MUY BUENO!"
+                          : contestStars === 3
+                          ? "⭐⭐⭐ ¡BUEN INTENTO!"
+                          : contestStars === 2
+                          ? "⭐⭐ REGULAR"
+                          : "⭐ PUEDE MEJORAR"}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setContestCheered(!contestCheered)}
+                        className={`flex-1 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          contestCheered
+                            ? "bg-pink-600 border-pink-400 text-white shadow-md shadow-pink-600/30"
+                            : "bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-500"
+                        }`}
+                      >
+                        <Heart className={`w-4 h-4 ${contestCheered ? "fill-white" : "text-pink-400"}`} />
+                        <span>{contestCheered ? "¡Con Aplauso Extra!" : "+ Dar Barra y Ánimo"}</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSendContestPublicVote}
+                      disabled={contestVoteLoading}
+                      className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-xl shadow-amber-500/30 cursor-pointer disabled:opacity-50"
+                    >
+                      {contestVoteLoading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trophy className="w-4 h-4 text-black" />
+                      )}
+                      <span>Enviar Mi Calificación</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-emerald-950/70 border border-emerald-500/50 text-center space-y-2">
+                    <div className="flex items-center justify-center gap-1.5 text-emerald-400 text-sm font-bold">
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span>¡Tu voto individual de {contestStars} estrellas fue sumado!</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-300">
+                      Tus acompañantes de mesa también pueden votar desde sus propios celulares.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setContestVoteSubmitted(false)}
+                      className="mt-1 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-zinc-500 text-[11px] text-amber-400 hover:text-amber-300 font-bold transition-all cursor-pointer inline-flex items-center gap-1"
+                    >
+                      <span>✏️ Modificar mi voto</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-8 rounded-3xl bg-zinc-900/60 border border-zinc-800 text-center space-y-3">
+                <Mic className="w-10 h-10 text-amber-400 mx-auto animate-pulse" />
+                <h3 className="text-base font-bold text-white">Próximo cantante al escenario</h3>
+                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                  En cuanto el DJ o animador llame al siguiente concursante y abra la votación, podrás calificarlo aquí mismo con 1 a 5 estrellas.
+                </p>
+              </div>
             )}
           </div>
         )}

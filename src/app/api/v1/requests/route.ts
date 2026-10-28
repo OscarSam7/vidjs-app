@@ -374,6 +374,58 @@ export async function GET() {
     });
     const flashDeal = getActiveFlashDeal(pulse.level, branding.activePromo);
 
+    // 5. Consultar Concurso de Karaoke Activo para la noche o establecimiento
+    const activeContest = await prisma.karaokeContest.findFirst({
+      where: {
+        tenantId: guestSession.tenantId,
+        status: "ACTIVE",
+        OR: [
+          { eventId: guestSession.eventId },
+          { eventId: null },
+        ],
+      },
+      include: {
+        criteria: { where: { active: true }, orderBy: { orderIndex: "asc" } },
+        stages: { where: { status: "LIVE" }, take: 1 },
+      },
+    });
+
+    let contestPayload = null;
+    if (activeContest) {
+      const activePerformance = await prisma.contestPerformance.findFirst({
+        where: {
+          contestId: activeContest.id,
+          status: { in: ["ON_STAGE", "VOTING_OPEN"] },
+        },
+        include: {
+          participant: {
+            select: { id: true, name: true, stageName: true, tableLabel: true },
+          },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+
+      contestPayload = {
+        id: activeContest.id,
+        name: activeContest.name,
+        code: activeContest.code,
+        stageTitle: activeContest.stages[0]?.title || "Gala Oficial de Karaoke",
+        scoringMode: activeContest.scoringMode,
+        publicVoteWeight: activeContest.publicVoteWeight,
+        activePerformance: activePerformance
+          ? {
+              id: activePerformance.id,
+              songTitle: activePerformance.songTitle,
+              artistName: activePerformance.artistName,
+              status: activePerformance.status,
+              participantName: activePerformance.participant.name,
+              stageName: activePerformance.participant.stageName,
+              tableLabel: activePerformance.participant.tableLabel,
+            }
+          : null,
+      };
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -405,6 +457,7 @@ export async function GET() {
         policy,
         tableAllowance,
         requests: enrichedRequests,
+        contest: contestPayload,
       },
     });
   } catch (error) {
