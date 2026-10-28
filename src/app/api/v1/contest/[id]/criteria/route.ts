@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getCurrentSession } from "@/lib/auth/session";
-import { handleApiError, UnauthorizedError } from "@/lib/errors";
+import { handleApiError, UnauthorizedError, NotFoundError } from "@/lib/errors";
+import { broadcastContestEvent } from "@/lib/contest/contest-service";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,16 @@ const CriteriaSchema = z.object({
   maxScore: z.number().min(1).max(100).default(10),
   weight: z.number().min(0.1).max(5).default(1.0),
   orderIndex: z.number().optional(),
+});
+
+const UpdateCriteriaSchema = z.object({
+  criteriaId: z.string().min(1, "criteriaId requerido"),
+  name: z.string().min(2, "El nombre del criterio es obligatorio").optional(),
+  description: z.string().optional().nullable(),
+  maxScore: z.number().min(1).max(100).optional(),
+  weight: z.number().min(0.1).max(5).optional(),
+  orderIndex: z.number().optional(),
+  active: z.boolean().optional(),
 });
 
 /**
@@ -63,6 +74,17 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       },
     });
 
+    const contest = await prisma.karaokeContest.findUnique({
+      where: { id },
+      select: { eventId: true },
+    });
+    if (contest) {
+      broadcastContestEvent(id, contest.eventId, "CONTEST_STAGE_CHANGE", {
+        type: "CRITERIA_CREATED",
+        criteriaId: newCriteria.id,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: newCriteria,
@@ -74,8 +96,59 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 }
 
 /**
+ * PATCH /api/v1/contest/[id]/criteria
+ * Edita un criterio de evaluación individual
+ */
+export async function PATCH(req: NextRequest, { params }: RouteParams) {
+  try {
+    const { id } = await params;
+    const session = await getCurrentSession();
+    if (!session?.tenantId) throw new UnauthorizedError("No autorizado");
+
+    const body = await req.json();
+    const parsed = UpdateCriteriaSchema.parse(body);
+
+    const criteria = await prisma.contestCriteria.findFirst({
+      where: { id: parsed.criteriaId, contestId: id },
+    });
+    if (!criteria) throw new NotFoundError("Criterio no encontrado");
+
+    const updated = await prisma.contestCriteria.update({
+      where: { id: parsed.criteriaId },
+      data: {
+        ...(parsed.name !== undefined && { name: parsed.name }),
+        ...(parsed.description !== undefined && { description: parsed.description }),
+        ...(parsed.maxScore !== undefined && { maxScore: parsed.maxScore }),
+        ...(parsed.weight !== undefined && { weight: parsed.weight }),
+        ...(parsed.orderIndex !== undefined && { orderIndex: parsed.orderIndex }),
+        ...(parsed.active !== undefined && { active: parsed.active }),
+      },
+    });
+
+    const contest = await prisma.karaokeContest.findUnique({
+      where: { id },
+      select: { eventId: true },
+    });
+    if (contest) {
+      broadcastContestEvent(id, contest.eventId, "CONTEST_STAGE_CHANGE", {
+        type: "CRITERIA_UPDATED",
+        criteriaId: updated.id,
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: updated,
+      message: `Criterio "${updated.name}" actualizado con éxito`,
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+/**
  * PUT /api/v1/contest/[id]/criteria
- * Actualiza en lote o edita criterios existentes
+ * Actualiza en lote criterios existentes
  */
 export async function PUT(req: NextRequest, { params }: RouteParams) {
   try {
@@ -115,6 +188,16 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       orderBy: { orderIndex: "asc" },
     });
 
+    const contest = await prisma.karaokeContest.findUnique({
+      where: { id },
+      select: { eventId: true },
+    });
+    if (contest) {
+      broadcastContestEvent(id, contest.eventId, "CONTEST_STAGE_CHANGE", {
+        type: "CRITERIA_BATCH_UPDATED",
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: updated,
@@ -131,6 +214,10 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
+    const session = await getCurrentSession();
+    if (!session?.tenantId) throw new UnauthorizedError("No autorizado");
+
     const { searchParams } = new URL(req.url);
     const criteriaId = searchParams.get("criteriaId");
 
@@ -138,11 +225,30 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ success: false, error: "criteriaId requerido" }, { status: 400 });
     }
 
+    const criteria = await prisma.contestCriteria.findFirst({
+      where: { id: criteriaId, contestId: id },
+    });
+    if (!criteria) throw new NotFoundError("Criterio no encontrado");
+
     await prisma.contestCriteria.delete({
       where: { id: criteriaId },
     });
 
-    return NextResponse.json({ success: true, message: "Criterio eliminado" });
+    const contest = await prisma.karaokeContest.findUnique({
+      where: { id },
+      select: { eventId: true },
+    });
+    if (contest) {
+      broadcastContestEvent(id, contest.eventId, "CONTEST_STAGE_CHANGE", {
+        type: "CRITERIA_DELETED",
+        criteriaId,
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Criterio "${criteria.name}" eliminado correctamente`,
+    });
   } catch (error) {
     return handleApiError(error);
   }

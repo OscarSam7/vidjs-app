@@ -221,6 +221,16 @@ export default function ContestDashboardPage() {
     weight: 1.0,
   });
 
+  // Form State para Editar Criterio
+  const [editingCriteria, setEditingCriteria] = useState<ContestCriteria | null>(null);
+  const [editCriteriaForm, setEditCriteriaForm] = useState({
+    name: "",
+    description: "",
+    maxScore: 10,
+    weight: 1.0,
+    active: true,
+  });
+
   // Reportes y Acta
   const [reportData, setReportData] = useState<any>(null);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -540,6 +550,118 @@ export default function ContestDashboardPage() {
       }
     } catch {
       showFeedback("error", "Error de conexión al eliminar jurado");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Crear Nuevo Criterio de Evaluación
+  const handleCreateCriteria = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contest) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/criteria`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newCriteriaForm.name.trim(),
+          description: newCriteriaForm.description.trim() || null,
+          maxScore: Number(newCriteriaForm.maxScore),
+          weight: Number(newCriteriaForm.weight),
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", json.message || "Criterio añadido con éxito");
+        setShowNewCriteriaModal(false);
+        setNewCriteriaForm({
+          name: "",
+          description: "",
+          maxScore: 10,
+          weight: 1.0,
+        });
+        fetchContestDetail(contest.id);
+        fetchReports(contest.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo agregar el criterio");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión al agregar criterio");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Abrir Modal de Edición de Criterio
+  const handleOpenEditCriteria = (criteria: ContestCriteria) => {
+    setEditingCriteria(criteria);
+    setEditCriteriaForm({
+      name: criteria.name,
+      description: criteria.description || "",
+      maxScore: criteria.maxScore,
+      weight: criteria.weight,
+      active: criteria.active ?? true,
+    });
+  };
+
+  // Guardar Cambios de Criterio
+  const handleUpdateCriteria = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contest || !editingCriteria) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/criteria`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          criteriaId: editingCriteria.id,
+          name: editCriteriaForm.name.trim(),
+          description: editCriteriaForm.description.trim() || null,
+          maxScore: Number(editCriteriaForm.maxScore),
+          weight: Number(editCriteriaForm.weight),
+          active: editCriteriaForm.active,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", json.message || "Criterio actualizado con éxito");
+        setEditingCriteria(null);
+        fetchContestDetail(contest.id);
+        fetchReports(contest.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo actualizar el criterio");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión al actualizar criterio");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Eliminar Criterio del Certamen
+  const handleDeleteCriteria = async (criteria: ContestCriteria) => {
+    if (!contest) return;
+    const confirmDelete = window.confirm(
+      `¿Estás seguro de que deseas eliminar el criterio "${criteria.name}"?\nLos jurados ya no lo tendrán disponible para evaluar las siguientes actuaciones.`
+    );
+    if (!confirmDelete) return;
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/criteria?criteriaId=${criteria.id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", json.message || "Criterio eliminado");
+        fetchContestDetail(contest.id);
+        fetchReports(contest.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo eliminar el criterio");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión al eliminar criterio");
     } finally {
       setActionLoading(false);
     }
@@ -1426,22 +1548,75 @@ export default function ContestDashboardPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2">
-            {contest.criteria.map((c) => (
-              <div
-                key={c.id}
-                className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-black text-white">{c.name}</h4>
-                  <span className="text-xs font-mono font-bold text-amber-400">
-                    Max: {c.maxScore} pts (x{c.weight})
-                  </span>
+          {contest.criteria.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2">
+              {contest.criteria.map((c) => (
+                <div
+                  key={c.id}
+                  className="p-5 rounded-3xl bg-zinc-950 border border-zinc-800 space-y-3 shadow-xl hover:border-zinc-700 transition-all flex flex-col justify-between"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-black text-white">{c.name}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs font-mono font-bold text-amber-400 px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                            Max: {c.maxScore} pts
+                          </span>
+                          <span className="text-[11px] font-mono text-zinc-400">
+                            Ponderación: x{c.weight}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Botones de acción rápida: Editar y Eliminar */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditCriteria(c)}
+                          className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-amber-400 border border-zinc-800 transition-colors cursor-pointer"
+                          title="Editar criterio"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCriteria(c)}
+                          className="p-2 rounded-xl bg-zinc-900 hover:bg-red-950/60 text-zinc-400 hover:text-red-400 border border-zinc-800 transition-colors cursor-pointer"
+                          title="Eliminar criterio"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {c.description ? (
+                      <p className="text-xs text-zinc-400 leading-relaxed bg-zinc-900/60 p-3 rounded-2xl border border-zinc-800/80">
+                        {c.description}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-zinc-600 italic">Sin descripción complementaria</p>
+                    )}
+                  </div>
                 </div>
-                {c.description && <p className="text-xs text-zinc-400">{c.description}</p>}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 rounded-3xl bg-zinc-950/60 border border-zinc-800 text-center space-y-3">
+              <Sliders className="w-10 h-10 mx-auto text-amber-400/60" />
+              <h4 className="text-sm font-bold text-white">No hay criterios de evaluación configurados</h4>
+              <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                Define criterios como afinación, ritmo, carisma o dificultad vocal para que los jurados emitan sus notas.
+              </p>
+              <button
+                onClick={() => setShowNewCriteriaModal(true)}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Agregar Primer Criterio</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -2143,6 +2318,194 @@ export default function ContestDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setEditingJudge(null)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {actionLoading ? "Guardando..." : "Guardar Cambios"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: NUEVO CRITERIO DE EVALUACIÓN                          */}
+      {/* ============================================================ */}
+      {showNewCriteriaModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <Sliders className="w-5 h-5 text-amber-400" />
+                <span>Nuevo Criterio de Evaluación</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowNewCriteriaModal(false)}
+                className="text-zinc-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCriteria} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre del Criterio *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej: Afinación y Entonación / Carisma / Ritmo"
+                  value={newCriteriaForm.name}
+                  onChange={(e) => setNewCriteriaForm({ ...newCriteriaForm, name: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Descripción / Pauta para Jurados</label>
+                <textarea
+                  rows={2}
+                  placeholder="Ej: Precisión en las notas, control tonal y afinación a lo largo de la canción."
+                  value={newCriteriaForm.description}
+                  onChange={(e) => setNewCriteriaForm({ ...newCriteriaForm, description: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Puntaje Máximo *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    required
+                    value={newCriteriaForm.maxScore}
+                    onChange={(e) => setNewCriteriaForm({ ...newCriteriaForm, maxScore: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 font-mono font-bold text-xs outline-none focus:border-amber-400"
+                  />
+                  <span className="text-[10px] text-zinc-500 mt-0.5 block">Escala habitual: 10</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Ponderación / Peso</label>
+                  <input
+                    type="number"
+                    min={0.1}
+                    max={5}
+                    step={0.1}
+                    required
+                    value={newCriteriaForm.weight}
+                    onChange={(e) => setNewCriteriaForm({ ...newCriteriaForm, weight: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 font-mono font-bold text-xs outline-none focus:border-amber-400"
+                  />
+                  <span className="text-[10px] text-zinc-500 mt-0.5 block">Multiplicador (1.0)</span>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewCriteriaModal(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {actionLoading ? "Guardando..." : "Crear Criterio"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: EDITAR CRITERIO EXISTENTE                             */}
+      {/* ============================================================ */}
+      {editingCriteria && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-amber-400" />
+                <span>Editar Criterio de Evaluación</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingCriteria(null)}
+                className="text-zinc-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateCriteria} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre del Criterio *</label>
+                <input
+                  type="text"
+                  required
+                  value={editCriteriaForm.name}
+                  onChange={(e) => setEditCriteriaForm({ ...editCriteriaForm, name: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Descripción / Pauta</label>
+                <textarea
+                  rows={2}
+                  value={editCriteriaForm.description}
+                  onChange={(e) => setEditCriteriaForm({ ...editCriteriaForm, description: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Puntaje Máximo *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    required
+                    value={editCriteriaForm.maxScore}
+                    onChange={(e) => setEditCriteriaForm({ ...editCriteriaForm, maxScore: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 font-mono font-bold text-xs outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Ponderación / Peso</label>
+                  <input
+                    type="number"
+                    min={0.1}
+                    max={5}
+                    step={0.1}
+                    required
+                    value={editCriteriaForm.weight}
+                    onChange={(e) => setEditCriteriaForm({ ...editCriteriaForm, weight: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 font-mono font-bold text-xs outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingCriteria(null)}
                   className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
                 >
                   Cancelar
