@@ -92,11 +92,22 @@ export async function POST(req: NextRequest) {
       existing = await prisma.karaokeContest.findUnique({ where: { code } });
     }
 
+    let targetEventId = parsed.eventId || null;
+    if (!targetEventId) {
+      const activeEvent = await prisma.event.findFirst({
+        where: { tenantId: session.tenantId, status: "ACTIVE" },
+        select: { id: true },
+      });
+      if (activeEvent) {
+        targetEventId = activeEvent.id;
+      }
+    }
+
     // 1. Crear el certamen
     const contest = await prisma.karaokeContest.create({
       data: {
         tenantId: session.tenantId,
-        eventId: parsed.eventId || null,
+        eventId: targetEventId,
         name: parsed.name,
         description: parsed.description || null,
         coverUrl: parsed.coverUrl || null,

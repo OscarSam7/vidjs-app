@@ -122,6 +122,23 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     });
     if (!contest) throw new NotFoundError("Concurso no encontrado");
 
+    let targetEventId = contest.eventId;
+    if (!targetEventId) {
+      const activeEv = await prisma.event.findFirst({
+        where: { tenantId: session.tenantId, status: "ACTIVE" },
+        select: { id: true },
+      });
+      if (activeEv) {
+        targetEventId = activeEv.id;
+        await prisma.karaokeContest
+          .update({
+            where: { id },
+            data: { eventId: targetEventId },
+          })
+          .catch(() => {});
+      }
+    }
+
     const perf = await prisma.contestPerformance.findUnique({
       where: { id: performanceId },
       include: {
@@ -154,14 +171,14 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       });
 
       // Broadcast a la pantalla de TV y evento
-      broadcastContestEvent(id, contest.eventId, "CONTEST_PERFORMANCE_UPDATE", {
+      broadcastContestEvent(id, targetEventId, "CONTEST_PERFORMANCE_UPDATE", {
         action: "CALL_TO_STAGE",
         performance: updatedPerf,
         criteria: contest.criteria,
       });
 
       // También emitir llamada de escenario tradicional
-      broadcastContestEvent(id, contest.eventId, "SINGER_CALLED", {
+      broadcastContestEvent(id, targetEventId, "SINGER_CALLED", {
         tableLabel: updatedPerf.participant.tableLabel,
         singerName: updatedPerf.participant.stageName || updatedPerf.participant.name,
         songTitle: updatedPerf.songTitle,
@@ -188,7 +205,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         },
       });
 
-      broadcastContestEvent(id, contest.eventId, "CONTEST_VOTING_OPEN", {
+      broadcastContestEvent(id, targetEventId, "CONTEST_VOTING_OPEN", {
         performance: updatedPerf,
         criteria: contest.criteria,
       });
@@ -240,7 +257,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         data: { totalPoints: newTotalPoints },
       });
 
-      broadcastContestEvent(id, contest.eventId, "CONTEST_VOTING_CLOSED", {
+      broadcastContestEvent(id, targetEventId, "CONTEST_VOTING_CLOSED", {
         performance: updatedPerf,
       });
 
@@ -265,7 +282,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         },
       });
 
-      broadcastContestEvent(id, contest.eventId, "CONTEST_REVEAL_SCORES", {
+      broadcastContestEvent(id, targetEventId, "CONTEST_REVEAL_SCORES", {
         performance: updatedPerf,
         criteria: contest.criteria,
       });
@@ -288,7 +305,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         include: { participant: true },
       });
 
-      broadcastContestEvent(id, contest.eventId, "CONTEST_GOLDEN_BUZZER", {
+      broadcastContestEvent(id, targetEventId, "CONTEST_GOLDEN_BUZZER", {
         performance: updatedPerf,
         judgeName: judgeName || "Pase de Oro",
       });
