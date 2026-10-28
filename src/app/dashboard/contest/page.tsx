@@ -120,6 +120,10 @@ interface ContestDetail {
   name: string;
   code: string;
   description: string | null;
+  coverUrl?: string | null;
+  logoUrl?: string | null;
+  sponsors?: string | null;
+  organizers?: string | null;
   status: string;
   scoringMode: string;
   publicVoteWeight: number;
@@ -168,6 +172,7 @@ export default function ContestDashboardPage() {
   const [showNewStageModal, setShowNewStageModal] = useState(false);
   const [showNewJudgeModal, setShowNewJudgeModal] = useState(false);
   const [showNewCriteriaModal, setShowNewCriteriaModal] = useState(false);
+  const [showBrandingModal, setShowBrandingModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState<{ url: string; title: string; pin?: string } | null>(null);
 
   // Form State para Nuevo Concurso
@@ -246,7 +251,18 @@ export default function ContestDashboardPage() {
 
   // Reportes y Acta
   const [reportData, setReportData] = useState<any>(null);
+  const [selectedReportStageId, setSelectedReportStageId] = useState<string>("ALL");
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Form State para Marca, Logo, Auspiciadores y Organizadores
+  const [brandingForm, setBrandingForm] = useState({
+    logoUrl: "",
+    coverUrl: "",
+    sponsors: "",
+    organizers: "",
+    prizes: "",
+    rules: "",
+  });
 
   const showFeedback = (type: "success" | "error" | "info", text: string) => {
     setFeedbackMsg({ type, text });
@@ -286,9 +302,13 @@ export default function ContestDashboardPage() {
   };
 
   // Cargar datos de reporte
-  const fetchReports = async (contestId: string) => {
+  const fetchReports = async (contestId: string, stageId?: string) => {
     try {
-      const res = await fetch(`/api/v1/contest/${contestId}/reports`);
+      const url =
+        stageId && stageId !== "ALL"
+          ? `/api/v1/contest/${contestId}/reports?stageId=${stageId}`
+          : `/api/v1/contest/${contestId}/reports`;
+      const res = await fetch(url);
       const json = await res.json();
       if (res.ok && json.success) {
         setReportData(json.data);
@@ -794,6 +814,71 @@ export default function ContestDashboardPage() {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  // Abrir Modal de Marca, Logo y Auspiciadores
+  const handleOpenBrandingModal = () => {
+    if (!contest) return;
+    setBrandingForm({
+      logoUrl: contest.logoUrl || "",
+      coverUrl: contest.coverUrl || "",
+      sponsors: contest.sponsors || "",
+      organizers: contest.organizers || "",
+      prizes: contest.prizes || "",
+      rules: contest.rules || "",
+    });
+    setShowBrandingModal(true);
+  };
+
+  // Guardar Cambios de Marca y Auspiciadores
+  const handleSaveBranding = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contest) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(brandingForm),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", json.message || "Ajustes de marca, logo y auspiciadores guardados");
+        setShowBrandingModal(false);
+        fetchContestDetail(contest.id);
+        fetchReports(contest.id, selectedReportStageId);
+      } else {
+        showFeedback("error", json.error || "No se pudo actualizar la marca");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión al actualizar marca");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Copiar Resumen de Premiación y Acta para WhatsApp / Redes Sociales
+  const handleCopyReportSummary = () => {
+    if (!reportData) return;
+    const c = reportData.contest;
+    const top3 = reportData.leaderboard.slice(0, 3);
+    const podiumText = top3
+      .map(
+        (p: any, idx: number) =>
+          `${idx === 0 ? "🥇 1ER LUGAR (CAMPEÓN)" : idx === 1 ? "🥈 2DO LUGAR" : "🥉 3ER LUGAR"}: ${p.stageName} ("${p.songTitle}") - ${p.totalScore} pts`
+      )
+      .join("\n");
+
+    const textToCopy = `🏆 ACTA OFICIAL DE RESULTADOS: ${c.name.toUpperCase()}\n🏛️ Establecimiento: ${c.tenantName} | Código: ${c.code}\n📅 Fecha: ${new Date().toLocaleDateString("es-ES")}\n\n🌟 CUADRO DE HONOR Y GANADORES:\n${podiumText}\n\n${
+      reportData.stats?.tableStats?.length
+        ? `🔥 Mesa Más Participativa: ${reportData.stats.tableStats[0].tableLabel} (${reportData.stats.tableStats[0].totalVotes} votos emitidos con presencia QR)\n`
+        : ""
+    }${
+      c.sponsors ? `\n🤝 Con el valioso auspicio de:\n${c.sponsors}\n` : ""
+    }\n✨ Certificación Notarial Automatizada con Vidjs Karaoke Pro 2026`;
+
+    navigator.clipboard.writeText(textToCopy);
+    showFeedback("success", "📋 ¡Acta y podio copiados! Listos para compartir en WhatsApp o redes sociales.");
   };
 
   // Cargar Canción Directamente en la Consola DJ / Karaoke
@@ -1982,22 +2067,70 @@ export default function ContestDashboardPage() {
       {/* PESTAÑA 6: REPORTES E INFORMES OFICIALES                     */}
       {/* ============================================================ */}
       {activeTab === "reports" && reportData && (
-        <div className="bg-zinc-900/70 border border-zinc-800 rounded-3xl p-6 space-y-6">
-          <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="space-y-6">
+          {/* Barra de Acciones y Filtros (no imprimible) */}
+          <div className="no-print bg-zinc-900/80 border border-zinc-800 rounded-3xl p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-amber-400" />
-                <span>Acta Oficial y Planilla de Puntuaciones</span>
-              </h3>
-              <p className="text-xs text-zinc-400">
-                Informe listo para imprimir, archivar o exportar a Excel
+                <h3 className="text-base font-black text-white uppercase tracking-wider">
+                  Acta Notarial & Informes Especiales
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-xs font-bold border border-amber-500/40">
+                  Formato Oficial A4
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Certificación oficial con firmas de jurados, podio, desglose y mención de auspiciadores.
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              {/* Selector de Gala o Consolidado */}
+              <div className="flex items-center gap-1.5 bg-zinc-950 px-3 py-1.5 rounded-xl border border-zinc-800">
+                <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+                <select
+                  value={selectedReportStageId}
+                  onChange={(e) => {
+                    const stageId = e.target.value;
+                    setSelectedReportStageId(stageId);
+                    if (contest) fetchReports(contest.id, stageId);
+                  }}
+                  className="bg-transparent text-white text-xs font-bold outline-none cursor-pointer pr-2"
+                >
+                  <option value="ALL">🌐 Consolidado General (Todas las Fechas)</option>
+                  {contest?.stages.map((st) => (
+                    <option key={st.id} value={st.id}>
+                      📅 {st.title} ({st.stageType})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Botón para configurar Marca y Auspiciadores */}
+              <button
+                onClick={handleOpenBrandingModal}
+                className="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Configurar Logo, Auspiciadores, Organizadores y Premios"
+              >
+                <Sliders className="w-4 h-4" />
+                <span>Marca & Auspiciadores</span>
+              </button>
+
+              {/* Botón Copiar Resumen */}
+              <button
+                onClick={handleCopyReportSummary}
+                className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Copiar podio y resumen formateado para redes o WhatsApp"
+              >
+                <Copy className="w-4 h-4" />
+                <span>Copiar Podio</span>
+              </button>
+
+              {/* Botón Imprimir Acta Notarial Oficial */}
               <button
                 onClick={() => window.print()}
-                className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md"
+                className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-transform active:scale-95 cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
                 <span>Imprimir Acta Oficial</span>
@@ -2005,118 +2138,449 @@ export default function ContestDashboardPage() {
             </div>
           </div>
 
-          {/* Tabla Imprimible del Acta */}
-          <div className="rounded-2xl bg-zinc-950 border border-zinc-800 overflow-x-auto p-4 space-y-4">
-            <div className="text-center py-2 border-b border-zinc-800 space-y-1">
-              <h2 className="text-xl font-black text-white uppercase tracking-tight">
-                {reportData.contest.name}
-              </h2>
-              <p className="text-xs text-zinc-400">
-                Establecimiento: {reportData.contest.tenantName} &bull; Código: {reportData.contest.code}
-              </p>
+          {/* ========================================================== */}
+          {/* EL ACTA OFICIAL NOTARIAL (DISEÑO PARA PANTALLA E IMPRESIÓN) */}
+          {/* ========================================================== */}
+          <div
+            id="official-acta"
+            className="acta-document bg-zinc-950 border-4 border-double border-amber-500/40 rounded-3xl p-6 sm:p-10 space-y-8 shadow-2xl relative text-zinc-100"
+          >
+            {/* 1. Membrete de Honor & Escudo Notarial */}
+            <div className="border-b-2 border-zinc-800 pb-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                {/* Logo oficial o Escudo */}
+                <div className="flex items-center gap-4">
+                  {reportData.contest.logoUrl ? (
+                    <img
+                      src={reportData.contest.logoUrl}
+                      alt="Logo Oficial"
+                      className="w-20 h-20 object-contain rounded-2xl border border-amber-500/40 bg-zinc-900/80 p-1.5 shadow-xl shrink-0"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center text-zinc-950 shadow-xl shadow-amber-500/20 shrink-0">
+                      <Trophy className="w-9 h-9" />
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-[10px] font-mono font-black tracking-[0.2em] uppercase text-amber-400">
+                      REPÚBLICA DEL KARAOKE &bull; SISTEMA NOTARIAL VIDJS PRO
+                    </span>
+                    <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight uppercase">
+                      Acta Oficial de Calificaciones y Premiación
+                    </h1>
+                    <p className="text-sm font-bold text-amber-200">
+                      {reportData.contest.name}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Sello Notarial Digital con QR */}
+                <div className="flex items-center gap-3 bg-zinc-900/80 border border-zinc-800 p-2.5 rounded-2xl self-start sm:self-auto shrink-0">
+                  <div className="bg-white p-1 rounded-lg">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(
+                        typeof window !== "undefined" ? window.location.href : "https://vidjs.com"
+                      )}`}
+                      alt="QR Validación"
+                      className="w-14 h-14"
+                    />
+                  </div>
+                  <div className="text-left font-mono">
+                    <span className="text-[9px] uppercase font-black text-emerald-400 block">
+                      ✓ ACTA CERTIFICADA
+                    </span>
+                    <span className="text-[10px] text-zinc-300 block font-bold">
+                      FOLIO #{reportData.contest.code}
+                    </span>
+                    <span className="text-[9px] text-zinc-500 block">
+                      Validez electrónica Vidjs
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fila de Metadatos de Fe Pública */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-zinc-900 text-xs">
+                <div className="bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800/80">
+                  <span className="text-[10px] uppercase font-mono text-zinc-500 block">Sede / Establecimiento</span>
+                  <strong className="text-zinc-200">{reportData.contest.tenantName}</strong>
+                </div>
+                <div className="bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800/80">
+                  <span className="text-[10px] uppercase font-mono text-zinc-500 block">Fecha y Hora de Emisión</span>
+                  <strong className="text-zinc-200 font-mono text-[11px]">
+                    {new Date().toLocaleDateString("es-ES", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}{" "}
+                    {new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+                  </strong>
+                </div>
+                <div className="bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800/80">
+                  <span className="text-[10px] uppercase font-mono text-zinc-500 block">Etapa Evaluada</span>
+                  <strong className="text-amber-300">
+                    {reportData.activeStage ? reportData.activeStage.title : "Gran Final & Consolidado General"}
+                  </strong>
+                </div>
+                <div className="bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800/80">
+                  <span className="text-[10px] uppercase font-mono text-zinc-500 block">Ponderación Notarial</span>
+                  <strong className="text-zinc-200 font-mono text-[11px]">
+                    {100 - reportData.contest.publicVoteWeight}% Jueces / {reportData.contest.publicVoteWeight}% Mesas
+                  </strong>
+                </div>
+              </div>
             </div>
 
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-zinc-800 text-zinc-400 font-mono uppercase text-[10px]">
-                  <th className="py-2.5 px-3">Puesto</th>
-                  <th className="py-2.5 px-3">Participante</th>
-                  <th className="py-2.5 px-3">Canción & Artista</th>
-                  <th className="py-2.5 px-3">Gala</th>
-                  <th className="py-2.5 px-3 text-right">Nota Jurado</th>
-                  <th className="py-2.5 px-3 text-right">Voto Público</th>
-                  <th className="py-2.5 px-3 text-right">Puntaje Final</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/60 font-medium">
-                {reportData.leaderboard.map((row: any) => (
-                  <tr key={row.rank} className="hover:bg-zinc-900/50">
-                    <td className="py-3 px-3 font-mono font-bold text-amber-400">
-                      {row.rank === 1 ? "🥇 1°" : row.rank === 2 ? "🥈 2°" : row.rank === 3 ? "🥉 3°" : `${row.rank}°`}
-                    </td>
-                    <td className="py-3 px-3 font-bold text-white">
-                      {row.stageName} {row.name !== row.stageName && `(${row.name})`}
-                    </td>
-                    <td className="py-3 px-3 text-zinc-300">
-                      "{row.songTitle}" - {row.artistName}
-                    </td>
-                    <td className="py-3 px-3 text-zinc-400">{row.stageTitle}</td>
-                    <td className="py-3 px-3 text-right font-mono font-bold text-zinc-200">
-                      {row.judgeScore}
-                    </td>
-                    <td className="py-3 px-3 text-right font-mono text-zinc-400">
-                      {row.publicScore}
-                    </td>
-                    <td className="py-3 px-3 text-right font-mono font-black text-amber-300 text-sm">
-                      {row.totalScore} pts
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            {/* 2. Franja Oficial de Auspiciadores & Colaboradores */}
+            {((reportData.contest.parsedSponsors && reportData.contest.parsedSponsors.length > 0) || reportData.contest.sponsors) && (
+              <div className="bg-zinc-900/70 border border-amber-500/30 p-4 sm:p-5 rounded-2xl space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <Award className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span className="text-xs font-mono font-black text-amber-300 uppercase tracking-widest">
+                    Evento Auspiciado y Patrocinado por Nuestras Marcas Aliadas
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {reportData.contest.parsedSponsors && reportData.contest.parsedSponsors.length > 0 ? (
+                    reportData.contest.parsedSponsors.map((sp: any, sIdx: number) => (
+                      <div
+                        key={sIdx}
+                        className="px-3.5 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center gap-2 shadow-sm"
+                      >
+                        {sp.logoUrl ? (
+                          <img src={sp.logoUrl} alt={sp.name} className="w-5 h-5 object-contain rounded" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        )}
+                        <span className="text-xs font-bold text-white">{sp.name}</span>
+                        {sp.category && (
+                          <span className="text-[10px] font-mono text-zinc-400 bg-zinc-800/80 px-2 py-0.5 rounded-md">
+                            {sp.category}
+                          </span>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-zinc-300 whitespace-pre-line font-medium">
+                      {reportData.contest.sponsors}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
-          {/* Tabla de Auditoría y Participación Popular por Mesa */}
-          {reportData?.stats?.tableStats && reportData.stats.tableStats.length > 0 && (
-            <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-5 space-y-4">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div>
-                  <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                    <QrCode className="w-4 h-4 text-amber-400" />
-                    <span>Auditoría de Participación y Votos por Mesa</span>
-                  </h4>
-                  <p className="text-xs text-zinc-400">
-                    Registro consolidado de todas las mesas del local que participaron en las votaciones
+            {/* 3. Premios y Comité Organizador (si existen) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {reportData.contest.prizes && (
+                <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-1.5">
+                  <span className="text-[10px] font-mono font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Trophy className="w-3.5 h-3.5" />
+                    <span>Premios Oficiales en Disputa</span>
+                  </span>
+                  <p className="text-xs text-zinc-300 whitespace-pre-line leading-relaxed font-medium">
+                    {reportData.contest.prizes}
                   </p>
                 </div>
-                <span className="text-xs font-mono font-bold text-emerald-400 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>100% Presencia en Local Verificada por QR</span>
+              )}
+              {((reportData.contest.parsedOrganizers && reportData.contest.parsedOrganizers.length > 0) || reportData.contest.organizers) && (
+                <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-1.5">
+                  <span className="text-[10px] font-mono font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Comité Organizador & Producción</span>
+                  </span>
+                  {reportData.contest.parsedOrganizers && reportData.contest.parsedOrganizers.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      {reportData.contest.parsedOrganizers.map((org: any, oIdx: number) => (
+                        <div key={oIdx} className="text-zinc-300">
+                          <span className="text-zinc-500 font-mono text-[10px] block">{org.role}</span>
+                          <strong className="text-white">{org.name}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-300 whitespace-pre-line font-medium">
+                      {reportData.contest.organizers}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 4. Cuadro de Honor (Podio Oficial de Ganadores) */}
+            <div className="space-y-3 avoid-break">
+              <div className="flex items-center gap-2 border-b border-zinc-800 pb-2">
+                <Crown className="w-5 h-5 text-amber-400" />
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                  Cuadro de Honor y Podio de Campeones
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {reportData.leaderboard.slice(0, 3).map((winner: any, i: number) => {
+                  const border =
+                    i === 0
+                      ? "border-amber-400 bg-amber-950/20 shadow-amber-500/10"
+                      : i === 1
+                      ? "border-slate-300 bg-zinc-900/60"
+                      : "border-amber-700 bg-zinc-900/60";
+                  const badgeBg =
+                    i === 0
+                      ? "bg-amber-500 text-zinc-950"
+                      : i === 1
+                      ? "bg-slate-300 text-zinc-950"
+                      : "bg-amber-700 text-white";
+
+                  return (
+                    <div
+                      key={winner.rank}
+                      className={`p-5 rounded-2xl border-2 ${border} space-y-2 shadow-xl relative overflow-hidden`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase font-mono ${badgeBg}`}>
+                          {i === 0 ? "🥇 Gran Campeón" : i === 1 ? "🥈 2do Lugar" : "🥉 3er Lugar"}
+                        </span>
+                        <span className="text-xs font-mono font-bold text-amber-400">
+                          {winner.totalScore} pts
+                        </span>
+                      </div>
+                      <div>
+                        <h4 className="text-base font-black text-white">{winner.stageName}</h4>
+                        {winner.name !== winner.stageName && (
+                          <p className="text-[11px] text-zinc-400 font-medium">Nombre: {winner.name}</p>
+                        )}
+                        <p className="text-xs text-zinc-300 italic mt-0.5">
+                          "{winner.songTitle}" - {winner.artistName}
+                        </p>
+                      </div>
+                      <div className="pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400 font-mono">
+                        <span>Mesa: {winner.tableLabel}</span>
+                        <span>Jueces: {winner.judgeScore} &bull; Público: {winner.publicScore}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 5. Planilla General de Puntuaciones y Clasificación Oficial */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2 border-b border-zinc-800 pb-2">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                    Planilla General de Calificaciones y Dictamen Oficial
+                  </h3>
+                </div>
+                <span className="text-xs font-mono text-zinc-400">
+                  Total de Actuaciones Registradas: {reportData.leaderboard.length}
                 </span>
               </div>
 
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-zinc-800 text-zinc-400 font-mono uppercase text-[10px]">
-                    <th className="py-2.5 px-3">Mesa / Ubicación</th>
-                    <th className="py-2.5 px-3 text-center">Votos Emitidos</th>
-                    <th className="py-2.5 px-3 text-center">Promedio Calificación Otorgada</th>
-                    <th className="py-2.5 px-3 text-center">Aplausos / Ánimos</th>
-                    <th className="py-2.5 px-3 text-right">Estado</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800/60 font-medium">
-                  {reportData.stats.tableStats.map((table: any, idx: number) => (
-                    <tr key={table.tableLabel} className="hover:bg-zinc-900/50">
-                      <td className="py-3 px-3 font-bold text-white flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center font-mono text-[10px] text-amber-400">
-                          {idx + 1}
-                        </span>
-                        <span>{table.tableLabel}</span>
-                        {idx === 0 && (
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                            🔥 Más Participativa
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 text-center font-mono text-zinc-200">
-                        {table.totalVotes} votos
-                      </td>
-                      <td className="py-3 px-3 text-center font-mono font-bold text-amber-400">
-                        ⭐ {table.avgStars} / 5.0
-                      </td>
-                      <td className="py-3 px-3 text-center font-mono text-pink-400">
-                        +{table.cheerCount}
-                      </td>
-                      <td className="py-3 px-3 text-right font-mono text-emerald-400 text-[11px]">
-                        ✓ En Local (QR OK)
-                      </td>
+              <div className="overflow-x-auto rounded-2xl border border-zinc-800">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="bg-zinc-900 border-b border-zinc-800 text-zinc-400 font-mono uppercase text-[10px]">
+                      <th className="py-3 px-3.5">Puesto</th>
+                      <th className="py-3 px-3.5">Participante</th>
+                      <th className="py-3 px-3.5">Canción & Artista</th>
+                      <th className="py-3 px-3.5">Mesa</th>
+                      <th className="py-3 px-3.5 text-right">Nota Jurado</th>
+                      <th className="py-3 px-3.5 text-right">Voto Público</th>
+                      <th className="py-3 px-3.5 text-right font-black text-amber-400">Puntaje Final</th>
+                      <th className="py-3 px-3.5 text-center">Dictamen Notarial</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/60 font-medium">
+                    {reportData.leaderboard.map((row: any) => (
+                      <tr key={row.rank} className="hover:bg-zinc-900/40">
+                        <td className="py-3 px-3.5 font-mono font-bold text-amber-400">
+                          {row.rank === 1 ? "🥇 1°" : row.rank === 2 ? "🥈 2°" : row.rank === 3 ? "🥉 3°" : `${row.rank}°`}
+                        </td>
+                        <td className="py-3 px-3.5 font-bold text-white">
+                          <div>
+                            <span>{row.stageName}</span>
+                            {row.name !== row.stageName && (
+                              <span className="text-[11px] text-zinc-400 font-normal ml-1">({row.name})</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3.5 text-zinc-300">
+                          "{row.songTitle}" <span className="text-zinc-500 font-normal">&bull; {row.artistName}</span>
+                        </td>
+                        <td className="py-3 px-3.5 font-mono text-zinc-400 text-[11px]">{row.tableLabel}</td>
+                        <td className="py-3 px-3.5 text-right font-mono text-zinc-200 font-bold">
+                          {row.judgeScore}
+                        </td>
+                        <td className="py-3 px-3.5 text-right font-mono text-zinc-400">
+                          {row.publicScore}
+                          {row.publicVotesCount > 0 && (
+                            <span className="text-[10px] text-zinc-500 ml-1">({row.publicVotesCount}v)</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3.5 text-right font-mono font-black text-amber-300 text-sm">
+                          {row.totalScore} pts
+                        </td>
+                        <td className="py-3 px-3.5 text-center">
+                          {row.rank === 1 ? (
+                            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black uppercase">
+                              🥇 Campeón Oficial
+                            </span>
+                          ) : row.rank === 2 ? (
+                            <span className="px-2.5 py-0.5 rounded-full bg-slate-400/20 text-slate-300 border border-slate-400/40 text-[10px] font-bold uppercase">
+                              🥈 Sub-Campeón
+                            </span>
+                          ) : row.rank === 3 ? (
+                            <span className="px-2.5 py-0.5 rounded-full bg-amber-700/20 text-amber-500 border border-amber-700/40 text-[10px] font-bold uppercase">
+                              🥉 3er Puesto
+                            </span>
+                          ) : row.rank <= 6 ? (
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
+                              Clasificado Destacado
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-[10px]">
+                              Mención de Honor
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          )}
+
+            {/* 6. Tabla de Auditoría y Votación Popular por Mesa */}
+            {reportData?.stats?.tableStats && reportData.stats.tableStats.length > 0 && (
+              <div className="space-y-3 avoid-break">
+                <div className="flex items-center justify-between flex-wrap gap-2 border-b border-zinc-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="w-4 h-4 text-amber-400" />
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                      Auditoría Notarial de Votación Popular por Mesas
+                    </h3>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-emerald-400 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>100% Presencia en Local Verificada por QR</span>
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto rounded-2xl border border-zinc-800">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-zinc-900 border-b border-zinc-800 text-zinc-400 font-mono uppercase text-[10px]">
+                        <th className="py-2.5 px-3">Mesa / Ubicación</th>
+                        <th className="py-2.5 px-3 text-center">Votos Emitidos</th>
+                        <th className="py-2.5 px-3 text-center">Calificación Promedio</th>
+                        <th className="py-2.5 px-3 text-center">Aplausos / Ánimos</th>
+                        <th className="py-2.5 px-3 text-right">Validación</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/60 font-medium">
+                      {reportData.stats.tableStats.map((table: any, idx: number) => (
+                        <tr key={table.tableLabel} className="hover:bg-zinc-900/40">
+                          <td className="py-2.5 px-3 font-bold text-white flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center font-mono text-[10px] text-amber-400">
+                              {idx + 1}
+                            </span>
+                            <span>{table.tableLabel}</span>
+                            {idx === 0 && (
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                🔥 Más Participativa
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-mono text-zinc-200">
+                            {table.totalVotes} votos
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-mono font-bold text-amber-400">
+                            ⭐ {table.avgStars} / 5.0
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-mono text-pink-400">
+                            +{table.cheerCount}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono text-emerald-400 text-[11px]">
+                            ✓ Presencia Física Verificada (QR)
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 7. Bloque Solemne de Firmas y Rúbricas */}
+            <div className="pt-6 border-t-2 border-zinc-800 space-y-4 avoid-break">
+              <div className="text-center space-y-1">
+                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-400">
+                  CERTIFICACIÓN SOLEMNE Y FE PÚBLICA
+                </span>
+                <p className="text-xs text-zinc-300 italic max-w-2xl mx-auto">
+                  "Los suscritos miembros del Jurado Calificador Oficial y la Dirección General del evento certifican bajo fe de juramento que las evaluaciones y calificaciones expuestas en esta acta son el resultado inalterable de las actuaciones artísticas presenciadas en vivo y la votación auditada del público comensal presente en sala."
+                </p>
+              </div>
+
+              {/* Firmas de los Jurados Oficiales y Dirección */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 pt-6">
+                {reportData.judges.map((judge: any) => (
+                  <div key={judge.id} className="text-center space-y-2">
+                    <div className="border-b-2 border-dashed border-zinc-600 h-14 flex items-end justify-center pb-1">
+                      <span className="text-[11px] font-serif italic text-zinc-500">Rúbrica Oficial</span>
+                    </div>
+                    <div>
+                      <strong className="text-xs font-bold text-white block">{judge.name}</strong>
+                      <span className="text-[10px] text-zinc-400 block font-medium">
+                        {judge.title || "Jurado Calificador Oficial"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Firma del DJ Anfitrión / Dirección Técnica */}
+                <div className="text-center space-y-2">
+                  <div className="border-b-2 border-dashed border-zinc-600 h-14 flex items-end justify-center pb-1">
+                    <span className="text-[11px] font-serif italic text-zinc-500">Rúbrica Técnica</span>
+                  </div>
+                  <div>
+                    <strong className="text-xs font-bold text-white block">
+                      {reportData.contest.parsedOrganizers?.find((o: any) => o.role.toLowerCase().includes("dj"))?.name || "DJ Anfitrión & Sonido"}
+                    </strong>
+                    <span className="text-[10px] text-zinc-400 block font-medium">
+                      Dirección Técnica & Cabina Vidjs
+                    </span>
+                  </div>
+                </div>
+
+                {/* Firma de la Gerencia / Establecimiento */}
+                <div className="text-center space-y-2">
+                  <div className="border-b-2 border-dashed border-zinc-600 h-14 flex items-end justify-center pb-1">
+                    <span className="text-[11px] font-serif italic text-zinc-500">Sello & Conforme</span>
+                  </div>
+                  <div>
+                    <strong className="text-xs font-bold text-white block">
+                      Gerencia / Dirección Sede
+                    </strong>
+                    <span className="text-[10px] text-zinc-400 block font-medium">
+                      {reportData.contest.tenantName}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 8. Pie de Página Institucional */}
+            <div className="border-t border-zinc-900 pt-4 flex flex-col sm:flex-row items-center justify-between text-[11px] text-zinc-500 gap-2">
+              <span>
+                Documento generado por Vidjs Karaoke Professional &bull; Certificación Criptográfica #
+                {reportData.contest.code}
+              </span>
+              <span>
+                Expedido en {reportData.contest.tenantName} &bull; Todos los derechos reservados.
+              </span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -3119,6 +3583,202 @@ export default function ContestDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* ============================================================ */}
+      {/* MODAL: MARCA OFICIAL, LOGO, AUSPICIADORES Y ORGANIZADORES    */}
+      {/* ============================================================ */}
+      {showBrandingModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <Sliders className="w-5 h-5 text-amber-400" />
+                <div>
+                  <h3 className="text-base font-black text-white">
+                    Configuración de Marca, Logo y Auspiciadores
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    Personaliza logotipos, patrocinadores, premios y directores del certamen
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBrandingModal(false)}
+                className="text-zinc-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBranding} className="space-y-4 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Logo URL */}
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">
+                    URL del Logo Oficial del Certamen o Local
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://ejemplo.com/logo-certamen.png"
+                    value={brandingForm.logoUrl}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, logoUrl: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono"
+                  />
+                  <span className="text-[10px] text-zinc-500 mt-1 block">
+                    Membrete en el acta notarial, diplomas y pantalla gigante.
+                  </span>
+                </div>
+
+                {/* Previsualización del Logo */}
+                <div className="flex items-center gap-3 p-3 bg-zinc-950 rounded-xl border border-zinc-800">
+                  <div className="w-16 h-16 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
+                    {brandingForm.logoUrl ? (
+                      <img src={brandingForm.logoUrl} alt="Preview" className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <Trophy className="w-7 h-7 text-zinc-600" />
+                    )}
+                  </div>
+                  <div className="text-xs text-zinc-400">
+                    <strong className="text-white block">Previsualización</strong>
+                    <span className="text-[11px]">
+                      {brandingForm.logoUrl ? "Logo asignado correctamente" : "Sin logo (se usará el escudo oficial Vidjs)"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Imagen de Portada / Banner */}
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
+                  URL de Imagen de Portada o Banner de Gala (Opcional)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://ejemplo.com/banner-gala.jpg"
+                  value={brandingForm.coverUrl}
+                  onChange={(e) => setBrandingForm({ ...brandingForm, coverUrl: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono"
+                />
+              </div>
+
+              {/* Auspiciadores, Patrocinadores y Colaboradores */}
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
+                  Auspiciadores, Patrocinadores & Marcas Colaboradoras
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder={`Ejemplo (uno por línea):\nCerveza Corona | Patrocinador Oficial | https://ejemplo.com/logo-corona.png\nAudio Pro Master | Auspicio Técnico de Sonido\nRestaurante El Gaucho | Premio Especial Cena VIP`}
+                  value={brandingForm.sponsors}
+                  onChange={(e) => setBrandingForm({ ...brandingForm, sponsors: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none font-mono"
+                />
+                <span className="text-[10px] text-zinc-500 mt-1 block">
+                  Formato recomendado: <code>Nombre de Marca | Categoría | LogoUrl</code> o un nombre de empresa por renglón.
+                </span>
+              </div>
+
+              {/* Comité Organizador & Directores */}
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
+                  Comité Organizador, Directores & DJ Anfitrión
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder={`Director del Certamen: Oscar Sam\nDJ Anfitrión / Sonido: DJ Sam\nProductora General: Vidjs Live`}
+                  value={brandingForm.organizers}
+                  onChange={(e) => setBrandingForm({ ...brandingForm, organizers: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none font-mono"
+                />
+              </div>
+
+              {/* Premios en Disputa */}
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
+                  Premios Oficiales del Certamen
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder={`🥇 1er Lugar: Trofeo de Oro + $500.000 + Grabación de Single\n🥈 2do Lugar: Trofeo de Plata + $200.000\n🥉 3er Lugar: Medalla de Bronce + Cena VIP`}
+                  value={brandingForm.prizes}
+                  onChange={(e) => setBrandingForm({ ...brandingForm, prizes: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+
+              {/* Reglamento / Notas */}
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
+                  Reglamento o Mensaje Institucional de Clausura (Opcional)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Ej: Certamen regido bajo normas internacionales de entonación y carisma escénico."
+                  value={brandingForm.rules}
+                  onChange={(e) => setBrandingForm({ ...brandingForm, rules: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-zinc-800 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBrandingModal(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {actionLoading ? "Guardando..." : "Guardar Configuración"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Estilos Globales de Impresión Notarial A4 */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+          body {
+            background: #ffffff !important;
+            color: #000000 !important;
+          }
+          nav,
+          header,
+          aside,
+          button,
+          .no-print {
+            display: none !important;
+          }
+          .acta-document {
+            background: #ffffff !important;
+            color: #000000 !important;
+            border: 2px solid #000000 !important;
+            padding: 16px !important;
+            margin: 0 !important;
+            width: 100% !important;
+            box-shadow: none !important;
+          }
+          .acta-document * {
+            color: #000000 !important;
+            border-color: #9ca3af !important;
+          }
+          .avoid-break {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

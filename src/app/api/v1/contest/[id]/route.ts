@@ -110,6 +110,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         publicVoteWeight: body.publicVoteWeight !== undefined ? body.publicVoteWeight : undefined,
         rules: body.rules !== undefined ? body.rules : undefined,
         prizes: body.prizes !== undefined ? body.prizes : undefined,
+        logoUrl: body.logoUrl !== undefined ? body.logoUrl : undefined,
+        sponsors: body.sponsors !== undefined ? (typeof body.sponsors === "string" ? body.sponsors : JSON.stringify(body.sponsors)) : undefined,
+        organizers: body.organizers !== undefined ? (typeof body.organizers === "string" ? body.organizers : JSON.stringify(body.organizers)) : undefined,
         activeStageId: body.activeStageId !== undefined ? body.activeStageId : undefined,
       },
       include: {

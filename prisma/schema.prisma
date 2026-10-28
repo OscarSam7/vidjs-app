@@ -347,6 +347,9 @@ model KaraokeContest {
   publicVoteWeight Int                  @default(0) // 0% a 50%
   rules            String?              // Reglamento del certamen
   prizes           String?              // Premios 1er, 2do, 3er lugar (JSON o texto)
+  logoUrl          String?              // Logo oficial del concurso/certamen
+  sponsors         String?              // Auspiciadores, patrocinadores y marcas colaboradoras (JSON o texto)
+  organizers       String?              // Organizadores, director de certamen, DJ anfitrión (JSON o texto)
   activeStageId    String?              // ID de la fecha/gala activa
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt

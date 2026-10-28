@@ -172,6 +172,40 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       };
     });
 
+    // Parsear Auspiciadores / Patrocinadores y Organizadores
+    let parsedSponsors: Array<{ name: string; logoUrl?: string; category?: string; notes?: string }> = [];
+    if (contest.sponsors) {
+      try {
+        const parsed = JSON.parse(contest.sponsors);
+        if (Array.isArray(parsed)) parsedSponsors = parsed;
+      } catch {
+        parsedSponsors = contest.sponsors
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((name) => ({ name, category: "Auspiciador Oficial" }));
+      }
+    }
+
+    let parsedOrganizers: Array<{ name: string; role?: string }> = [];
+    if (contest.organizers) {
+      try {
+        const parsed = JSON.parse(contest.organizers);
+        if (Array.isArray(parsed)) parsedOrganizers = parsed;
+      } catch {
+        parsedOrganizers = contest.organizers
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((line) => {
+            const parts = line.split(":");
+            return parts.length > 1
+              ? { role: parts[0].trim(), name: parts.slice(1).join(":").trim() }
+              : { role: "Organización", name: line };
+          });
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -186,7 +220,12 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           rules: contest.rules,
           prizes: contest.prizes,
           tenantName: contest.tenant.name,
-          logoUrl: contest.tenant.logoUrl,
+          logoUrl: contest.logoUrl || contest.tenant.logoUrl || contest.coverUrl || null,
+          coverUrl: contest.coverUrl || null,
+          sponsors: contest.sponsors || null,
+          parsedSponsors,
+          organizers: contest.organizers || null,
+          parsedOrganizers,
           createdAt: contest.createdAt,
         },
         activeStage: contest.stages.find((s) => s.id === (stageId || contest.activeStageId)) || null,
