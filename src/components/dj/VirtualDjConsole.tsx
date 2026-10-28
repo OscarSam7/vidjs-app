@@ -14,6 +14,7 @@ import {
   Disc3,
   Music,
   ChevronDown,
+  ChevronUp,
   Sparkles,
   ArrowRight,
   Flame,
@@ -664,6 +665,157 @@ export default function VirtualDjConsole({
       setIsSyncedB(false);
       setResetSuccessPitchB(true);
       setTimeout(() => setResetSuccessPitchB(false), 1500);
+    }
+  };
+
+  // ==================== 2-TOUCH TEMPO ADJUST (SUBIR / BAJAR TIEMPO) ====================
+  // Deck A: Subir Tiempo (+0.5% pitch)
+  const pitchUpArmedARef = useRef(false);
+  const [pitchUpArmedA, setPitchUpArmedA] = useState(false);
+  const [pitchUpSuccessA, setPitchUpSuccessA] = useState(false);
+  const pitchUpTimerARef = useRef<NodeJS.Timeout | null>(null);
+
+  const handlePitchUpA = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (pitchDownArmedARef.current) {
+      pitchDownArmedARef.current = false;
+      setPitchDownArmedA(false);
+      if (pitchDownTimerARef.current) clearTimeout(pitchDownTimerARef.current);
+    }
+    if (!pitchUpArmedARef.current) {
+      // 1er toque: Armar / Activar
+      pitchUpArmedARef.current = true;
+      setPitchUpArmedA(true);
+      if (pitchUpTimerARef.current) clearTimeout(pitchUpTimerARef.current);
+      pitchUpTimerARef.current = setTimeout(() => {
+        pitchUpArmedARef.current = false;
+        setPitchUpArmedA(false);
+      }, 3500);
+    } else {
+      // 2do toque: Ejecutar acción
+      if (pitchUpTimerARef.current) clearTimeout(pitchUpTimerARef.current);
+      pitchUpArmedARef.current = false;
+      setPitchUpArmedA(false);
+      setPitchA((prev) => Math.min(8, Number((prev + 0.5).toFixed(1))));
+      resetPitchTimerA();
+      setPitchUpSuccessA(true);
+      setTimeout(() => setPitchUpSuccessA(false), 1200);
+    }
+  };
+
+  // Deck A: Bajar Tiempo (-0.5% pitch)
+  const pitchDownArmedARef = useRef(false);
+  const [pitchDownArmedA, setPitchDownArmedA] = useState(false);
+  const [pitchDownSuccessA, setPitchDownSuccessA] = useState(false);
+  const pitchDownTimerARef = useRef<NodeJS.Timeout | null>(null);
+
+  const handlePitchDownA = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (pitchUpArmedARef.current) {
+      pitchUpArmedARef.current = false;
+      setPitchUpArmedA(false);
+      if (pitchUpTimerARef.current) clearTimeout(pitchUpTimerARef.current);
+    }
+    if (!pitchDownArmedARef.current) {
+      // 1er toque: Armar / Activar
+      pitchDownArmedARef.current = true;
+      setPitchDownArmedA(true);
+      if (pitchDownTimerARef.current) clearTimeout(pitchDownTimerARef.current);
+      pitchDownTimerARef.current = setTimeout(() => {
+        pitchDownArmedARef.current = false;
+        setPitchDownArmedA(false);
+      }, 3500);
+    } else {
+      // 2do toque: Ejecutar acción
+      if (pitchDownTimerARef.current) clearTimeout(pitchDownTimerARef.current);
+      pitchDownArmedARef.current = false;
+      setPitchDownArmedA(false);
+      setPitchA((prev) => Math.max(-8, Number((prev - 0.5).toFixed(1))));
+      resetPitchTimerA();
+      setPitchDownSuccessA(true);
+      setTimeout(() => setPitchDownSuccessA(false), 1200);
+    }
+  };
+
+  // Deck B: Subir Tiempo (+0.5% pitch)
+  const pitchUpArmedBRef = useRef(false);
+  const [pitchUpArmedB, setPitchUpArmedB] = useState(false);
+  const [pitchUpSuccessB, setPitchUpSuccessB] = useState(false);
+  const pitchUpTimerBRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handlePitchUpB = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (pitchDownArmedBRef.current) {
+      pitchDownArmedBRef.current = false;
+      setPitchDownArmedB(false);
+      if (pitchDownTimerBRef.current) clearTimeout(pitchDownTimerBRef.current);
+    }
+    if (!pitchUpArmedBRef.current) {
+      // 1er toque: Armar / Activar
+      pitchUpArmedBRef.current = true;
+      setPitchUpArmedB(true);
+      if (pitchUpTimerBRef.current) clearTimeout(pitchUpTimerBRef.current);
+      pitchUpTimerBRef.current = setTimeout(() => {
+        pitchUpArmedBRef.current = false;
+        setPitchUpArmedB(false);
+      }, 3500);
+    } else {
+      // 2do toque: Ejecutar acción
+      if (pitchUpTimerBRef.current) clearTimeout(pitchUpTimerBRef.current);
+      pitchUpArmedBRef.current = false;
+      setPitchUpArmedB(false);
+      setPitchB((prev) => Math.min(8, Number((prev + 0.5).toFixed(1))));
+      setIsSyncedB(false);
+      resetPitchTimerB();
+      setPitchUpSuccessB(true);
+      setTimeout(() => setPitchUpSuccessB(false), 1200);
+    }
+  };
+
+  // Deck B: Bajar Tiempo (-0.5% pitch)
+  const pitchDownArmedBRef = useRef(false);
+  const [pitchDownArmedB, setPitchDownArmedB] = useState(false);
+  const [pitchDownSuccessB, setPitchDownSuccessB] = useState(false);
+  const pitchDownTimerBRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handlePitchDownB = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (pitchUpArmedBRef.current) {
+      pitchUpArmedBRef.current = false;
+      setPitchUpArmedB(false);
+      if (pitchUpTimerBRef.current) clearTimeout(pitchUpTimerBRef.current);
+    }
+    if (!pitchDownArmedBRef.current) {
+      // 1er toque: Armar / Activar
+      pitchDownArmedBRef.current = true;
+      setPitchDownArmedB(true);
+      if (pitchDownTimerBRef.current) clearTimeout(pitchDownTimerBRef.current);
+      pitchDownTimerBRef.current = setTimeout(() => {
+        pitchDownArmedBRef.current = false;
+        setPitchDownArmedB(false);
+      }, 3500);
+    } else {
+      // 2do toque: Ejecutar acción
+      if (pitchDownTimerBRef.current) clearTimeout(pitchDownTimerBRef.current);
+      pitchDownArmedBRef.current = false;
+      setPitchDownArmedB(false);
+      setPitchB((prev) => Math.max(-8, Number((prev - 0.5).toFixed(1))));
+      setIsSyncedB(false);
+      resetPitchTimerB();
+      setPitchDownSuccessB(true);
+      setTimeout(() => setPitchDownSuccessB(false), 1200);
     }
   };
 
@@ -3930,8 +4082,65 @@ export default function VirtualDjConsole({
               </div>
             </div>
 
-            {/* Pitch / Tempo Fader Vertical Deck A (2-Toques Seguridad) */}
-            <div className="flex flex-col items-center justify-between h-40 w-20 bg-zinc-950/80 p-1.5 rounded-xl border border-zinc-800 touch-pan-y select-none relative">
+            {/* Contenedor Pitch Fader y Botones Subir/Bajar Tiempo Deck A */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Botones 2-Toques Subir / Bajar Tiempo Deck A (lado izquierdo del cuadro hacia dentro) */}
+              <div className="flex flex-col justify-between h-40 py-0.5 gap-1 shrink-0">
+                {/* Botón SUBIR TIEMPO (+0.5%) */}
+                <button
+                  type="button"
+                  onClick={handlePitchUpA}
+                  className={`w-9 sm:w-10 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-1 cursor-pointer select-none active:scale-95 border ${
+                    pitchUpSuccessA
+                      ? "bg-emerald-500 text-black border-emerald-400 font-black shadow-md scale-105"
+                      : pitchUpArmedA
+                      ? "bg-amber-400 text-black border-amber-300 font-black animate-pulse shadow-[0_0_12px_rgba(251,191,36,0.7)] scale-105"
+                      : "bg-zinc-900/90 hover:bg-purple-950/70 border-zinc-800 hover:border-purple-500/50 text-purple-300 hover:text-white"
+                  }`}
+                  title={
+                    pitchUpArmedA
+                      ? "2° toque: Toca para subir tempo +0.5%"
+                      : "1° toque: Toca para activar subir tempo (+0.5%)"
+                  }
+                >
+                  <ChevronUp className="w-3.5 h-3.5 shrink-0" />
+                  <span className="text-[8px] font-mono font-black leading-none mt-0.5">
+                    {pitchUpSuccessA ? "✓" : pitchUpArmedA ? "CONFIRM" : "+0.5%"}
+                  </span>
+                  <span className="text-[6.5px] uppercase font-bold tracking-tight opacity-75">
+                    {pitchUpArmedA ? "SUBIR" : "TEMPO"}
+                  </span>
+                </button>
+
+                {/* Botón BAJAR TIEMPO (-0.5%) */}
+                <button
+                  type="button"
+                  onClick={handlePitchDownA}
+                  className={`w-9 sm:w-10 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-1 cursor-pointer select-none active:scale-95 border ${
+                    pitchDownSuccessA
+                      ? "bg-emerald-500 text-black border-emerald-400 font-black shadow-md scale-105"
+                      : pitchDownArmedA
+                      ? "bg-amber-400 text-black border-amber-300 font-black animate-pulse shadow-[0_0_12px_rgba(251,191,36,0.7)] scale-105"
+                      : "bg-zinc-900/90 hover:bg-purple-950/70 border-zinc-800 hover:border-purple-500/50 text-purple-300 hover:text-white"
+                  }`}
+                  title={
+                    pitchDownArmedA
+                      ? "2° toque: Toca para bajar tempo -0.5%"
+                      : "1° toque: Toca para activar bajar tempo (-0.5%)"
+                  }
+                >
+                  <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+                  <span className="text-[8px] font-mono font-black leading-none mt-0.5">
+                    {pitchDownSuccessA ? "✓" : pitchDownArmedA ? "CONFIRM" : "-0.5%"}
+                  </span>
+                  <span className="text-[6.5px] uppercase font-bold tracking-tight opacity-75">
+                    {pitchDownArmedA ? "BAJAR" : "TEMPO"}
+                  </span>
+                </button>
+              </div>
+
+              {/* Pitch / Tempo Fader Vertical Deck A (2-Toques Seguridad) */}
+              <div className="flex flex-col items-center justify-between h-40 w-20 bg-zinc-950/80 p-1.5 rounded-xl border border-zinc-800 touch-pan-y select-none relative">
               {/* Indicador de Valor y Bloqueo / Desbloqueo */}
               <button
                 type="button"
@@ -4019,6 +4228,7 @@ export default function VirtualDjConsole({
               </button>
             </div>
           </div>
+        </div>
 
           {/* Performance Pads: Hot Cues & Auto Loop */}
           <div className="space-y-2 pt-2 border-t border-zinc-800/80">
@@ -4895,97 +5105,155 @@ export default function VirtualDjConsole({
 
           {/* Platter / Jogwheel Deck B & Pitch Fader */}
           <div className="flex items-center justify-around sm:justify-between gap-3 sm:gap-4 py-2 w-full">
-            {/* Pitch / Tempo Fader Vertical Deck B (2-Toques Seguridad) */}
-            <div className="flex flex-col items-center justify-between h-40 w-20 bg-zinc-950/80 p-1.5 rounded-xl border border-zinc-800 touch-pan-y select-none relative">
-              {/* Indicador de Valor y Bloqueo / Desbloqueo */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (isPitchActiveB) {
-                    setIsPitchActiveB(false);
-                    if (pitchTimerBRef.current) clearTimeout(pitchTimerBRef.current);
-                  } else {
-                    handleActivatePitchB();
-                  }
-                }}
-                className={`flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold transition-all cursor-pointer ${
-                  isPitchActiveB
-                    ? "bg-cyan-950 border border-cyan-400 text-cyan-200 shadow-sm animate-pulse"
-                    : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-300"
-                }`}
-                title={isPitchActiveB ? "Pitch activo (toca para bloquear)" : "1° toque: Toca para activar ajuste de tempo"}
-              >
-                {isPitchActiveB ? (
-                  <>
-                    <Unlock className="w-2.5 h-2.5 text-cyan-400 shrink-0" />
-                    <span>{pitchB >= 0 ? `+${pitchB.toFixed(1)}%` : `${pitchB.toFixed(1)}%`}</span>
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-2.5 h-2.5 text-zinc-500 shrink-0" />
-                    <span>{pitchB >= 0 ? `+${pitchB.toFixed(1)}%` : `${pitchB.toFixed(1)}%`}</span>
-                  </>
-                )}
-              </button>
-
-              {/* Slider con Overlay protector para el 1er toque y libre scroll vertical */}
-              <div className="relative flex items-center justify-center my-auto w-20 h-24 touch-pan-y">
-                {!isPitchActiveB && (
-                  <div
-                    onClick={handleActivatePitchB}
-                    className="absolute inset-0 z-10 cursor-pointer flex flex-col items-center justify-center rounded-lg bg-zinc-950/75 border border-dashed border-cyan-500/40 hover:border-cyan-400 transition-all touch-pan-y select-none group"
-                    title="1er toque: Toca para activar y mover el tempo"
-                  >
-                    <Lock className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
-                    <span className="text-[7.5px] font-mono text-zinc-400 group-hover:text-cyan-300 mt-0.5 text-center font-bold px-0.5 leading-tight">
-                      1° toque activar
-                    </span>
-                  </div>
-                )}
-
-                <input
-                  type="range"
-                  min={-8}
-                  max={8}
-                  step={0.1}
-                  disabled={!isPitchActiveB}
-                  value={pitchB}
-                  onChange={(e) => {
-                    setPitchB(Number(e.target.value));
-                    setIsSyncedB(false);
-                    resetPitchTimerB();
+            {/* Contenedor Pitch Fader y Botones Subir/Bajar Tiempo Deck B */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Pitch / Tempo Fader Vertical Deck B (2-Toques Seguridad) */}
+              <div className="flex flex-col items-center justify-between h-40 w-20 bg-zinc-950/80 p-1.5 rounded-xl border border-zinc-800 touch-pan-y select-none relative">
+                {/* Indicador de Valor y Bloqueo / Desbloqueo */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isPitchActiveB) {
+                      setIsPitchActiveB(false);
+                      if (pitchTimerBRef.current) clearTimeout(pitchTimerBRef.current);
+                    } else {
+                      handleActivatePitchB();
+                    }
                   }}
-                  onPointerDown={resetPitchTimerB}
-                  className={`h-24 -rotate-90 w-24 accent-cyan-400 appearance-none bg-zinc-800 rounded-lg transition-all ${
+                  className={`flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold transition-all cursor-pointer ${
                     isPitchActiveB
-                      ? "cursor-pointer ring-1 ring-cyan-500/50 shadow-sm shadow-cyan-500/20"
-                      : "opacity-40 pointer-events-none cursor-not-allowed"
+                      ? "bg-cyan-950 border border-cyan-400 text-cyan-200 shadow-sm animate-pulse"
+                      : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-300"
                   }`}
-                />
+                  title={isPitchActiveB ? "Pitch activo (toca para bloquear)" : "1° toque: Toca para activar ajuste de tempo"}
+                >
+                  {isPitchActiveB ? (
+                    <>
+                      <Unlock className="w-2.5 h-2.5 text-cyan-400 shrink-0" />
+                      <span>{pitchB >= 0 ? `+${pitchB.toFixed(1)}%` : `${pitchB.toFixed(1)}%`}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-2.5 h-2.5 text-zinc-500 shrink-0" />
+                      <span>{pitchB >= 0 ? `+${pitchB.toFixed(1)}%` : `${pitchB.toFixed(1)}%`}</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Slider con Overlay protector para el 1er toque y libre scroll vertical */}
+                <div className="relative flex items-center justify-center my-auto w-20 h-24 touch-pan-y">
+                  {!isPitchActiveB && (
+                    <div
+                      onClick={handleActivatePitchB}
+                      className="absolute inset-0 z-10 cursor-pointer flex flex-col items-center justify-center rounded-lg bg-zinc-950/75 border border-dashed border-cyan-500/40 hover:border-cyan-400 transition-all touch-pan-y select-none group"
+                      title="1er toque: Toca para activar y mover el tempo"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+                      <span className="text-[7.5px] font-mono text-zinc-400 group-hover:text-cyan-300 mt-0.5 text-center font-bold px-0.5 leading-tight">
+                        1° toque activar
+                      </span>
+                    </div>
+                  )}
+
+                  <input
+                    type="range"
+                    min={-8}
+                    max={8}
+                    step={0.1}
+                    disabled={!isPitchActiveB}
+                    value={pitchB}
+                    onChange={(e) => {
+                      setPitchB(Number(e.target.value));
+                      setIsSyncedB(false);
+                      resetPitchTimerB();
+                    }}
+                    onPointerDown={resetPitchTimerB}
+                    className={`h-24 -rotate-90 w-24 accent-cyan-400 appearance-none bg-zinc-800 rounded-lg transition-all ${
+                      isPitchActiveB
+                        ? "cursor-pointer ring-1 ring-cyan-500/50 shadow-sm shadow-cyan-500/20"
+                        : "opacity-40 pointer-events-none cursor-not-allowed"
+                    }`}
+                  />
+                </div>
+
+                {/* Botón RESET con confirmación en 2 toques */}
+                <button
+                  type="button"
+                  onClick={handleResetPitchB}
+                  className={`text-[9px] font-mono transition-all rounded px-2 py-0.5 cursor-pointer font-bold select-none ${
+                    resetSuccessPitchB
+                      ? "bg-emerald-500 text-black font-black shadow-md scale-105"
+                      : resetArmedPitchB
+                      ? "bg-amber-400 text-black font-black animate-pulse shadow-[0_0_10px_rgba(251,191,36,0.6)] scale-105"
+                      : "text-cyan-300 hover:text-white bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/60 hover:border-cyan-500"
+                  }`}
+                  title={
+                    resetArmedPitchB
+                      ? "2° toque: Toca para resetear Pitch a 0%"
+                      : "1° toque: Toca para activar reseteo a 0%"
+                  }
+                >
+                  {resetSuccessPitchB ? "✓ 0.0%" : resetArmedPitchB ? "¿CONFIRMAR 0%?" : "RESET"}
+                </button>
               </div>
 
-              {/* Botón RESET con confirmación en 2 toques */}
-              <button
-                type="button"
-                onClick={handleResetPitchB}
-                className={`text-[9px] font-mono transition-all rounded px-2 py-0.5 cursor-pointer font-bold select-none ${
-                  resetSuccessPitchB
-                    ? "bg-emerald-500 text-black font-black shadow-md scale-105"
-                    : resetArmedPitchB
-                    ? "bg-amber-400 text-black font-black animate-pulse shadow-[0_0_10px_rgba(251,191,36,0.6)] scale-105"
-                    : "text-cyan-300 hover:text-white bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/60 hover:border-cyan-500"
-                }`}
-                title={
-                  resetArmedPitchB
-                    ? "2° toque: Toca para resetear Pitch a 0%"
-                    : "1° toque: Toca para activar reseteo a 0%"
-                }
-              >
-                {resetSuccessPitchB ? "✓ 0.0%" : resetArmedPitchB ? "¿CONFIRMAR 0%?" : "RESET"}
-              </button>
+              {/* Botones 2-Toques Subir / Bajar Tiempo Deck B (lado derecho del cuadro hacia dentro) */}
+              <div className="flex flex-col justify-between h-40 py-0.5 gap-1 shrink-0">
+                {/* Botón SUBIR TIEMPO (+0.5%) */}
+                <button
+                  type="button"
+                  onClick={handlePitchUpB}
+                  className={`w-9 sm:w-10 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-1 cursor-pointer select-none active:scale-95 border ${
+                    pitchUpSuccessB
+                      ? "bg-emerald-500 text-black border-emerald-400 font-black shadow-md scale-105"
+                      : pitchUpArmedB
+                      ? "bg-amber-400 text-black border-amber-300 font-black animate-pulse shadow-[0_0_12px_rgba(251,191,36,0.7)] scale-105"
+                      : "bg-zinc-900/90 hover:bg-cyan-950/70 border-zinc-800 hover:border-cyan-500/50 text-cyan-300 hover:text-white"
+                  }`}
+                  title={
+                    pitchUpArmedB
+                      ? "2° toque: Toca para subir tempo +0.5%"
+                      : "1° toque: Toca para activar subir tempo (+0.5%)"
+                  }
+                >
+                  <ChevronUp className="w-3.5 h-3.5 shrink-0" />
+                  <span className="text-[8px] font-mono font-black leading-none mt-0.5">
+                    {pitchUpSuccessB ? "✓" : pitchUpArmedB ? "CONFIRM" : "+0.5%"}
+                  </span>
+                  <span className="text-[6.5px] uppercase font-bold tracking-tight opacity-75">
+                    {pitchUpArmedB ? "SUBIR" : "TEMPO"}
+                  </span>
+                </button>
+
+                {/* Botón BAJAR TIEMPO (-0.5%) */}
+                <button
+                  type="button"
+                  onClick={handlePitchDownB}
+                  className={`w-9 sm:w-10 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-1 cursor-pointer select-none active:scale-95 border ${
+                    pitchDownSuccessB
+                      ? "bg-emerald-500 text-black border-emerald-400 font-black shadow-md scale-105"
+                      : pitchDownArmedB
+                      ? "bg-amber-400 text-black border-amber-300 font-black animate-pulse shadow-[0_0_12px_rgba(251,191,36,0.7)] scale-105"
+                      : "bg-zinc-900/90 hover:bg-cyan-950/70 border-zinc-800 hover:border-cyan-500/50 text-cyan-300 hover:text-white"
+                  }`}
+                  title={
+                    pitchDownArmedB
+                      ? "2° toque: Toca para bajar tempo -0.5%"
+                      : "1° toque: Toca para activar bajar tempo (-0.5%)"
+                  }
+                >
+                  <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+                  <span className="text-[8px] font-mono font-black leading-none mt-0.5">
+                    {pitchDownSuccessB ? "✓" : pitchDownArmedB ? "CONFIRM" : "-0.5%"}
+                  </span>
+                  <span className="text-[6.5px] uppercase font-bold tracking-tight opacity-75">
+                    {pitchDownArmedB ? "BAJAR" : "TEMPO"}
+                  </span>
+                </button>
+              </div>
             </div>
 
-            {/* Jogwheel Giratorio Deck B con soporte Drag & Drop */}
+            {/* Jogwheel Giratorio Deck B con soporte Drag & Drop desplazado hacia la derecha */}
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -4998,7 +5266,7 @@ export default function VirtualDjConsole({
                 const file = e.dataTransfer.files?.[0];
                 if (file) handleLoadLocalFileB(file);
               }}
-              className="relative shrink-0 mx-auto"
+              className="relative shrink-0 ml-auto mr-1 sm:mr-3 translate-x-1 sm:translate-x-2"
             >
               <div
                 ref={platterRefB}
@@ -5064,10 +5332,10 @@ export default function VirtualDjConsole({
                           <span className="text-[7px] font-black text-cyan-100">SCRATCH</span>
                         </div>
                       ) : (
-                        <>
-                          <span className="text-[11px] font-black">{effectiveBpmB}</span>
-                          <span className="text-[8px] font-bold opacity-80">BPM</span>
-                        </>
+                        <div className="flex flex-col items-center justify-center translate-x-0.5">
+                          <span className="text-[11px] font-black tracking-wider">{effectiveBpmB}</span>
+                          <span className="text-[8px] font-bold opacity-80 tracking-widest">BPM</span>
+                        </div>
                       )}
                     </div>
                   </div>
