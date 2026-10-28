@@ -167,20 +167,28 @@ const VuMeterBar = memo(function VuMeterBar({
   );
 });
 
-// Iframe estático permanente: el atributo src se asigna UNA SOLA VEZ al montar el componente.
-// NUNCA se navega ni se cambia src en el DOM. Todas las pistas se cargan con loadVideoById por postMessage.
-// Esto garantiza que el navegador jamás reinicie el pipeline de audio ni interfiera con la otra bandeja.
+// Iframe estático para YouTube:
+// Solo se monta si hay un videoId real asignado a la bandeja y la bandeja no está vacía ni expulsada.
+// Jamás se cargan videos de prueba ni IDs por defecto (elimina por completo voces o audios en inglés con bandejas vacías).
 const StableIframe = memo(
   function StableIframe({ deckId, videoId, isEjected, iframeRef }: StableIframeProps) {
     const staticSrcRef = useRef<string>("");
 
-    if (!staticSrcRef.current) {
-      const baseId = videoId || (deckId === "A" ? "M7lc1UVf-VE" : "dQw4w9WgXcQ");
-      const originParam = typeof window !== "undefined" && window.location.origin ? `&origin=${encodeURIComponent(window.location.origin)}` : "";
-      staticSrcRef.current = `https://www.youtube.com/embed/${baseId}?enablejsapi=1&autoplay=0&playsinline=1&controls=0&modestbranding=1&rel=0&widgetid=${deckId === "A" ? 1 : 2}${originParam}`;
+    // Si la bandeja está vacía o expulsada, NO montar ningún iframe
+    if (!videoId || isEjected) {
+      staticSrcRef.current = "";
+      return null;
     }
 
-    const isVisible = Boolean(videoId) && !isEjected;
+    if (!staticSrcRef.current) {
+      const originParam =
+        typeof window !== "undefined" && window.location.origin
+          ? `&origin=${encodeURIComponent(window.location.origin)}`
+          : "";
+      staticSrcRef.current = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&playsinline=1&controls=0&modestbranding=1&rel=0&widgetid=${
+        deckId === "A" ? 1 : 2
+      }${originParam}`;
+    }
 
     return (
       <iframe
@@ -188,16 +196,14 @@ const StableIframe = memo(
         id={`deck-${deckId.toLowerCase()}-iframe`}
         src={staticSrcRef.current}
         title={`Deck ${deckId} Audio Player`}
-        className={`w-full h-full border-0 pointer-events-auto transition-opacity duration-200 ${
-          isVisible ? "opacity-100 relative z-0" : "opacity-0 pointer-events-none absolute inset-0 -z-10"
-        }`}
+        className="w-full h-full border-0 pointer-events-auto transition-opacity duration-200 opacity-100 relative z-0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       />
     );
   },
   (prev, next) =>
     prev.deckId === next.deckId &&
-    Boolean(prev.videoId) === Boolean(next.videoId) &&
+    prev.videoId === next.videoId &&
     prev.isEjected === next.isEjected
 );
 
@@ -311,8 +317,10 @@ const DeckPlayer = memo(
             </div>
           )
         ) : (
-          /* Iframe aislado de YouTube */
-          <StableIframe deckId={deckId} videoId={videoId} isEjected={isEjected} iframeRef={iframeRef} />
+          /* Iframe aislado de YouTube: Solo se monta si hay una pista activa en la bandeja */
+          Boolean(videoId) && !isEjected ? (
+            <StableIframe deckId={deckId} videoId={videoId} isEjected={isEjected} iframeRef={iframeRef} />
+          ) : null
         )}
 
         {/* Overlay HUD cuando hay pista activa */}
@@ -1127,12 +1135,12 @@ export default function VirtualDjConsole({
     return `${id}::${songId}::${title}::${artist}::${ytId}`;
   };
 
-  // Desbloquear audio del navegador
+  // Desbloquear audio del navegador (solo envía comandos a bandejas con pista activa real)
   const unlockAudioA = () => {
     setAudioUnlocked(true);
     setIsMasterMuted(false);
     webDjEngine.unlock();
-    if (iframeRefA.current) {
+    if (iframeRefA.current && videoIdA && !isEjectedA) {
       sendPlayerCommand(iframeRefA.current, "unMute");
       sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
       if (isPlayingA) sendPlayerCommand(iframeRefA.current, "playVideo");
@@ -1143,7 +1151,7 @@ export default function VirtualDjConsole({
     setAudioUnlocked(true);
     setIsMasterMuted(false);
     webDjEngine.unlock();
-    if (iframeRefB.current) {
+    if (iframeRefB.current && videoIdB && !isEjectedB) {
       sendPlayerCommand(iframeRefB.current, "unMute");
       sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
       if (isPlayingB) sendPlayerCommand(iframeRefB.current, "playVideo");
@@ -1154,12 +1162,12 @@ export default function VirtualDjConsole({
     setAudioUnlocked(true);
     setIsMasterMuted(false);
     webDjEngine.unlock();
-    if (iframeRefA.current) {
+    if (iframeRefA.current && videoIdA && !isEjectedA) {
       sendPlayerCommand(iframeRefA.current, "unMute");
       sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
       if (isPlayingA) sendPlayerCommand(iframeRefA.current, "playVideo");
     }
-    if (iframeRefB.current) {
+    if (iframeRefB.current && videoIdB && !isEjectedB) {
       sendPlayerCommand(iframeRefB.current, "unMute");
       sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
       if (isPlayingB) sendPlayerCommand(iframeRefB.current, "playVideo");
@@ -1212,31 +1220,31 @@ export default function VirtualDjConsole({
         // 1. Mantener activo el ancla de audio para que el SO no suspenda el proceso
         startSilentAudioAnchor();
 
-        // 2. Anular el auto-pausado forzado por YouTube embebido en segundo plano
-        if (isPlayingA && iframeRefA.current) {
+        // 2. Anular el auto-pausado forzado por YouTube embebido en segundo plano solo si hay pista activa
+        if (isPlayingA && iframeRefA.current && videoIdA && !isEjectedA) {
           setTimeout(() => {
-            if (iframeRefA.current) {
+            if (iframeRefA.current && videoIdA && !isEjectedA) {
               sendPlayerCommand(iframeRefA.current, "unMute");
               sendPlayerCommand(iframeRefA.current, "playVideo");
             }
           }, 150);
           setTimeout(() => {
-            if (iframeRefA.current) {
+            if (iframeRefA.current && videoIdA && !isEjectedA) {
               sendPlayerCommand(iframeRefA.current, "unMute");
               sendPlayerCommand(iframeRefA.current, "playVideo");
             }
           }, 500);
         }
 
-        if (isPlayingB && iframeRefB.current) {
+        if (isPlayingB && iframeRefB.current && videoIdB && !isEjectedB) {
           setTimeout(() => {
-            if (iframeRefB.current) {
+            if (iframeRefB.current && videoIdB && !isEjectedB) {
               sendPlayerCommand(iframeRefB.current, "unMute");
               sendPlayerCommand(iframeRefB.current, "playVideo");
             }
           }, 150);
           setTimeout(() => {
-            if (iframeRefB.current) {
+            if (iframeRefB.current && videoIdB && !isEjectedB) {
               sendPlayerCommand(iframeRefB.current, "unMute");
               sendPlayerCommand(iframeRefB.current, "playVideo");
             }
@@ -1248,12 +1256,12 @@ export default function VirtualDjConsole({
         webDjEngine.unlock();
         startSilentAudioAnchor();
 
-        if (isPlayingA && iframeRefA.current) {
+        if (isPlayingA && iframeRefA.current && videoIdA && !isEjectedA) {
           sendPlayerCommand(iframeRefA.current, "unMute");
           sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
           sendPlayerCommand(iframeRefA.current, "playVideo");
         }
-        if (isPlayingB && iframeRefB.current) {
+        if (isPlayingB && iframeRefB.current && videoIdB && !isEjectedB) {
           sendPlayerCommand(iframeRefB.current, "unMute");
           sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
           sendPlayerCommand(iframeRefB.current, "playVideo");
