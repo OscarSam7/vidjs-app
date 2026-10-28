@@ -36,6 +36,7 @@ import {
   X,
   Volume2,
   Lock,
+  Pencil,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -198,6 +199,18 @@ export default function ContestDashboardPage() {
   const [newJudgeForm, setNewJudgeForm] = useState({
     name: "",
     title: "Vocal Coach / Productor",
+    accessPin: "",
+    canGoldenBuzzer: true,
+  });
+
+  // Form State para Editar Juez
+  const [editingJudge, setEditingJudge] = useState<ContestJudge | null>(null);
+  const [editJudgeForm, setEditJudgeForm] = useState({
+    name: "",
+    title: "",
+    accessPin: "",
+    canGoldenBuzzer: true,
+    active: true,
   });
 
   // Form State para Nuevo Criterio
@@ -415,6 +428,118 @@ export default function ContestDashboardPage() {
       }
     } catch {
       showFeedback("error", "Error de conexión");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Crear Nuevo Jurado
+  const handleCreateJudge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contest) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/judges`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newJudgeForm.name.trim(),
+          title: newJudgeForm.title.trim() || "Jurado Oficial",
+          accessPin: newJudgeForm.accessPin ? newJudgeForm.accessPin.trim() : null,
+          canGoldenBuzzer: newJudgeForm.canGoldenBuzzer,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", json.message || "Jurado agregado con éxito");
+        setShowNewJudgeModal(false);
+        setNewJudgeForm({
+          name: "",
+          title: "Vocal Coach / Productor",
+          accessPin: "",
+          canGoldenBuzzer: true,
+        });
+        fetchContestDetail(contest.id);
+        fetchReports(contest.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo agregar al jurado");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión al agregar jurado");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Abrir Modal de Edición de Jurado
+  const handleOpenEditJudge = (judge: ContestJudge) => {
+    setEditingJudge(judge);
+    setEditJudgeForm({
+      name: judge.name,
+      title: judge.title || "",
+      accessPin: judge.accessPin,
+      canGoldenBuzzer: judge.canGoldenBuzzer ?? true,
+      active: true,
+    });
+  };
+
+  // Guardar Cambios del Jurado
+  const handleUpdateJudge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contest || !editingJudge) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/judges`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          judgeId: editingJudge.id,
+          name: editJudgeForm.name.trim(),
+          title: editJudgeForm.title.trim() || "Jurado Oficial",
+          accessPin: editJudgeForm.accessPin.trim(),
+          canGoldenBuzzer: editJudgeForm.canGoldenBuzzer,
+          active: editJudgeForm.active,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", json.message || "Jurado actualizado con éxito");
+        setEditingJudge(null);
+        fetchContestDetail(contest.id);
+        fetchReports(contest.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo actualizar el jurado");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión al actualizar jurado");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Eliminar Jurado del Certamen
+  const handleDeleteJudge = async (judge: ContestJudge) => {
+    if (!contest) return;
+    const confirmDelete = window.confirm(
+      `¿Estás seguro de que deseas eliminar al jurado "${judge.name}"?\nEsta acción retirará su acceso y permisos en este certamen.`
+    );
+    if (!confirmDelete) return;
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/judges?judgeId=${judge.id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", json.message || "Jurado eliminado");
+        fetchContestDetail(contest.id);
+        fetchReports(contest.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo eliminar el jurado");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión al eliminar jurado");
     } finally {
       setActionLoading(false);
     }
@@ -1343,66 +1468,114 @@ export default function ContestDashboardPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-            {contest.judges.map((j) => {
-              const accessUrl = typeof window !== "undefined"
-                ? `${window.location.origin}/judge/${contest.code}?pin=${j.accessPin}`
-                : `/judge/${contest.code}?pin=${j.accessPin}`;
+          {contest.judges.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+              {contest.judges.map((j) => {
+                const accessUrl = typeof window !== "undefined"
+                  ? `${window.location.origin}/judge/${contest.code}?pin=${j.accessPin}`
+                  : `/judge/${contest.code}?pin=${j.accessPin}`;
 
-              return (
-                <div
-                  key={j.id}
-                  className="p-5 rounded-3xl bg-zinc-950 border border-zinc-800 space-y-4 shadow-xl"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-zinc-950 font-black text-lg shadow-md">
-                        {j.name.charAt(0)}
+                return (
+                  <div
+                    key={j.id}
+                    className="p-5 rounded-3xl bg-zinc-950 border border-zinc-800 space-y-4 shadow-xl hover:border-zinc-700 transition-all flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-zinc-950 font-black text-lg shadow-md shrink-0">
+                            {j.name.charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-black text-white truncate">{j.name}</h4>
+                            <span className="text-[11px] text-zinc-400 block truncate">
+                              {j.title || "Jurado Oficial"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Botones de acción rápida: Editar y Eliminar */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditJudge(j)}
+                            className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-amber-400 border border-zinc-800 transition-colors cursor-pointer"
+                            title="Editar jurado"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteJudge(j)}
+                            className="p-2 rounded-xl bg-zinc-900 hover:bg-red-950/60 text-zinc-400 hover:text-red-400 border border-zinc-800 transition-colors cursor-pointer"
+                            title="Eliminar jurado"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-black text-white">{j.name}</h4>
-                        <span className="text-[11px] text-zinc-400 block">{j.title}</span>
+
+                      <div className="p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between">
+                        <span className="text-xs text-zinc-400 font-medium">PIN de Acceso Móvil:</span>
+                        <span className="text-lg font-mono font-black text-amber-300 tracking-widest px-2.5 py-0.5 rounded-lg bg-zinc-950 border border-zinc-700">
+                          {j.accessPin}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] text-zinc-400 px-1">
+                        <span>Golden Buzzer:</span>
+                        <span className={`font-bold ${j.canGoldenBuzzer ? "text-yellow-400" : "text-zinc-600"}`}>
+                          {j.canGoldenBuzzer ? "👑 Habilitado" : "❌ Deshabilitado"}
+                        </span>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between">
-                    <span className="text-xs text-zinc-400 font-medium">PIN de Acceso Móvil:</span>
-                    <span className="text-lg font-mono font-black text-amber-300 tracking-widest px-2.5 py-0.5 rounded-lg bg-zinc-950 border border-zinc-700">
-                      {j.accessPin}
-                    </span>
-                  </div>
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-900">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(accessUrl);
+                          showFeedback("success", `¡Enlace copiado para ${j.name}!`);
+                        }}
+                        className="py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copiar Link</span>
+                      </button>
 
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(accessUrl);
-                        showFeedback("success", `¡Enlace copiado para ${j.name}!`);
-                      }}
-                      className="py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copiar Link</span>
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        setShowQrModal({
-                          url: accessUrl,
-                          title: `Acceso Móvil: ${j.name}`,
-                          pin: j.accessPin,
-                        })
-                      }
-                      className="py-2.5 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-black flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <QrCode className="w-3.5 h-3.5" />
-                      <span>Mostrar QR</span>
-                    </button>
+                      <button
+                        onClick={() =>
+                          setShowQrModal({
+                            url: accessUrl,
+                            title: `Acceso Móvil: ${j.name}`,
+                            pin: j.accessPin,
+                          })
+                        }
+                        className="py-2.5 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-black flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                        <span>Mostrar QR</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-8 rounded-3xl bg-zinc-950/60 border border-zinc-800 text-center space-y-3">
+              <Award className="w-10 h-10 mx-auto text-amber-400/60" />
+              <h4 className="text-sm font-bold text-white">No hay jurados registrados</h4>
+              <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                Agrega jurados oficiales para que califiquen a los participantes desde sus propios celulares o tablets.
+              </p>
+              <button
+                onClick={() => setShowNewJudgeModal(true)}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Agregar Primer Jurado</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -1783,6 +1956,203 @@ export default function ContestDashboardPage() {
                   className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md"
                 >
                   {actionLoading ? "Inscribiendo..." : "Inscribir"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: AGREGAR NUEVO JURADO                                  */}
+      {/* ============================================================ */}
+      {showNewJudgeModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <Award className="w-5 h-5 text-amber-400" />
+                <span>Agregar Nuevo Jurado Oficial</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowNewJudgeModal(false)}
+                className="text-zinc-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateJudge} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre Completo *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej: Marcelo Polino / Lucía Méndez"
+                  value={newJudgeForm.name}
+                  onChange={(e) => setNewJudgeForm({ ...newJudgeForm, name: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Cargo / Especialidad (Opcional)</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Vocal Coach / Productor Musical / Músico Invitado"
+                  value={newJudgeForm.title}
+                  onChange={(e) => setNewJudgeForm({ ...newJudgeForm, title: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
+                  PIN de Acceso Móvil (4 dígitos)
+                </label>
+                <input
+                  type="text"
+                  maxLength={4}
+                  pattern="\d{4}"
+                  placeholder="Dejar vacío para generar PIN aleatorio"
+                  value={newJudgeForm.accessPin}
+                  onChange={(e) => setNewJudgeForm({ ...newJudgeForm, accessPin: e.target.value.replace(/\D/g, "") })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 text-xs font-mono font-bold outline-none focus:border-amber-400"
+                />
+                <span className="text-[10px] text-zinc-500 mt-0.5 block">
+                  Si lo dejas vacío, el sistema le asignará un PIN de 4 dígitos automáticamente.
+                </span>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-white block">Botón Dorado (Golden Buzzer)</span>
+                  <span className="text-[10px] text-zinc-400">Permite clasificar directo a un cantante a la gran final</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={newJudgeForm.canGoldenBuzzer}
+                  onChange={(e) => setNewJudgeForm({ ...newJudgeForm, canGoldenBuzzer: e.target.checked })}
+                  className="w-4 h-4 rounded accent-amber-500 cursor-pointer"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewJudgeModal(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {actionLoading ? "Guardando..." : "Agregar Jurado"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: EDITAR JURADO EXISTENTE                               */}
+      {/* ============================================================ */}
+      {editingJudge && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-amber-400" />
+                <span>Editar Jurado Oficial</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingJudge(null)}
+                className="text-zinc-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateJudge} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre Completo *</label>
+                <input
+                  type="text"
+                  required
+                  value={editJudgeForm.name}
+                  onChange={(e) => setEditJudgeForm({ ...editJudgeForm, name: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Cargo / Especialidad</label>
+                <input
+                  type="text"
+                  value={editJudgeForm.title}
+                  onChange={(e) => setEditJudgeForm({ ...editJudgeForm, title: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-zinc-300">PIN de Acceso Móvil (4 dígitos) *</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
+                      setEditJudgeForm({ ...editJudgeForm, accessPin: randomPin });
+                    }}
+                    className="text-[10px] text-amber-400 hover:text-amber-300 font-bold cursor-pointer"
+                  >
+                    🎲 Regenerar PIN
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  required
+                  maxLength={4}
+                  pattern="\d{4}"
+                  value={editJudgeForm.accessPin}
+                  onChange={(e) => setEditJudgeForm({ ...editJudgeForm, accessPin: e.target.value.replace(/\D/g, "") })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 text-sm font-mono font-black outline-none focus:border-amber-400 tracking-widest text-center"
+                />
+              </div>
+
+              <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-white block">Botón Dorado (Golden Buzzer)</span>
+                  <span className="text-[10px] text-zinc-400">Permite dar pase dorado directo a la final</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={editJudgeForm.canGoldenBuzzer}
+                  onChange={(e) => setEditJudgeForm({ ...editJudgeForm, canGoldenBuzzer: e.target.checked })}
+                  className="w-4 h-4 rounded accent-amber-500 cursor-pointer"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingJudge(null)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {actionLoading ? "Guardando..." : "Guardar Cambios"}
                 </button>
               </div>
             </form>
