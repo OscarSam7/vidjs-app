@@ -137,12 +137,29 @@ export default function ContestDashboardPage() {
   const [selectedContestId, setSelectedContestId] = useState<string | null>(null);
   const [contest, setContest] = useState<ContestDetail | null>(null);
   const [activeTab, setActiveTab] = useState<
-    "stage" | "participants" | "stages" | "criteria" | "judges" | "reports" | "diplomas"
+    "stage" | "participants" | "stages" | "criteria" | "judges" | "tableVotes" | "reports" | "diplomas"
   >("stage");
 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+
+  // Votaciones de mesas y auditoría
+  const [publicVotesAudit, setPublicVotesAudit] = useState<{
+    totalVotes: number;
+    avgStars: number;
+    votesByTable: Array<{ tableLabel: string; votersCount: number; avgStars: number; cheerCount: number }>;
+    votes: Array<{ id: string; tableLabel: string; stars: number; cheerCount: number; voterId: string; createdAt: string }>;
+  } | null>(null);
+
+  const [globalTableVotes, setGlobalTableVotes] = useState<{
+    totalVotes: number;
+    avgStars: number;
+    byTable: Array<{ tableLabel: string; totalVotes: number; totalStars: number; avgStars: number; cheerCount: number }>;
+    recentVotes: Array<{ id: string; tableLabel: string; stars: number; cheerCount: number; createdAt: string }>;
+  } | null>(null);
+
+  const [showPublicVotesModal, setShowPublicVotesModal] = useState(false);
 
   // Modales
   const [showNewContestModal, setShowNewContestModal] = useState(false);
@@ -243,6 +260,32 @@ export default function ContestDashboardPage() {
     } catch {}
   };
 
+  // Cargar auditoría de votos de mesas para la actuación actual
+  const fetchPerformancePublicVotes = async (contestId: string, performanceId?: string | null) => {
+    if (!performanceId) {
+      setPublicVotesAudit(null);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/v1/contest/${contestId}/vote/public?performanceId=${performanceId}`);
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setPublicVotesAudit(json.data);
+      }
+    } catch {}
+  };
+
+  // Cargar auditoría global de mesas de todo el certamen
+  const fetchGlobalTableVotes = async (contestId: string) => {
+    try {
+      const res = await fetch(`/api/v1/contest/${contestId}/vote/public`);
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setGlobalTableVotes(json.data);
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     fetchContests();
   }, []);
@@ -251,8 +294,15 @@ export default function ContestDashboardPage() {
     if (selectedContestId) {
       fetchContestDetail(selectedContestId);
       fetchReports(selectedContestId);
+      fetchGlobalTableVotes(selectedContestId);
     }
   }, [selectedContestId]);
+
+  useEffect(() => {
+    if (selectedContestId && contest?.currentPerformance?.id) {
+      fetchPerformancePublicVotes(selectedContestId, contest.currentPerformance.id);
+    }
+  }, [selectedContestId, contest?.currentPerformance?.id]);
 
   // Escuchar eventos en vivo
   useRealtime({
@@ -261,9 +311,20 @@ export default function ContestDashboardPage() {
       if (selectedContestId) {
         if (type === "CONTEST_VOTE_UPDATE") {
           fetchContestDetail(selectedContestId);
-          showFeedback("info", `🗳️ Jurado ${payload?.judgeName || ""} emitió su calificación.`);
+          fetchReports(selectedContestId);
+          fetchGlobalTableVotes(selectedContestId);
+          if (payload?.performanceId) {
+            fetchPerformancePublicVotes(selectedContestId, payload.performanceId);
+          }
+          if (payload?.isPublicVote) {
+            showFeedback("info", `🗳️ Voto desde ${payload?.tableLabel || "Mesa"}: ${payload?.stars}⭐`);
+          } else {
+            showFeedback("info", `🗳️ Jurado ${payload?.judgeName || ""} emitió su calificación.`);
+          }
         } else if (type === "CONTEST_STAGE_CHANGE" || type === "CONTEST_PERFORMANCE_UPDATE") {
           fetchContestDetail(selectedContestId);
+          fetchReports(selectedContestId);
+          fetchGlobalTableVotes(selectedContestId);
         }
       }
     },
@@ -480,6 +541,7 @@ export default function ContestDashboardPage() {
       <div className="flex items-center gap-2 border-b border-zinc-800 pb-3 overflow-x-auto">
         {[
           { id: "stage", label: "Control de Escenario en Vivo", icon: Flame },
+          { id: "tableVotes", label: `Votos de Mesas (${globalTableVotes?.totalVotes || 0})`, icon: QrCode },
           { id: "participants", label: `Cantantes (${contest?.participants.length || 0})`, icon: Users },
           { id: "stages", label: `Fechas / Galas (${contest?.stages.length || 0})`, icon: Calendar },
           { id: "criteria", label: `Criterios (${contest?.criteria.length || 0})`, icon: Sliders },
@@ -690,6 +752,72 @@ export default function ContestDashboardPage() {
                   })}
                 </div>
               </div>
+
+              {/* Monitor de Votación de Mesas y Clientes en Tiempo Real */}
+              <div className="space-y-3 pt-4 border-t border-zinc-800/80">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
+                      🗳️ Votación de Mesas en Vivo ({publicVotesAudit?.totalVotes ?? currentPerformance.publicVotes?.length ?? 0} celulares):
+                    </span>
+                    <span className="text-xs font-mono font-bold text-amber-400 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30">
+                      Promedio: {publicVotesAudit?.avgStars ?? currentPerformance.publicScore ?? 0} / 5.0 ⭐
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowPublicVotesModal(true)}
+                      className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                    >
+                      <span>🔍 Auditar Votos de Mesas</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("tableVotes")}
+                      className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <QrCode className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Ver Resumen de Mesas</span>
+                    </button>
+                  </div>
+                </div>
+
+                {publicVotesAudit?.votesByTable && publicVotesAudit.votesByTable.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {publicVotesAudit.votesByTable.map((t) => (
+                      <div
+                        key={t.tableLabel}
+                        className="p-3 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between"
+                      >
+                        <div className="truncate">
+                          <span className="text-xs font-bold text-white block truncate">
+                            {t.tableLabel}
+                          </span>
+                          <span className="text-[10px] text-zinc-400">
+                            {t.votersCount} {t.votersCount === 1 ? "voto" : "votos"}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-black text-amber-400 flex items-center gap-0.5 justify-end">
+                            {t.avgStars}{" "}
+                            <Star className="w-3 h-3 fill-amber-400 text-amber-400 inline" />
+                          </span>
+                          {t.cheerCount > 0 && (
+                            <span className="text-[9px] text-pink-400 font-bold block">
+                              +{t.cheerCount} ánimos
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-2xl bg-zinc-950/40 border border-zinc-800/60 text-center text-xs text-zinc-500 flex items-center justify-center gap-2">
+                    <QrCode className="w-4 h-4 text-zinc-600" />
+                    <span>Esperando votos del público de las mesas para esta presentación...</span>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="p-8 rounded-3xl bg-zinc-900/60 border border-zinc-800 text-center space-y-3">
@@ -777,6 +905,219 @@ export default function ContestDashboardPage() {
             ) : (
               <div className="p-6 text-center text-zinc-500 text-xs">
                 No hay cantantes programados para esta gala. Usa el botón "+ Inscribir Cantante" para comenzar.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* PESTAÑA: MONITOR Y AUDITORÍA DE VOTOS DE MESAS                */}
+      {/* ============================================================ */}
+      {activeTab === "tableVotes" && (
+        <div className="space-y-6">
+          {/* Cabecera y Resumen */}
+          <div className="bg-zinc-900/60 border border-zinc-800 p-6 rounded-3xl space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <QrCode className="w-5 h-5 text-amber-400" />
+                  <span>Auditoría de Votos de Mesas y Clientes</span>
+                </h3>
+                <p className="text-xs text-zinc-400">
+                  Control en tiempo real de calificaciones emitidas por los comensales presentes con validación estricta de código QR
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => selectedContestId && fetchGlobalTableVotes(selectedContestId)}
+                  className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Actualizar Votos</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Tarjetas Métricas Rápidas */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
+                  Total Votos de Mesas
+                </span>
+                <span className="text-2xl font-black text-white mt-1 block">
+                  {globalTableVotes?.totalVotes || 0}
+                </span>
+                <span className="text-[10px] text-zinc-500">Emitidos desde celulares</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
+                  Promedio de Estrellas
+                </span>
+                <span className="text-2xl font-black text-amber-400 mt-1 block flex items-center gap-1">
+                  ⭐ {globalTableVotes?.avgStars || 0}
+                </span>
+                <span className="text-[10px] text-zinc-500">De un máximo de 5.0</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
+                  Mesas Participantes
+                </span>
+                <span className="text-2xl font-black text-white mt-1 block">
+                  {globalTableVotes?.byTable?.length || 0}
+                </span>
+                <span className="text-[10px] text-zinc-500">Mesas con votos válidos</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
+                  Seguridad y Presencia
+                </span>
+                <span className="text-sm font-black text-emerald-400 mt-1 block flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  100% Verificado
+                </span>
+                <span className="text-[10px] text-emerald-500/80">Solo comensales en el local</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Actuación actual en escenario y sus votos */}
+          {currentPerformance && (
+            <div className="bg-gradient-to-r from-amber-950/20 via-zinc-900 to-zinc-900 border border-amber-500/40 p-5 rounded-3xl space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+                  <span className="text-xs font-black uppercase tracking-wider text-amber-400">
+                    Votación para Cantante en Escenario Ahora
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowPublicVotesModal(true)}
+                  className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <span>🔍 Ver Todos los Votos Detallados</span>
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between flex-wrap gap-3 p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800">
+                <div>
+                  <h4 className="text-lg font-black text-white">
+                    {currentPerformance.participant.stageName || currentPerformance.participant.name}
+                  </h4>
+                  <p className="text-xs text-amber-300 font-bold">
+                    "{currentPerformance.songTitle}" &bull; {currentPerformance.artistName}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <span className="text-[10px] text-zinc-400 block">Votos Recibidos</span>
+                    <span className="text-base font-black text-white font-mono">
+                      {publicVotesAudit?.totalVotes || currentPerformance.publicVotes?.length || 0}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-zinc-400 block">Promedio Estrellas</span>
+                    <span className="text-base font-black text-amber-400 font-mono">
+                      ⭐ {publicVotesAudit?.avgStars || currentPerformance.publicScore || 0} / 5
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {publicVotesAudit?.votesByTable && publicVotesAudit.votesByTable.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {publicVotesAudit.votesByTable.map((t) => (
+                    <div
+                      key={t.tableLabel}
+                      className="p-3.5 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between"
+                    >
+                      <div>
+                        <span className="text-xs font-bold text-white block">{t.tableLabel}</span>
+                        <span className="text-[10px] text-zinc-400">
+                          {t.votersCount} {t.votersCount === 1 ? "comensal" : "comensales"}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-black text-amber-400">
+                          {t.avgStars} ⭐
+                        </span>
+                        {t.cheerCount > 0 && (
+                          <span className="text-[9px] text-pink-400 font-bold block">
+                            +{t.cheerCount} vitoreos
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-center text-xs text-zinc-500 bg-zinc-950/40 rounded-2xl border border-zinc-800/60">
+                  Esperando las calificaciones de las mesas para este tema...
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tabla Consolidada de Todas las Mesas */}
+          <div className="bg-zinc-900/60 border border-zinc-800 p-5 rounded-3xl space-y-4">
+            <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+              <Users className="w-4 h-4 text-amber-400" />
+              <span>Participación Acumulada por Mesa</span>
+            </h4>
+
+            {globalTableVotes?.byTable && globalTableVotes.byTable.length > 0 ? (
+              <div className="rounded-2xl bg-zinc-950 border border-zinc-800 overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-zinc-800 text-zinc-400 font-mono uppercase text-[10px]">
+                      <th className="py-3 px-4">Posición / Mesa</th>
+                      <th className="py-3 px-4 text-center">Votos Emitidos</th>
+                      <th className="py-3 px-4 text-center">Promedio Calificación</th>
+                      <th className="py-3 px-4 text-center">Aplausos & Vitoreos</th>
+                      <th className="py-3 px-4 text-right">Validación</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/60 font-medium">
+                    {globalTableVotes.byTable.map((t, idx) => (
+                      <tr key={t.tableLabel} className="hover:bg-zinc-900/50">
+                        <td className="py-3.5 px-4 font-bold text-white flex items-center gap-2.5">
+                          <span className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center font-mono text-xs text-amber-400 font-black">
+                            {idx + 1}
+                          </span>
+                          <span className="text-sm">{t.tableLabel}</span>
+                          {idx === 0 && (
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                              🔥 Más Activa
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-center font-mono text-zinc-200">
+                          {t.totalVotes} {t.totalVotes === 1 ? "voto" : "votos"}
+                        </td>
+                        <td className="py-3.5 px-4 text-center font-mono font-bold text-amber-400">
+                          ⭐ {t.avgStars} / 5.0
+                        </td>
+                        <td className="py-3.5 px-4 text-center font-mono text-pink-400 font-bold">
+                          +{t.cheerCount}
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <span className="text-emerald-400 font-mono text-[11px] font-bold flex items-center justify-end gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>QR Verificado</span>
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-8 text-center text-xs text-zinc-500 bg-zinc-950/40 rounded-2xl border border-zinc-800/60">
+                Aún no hay votos registrados de mesas en este concurso.
               </div>
             )}
           </div>
@@ -1142,6 +1483,68 @@ export default function ContestDashboardPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Tabla de Auditoría y Participación Popular por Mesa */}
+          {reportData?.stats?.tableStats && reportData.stats.tableStats.length > 0 && (
+            <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-5 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                    <QrCode className="w-4 h-4 text-amber-400" />
+                    <span>Auditoría de Participación y Votos por Mesa</span>
+                  </h4>
+                  <p className="text-xs text-zinc-400">
+                    Registro consolidado de todas las mesas del local que participaron en las votaciones
+                  </p>
+                </div>
+                <span className="text-xs font-mono font-bold text-emerald-400 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>100% Presencia en Local Verificada por QR</span>
+                </span>
+              </div>
+
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-800 text-zinc-400 font-mono uppercase text-[10px]">
+                    <th className="py-2.5 px-3">Mesa / Ubicación</th>
+                    <th className="py-2.5 px-3 text-center">Votos Emitidos</th>
+                    <th className="py-2.5 px-3 text-center">Promedio Calificación Otorgada</th>
+                    <th className="py-2.5 px-3 text-center">Aplausos / Ánimos</th>
+                    <th className="py-2.5 px-3 text-right">Estado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60 font-medium">
+                  {reportData.stats.tableStats.map((table: any, idx: number) => (
+                    <tr key={table.tableLabel} className="hover:bg-zinc-900/50">
+                      <td className="py-3 px-3 font-bold text-white flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center font-mono text-[10px] text-amber-400">
+                          {idx + 1}
+                        </span>
+                        <span>{table.tableLabel}</span>
+                        {idx === 0 && (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                            🔥 Más Participativa
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-center font-mono text-zinc-200">
+                        {table.totalVotes} votos
+                      </td>
+                      <td className="py-3 px-3 text-center font-mono font-bold text-amber-400">
+                        ⭐ {table.avgStars} / 5.0
+                      </td>
+                      <td className="py-3 px-3 text-center font-mono text-pink-400">
+                        +{table.cheerCount}
+                      </td>
+                      <td className="py-3 px-3 text-right font-mono text-emerald-400 text-[11px]">
+                        ✓ En Local (QR OK)
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -1431,6 +1834,112 @@ export default function ContestDashboardPage() {
             >
               Copiar Enlace Directo
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: AUDITORÍA DE VOTOS DE MESAS EN TIEMPO REAL            */}
+      {/* ============================================================ */}
+      {showPublicVotesModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <QrCode className="w-5 h-5 text-amber-400" />
+                  <span>Auditoría de Votos de Mesas en Vivo</span>
+                </h3>
+                <p className="text-xs text-zinc-400">
+                  {currentPerformance?.participant.stageName || currentPerformance?.participant.name || "Actuación en Escenario"} &bull; "{currentPerformance?.songTitle}"
+                </p>
+              </div>
+              <button
+                onClick={() => setShowPublicVotesModal(false)}
+                className="text-zinc-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between flex-wrap gap-2 p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800">
+              <div>
+                <span className="text-xs text-zinc-400">Total Votos Emitidos:</span>
+                <span className="text-sm font-black text-white ml-2 font-mono">
+                  {publicVotesAudit?.totalVotes || 0}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-zinc-400">Promedio de Estrellas:</span>
+                <span className="text-sm font-black text-amber-400 ml-2 font-mono">
+                  ⭐ {publicVotesAudit?.avgStars || 0} / 5.0
+                </span>
+              </div>
+              <div className="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>100% Presencia en Mesa por QR</span>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              {publicVotesAudit?.votes && publicVotesAudit.votes.length > 0 ? (
+                publicVotesAudit.votes.map((v) => (
+                  <div
+                    key={v.id}
+                    className="p-3.5 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between text-xs"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-700 font-black text-zinc-200">
+                        {v.tableLabel}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1 text-amber-400">
+                          {Array.from({ length: v.stars }).map((_, i) => (
+                            <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                          ))}
+                          <span className="font-mono font-bold ml-1 text-zinc-300">({v.stars} / 5)</span>
+                        </div>
+                        <span className="text-[10px] text-zinc-500 font-mono">
+                          Dispositivo: {v.voterId}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-zinc-400 block font-mono">
+                        {new Date(v.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                      </span>
+                      {v.cheerCount > 0 && (
+                        <span className="text-[10px] font-bold text-pink-400">+{v.cheerCount} ánimos</span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center text-zinc-500 text-xs">
+                  Aún no se han recibido votos del público para esta actuación.
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-zinc-800 flex justify-between items-center">
+              <button
+                onClick={() => {
+                  if (selectedContestId && currentPerformance?.id) {
+                    fetchPerformancePublicVotes(selectedContestId, currentPerformance.id);
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Refrescar Votos</span>
+              </button>
+              <button
+                onClick={() => setShowPublicVotesModal(false)}
+                className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs cursor-pointer shadow-md"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}

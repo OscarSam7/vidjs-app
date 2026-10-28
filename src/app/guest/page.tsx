@@ -39,6 +39,7 @@ import {
   Headphones,
   Square,
   Trophy,
+  Lock,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -740,7 +741,8 @@ function GuestContent() {
           tableLabel: session?.table?.label || "Mesa de Invitados",
         }),
       });
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.success) {
         setContestVoteSubmitted(true);
         if (typeof window !== "undefined") {
           localStorage.setItem(
@@ -748,11 +750,13 @@ function GuestContent() {
             JSON.stringify({ stars: contestStars })
           );
         }
-        setSuccessMessage("⭐ ¡Tu voto individual fue enviado y sumado al certamen!");
+        setSuccessMessage(`⭐ ¡Tu voto individual fue registrado desde ${session?.table?.label || "tu mesa"}!`);
         setTimeout(() => setSuccessMessage(null), 5000);
+      } else {
+        alert(data.error || "No se pudo emitir el voto");
       }
     } catch {
-      alert("Error al emitir voto de público");
+      alert("Error de conexión al emitir voto");
     } finally {
       setContestVoteLoading(false);
     }
@@ -1743,19 +1747,31 @@ function GuestContent() {
                       </button>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleSendContestPublicVote}
-                      disabled={contestVoteLoading}
-                      className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30 cursor-pointer disabled:opacity-50"
-                    >
-                      {contestVoteLoading ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trophy className="w-4 h-4 text-black" />
-                      )}
-                      <span>Enviar Mi Calificación</span>
-                    </button>
+                    {!session?.table?.id ? (
+                      <div className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-500/50 text-center space-y-1.5">
+                        <div className="flex items-center justify-center gap-2 text-amber-300 font-bold text-xs">
+                          <Lock className="w-4 h-4 text-amber-400" />
+                          <span>Presencia física requerida en el local</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-300">
+                          Para garantizar que el concurso sea 100% justo, debes escanear el código QR de tu mesa para votar.
+                        </p>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSendContestPublicVote}
+                        disabled={contestVoteLoading}
+                        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30 cursor-pointer disabled:opacity-50"
+                      >
+                        {contestVoteLoading ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trophy className="w-4 h-4 text-black" />
+                        )}
+                        <span>Enviar Mi Calificación ({session.table.label})</span>
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="p-4 rounded-2xl bg-emerald-950/70 border border-emerald-500/50 text-center space-y-2">
@@ -2707,19 +2723,31 @@ function GuestContent() {
                       </button>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleSendContestPublicVote}
-                      disabled={contestVoteLoading}
-                      className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-xl shadow-amber-500/30 cursor-pointer disabled:opacity-50"
-                    >
-                      {contestVoteLoading ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trophy className="w-4 h-4 text-black" />
-                      )}
-                      <span>Enviar Mi Calificación</span>
-                    </button>
+                    {!session?.table?.id ? (
+                      <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/50 text-center space-y-2">
+                        <div className="flex items-center justify-center gap-2 text-amber-300 font-bold text-xs">
+                          <Lock className="w-4 h-4 text-amber-400" />
+                          <span>Presencia física requerida en el local</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-300">
+                          Para garantizar que el concurso sea 100% justo, la votación está reservada a comensales presentes en las mesas. Escanea el código QR de tu mesa para votar.
+                        </p>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSendContestPublicVote}
+                        disabled={contestVoteLoading}
+                        className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-xl shadow-amber-500/30 cursor-pointer disabled:opacity-50"
+                      >
+                        {contestVoteLoading ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trophy className="w-4 h-4 text-black" />
+                        )}
+                        <span>Enviar Mi Calificación ({session.table.label})</span>
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="p-4 rounded-2xl bg-emerald-950/70 border border-emerald-500/50 text-center space-y-2">

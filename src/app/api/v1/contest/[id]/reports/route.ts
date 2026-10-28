@@ -99,6 +99,12 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         goldenBuzzerBy: perf.goldenBuzzerBy,
         scoresByJudge,
         publicVotesCount: perf.publicVotes.length,
+        publicVotes: perf.publicVotes.map((pv) => ({
+          id: pv.id,
+          tableLabel: pv.tableLabel,
+          stars: pv.stars,
+          cheerCount: pv.cheerCount,
+        })),
       };
     });
 
@@ -106,6 +112,12 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     let highestPerformance: { participantName: string; songTitle: string; score: number } | null = null;
     let totalVotesCast = 0;
     let totalPublicStars = 0;
+
+    // Desglose de votos populares por mesa
+    const tableVotesMap = new Map<
+      string,
+      { tableLabel: string; totalVotes: number; totalStars: number; cheerCount: number }
+    >();
 
     performances.forEach((p) => {
       totalVotesCast += p.judgeScores.length + p.publicVotes.length;
@@ -117,7 +129,30 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           score: p.totalScore,
         };
       }
+
+      p.publicVotes.forEach((pv) => {
+        const label = pv.tableLabel || "Público General";
+        const cur = tableVotesMap.get(label) || {
+          tableLabel: label,
+          totalVotes: 0,
+          totalStars: 0,
+          cheerCount: 0,
+        };
+        cur.totalVotes += 1;
+        cur.totalStars += pv.stars;
+        cur.cheerCount += pv.cheerCount;
+        tableVotesMap.set(label, cur);
+      });
     });
+
+    const tableStats = Array.from(tableVotesMap.values())
+      .map((t) => ({
+        tableLabel: t.tableLabel,
+        totalVotes: t.totalVotes,
+        avgStars: Number((t.totalStars / t.totalVotes).toFixed(1)),
+        cheerCount: t.cheerCount,
+      }))
+      .sort((a, b) => b.totalVotes - a.totalVotes);
 
     // Desglose de jueces y promedios otorgados
     const judgeStats = contest.judges.map((j) => {
@@ -163,8 +198,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           totalParticipants: contest.participants.length,
           totalPerformances: performances.length,
           totalVotesCast,
+          totalPublicStars,
           highestPerformance,
           judgeStats,
+          tableStats,
         },
       },
     });
