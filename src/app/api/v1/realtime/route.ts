@@ -20,6 +20,14 @@ export async function GET(req: NextRequest) {
       });
       if (event) {
         eventId = event.id;
+      } else {
+        const contest = await prisma.karaokeContest.findUnique({
+          where: { code },
+          select: { id: true },
+        });
+        if (contest) {
+          eventId = `contest:${contest.id}`;
+        }
       }
     }
 

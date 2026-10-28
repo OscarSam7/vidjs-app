@@ -28,6 +28,7 @@ model Tenant {
   subscription  Subscription?
   auditLogs     AuditLog[]
   photoPosts    PhotoPost[]
+  karaokeContests KaraokeContest[]
 
   @@index([status])
   @@index([slug])
@@ -329,3 +330,189 @@ model PhotoPost {
   @@index([status])
   @@index([tableId])
 }
+
+// 15. KaraokeContest (Concurso o Torneo de Karaoke Pro)
+model KaraokeContest {
+  id               String               @id @default(cuid())
+  tenantId         String
+  tenant           Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventId          String?              // Opcional: vinculado a un evento o independiente
+  name             String
+  description      String?
+  coverUrl         String?
+  code             String               @unique // Código corto para display o acceso de jueces
+  pin              String?              // PIN de acceso del DJ o jueces
+  status           String               @default("DRAFT") // DRAFT, ACTIVE, PAUSED, FINISHED
+  scoringMode      String               @default("AVERAGE") // AVERAGE, SUM, OLYMPIC, WEIGHTED
+  publicVoteWeight Int                  @default(0) // 0% a 50%
+  rules            String?              // Reglamento del certamen
+  prizes           String?              // Premios 1er, 2do, 3er lugar (JSON o texto)
+  activeStageId    String?              // ID de la fecha/gala activa
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  stages           ContestStage[]
+  criteria         ContestCriteria[]
+  judges           ContestJudge[]
+  participants     ContestParticipant[]
+  performances     ContestPerformance[]
+
+  @@index([tenantId])
+  @@index([code])
+  @@index([status])
+}
+
+// 16. ContestStage (Fechas / Galas del concurso para soporte multidía)
+model ContestStage {
+  id           String               @id @default(cuid())
+  contestId    String
+  contest      KaraokeContest       @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  title        String               // Ej: "Gala 1: Eliminatorias", "Gala 2: Semifinal", "Gran Final"
+  stageType    String               @default("QUALIFIERS") // AUDITIONS, QUALIFIERS, SEMIFINALS, FINALS
+  date         DateTime             @default(now())
+  status       String               @default("SCHEDULED") // SCHEDULED, LIVE, COMPLETED
+  orderIndex   Int                  @default(0)
+  notes        String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  performances ContestPerformance[]
+
+  @@index([contestId])
+  @@index([status])
+}
+
+// 17. ContestCriteria (Criterios de evaluación configurables)
+model ContestCriteria {
+  id          String         @id @default(cuid())
+  contestId   String
+  contest     KaraokeContest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  name        String         // Ej: "Afinación", "Ritmo y Métrica", "Presencia Escénica"
+  description String?
+  maxScore    Int            @default(10) // Puntuación máxima (ej. 10, 20, 100)
+  weight      Float          @default(1.0) // Ponderación
+  orderIndex  Int            @default(0)
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([contestId])
+  @@index([active])
+}
+
+// 18. ContestJudge (Jurados del certamen con acceso por PIN móvil)
+model ContestJudge {
+  id              String              @id @default(cuid())
+  contestId       String
+  contest         KaraokeContest      @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  name            String
+  title           String?             // Ej: "Vocal Coach", "Jurado de Honor", "Músico Profesional"
+  avatarUrl       String?
+  accessPin       String              // PIN de 4 dígitos para login móvil instantáneo
+  canGoldenBuzzer Boolean             @default(true)
+  active          Boolean             @default(true)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  scores          ContestJudgeScore[]
+
+  @@unique([contestId, accessPin])
+  @@index([contestId])
+  @@index([accessPin])
+}
+
+// 19. ContestParticipant (Cantantes / Participantes inscritos)
+model ContestParticipant {
+  id           String               @id @default(cuid())
+  contestId    String
+  contest      KaraokeContest       @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  name         String
+  stageName    String?              // Nombre artístico
+  photoUrl     String?
+  phone        String?
+  email        String?
+  tableLabel   String?              // Mesa asignada en el local
+  status       String               @default("ACTIVE") // ACTIVE, QUALIFIED, ELIMINATED, WINNER
+  finalRank    Int?                 // 1, 2, 3...
+  bio          String?
+  totalPoints  Float                @default(0)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  performances ContestPerformance[]
+
+  @@index([contestId])
+  @@index([status])
+}
+
+// 20. ContestPerformance (Actuación en una fecha concreta)
+model ContestPerformance {
+  id             String               @id @default(cuid())
+  contestId      String
+  contest        KaraokeContest       @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  stageId        String
+  stage          ContestStage         @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  participantId  String
+  participant    ContestParticipant   @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  songTitle      String
+  artistName     String
+  youtubeVideoId String?
+  fileUrl        String?
+  orderIndex     Int                  @default(0)
+  status         String               @default("PENDING") // PENDING, ON_STAGE, VOTING_OPEN, VOTING_CLOSED, REVEALED
+  judgeScore     Float                @default(0) // Promedio o suma de jurados
+  publicScore    Float                @default(0) // Promedio de voto popular (1-10 o porcentaje)
+  totalScore     Float                @default(0) // Calificación ponderada final
+  isGoldenBuzzer Boolean              @default(false)
+  goldenBuzzerBy String?              // Nombre del jurado que dio el Pase de Oro
+  rankPosition   Int?                 // Posición de la fecha
+  notes          String?
+  startedAt      DateTime?
+  endedAt        DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  judgeScores    ContestJudgeScore[]
+  publicVotes    ContestPublicVote[]
+
+  @@index([contestId])
+  @@index([stageId])
+  @@index([participantId])
+  @@index([status])
+}
+
+// 21. ContestJudgeScore (Voto y desglose de un juez por actuación)
+model ContestJudgeScore {
+  id            String             @id @default(cuid())
+  performanceId String
+  performance   ContestPerformance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  judgeId       String
+  judge         ContestJudge       @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  breakdown     String             // JSON string: { [criteriaId]: number }
+  totalScore    Float              // Puntaje calculado para esta actuación
+  feedbackNotes String?            // Comentario o devolución del juez
+  isGoldenBuzzer Boolean           @default(false)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@unique([performanceId, judgeId])
+  @@index([performanceId])
+  @@index([judgeId])
+}
+
+// 22. ContestPublicVote (Votación popular desde las mesas)
+model ContestPublicVote {
+  id                String             @id @default(cuid())
+  performanceId     String
+  performance       ContestPerformance @relation(fields: [performanceId], references: [id], onDelete: Cascade)
+  guestSessionToken String?
+  tableLabel        String?
+  stars             Int                @default(5) // 1 a 5 estrellas
+  cheerCount        Int                @default(0)
+  ipAddress         String?
+  createdAt         DateTime           @default(now())
+
+  @@index([performanceId])
+  @@index([guestSessionToken])
+}
+

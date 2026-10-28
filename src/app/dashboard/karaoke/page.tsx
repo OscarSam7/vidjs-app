@@ -829,6 +829,16 @@ export default function KaraokeBoothPage() {
               <span>Ir a Cabina DJ</span>
             </Link>
 
+            {/* Campeonato / Concurso de Karaoke */}
+            <Link
+              href="/dashboard/contest"
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 group cursor-pointer"
+              title="Abrir el Centro de Control de Concursos y Galas de Karaoke"
+            >
+              <Trophy className="w-4 h-4 text-black shrink-0" />
+              <span>Concurso Karaoke</span>
+            </Link>
+
             {/* Cargar Cantante Manual */}
             <button
               type="button"

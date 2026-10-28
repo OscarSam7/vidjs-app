@@ -24,6 +24,11 @@ import {
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
+import KaraokeContestOverlay, {
+  ContestPerformanceDisplay,
+  ContestCriteriaItem,
+  LeaderboardItem,
+} from "@/components/contest/KaraokeContestOverlay";
 
 interface LiveDuelData {
   id: string;
@@ -198,6 +203,39 @@ export default function PublicDisplayScreenPage({
   const [isTvPaused, setIsTvPaused] = useState<boolean>(false);
   const [forceKaraokeMode, setForceKaraokeMode] = useState<boolean>(false);
   const [mobileTab, setMobileTab] = useState<"player" | "queue" | "qr">("player");
+
+  // 🏆 Concurso Oficial de Karaoke en Pantalla TV
+  const [contestPerformance, setContestPerformance] = useState<ContestPerformanceDisplay | null>(null);
+  const [contestCriteria, setContestCriteria] = useState<ContestCriteriaItem[]>([]);
+  const [contestLeaderboard, setContestLeaderboard] = useState<LeaderboardItem[]>([]);
+  const [showContestLeaderboard, setShowContestLeaderboard] = useState<boolean>(false);
+  const [contestMeta, setContestMeta] = useState<{ name: string; code: string; stageTitle?: string } | null>(null);
+
+  // Cargar estado inicial si la pantalla está enlazada a un Concurso Oficial
+  useEffect(() => {
+    let isMounted = true;
+    const checkActiveContest = async () => {
+      try {
+        const res = await fetch(`/api/v1/contest/${code}`);
+        const json = await res.json();
+        if (isMounted && res.ok && json.success && json.data) {
+          setContestMeta({
+            name: json.data.name,
+            code: json.data.code,
+            stageTitle: json.data.stages?.find((s: any) => s.id === json.data.activeStageId)?.title,
+          });
+          setContestCriteria(json.data.criteria || []);
+          if (json.data.currentPerformance) {
+            setContestPerformance(json.data.currentPerformance);
+          }
+        }
+      } catch {}
+    };
+    if (code) checkActiveContest();
+    return () => {
+      isMounted = false;
+    };
+  }, [code]);
 
   // Detección reactiva de parámetro ?mode=karaoke en URL
   useEffect(() => {
@@ -608,6 +646,44 @@ export default function PublicDisplayScreenPage({
         }
       } else if (type === "KARAOKE_PLAYBACK_CONTROL") {
         handleIncomingPlaybackControl(payload);
+      } else if (type === "CONTEST_PERFORMANCE_UPDATE" || type === "CONTEST_VOTING_OPEN") {
+        setShowContestLeaderboard(false);
+        if (payload?.performance) {
+          setContestPerformance(payload.performance);
+        }
+        if (payload?.criteria) {
+          setContestCriteria(payload.criteria);
+        }
+        if (payload?.contestName || payload?.contestCode) {
+          setContestMeta((prev) => ({
+            name: payload.contestName || prev?.name || "Campeonato de Karaoke",
+            code: payload.contestCode || prev?.code || code,
+            stageTitle: payload.stageTitle || prev?.stageTitle,
+          }));
+        }
+      } else if (type === "CONTEST_VOTING_CLOSED") {
+        if (payload?.performance) {
+          setContestPerformance(payload.performance);
+        }
+      } else if (type === "CONTEST_REVEAL_SCORES") {
+        if (payload?.performance) {
+          setContestPerformance(payload.performance);
+        }
+      } else if (type === "CONTEST_GOLDEN_BUZZER") {
+        setContestPerformance((prev) =>
+          prev
+            ? {
+                ...prev,
+                isGoldenBuzzer: true,
+                goldenBuzzerBy: payload?.judgeName || "Pase de Oro",
+              }
+            : null
+        );
+      } else if (type === "CONTEST_LEADERBOARD_UPDATE") {
+        setShowContestLeaderboard(true);
+        if (payload?.leaderboard) {
+          setContestLeaderboard(payload.leaderboard);
+        }
       } else if (
         type === "TRACK_CHANGE" ||
         type === "QUEUE_UPDATE" ||
@@ -639,13 +715,19 @@ export default function PublicDisplayScreenPage({
     window.addEventListener("storage", handleStorage);
 
     // 2. Canales BroadcastChannel multicanal
-    const channelNames = ["vidjs_karaoke_sync_global"];
+    const channelNames = [
+      "vidjs_karaoke_sync_global",
+      "vidjs_contest_sync_global",
+    ];
     if (code) {
       channelNames.push(`vidjs_karaoke_sync_${code}`);
       channelNames.push(`vidjs_karaoke_sync_${code.toUpperCase()}`);
+      channelNames.push(`vidjs_contest_sync_${code}`);
+      channelNames.push(`vidjs_contest_sync_${code.toUpperCase()}`);
     }
     if (data?.event?.id) {
       channelNames.push(`vidjs_karaoke_sync_${data.event.id}`);
+      channelNames.push(`vidjs_contest_sync_${data.event.id}`);
     }
 
     const openChannels: BroadcastChannel[] = [];
@@ -657,6 +739,31 @@ export default function PublicDisplayScreenPage({
             const msg = e.data || {};
             if (msg.type === "PLAYBACK_CONTROL" || msg.action) {
               handleIncomingPlaybackControl(msg);
+            }
+            if (msg.type === "CONTEST_SYNC") {
+              if (msg.action === "PERFORMANCE_UPDATE" || msg.action === "VOTING_OPEN") {
+                setShowContestLeaderboard(false);
+                if (msg.performance) setContestPerformance(msg.performance);
+                if (msg.criteria) setContestCriteria(msg.criteria);
+              } else if (msg.action === "REVEAL") {
+                if (msg.performance) setContestPerformance(msg.performance);
+              } else if (msg.action === "GOLDEN_BUZZER") {
+                setContestPerformance((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        isGoldenBuzzer: true,
+                        goldenBuzzerBy: msg.judgeName || "Pase de Oro",
+                      }
+                    : null
+                );
+              } else if (msg.action === "LEADERBOARD") {
+                setShowContestLeaderboard(true);
+                if (msg.leaderboard) setContestLeaderboard(msg.leaderboard);
+              } else if (msg.action === "DISMISS") {
+                setContestPerformance(null);
+                setShowContestLeaderboard(false);
+              }
             }
           };
           openChannels.push(ch);
@@ -1975,6 +2082,34 @@ export default function PublicDisplayScreenPage({
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 🏆 Concurso Oficial de Karaoke en Pantalla Gigante TV */}
+      {(contestPerformance || showContestLeaderboard) && (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md overflow-y-auto">
+          <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+            <button
+              onClick={() => {
+                setContestPerformance(null);
+                setShowContestLeaderboard(false);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-bold transition-all cursor-pointer"
+            >
+              Ocultar Concurso
+            </button>
+          </div>
+          <KaraokeContestOverlay
+            contestName={contestMeta?.name || data?.event?.name || "Campeonato de Karaoke Vidjs"}
+            contestCode={contestMeta?.code || code}
+            stageTitle={contestMeta?.stageTitle || "Gala Oficial de Karaoke"}
+            performance={contestPerformance}
+            criteria={contestCriteria}
+            leaderboard={contestLeaderboard}
+            showLeaderboard={showContestLeaderboard}
+            onCloseLeaderboard={() => setShowContestLeaderboard(false)}
+            qrScanUrl={data?.qr?.scanUrl}
+          />
         </div>
       )}
 

@@ -1330,6 +1330,15 @@ export default function DjBoothPage() {
                     <span>Pantalla TV</span>
                   </a>
 
+                  <Link
+                    href="/dashboard/contest"
+                    className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-600/30 via-yellow-600/30 to-amber-600/30 hover:from-amber-600/50 hover:to-yellow-600/50 border border-amber-500/50 text-amber-200 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.2)] whitespace-nowrap shrink-0"
+                    title="Centro de Control de Concursos y Certámenes de Karaoke"
+                  >
+                    <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>Concurso Karaoke</span>
+                  </Link>
+
                   <button
                     onClick={() => {
                       if (data.tables && data.tables.length > 0 && !selectedShareTableId) {

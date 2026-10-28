@@ -27,7 +27,15 @@ export type RealtimeEventType =
   | "SINGER_CALLED"
   | "KARAOKE_VIDEO_UPDATE"
   | "KARAOKE_PLAYBACK_CONTROL"
-  | "PULSE_UPDATE";
+  | "PULSE_UPDATE"
+  | "CONTEST_STAGE_CHANGE"
+  | "CONTEST_PERFORMANCE_UPDATE"
+  | "CONTEST_VOTING_OPEN"
+  | "CONTEST_VOTING_CLOSED"
+  | "CONTEST_VOTE_UPDATE"
+  | "CONTEST_REVEAL_SCORES"
+  | "CONTEST_GOLDEN_BUZZER"
+  | "CONTEST_LEADERBOARD_UPDATE";
 
 export interface ActivePlaybackState {
   action: "PLAY" | "PAUSE" | "SEEK" | "RESET";
@@ -141,5 +149,7 @@ declare global {
 
 export const realtimeBus: RealtimeEventBus =
   globalThis.__vidjs_realtime_bus__ ?? new RealtimeEventBus();
+
+export const eventBus = realtimeBus;
 
 globalThis.__vidjs_realtime_bus__ = realtimeBus;

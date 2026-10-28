@@ -1,0 +1,1439 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import {
+  Trophy,
+  Award,
+  Sparkles,
+  Star,
+  Mic,
+  Users,
+  Plus,
+  Tv,
+  ExternalLink,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Play,
+  Pause,
+  Send,
+  Sliders,
+  Calendar,
+  FileText,
+  Printer,
+  Download,
+  Trash2,
+  QrCode,
+  Copy,
+  Check,
+  ChevronRight,
+  Disc3,
+  Flame,
+  Crown,
+  Medal,
+  RefreshCw,
+  X,
+  Volume2,
+  Lock,
+} from "lucide-react";
+import { useRealtime } from "@/hooks/use-realtime";
+import { RealtimeEventType } from "@/lib/realtime/event-bus";
+
+interface ContestCriteria {
+  id: string;
+  name: string;
+  description: string | null;
+  maxScore: number;
+  weight: number;
+  active: boolean;
+}
+
+interface ContestJudge {
+  id: string;
+  name: string;
+  title: string | null;
+  avatarUrl: string | null;
+  accessPin: string;
+  canGoldenBuzzer: boolean;
+  accessUrl?: string;
+}
+
+interface ContestStage {
+  id: string;
+  title: string;
+  stageType: string;
+  date: string;
+  status: "SCHEDULED" | "LIVE" | "COMPLETED";
+  notes: string | null;
+  orderIndex: number;
+  performances?: ContestPerformance[];
+}
+
+interface ContestPerformance {
+  id: string;
+  stageId: string;
+  participantId: string;
+  songTitle: string;
+  artistName: string;
+  youtubeVideoId: string | null;
+  fileUrl: string | null;
+  orderIndex: number;
+  status: "PENDING" | "ON_STAGE" | "VOTING_OPEN" | "VOTING_CLOSED" | "REVEALED";
+  judgeScore: number;
+  publicScore: number;
+  totalScore: number;
+  isGoldenBuzzer: boolean;
+  participant: {
+    id: string;
+    name: string;
+    stageName: string | null;
+    photoUrl: string | null;
+    tableLabel: string | null;
+    status: string;
+  };
+  judgeScores?: Array<{
+    judgeId: string;
+    totalScore: number;
+    feedbackNotes: string | null;
+    isGoldenBuzzer: boolean;
+    judge: { name: string; title: string | null };
+  }>;
+  publicVotes?: Array<{ stars: number }>;
+}
+
+interface ContestParticipant {
+  id: string;
+  name: string;
+  stageName: string | null;
+  photoUrl: string | null;
+  tableLabel: string | null;
+  status: string;
+  totalPoints: number;
+  finalRank?: number | null;
+  bio?: string | null;
+}
+
+interface ContestDetail {
+  id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  status: string;
+  scoringMode: string;
+  publicVoteWeight: number;
+  rules: string | null;
+  prizes: string | null;
+  activeStageId: string | null;
+  stages: ContestStage[];
+  criteria: ContestCriteria[];
+  judges: ContestJudge[];
+  participants: ContestParticipant[];
+  currentPerformance?: ContestPerformance | null;
+}
+
+export default function ContestDashboardPage() {
+  const [contests, setContests] = useState<any[]>([]);
+  const [selectedContestId, setSelectedContestId] = useState<string | null>(null);
+  const [contest, setContest] = useState<ContestDetail | null>(null);
+  const [activeTab, setActiveTab] = useState<
+    "stage" | "participants" | "stages" | "criteria" | "judges" | "reports" | "diplomas"
+  >("stage");
+
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+
+  // Modales
+  const [showNewContestModal, setShowNewContestModal] = useState(false);
+  const [showNewParticipantModal, setShowNewParticipantModal] = useState(false);
+  const [showNewStageModal, setShowNewStageModal] = useState(false);
+  const [showNewJudgeModal, setShowNewJudgeModal] = useState(false);
+  const [showNewCriteriaModal, setShowNewCriteriaModal] = useState(false);
+  const [showQrModal, setShowQrModal] = useState<{ url: string; title: string; pin?: string } | null>(null);
+
+  // Form State para Nuevo Concurso
+  const [newContestForm, setNewContestForm] = useState({
+    name: "1er Campeonato de Karaoke Vidjs 2026",
+    description: "Gran certamen de voces, talento y emoción con evaluación en vivo.",
+    scoringMode: "AVERAGE",
+    publicVoteWeight: 20,
+    judgesCount: 3,
+  });
+
+  // Form State para Nuevo Participante
+  const [newParticipantForm, setNewParticipantForm] = useState({
+    name: "",
+    stageName: "",
+    tableLabel: "Mesa 1",
+    initialSongTitle: "",
+    initialArtistName: "",
+  });
+
+  // Form State para Nueva Gala / Fecha
+  const [newStageForm, setNewStageForm] = useState({
+    title: "",
+    stageType: "QUALIFIERS",
+    notes: "",
+  });
+
+  // Form State para Nuevo Juez
+  const [newJudgeForm, setNewJudgeForm] = useState({
+    name: "",
+    title: "Vocal Coach / Productor",
+  });
+
+  // Form State para Nuevo Criterio
+  const [newCriteriaForm, setNewCriteriaForm] = useState({
+    name: "",
+    description: "",
+    maxScore: 10,
+    weight: 1.0,
+  });
+
+  // Reportes y Acta
+  const [reportData, setReportData] = useState<any>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const showFeedback = (type: "success" | "error" | "info", text: string) => {
+    setFeedbackMsg({ type, text });
+    setTimeout(() => setFeedbackMsg(null), 4000);
+  };
+
+  // Cargar lista de concursos
+  const fetchContests = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/v1/contest");
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setContests(json.data || []);
+        if (json.data?.length > 0 && !selectedContestId) {
+          setSelectedContestId(json.data[0].id);
+        }
+      }
+    } catch {
+      showFeedback("error", "Error cargando concursos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cargar concurso seleccionado
+  const fetchContestDetail = async (contestId: string) => {
+    try {
+      const res = await fetch(`/api/v1/contest/${contestId}`);
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setContest(json.data);
+      }
+    } catch {
+      showFeedback("error", "Error cargando detalle del concurso");
+    }
+  };
+
+  // Cargar datos de reporte
+  const fetchReports = async (contestId: string) => {
+    try {
+      const res = await fetch(`/api/v1/contest/${contestId}/reports`);
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setReportData(json.data);
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchContests();
+  }, []);
+
+  useEffect(() => {
+    if (selectedContestId) {
+      fetchContestDetail(selectedContestId);
+      fetchReports(selectedContestId);
+    }
+  }, [selectedContestId]);
+
+  // Escuchar eventos en vivo
+  useRealtime({
+    eventId: contest?.id ? `contest:${contest.id}` : "",
+    onEvent: (type: RealtimeEventType, payload: any) => {
+      if (selectedContestId) {
+        if (type === "CONTEST_VOTE_UPDATE") {
+          fetchContestDetail(selectedContestId);
+          showFeedback("info", `🗳️ Jurado ${payload?.judgeName || ""} emitió su calificación.`);
+        } else if (type === "CONTEST_STAGE_CHANGE" || type === "CONTEST_PERFORMANCE_UPDATE") {
+          fetchContestDetail(selectedContestId);
+        }
+      }
+    },
+  });
+
+  // Acciones sobre la Actuación en Escenario
+  const handlePerformanceAction = async (
+    performanceId: string,
+    action: "CALL_TO_STAGE" | "OPEN_VOTING" | "CLOSE_VOTING" | "REVEAL_SCORES" | "TRIGGER_GOLDEN_BUZZER"
+  ) => {
+    if (!contest) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/performances`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ performanceId, action }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", json.message || "Acción ejecutada con éxito");
+        fetchContestDetail(contest.id);
+        fetchReports(contest.id);
+      } else {
+        showFeedback("error", json.error || "Error en la acción");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Crear Nuevo Concurso
+  const handleCreateContest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/v1/contest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newContestForm),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", json.message);
+        setShowNewContestModal(false);
+        await fetchContests();
+        if (json.data?.id) setSelectedContestId(json.data.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo crear el certamen");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión al crear concurso");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Inscribir Participante
+  const handleRegisterParticipant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contest) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/participants`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...newParticipantForm,
+          stageId: contest.activeStageId,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", json.message);
+        setShowNewParticipantModal(false);
+        setNewParticipantForm({
+          name: "",
+          stageName: "",
+          tableLabel: "Mesa 1",
+          initialSongTitle: "",
+          initialArtistName: "",
+        });
+        fetchContestDetail(contest.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo registrar participante");
+      }
+    } catch {
+      showFeedback("error", "Error de conexión");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Cargar Canción Directamente en la Consola DJ / Karaoke
+  const handleSendToDjBooth = (perf: ContestPerformance) => {
+    const queuePayload = {
+      track: {
+        id: `contest-${perf.id}`,
+        title: perf.songTitle,
+        artist: perf.artistName,
+        fileUrl: perf.youtubeVideoId
+          ? `https://www.youtube.com/watch?v=${perf.youtubeVideoId}`
+          : perf.fileUrl || null,
+        durationSeconds: 210,
+        genre: "Concurso Karaoke",
+      },
+      targetDeck: "AUTO",
+      timestamp: Date.now(),
+    };
+
+    localStorage.setItem("vidjs_library_deck_load", JSON.stringify(queuePayload));
+    showFeedback(
+      "success",
+      `🎛️ "${perf.songTitle}" enviada a la cabina DJ (Listo para Play en Bandeja)`
+    );
+  };
+
+  const activeStage = contest?.stages.find((s) => s.id === contest.activeStageId) || contest?.stages[0];
+  const activePerformances = activeStage?.performances || [];
+  const currentPerformance = contest?.currentPerformance;
+
+  return (
+    <div className="min-h-screen bg-zinc-950 text-white p-4 sm:p-6 lg:p-8 space-y-6">
+      {/* ============================================================ */}
+      {/* 1. TOP HEADER DEL CAMPEONATO & SELECTOR                      */}
+      {/* ============================================================ */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-zinc-900/80 border border-zinc-800 p-5 rounded-3xl shadow-2xl backdrop-blur-md">
+        <div className="flex items-center gap-3.5">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center text-zinc-950 shadow-xl shadow-amber-500/20">
+            <Trophy className="w-8 h-8" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                {contest?.name || "Concurso de Karaoke Pro"}
+              </h1>
+              {contest && (
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-xs font-bold border border-amber-500/40">
+                  {contest.code}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-zinc-400 font-medium">
+              Gestión multidía, jurados móviles, votación en vivo, pantalla gigante y actas oficiales.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Selector de Concurso */}
+          {contests.length > 1 && (
+            <select
+              value={selectedContestId || ""}
+              onChange={(e) => setSelectedContestId(e.target.value)}
+              className="bg-zinc-950 border border-zinc-700 text-white text-xs font-bold px-3 py-2.5 rounded-xl outline-none"
+            >
+              {contests.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.code})
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Botón Nuevo Concurso */}
+          <button
+            onClick={() => setShowNewContestModal(true)}
+            className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md"
+          >
+            <Plus className="w-4 h-4 text-amber-400" />
+            <span>Nuevo Certamen</span>
+          </button>
+
+          {/* Botón Abrir Pantalla Gigante / TV Concurso */}
+          {contest && (
+            <Link
+              href={`/display/${contest.code}/contest`}
+              target="_blank"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black flex items-center gap-2 shadow-lg shadow-purple-900/30 transition-all cursor-pointer"
+            >
+              <Tv className="w-4 h-4" />
+              <span>Pantalla TV Show</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          )}
+        </div>
+      </header>
+
+      {/* Alerta de Feedback flotante */}
+      {feedbackMsg && (
+        <div
+          className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-2.5 shadow-xl transition-all ${
+            feedbackMsg.type === "success"
+              ? "bg-emerald-950/90 border border-emerald-500 text-emerald-200"
+              : feedbackMsg.type === "error"
+              ? "bg-red-950/90 border border-red-500 text-red-200"
+              : "bg-blue-950/90 border border-blue-500 text-blue-200"
+          }`}
+        >
+          {feedbackMsg.type === "success" ? (
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          ) : (
+            <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+          )}
+          <span>{feedbackMsg.text}</span>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* 2. PESTAÑAS DE NAVEGACIÓN                                    */}
+      {/* ============================================================ */}
+      <div className="flex items-center gap-2 border-b border-zinc-800 pb-3 overflow-x-auto">
+        {[
+          { id: "stage", label: "Control de Escenario en Vivo", icon: Flame },
+          { id: "participants", label: `Cantantes (${contest?.participants.length || 0})`, icon: Users },
+          { id: "stages", label: `Fechas / Galas (${contest?.stages.length || 0})`, icon: Calendar },
+          { id: "criteria", label: `Criterios (${contest?.criteria.length || 0})`, icon: Sliders },
+          { id: "judges", label: `Mesa de Jurados (${contest?.judges.length || 0})`, icon: Award },
+          { id: "reports", label: "Actas e Informes Oficiales", icon: FileText },
+          { id: "diplomas", label: "Generador de Diplomas", icon: Trophy },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+                isActive
+                  ? "bg-amber-400 text-zinc-950 shadow-lg shadow-amber-500/20 scale-[1.02]"
+                  : "bg-zinc-900/60 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ============================================================ */}
+      {/* PESTAÑA 1: CONTROL DE ESCENARIO EN VIVO                      */}
+      {/* ============================================================ */}
+      {activeTab === "stage" && (
+        <div className="space-y-6">
+          {/* Selector de Gala Activa */}
+          <div className="flex items-center justify-between flex-wrap gap-3 bg-zinc-900/60 border border-zinc-800 p-4 rounded-2xl">
+            <div className="flex items-center gap-2.5">
+              <Calendar className="w-5 h-5 text-amber-400" />
+              <span className="text-xs font-bold text-zinc-300">Gala / Fecha en Curso:</span>
+              <span className="text-xs font-black text-amber-400 px-3 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
+                {activeStage?.title || "Sin fecha activa"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowNewParticipantModal(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Inscribir Cantante a Esta Gala</span>
+              </button>
+            </div>
+          </div>
+
+          {/* TARJETA HERO: CANTANTE ACTUALMENTE EN ESCENARIO */}
+          {currentPerformance ? (
+            <div className="bg-gradient-to-r from-zinc-900 via-amber-950/20 to-zinc-900 border-2 border-amber-500/60 p-6 rounded-3xl shadow-2xl space-y-6">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping" />
+                  <span className="text-xs font-black uppercase tracking-widest text-emerald-400">
+                    {currentPerformance.status === "VOTING_OPEN"
+                      ? "VOTACIÓN EN CURSO (JURADOS CALIFICANDO)"
+                      : currentPerformance.status === "REVEALED"
+                      ? "PUNTAJES REVELADOS EN PANTALLA"
+                      : "CANTANTE EN ESCENARIO"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {currentPerformance.participant.tableLabel && (
+                    <span className="text-xs font-bold px-3 py-1 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700">
+                      {currentPerformance.participant.tableLabel}
+                    </span>
+                  )}
+                  <span className="text-xs font-mono font-bold text-amber-400 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30">
+                    Total: {currentPerformance.totalScore} pts
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-5">
+                <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white font-black text-3xl shadow-2xl shrink-0 overflow-hidden">
+                  {currentPerformance.participant.photoUrl ? (
+                    <img
+                      src={currentPerformance.participant.photoUrl}
+                      alt={currentPerformance.participant.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    currentPerformance.participant.name.charAt(0)
+                  )}
+                </div>
+
+                <div className="space-y-1.5 text-center sm:text-left flex-1 min-w-0">
+                  <h3 className="text-2xl sm:text-3xl font-black text-white truncate">
+                    {currentPerformance.participant.stageName || currentPerformance.participant.name}
+                  </h3>
+                  <div className="flex items-center justify-center sm:justify-start gap-2 text-sm text-amber-300 font-bold">
+                    <Mic className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      "{currentPerformance.songTitle}" &bull; {currentPerformance.artistName}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    Votos de jurados recibidos:{" "}
+                    <strong className="text-white">
+                      {currentPerformance.judgeScores?.length || 0} de {contest?.judges.length || 0}
+                    </strong>
+                  </p>
+                </div>
+
+                {/* BOTÓN RÁPIDO CARGAR EN CABINA DJ */}
+                <button
+                  onClick={() => handleSendToDjBooth(currentPerformance)}
+                  className="px-5 py-3 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-purple-300 hover:text-purple-200 text-xs font-black flex items-center gap-2 shadow-lg transition-all cursor-pointer whitespace-nowrap"
+                  title="Carga la canción automáticamente en la consola de DJ o Karaoke"
+                >
+                  <Disc3 className="w-4 h-4 text-purple-400 animate-spin [animation-duration:4s]" />
+                  <span>Cargar en Bandeja DJ</span>
+                </button>
+              </div>
+
+              {/* BOTONERA DE CONTROL DE LA GALA */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-zinc-800/80">
+                {/* 1. Abrir Votación */}
+                <button
+                  onClick={() => handlePerformanceAction(currentPerformance.id, "OPEN_VOTING")}
+                  disabled={actionLoading || currentPerformance.status === "VOTING_OPEN"}
+                  className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>Abrir Votación</span>
+                </button>
+
+                {/* 2. Cerrar Votación */}
+                <button
+                  onClick={() => handlePerformanceAction(currentPerformance.id, "CLOSE_VOTING")}
+                  disabled={actionLoading || currentPerformance.status === "VOTING_CLOSED"}
+                  className="py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  <Lock className="w-4 h-4" />
+                  <span>Cerrar Votación</span>
+                </button>
+
+                {/* 3. Revelar en Pantalla */}
+                <button
+                  onClick={() => handlePerformanceAction(currentPerformance.id, "REVEAL_SCORES")}
+                  disabled={actionLoading}
+                  className="py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Revelar en TV</span>
+                </button>
+
+                {/* 4. Golden Buzzer */}
+                <button
+                  onClick={() => handlePerformanceAction(currentPerformance.id, "TRIGGER_GOLDEN_BUZZER")}
+                  disabled={actionLoading}
+                  className="py-3 px-4 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-yellow-500/30 cursor-pointer"
+                >
+                  <Crown className="w-4 h-4" />
+                  <span>Golden Buzzer</span>
+                </button>
+              </div>
+
+              {/* Monitor de Votación de Jurados en Tiempo Real */}
+              <div className="space-y-2 pt-2">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
+                  Estado de la Mesa de Jurados:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {contest?.judges.map((j) => {
+                    const score = currentPerformance.judgeScores?.find((s) => s.judgeId === j.id);
+                    return (
+                      <div
+                        key={j.id}
+                        className={`p-3 rounded-2xl border flex items-center justify-between ${
+                          score
+                            ? "bg-emerald-950/40 border-emerald-500/50 text-emerald-200"
+                            : "bg-zinc-950/60 border-zinc-800 text-zinc-500"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
+                              score ? "bg-emerald-500 text-zinc-950" : "bg-zinc-800 text-zinc-400"
+                            }`}
+                          >
+                            {j.name.charAt(0)}
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-white block">{j.name}</span>
+                            <span className="text-[10px] text-zinc-400">{j.title}</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          {score ? (
+                            <span className="text-xs font-black font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                              {score.totalScore} pts ✓
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-mono font-medium text-amber-400 animate-pulse">
+                              Calificando...
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-8 rounded-3xl bg-zinc-900/60 border border-zinc-800 text-center space-y-3">
+              <Mic className="w-10 h-10 mx-auto text-amber-400/60" />
+              <h3 className="text-base font-bold text-white">No hay ningún cantante en escenario actualmente</h3>
+              <p className="text-xs text-zinc-400 max-w-md mx-auto">
+                Selecciona a un cantante de la lista de actuaciones a continuación y haz clic en "Llamar al Escenario".
+              </p>
+            </div>
+          )}
+
+          {/* LISTA DE ACTUACIONES DE LA GALA */}
+          <div className="bg-zinc-900/60 border border-zinc-800 p-5 rounded-3xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <Users className="w-4 h-4 text-amber-400" />
+                <span>Orden de Actuaciones de la Gala ({activePerformances.length})</span>
+              </h3>
+            </div>
+
+            {activePerformances.length > 0 ? (
+              <div className="space-y-2.5">
+                {activePerformances.map((perf, index) => (
+                  <div
+                    key={perf.id}
+                    className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                      perf.status === "ON_STAGE" || perf.status === "VOTING_OPEN"
+                        ? "bg-amber-950/30 border-amber-500/60 shadow-lg"
+                        : "bg-zinc-950/70 border-zinc-800 hover:border-zinc-700"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-8 h-8 rounded-xl bg-zinc-800 text-zinc-300 font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                        #{index + 1}
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-black text-white">
+                            {perf.participant.stageName || perf.participant.name}
+                          </h4>
+                          {perf.participant.tableLabel && (
+                            <span className="text-[10px] px-2 py-0.2 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
+                              {perf.participant.tableLabel}
+                            </span>
+                          )}
+                          {perf.isGoldenBuzzer && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-yellow-500/20 text-yellow-300">
+                              ★ GOLDEN BUZZER
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-amber-300 font-medium">
+                          "{perf.songTitle}" &bull; {perf.artistName}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      {perf.totalScore > 0 && (
+                        <span className="text-xs font-mono font-black text-yellow-300 px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-700">
+                          {perf.totalScore} pts
+                        </span>
+                      )}
+
+                      <button
+                        onClick={() => handlePerformanceAction(perf.id, "CALL_TO_STAGE")}
+                        disabled={actionLoading || perf.status === "ON_STAGE"}
+                        className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                      >
+                        <Mic className="w-3.5 h-3.5" />
+                        <span>Llamar al Escenario</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleSendToDjBooth(perf)}
+                        className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-purple-300 border border-zinc-700 transition-colors cursor-pointer"
+                        title="Cargar pista en consola DJ"
+                      >
+                        <Disc3 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 text-center text-zinc-500 text-xs">
+                No hay cantantes programados para esta gala. Usa el botón "+ Inscribir Cantante" para comenzar.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* PESTAÑA 2: LISTA DE PARTICIPANTES INSCRITOS                  */}
+      {/* ============================================================ */}
+      {activeTab === "participants" && contest && (
+        <div className="bg-zinc-900/70 border border-zinc-800 rounded-3xl p-6 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 className="text-base font-black text-white uppercase tracking-wider">
+                Participantes Registrados en el Certamen ({contest.participants.length})
+              </h3>
+              <p className="text-xs text-zinc-400">
+                Puntuaciones acumulativas a través de todas las fechas y galas
+              </p>
+            </div>
+            <button
+              onClick={() => setShowNewParticipantModal(true)}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Inscribir Nuevo Cantante</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-2">
+            {contest.participants.map((p, idx) => (
+              <div
+                key={p.id}
+                className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3 hover:border-zinc-700 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white font-black text-lg overflow-hidden shrink-0">
+                    {p.photoUrl ? (
+                      <img src={p.photoUrl} alt={p.name} className="w-full h-full object-cover" />
+                    ) : (
+                      p.name.charAt(0)
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-sm font-black text-white truncate">
+                      {p.stageName || p.name}
+                    </h4>
+                    {p.stageName && (
+                      <p className="text-[11px] text-zinc-400 truncate">{p.name}</p>
+                    )}
+                    {p.tableLabel && (
+                      <span className="text-[10px] text-amber-400 font-bold">{p.tableLabel}</span>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <span className="text-base font-black font-mono text-yellow-300">
+                      {p.totalPoints} pts
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-zinc-800/80">
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      p.status === "QUALIFIED"
+                        ? "bg-emerald-500/20 text-emerald-300"
+                        : p.status === "ELIMINATED"
+                        ? "bg-red-500/20 text-red-300"
+                        : p.status === "WINNER"
+                        ? "bg-yellow-500/20 text-yellow-300"
+                        : "bg-zinc-800 text-zinc-400"
+                    }`}
+                  >
+                    {p.status}
+                  </span>
+                  <span className="text-[11px] text-zinc-500">Ranking: #{idx + 1}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* PESTAÑA 3: GESTIÓN DE GALAS MULTIDÍA                         */}
+      {/* ============================================================ */}
+      {activeTab === "stages" && contest && (
+        <div className="bg-zinc-900/70 border border-zinc-800 rounded-3xl p-6 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 className="text-base font-black text-white uppercase tracking-wider">
+                Fechas y Rondas del Concurso Multidía
+              </h3>
+              <p className="text-xs text-zinc-400">
+                Organiza galas por días o semanas (Audiciones, Semifinal, Gran Final)
+              </p>
+            </div>
+            <button
+              onClick={() => setShowNewStageModal(true)}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Nueva Fecha / Gala</span>
+            </button>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            {contest.stages.map((st, i) => (
+              <div
+                key={st.id}
+                className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                  st.id === contest.activeStageId
+                    ? "bg-amber-950/30 border-amber-500/60 shadow-lg"
+                    : "bg-zinc-950 border-zinc-800"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-8 h-8 rounded-xl bg-zinc-800 text-amber-400 font-mono font-bold text-xs flex items-center justify-center">
+                    G{i + 1}
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-black text-white">{st.title}</h4>
+                      {st.id === contest.activeStageId && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40">
+                          ACTIVA EN VIVO
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-zinc-400">
+                      Tipo: {st.stageType} &bull; Estado: {st.status} &bull;{" "}
+                      {st.performances?.length || 0} actuaciones
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {st.id !== contest.activeStageId && (
+                    <button
+                      onClick={async () => {
+                        await fetch(`/api/v1/contest/${contest.id}/stages`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ stageId: st.id, setActive: true, status: "LIVE" }),
+                        });
+                        fetchContestDetail(contest.id);
+                        showFeedback("success", `Gala "${st.title}" fijada como activa.`);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-200 transition-colors cursor-pointer"
+                    >
+                      Activar Esta Gala
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* PESTAÑA 4: CRITERIOS EDITABLES                               */}
+      {/* ============================================================ */}
+      {activeTab === "criteria" && contest && (
+        <div className="bg-zinc-900/70 border border-zinc-800 rounded-3xl p-6 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 className="text-base font-black text-white uppercase tracking-wider">
+                Criterios de Evaluación Editables
+              </h3>
+              <p className="text-xs text-zinc-400">
+                Estos criterios aparecen en los celulares de los jurados y se proyectan en la pantalla grande
+              </p>
+            </div>
+            <button
+              onClick={() => setShowNewCriteriaModal(true)}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Nuevo Criterio</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2">
+            {contest.criteria.map((c) => (
+              <div
+                key={c.id}
+                className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-black text-white">{c.name}</h4>
+                  <span className="text-xs font-mono font-bold text-amber-400">
+                    Max: {c.maxScore} pts (x{c.weight})
+                  </span>
+                </div>
+                {c.description && <p className="text-xs text-zinc-400">{c.description}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* PESTAÑA 5: MESA DE JURADOS                                   */}
+      {/* ============================================================ */}
+      {activeTab === "judges" && contest && (
+        <div className="bg-zinc-900/70 border border-zinc-800 rounded-3xl p-6 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 className="text-base font-black text-white uppercase tracking-wider">
+                Mesa Oficial de Jurados ({contest.judges.length})
+              </h3>
+              <p className="text-xs text-zinc-400">
+                Cada jurado puede calificar desde su propio smartphone o tablet usando su PIN de acceso
+              </p>
+            </div>
+            <button
+              onClick={() => setShowNewJudgeModal(true)}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Agregar Jurado</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            {contest.judges.map((j) => {
+              const accessUrl = typeof window !== "undefined"
+                ? `${window.location.origin}/judge/${contest.code}?pin=${j.accessPin}`
+                : `/judge/${contest.code}?pin=${j.accessPin}`;
+
+              return (
+                <div
+                  key={j.id}
+                  className="p-5 rounded-3xl bg-zinc-950 border border-zinc-800 space-y-4 shadow-xl"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-zinc-950 font-black text-lg shadow-md">
+                        {j.name.charAt(0)}
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-black text-white">{j.name}</h4>
+                        <span className="text-[11px] text-zinc-400 block">{j.title}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between">
+                    <span className="text-xs text-zinc-400 font-medium">PIN de Acceso Móvil:</span>
+                    <span className="text-lg font-mono font-black text-amber-300 tracking-widest px-2.5 py-0.5 rounded-lg bg-zinc-950 border border-zinc-700">
+                      {j.accessPin}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(accessUrl);
+                        showFeedback("success", `¡Enlace copiado para ${j.name}!`);
+                      }}
+                      className="py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copiar Link</span>
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        setShowQrModal({
+                          url: accessUrl,
+                          title: `Acceso Móvil: ${j.name}`,
+                          pin: j.accessPin,
+                        })
+                      }
+                      className="py-2.5 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-black flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>Mostrar QR</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* PESTAÑA 6: REPORTES E INFORMES OFICIALES                     */}
+      {/* ============================================================ */}
+      {activeTab === "reports" && reportData && (
+        <div className="bg-zinc-900/70 border border-zinc-800 rounded-3xl p-6 space-y-6">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <FileText className="w-5 h-5 text-amber-400" />
+                <span>Acta Oficial y Planilla de Puntuaciones</span>
+              </h3>
+              <p className="text-xs text-zinc-400">
+                Informe listo para imprimir, archivar o exportar a Excel
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Imprimir Acta Oficial</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Tabla Imprimible del Acta */}
+          <div className="rounded-2xl bg-zinc-950 border border-zinc-800 overflow-x-auto p-4 space-y-4">
+            <div className="text-center py-2 border-b border-zinc-800 space-y-1">
+              <h2 className="text-xl font-black text-white uppercase tracking-tight">
+                {reportData.contest.name}
+              </h2>
+              <p className="text-xs text-zinc-400">
+                Establecimiento: {reportData.contest.tenantName} &bull; Código: {reportData.contest.code}
+              </p>
+            </div>
+
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-zinc-800 text-zinc-400 font-mono uppercase text-[10px]">
+                  <th className="py-2.5 px-3">Puesto</th>
+                  <th className="py-2.5 px-3">Participante</th>
+                  <th className="py-2.5 px-3">Canción & Artista</th>
+                  <th className="py-2.5 px-3">Gala</th>
+                  <th className="py-2.5 px-3 text-right">Nota Jurado</th>
+                  <th className="py-2.5 px-3 text-right">Voto Público</th>
+                  <th className="py-2.5 px-3 text-right">Puntaje Final</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/60 font-medium">
+                {reportData.leaderboard.map((row: any) => (
+                  <tr key={row.rank} className="hover:bg-zinc-900/50">
+                    <td className="py-3 px-3 font-mono font-bold text-amber-400">
+                      {row.rank === 1 ? "🥇 1°" : row.rank === 2 ? "🥈 2°" : row.rank === 3 ? "🥉 3°" : `${row.rank}°`}
+                    </td>
+                    <td className="py-3 px-3 font-bold text-white">
+                      {row.stageName} {row.name !== row.stageName && `(${row.name})`}
+                    </td>
+                    <td className="py-3 px-3 text-zinc-300">
+                      "{row.songTitle}" - {row.artistName}
+                    </td>
+                    <td className="py-3 px-3 text-zinc-400">{row.stageTitle}</td>
+                    <td className="py-3 px-3 text-right font-mono font-bold text-zinc-200">
+                      {row.judgeScore}
+                    </td>
+                    <td className="py-3 px-3 text-right font-mono text-zinc-400">
+                      {row.publicScore}
+                    </td>
+                    <td className="py-3 px-3 text-right font-mono font-black text-amber-300 text-sm">
+                      {row.totalScore} pts
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* PESTAÑA 7: GENERADOR DE DIPLOMAS                             */}
+      {/* ============================================================ */}
+      {activeTab === "diplomas" && reportData && (
+        <div className="bg-zinc-900/70 border border-zinc-800 rounded-3xl p-6 space-y-6">
+          <div>
+            <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-yellow-400" />
+              <span>Certificados y Diplomas de Premiación</span>
+            </h3>
+            <p className="text-xs text-zinc-400">
+              Genera diplomas de gala con membrete listos para imprimir o entregar en papel a los ganadores
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {reportData.leaderboard.slice(0, 3).map((winner: any, i: number) => {
+              const title = i === 0 ? "1ER PUESTO &bull; CAMPEÓN" : i === 1 ? "2DO PUESTO" : "3ER PUESTO";
+              const border = i === 0 ? "border-yellow-400" : i === 1 ? "border-slate-300" : "border-amber-600";
+              const text = i === 0 ? "text-yellow-400" : i === 1 ? "text-slate-300" : "text-amber-500";
+
+              return (
+                <div
+                  key={winner.rank}
+                  className={`p-6 rounded-3xl bg-zinc-950 border-2 ${border} text-center space-y-4 shadow-2xl relative overflow-hidden`}
+                >
+                  <div className="w-14 h-14 mx-auto rounded-full bg-zinc-900 flex items-center justify-center text-2xl shadow-inner">
+                    {i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className={`text-[10px] font-mono font-black tracking-widest uppercase ${text}`}>
+                      {title}
+                    </span>
+                    <h4 className="text-lg font-black text-white">{winner.stageName}</h4>
+                    <p className="text-xs text-zinc-400 italic">
+                      "{winner.songTitle}" - {winner.artistName}
+                    </p>
+                    <p className="text-xs font-mono font-black text-amber-300 pt-1">
+                      Puntuación Oficial: {winner.totalScore} pts
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => window.print()}
+                    className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-colors"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Imprimir Diploma</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: NUEVO CONCURSO                                        */}
+      {/* ============================================================ */}
+      {showNewContestModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-400" />
+                <span>Crear Nuevo Campeonato de Karaoke</span>
+              </h3>
+              <button
+                onClick={() => setShowNewContestModal(false)}
+                className="text-zinc-500 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateContest} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre del Certamen</label>
+                <input
+                  type="text"
+                  required
+                  value={newContestForm.name}
+                  onChange={(e) => setNewContestForm({ ...newContestForm, name: e.target.value })}
+                  className="w-full p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-bold outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Descripción / Reglamento Breve</label>
+                <textarea
+                  rows={2}
+                  value={newContestForm.description}
+                  onChange={(e) => setNewContestForm({ ...newContestForm, description: e.target.value })}
+                  className="w-full p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Modo de Puntuación</label>
+                  <select
+                    value={newContestForm.scoringMode}
+                    onChange={(e) => setNewContestForm({ ...newContestForm, scoringMode: e.target.value })}
+                    className="w-full p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-bold outline-none"
+                  >
+                    <option value="AVERAGE">Promedio Simple</option>
+                    <option value="OLYMPIC">Olímpico (Descarta max y min)</option>
+                    <option value="SUM">Suma Total de Puntos</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Voto del Público (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={50}
+                    value={newContestForm.publicVoteWeight}
+                    onChange={(e) => setNewContestForm({ ...newContestForm, publicVoteWeight: Number(e.target.value) })}
+                    className="w-full p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-bold outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewContestModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-lg shadow-amber-500/25"
+                >
+                  {actionLoading ? "Creando..." : "Crear Concurso"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: INSCRIBIR PARTICIPANTE                                */}
+      {/* ============================================================ */}
+      {showNewParticipantModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <Mic className="w-5 h-5 text-amber-400" />
+                <span>Inscribir Cantante en el Concurso</span>
+              </h3>
+              <button onClick={() => setShowNewParticipantModal(false)} className="text-zinc-500 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleRegisterParticipant} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre Completo *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej: Laura Méndez"
+                  value={newParticipantForm.name}
+                  onChange={(e) => setNewParticipantForm({ ...newParticipantForm, name: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre Artístico (Opcional)</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Laurita Rock"
+                  value={newParticipantForm.stageName}
+                  onChange={(e) => setNewParticipantForm({ ...newParticipantForm, stageName: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Canción a Cantar *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej: De Música Ligera"
+                    value={newParticipantForm.initialSongTitle}
+                    onChange={(e) => setNewParticipantForm({ ...newParticipantForm, initialSongTitle: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Artista Original</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Soda Stereo"
+                    value={newParticipantForm.initialArtistName}
+                    onChange={(e) => setNewParticipantForm({ ...newParticipantForm, initialArtistName: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Mesa / Ubicación en el Local</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Mesa 14 VIP"
+                  value={newParticipantForm.tableLabel}
+                  onChange={(e) => setNewParticipantForm({ ...newParticipantForm, tableLabel: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewParticipantModal(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md"
+                >
+                  {actionLoading ? "Inscribiendo..." : "Inscribir"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: MOSTRAR CÓDIGO QR PARA JURADOS O MESAS               */}
+      {/* ============================================================ */}
+      {showQrModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl text-center space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-white">{showQrModal.title}</h3>
+              <button onClick={() => setShowQrModal(null)} className="text-zinc-500 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl mx-auto inline-block shadow-2xl">
+              {/* QR Renderizado a través de API nativa SVG */}
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+                  showQrModal.url
+                )}`}
+                alt="QR Code"
+                className="w-48 h-48 mx-auto"
+              />
+            </div>
+
+            {showQrModal.pin && (
+              <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800">
+                <span className="text-xs text-zinc-400">PIN de Acceso: </span>
+                <strong className="text-amber-400 font-mono text-base">{showQrModal.pin}</strong>
+              </div>
+            )}
+
+            <p className="text-[11px] text-zinc-400">
+              Escanea con la cámara del celular para abrir el panel de votación al instante sin contraseña.
+            </p>
+
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(showQrModal.url);
+                showFeedback("success", "Enlace copiado al portapapeles");
+              }}
+              className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold cursor-pointer"
+            >
+              Copiar Enlace Directo
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

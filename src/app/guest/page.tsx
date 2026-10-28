@@ -38,6 +38,7 @@ import {
   Mic,
   Headphones,
   Square,
+  Trophy,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -249,6 +250,23 @@ function GuestContent() {
   const [branding, setBranding] = useState<BrandingInfo | null>(null);
   const [copiedWifi, setCopiedWifi] = useState(false);
   const [loadingSession, setLoadingSession] = useState(true);
+
+  // 🏆 Votación del Público para Concurso de Karaoke
+  const [activeContestVote, setActiveContestVote] = useState<{
+    contestId: string;
+    performance: {
+      id: string;
+      songTitle: string;
+      artistName: string;
+      participantName: string;
+      stageName?: string | null;
+      tableLabel?: string | null;
+    };
+  } | null>(null);
+  const [contestStars, setContestStars] = useState<number>(5);
+  const [contestCheered, setContestCheered] = useState<boolean>(false);
+  const [contestVoteSubmitted, setContestVoteSubmitted] = useState<boolean>(false);
+  const [contestVoteLoading, setContestVoteLoading] = useState<boolean>(false);
 
   // Catálogo state
   const [songs, setSongs] = useState<Song[]>([]);
@@ -546,9 +564,109 @@ function GuestContent() {
             if (data.data.tableAllowance) setTableAllowance(data.data.tableAllowance);
           }
         } catch {}
+      } else if (type === "CONTEST_VOTING_OPEN" || type === "CONTEST_PERFORMANCE_UPDATE") {
+        if (payload?.performance && (payload.performance.status === "VOTING_OPEN" || type === "CONTEST_VOTING_OPEN")) {
+          setActiveContestVote({
+            contestId: payload.contestId || payload.performance.contestId,
+            performance: {
+              id: payload.performance.id,
+              songTitle: payload.performance.songTitle,
+              artistName: payload.performance.artistName,
+              participantName: payload.performance.participant?.name || "Cantante",
+              stageName: payload.performance.participant?.stageName,
+              tableLabel: payload.performance.participant?.tableLabel,
+            },
+          });
+          setContestVoteSubmitted(false);
+          setContestStars(5);
+        } else if (payload?.performance?.status === "VOTING_CLOSED" || payload?.performance?.status === "REVEALED") {
+          setTimeout(() => {
+            setActiveContestVote(null);
+            setContestVoteSubmitted(false);
+          }, 3500);
+        }
+      } else if (type === "CONTEST_VOTING_CLOSED" || type === "CONTEST_REVEAL_SCORES") {
+        setTimeout(() => {
+          setActiveContestVote(null);
+          setContestVoteSubmitted(false);
+        }, 3500);
       }
     },
   });
+
+  // Escuchar difusiones locales del concurso
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const channelNames = ["vidjs_contest_sync_global"];
+    if (session?.event?.code) {
+      channelNames.push(`vidjs_contest_sync_${session.event.code}`);
+      channelNames.push(`vidjs_contest_sync_${session.event.code.toUpperCase()}`);
+    }
+    const openChannels: BroadcastChannel[] = [];
+    channelNames.forEach((name) => {
+      try {
+        const ch = new BroadcastChannel(name);
+        ch.onmessage = (e) => {
+          const msg = e.data || {};
+          if (msg.type === "CONTEST_SYNC") {
+            if (msg.action === "VOTING_OPEN" && msg.performance) {
+              setActiveContestVote({
+                contestId: msg.performance.contestId,
+                performance: {
+                  id: msg.performance.id,
+                  songTitle: msg.performance.songTitle,
+                  artistName: msg.performance.artistName,
+                  participantName: msg.performance.participant?.name || "Cantante",
+                  stageName: msg.performance.participant?.stageName,
+                  tableLabel: msg.performance.participant?.tableLabel,
+                },
+              });
+              setContestVoteSubmitted(false);
+              setContestStars(5);
+            } else if (msg.action === "VOTING_CLOSED" || msg.action === "DISMISS") {
+              setActiveContestVote(null);
+            }
+          }
+        };
+        openChannels.push(ch);
+      } catch {}
+    });
+    return () => {
+      openChannels.forEach((ch) => {
+        try {
+          ch.close();
+        } catch {}
+      });
+    };
+  }, [session?.event?.code]);
+
+  // Enviar voto de mesa al concurso
+  const handleSendContestPublicVote = async () => {
+    if (!activeContestVote?.contestId || !activeContestVote?.performance?.id) return;
+    setContestVoteLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${activeContestVote.contestId}/vote/public`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          performanceId: activeContestVote.performance.id,
+          stars: contestStars,
+          cheerCount: contestCheered ? 5 : 1,
+          guestSessionToken: session?.table?.id || "guest",
+          tableLabel: session?.table?.label || "Mesa de Invitados",
+        }),
+      });
+      if (res.ok) {
+        setContestVoteSubmitted(true);
+        setSuccessMessage("⭐ ¡Tu voto fue enviado y sumado al certamen!");
+        setTimeout(() => setSuccessMessage(null), 5000);
+      }
+    } catch {
+      alert("Error al emitir voto de público");
+    } finally {
+      setContestVoteLoading(false);
+    }
+  };
 
   // Temporizador para finalizar el aplausómetro en el móvil
   useEffect(() => {
@@ -1377,6 +1495,115 @@ function GuestContent() {
                   <span className="text-2xl">👏</span>
                   <span>¡TOCA PARA APLAUDIR! (+1)</span>
                 </button>
+              </div>
+            )}
+
+            {/* 🏆 Votación en Vivo del Concurso de Karaoke desde la Mesa */}
+            {activeContestVote && (
+              <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-950/90 via-zinc-950 to-purple-950/90 border-2 border-amber-500/80 shadow-[0_0_35px_rgba(245,158,11,0.35)] space-y-4 animate-fadeIn">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="p-2 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      <Trophy className="w-5 h-5 text-amber-400" />
+                    </span>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
+                        GALA OFICIAL &bull; VOTACIÓN DEL PÚBLICO
+                      </span>
+                      <span className="text-sm font-black text-white">
+                        {activeContestVote.performance.stageName || activeContestVote.performance.participantName}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-black animate-pulse">
+                    EN ESCENARIO
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-black/60 border border-zinc-800 space-y-0.5">
+                  <div className="text-sm font-black text-amber-300">
+                    {activeContestVote.performance.songTitle}
+                  </div>
+                  <div className="text-xs text-zinc-400 font-medium">
+                    {activeContestVote.performance.artistName}
+                  </div>
+                </div>
+
+                {!contestVoteSubmitted ? (
+                  <div className="space-y-3">
+                    <div className="text-center space-y-2">
+                      <span className="text-xs font-bold text-zinc-300 block">
+                        ¿Qué puntaje le otorgas a esta presentación?
+                      </span>
+                      <div className="flex items-center justify-center gap-2 py-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setContestStars(star)}
+                            className={`p-2.5 rounded-2xl transition-all cursor-pointer ${
+                              contestStars >= star
+                                ? "bg-amber-500 text-black scale-110 shadow-lg shadow-amber-500/40"
+                                : "bg-zinc-900 text-zinc-600 hover:text-zinc-400"
+                            }`}
+                          >
+                            <Star className="w-6 h-6 fill-current" />
+                          </button>
+                        ))}
+                      </div>
+                      <div className="text-xs font-black text-amber-400">
+                        {contestStars === 5
+                          ? "⭐⭐⭐⭐⭐ ¡IMPRESIONANTE!"
+                          : contestStars === 4
+                          ? "⭐⭐⭐⭐ ¡MUY BUENO!"
+                          : contestStars === 3
+                          ? "⭐⭐⭐ ¡BUEN INTENTO!"
+                          : contestStars === 2
+                          ? "⭐⭐ REGULAR"
+                          : "⭐ PUEDE MEJORAR"}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setContestCheered(!contestCheered)}
+                        className={`flex-1 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          contestCheered
+                            ? "bg-pink-600 border-pink-400 text-white shadow-md shadow-pink-600/30"
+                            : "bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-500"
+                        }`}
+                      >
+                        <Heart className={`w-4 h-4 ${contestCheered ? "fill-white" : "text-pink-400"}`} />
+                        <span>{contestCheered ? "¡Con Aplauso Extra!" : "+ Dar Barra y Ánimo"}</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSendContestPublicVote}
+                      disabled={contestVoteLoading}
+                      className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30 cursor-pointer disabled:opacity-50"
+                    >
+                      {contestVoteLoading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trophy className="w-4 h-4 text-black" />
+                      )}
+                      <span>Enviar Mi Calificación</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-emerald-950/70 border border-emerald-500/50 text-center space-y-1.5">
+                    <div className="flex items-center justify-center gap-1.5 text-emerald-400 text-sm font-bold">
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span>¡Tu voto de {contestStars} estrellas fue sumado al certamen!</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-300">
+                      Los resultados de los jueces se revelarán en la pantalla TV al cerrar la votación.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
