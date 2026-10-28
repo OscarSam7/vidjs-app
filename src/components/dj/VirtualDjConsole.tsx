@@ -173,6 +173,11 @@ const VuMeterBar = memo(function VuMeterBar({
 const StableIframe = memo(
   function StableIframe({ deckId, videoId, isEjected, iframeRef }: StableIframeProps) {
     const staticSrcRef = useRef<string>("");
+    const prevVideoIdRef = useRef(videoId);
+    if (prevVideoIdRef.current !== videoId) {
+      prevVideoIdRef.current = videoId;
+      staticSrcRef.current = "";
+    }
 
     // Si la bandeja está vacía o expulsada, NO montar ningún iframe
     if (!videoId || isEjected) {
@@ -1091,27 +1096,44 @@ export default function VirtualDjConsole({
     }
   };
 
-  // Cargar video en iframe de forma 100% aislada usando loadVideoById por postMessage (cero recargas del iframe)
+  // Cargar video en iframe de forma 100% aislada usando cueVideoById / loadVideoById por postMessage
   const loadVideoIntoIframe = (
     iframe: HTMLIFrameElement | null,
     vid: string,
-    volume: number
+    volume: number,
+    autoPlay: boolean = false
   ) => {
     if (!iframe) return;
-    sendPlayerCommand(iframe, "loadVideoById", [vid, 0]);
-    sendPlayerCommand(iframe, "unMute");
-    sendPlayerCommand(iframe, "setVolume", [volume]);
-    sendPlayerCommand(iframe, "playVideo");
-    sendPlayerCommand(iframe, "addEventListener", ["onStateChange"]);
-    // Retry de volumen y reproducción tras 400ms para asegurar arranque confiable
-    setTimeout(() => {
-      if (iframe) {
-        sendPlayerCommand(iframe, "unMute");
-        sendPlayerCommand(iframe, "setVolume", [volume]);
-        sendPlayerCommand(iframe, "playVideo");
-        sendPlayerCommand(iframe, "addEventListener", ["onStateChange"]);
-      }
-    }, 400);
+    if (autoPlay) {
+      sendPlayerCommand(iframe, "loadVideoById", [vid, 0]);
+      sendPlayerCommand(iframe, "unMute");
+      sendPlayerCommand(iframe, "setVolume", [volume]);
+      sendPlayerCommand(iframe, "playVideo");
+      sendPlayerCommand(iframe, "addEventListener", ["onStateChange"]);
+      // Retry de volumen y reproducción tras 400ms para asegurar arranque confiable
+      setTimeout(() => {
+        if (iframe) {
+          sendPlayerCommand(iframe, "unMute");
+          sendPlayerCommand(iframe, "setVolume", [volume]);
+          sendPlayerCommand(iframe, "playVideo");
+          sendPlayerCommand(iframe, "addEventListener", ["onStateChange"]);
+        }
+      }, 400);
+    } else {
+      // Modo CUE (por defecto): Cargar en segundo 0 y mantener pausado esperando PLAY manual
+      sendPlayerCommand(iframe, "cueVideoById", [vid, 0]);
+      sendPlayerCommand(iframe, "pauseVideo");
+      sendPlayerCommand(iframe, "seekTo", [0, true]);
+      sendPlayerCommand(iframe, "unMute");
+      sendPlayerCommand(iframe, "setVolume", [volume]);
+      sendPlayerCommand(iframe, "addEventListener", ["onStateChange"]);
+      setTimeout(() => {
+        if (iframe) {
+          sendPlayerCommand(iframe, "pauseVideo");
+          sendPlayerCommand(iframe, "seekTo", [0, true]);
+        }
+      }, 350);
+    }
   };
 
   // Extraer video ID de notas o URL de YouTube
@@ -1421,19 +1443,16 @@ export default function VirtualDjConsole({
     setDeckTrackA(syntheticTrack);
     setManualTrackA(syntheticTrack);
     setPlaybackSecondsA(0);
-    setIsPlayingA(true);
+    setIsPlayingA(false);
     webDjEngine.unlock();
-    if (!isPlayingB) {
-      animateCrossfaderTo(-100, 500);
-    }
 
     if (audioRefA.current) {
       audioRefA.current.src = url;
       audioRefA.current.currentTime = 0;
-      audioRefA.current.play().catch(() => {});
+      audioRefA.current.pause();
     }
 
-    showFeedback("success", `📁 ${isVideo ? "Video MP4" : "Pista local"} cargada en Deck A: "${cleanName}"`);
+    showFeedback("success", `📁 ${isVideo ? "Video MP4" : "Pista local"} cargada en Deck A: "${cleanName}" (Listo para Play)`);
   };
 
   const handleLoadLocalFileB = (file: File) => {
@@ -1471,19 +1490,16 @@ export default function VirtualDjConsole({
     setDeckTrackB(syntheticTrack);
     setManualTrackB(syntheticTrack);
     setPlaybackSecondsB(0);
-    setIsPlayingB(true);
+    setIsPlayingB(false);
     webDjEngine.unlock();
-    if (!isPlayingA) {
-      animateCrossfaderTo(100, 500);
-    }
 
     if (audioRefB.current) {
       audioRefB.current.src = url;
       audioRefB.current.currentTime = 0;
-      audioRefB.current.play().catch(() => {});
+      audioRefB.current.pause();
     }
 
-    showFeedback("success", `📁 ${isVideo ? "Video MP4" : "Pista local"} cargada en Deck B: "${cleanName}"`);
+    showFeedback("success", `📁 ${isVideo ? "Video MP4" : "Pista local"} cargada en Deck B: "${cleanName}" (Listo para Play)`);
   };
 
   // Helper para generar metadata enriquecida de sincronización con la pantalla de TV
@@ -1640,7 +1656,11 @@ export default function VirtualDjConsole({
       if (isPlayingA) {
         audioRefA.current.pause();
         setIsPlayingA(false);
-        onPlaybackControl?.("PAUSE", "A", getDeckSyncDetails("A"));
+        if (isPlayingB) {
+          onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
+        } else {
+          onPlaybackControl?.("PAUSE", "A", getDeckSyncDetails("A"));
+        }
       } else {
         audioRefA.current.play().catch(() => {});
         setIsPlayingA(true);
@@ -1655,7 +1675,11 @@ export default function VirtualDjConsole({
     if (isPlayingA) {
       if (iframeRefA.current) sendPlayerCommand(iframeRefA.current, "pauseVideo");
       setIsPlayingA(false);
-      onPlaybackControl?.("PAUSE", "A", getDeckSyncDetails("A"));
+      if (isPlayingB) {
+        onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
+      } else {
+        onPlaybackControl?.("PAUSE", "A", getDeckSyncDetails("A"));
+      }
     } else {
       unlockAudioA();
       if (iframeRefA.current) sendPlayerCommand(iframeRefA.current, "playVideo");
@@ -1675,7 +1699,11 @@ export default function VirtualDjConsole({
       if (isPlayingB) {
         audioRefB.current.pause();
         setIsPlayingB(false);
-        onPlaybackControl?.("PAUSE", "B", getDeckSyncDetails("B"));
+        if (isPlayingA) {
+          onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
+        } else {
+          onPlaybackControl?.("PAUSE", "B", getDeckSyncDetails("B"));
+        }
       } else {
         audioRefB.current.play().catch(() => {});
         setIsPlayingB(true);
@@ -1690,7 +1718,11 @@ export default function VirtualDjConsole({
     if (isPlayingB) {
       if (iframeRefB.current) sendPlayerCommand(iframeRefB.current, "pauseVideo");
       setIsPlayingB(false);
-      onPlaybackControl?.("PAUSE", "B", getDeckSyncDetails("B"));
+      if (isPlayingA) {
+        onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
+      } else {
+        onPlaybackControl?.("PAUSE", "B", getDeckSyncDetails("B"));
+      }
     } else {
       unlockAudioB();
       if (iframeRefB.current) sendPlayerCommand(iframeRefB.current, "playVideo");
@@ -1961,13 +1993,9 @@ export default function VirtualDjConsole({
       activeVideoIdARef.current = directId;
       setVideoIdA(directId);
       setIsLoadingVideoA(false);
-      setIsPlayingA(true);
-      unlockAudioA();
-      loadVideoIntoIframe(iframeRefA.current, directId, effectiveVolA);
-      if (!isPlayingB) {
-        animateCrossfaderTo(-100, 500);
-      }
-      showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A`);
+      setIsPlayingA(false);
+      loadVideoIntoIframe(iframeRefA.current, directId, effectiveVolA, false);
+      showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A (Listo para Play)`);
       return;
     }
 
@@ -1989,13 +2017,9 @@ export default function VirtualDjConsole({
           const resolvedId = data.data.results[0].id;
           activeVideoIdARef.current = resolvedId;
           setVideoIdA(resolvedId);
-          setIsPlayingA(true);
-          unlockAudioA();
-          loadVideoIntoIframe(iframeRefA.current, resolvedId, effectiveVolA);
-          if (!isPlayingB) {
-            animateCrossfaderTo(-100, 500);
-          }
-          showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A`);
+          setIsPlayingA(false);
+          loadVideoIntoIframe(iframeRefA.current, resolvedId, effectiveVolA, false);
+          showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A (Listo para Play)`);
         } else {
           showFeedback("error", `No se encontró audio en YouTube para "${title}"`);
         }
@@ -2056,13 +2080,9 @@ export default function VirtualDjConsole({
       activeVideoIdBRef.current = directId;
       setVideoIdB(directId);
       setIsLoadingVideoB(false);
-      setIsPlayingB(true);
-      unlockAudioB();
-      loadVideoIntoIframe(iframeRefB.current, directId, effectiveVolB);
-      if (!isPlayingA) {
-        animateCrossfaderTo(100, 500);
-      }
-      showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B`);
+      setIsPlayingB(false);
+      loadVideoIntoIframe(iframeRefB.current, directId, effectiveVolB, false);
+      showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B (Listo para Play)`);
       return;
     }
 
@@ -2084,13 +2104,9 @@ export default function VirtualDjConsole({
           const resolvedId = data.data.results[0].id;
           activeVideoIdBRef.current = resolvedId;
           setVideoIdB(resolvedId);
-          setIsPlayingB(true);
-          unlockAudioB();
-          loadVideoIntoIframe(iframeRefB.current, resolvedId, effectiveVolB);
-          if (!isPlayingA) {
-            animateCrossfaderTo(100, 500);
-          }
-          showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B`);
+          setIsPlayingB(false);
+          loadVideoIntoIframe(iframeRefB.current, resolvedId, effectiveVolB, false);
+          showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B (Listo para Play)`);
         } else {
           showFeedback("error", `No se encontró audio en YouTube para "${title}"`);
         }
@@ -2133,6 +2149,11 @@ export default function VirtualDjConsole({
     setActiveLoopA(null);
     setIsLoadingVideoA(false);
     setIsVideoA(false);
+
+    // Si Deck B está en reproducción, preservar su emisión en la pantalla de TV
+    if (isPlayingB) {
+      onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
+    }
   };
 
   // Limpiar / Expulsar pista de DECK B (Aislamiento Total: Deck A NUNCA es afectada)
@@ -2165,6 +2186,11 @@ export default function VirtualDjConsole({
     setIsLoadingVideoB(false);
     setIsVideoB(false);
     setIsSyncedB(false);
+
+    // Si Deck A está en reproducción, preservar su emisión en la pantalla de TV
+    if (isPlayingA) {
+      onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
+    }
   };
 
   // Manejador automático de fin de pista en DECK A con relevo a DECK B y desplazamiento de crossfader
@@ -2183,25 +2209,34 @@ export default function VirtualDjConsole({
     );
 
     if (hasTrackB) {
-      setIsPlayingB(true);
-      unlockAudioB();
-      if (deckModeB === "native" && audioRefB.current) {
-        audioRefB.current.play().catch(() => {});
-      } else if (iframeRefB.current) {
-        sendPlayerCommand(iframeRefB.current, "unMute");
-        sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
-        sendPlayerCommand(iframeRefB.current, "playVideo");
+      // Si Deck B ya estaba reproduciendo (el DJ ya le dio play e hizo el enganche), ¡mantenerlo sonando!
+      if (!isPlayingB) {
+        setIsPlayingB(true);
+        unlockAudioB();
+        if (deckModeB === "native" && audioRefB.current) {
+          audioRefB.current.play().catch(() => {});
+        } else if (iframeRefB.current) {
+          sendPlayerCommand(iframeRefB.current, "unMute");
+          sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+          sendPlayerCommand(iframeRefB.current, "playVideo");
+        }
+        onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
+        animateCrossfaderTo(100, 600);
+      } else {
+        onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
       }
-      onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
-      animateCrossfaderTo(100, 600);
       setEngancheDirection("B_TO_A");
-      showFeedback("info", "🔄 Pista de Deck A finalizada. Crossfader desplazado a Deck B");
+      showFeedback("info", "🔄 Pista de Deck A finalizada. Deck B activo.");
     } else {
-      onPlaybackControl?.("PAUSE", "A", getDeckSyncDetails("A"));
+      if (isPlayingB) {
+        onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
+      } else {
+        onPlaybackControl?.("PAUSE", "A", getDeckSyncDetails("A"));
+      }
       showFeedback("info", "🏁 Pista de Deck A finalizada. Bandeja A vaciada.");
     }
 
-    // Limpiar y vaciar automáticamente la bandeja A para dejarla lista para el siguiente tema
+    // Limpiar y vaciar automáticamente SOLO la bandeja A para dejarla lista para el siguiente tema
     handleClearDeckA();
 
     // Notificar avance de pista a la cola en el servidor
@@ -2214,6 +2249,7 @@ export default function VirtualDjConsole({
     manualTrackB,
     effectiveQueueEntryB,
     selectedQueueIdB,
+    isPlayingB,
     deckModeB,
     effectiveVolB,
     onPlaybackControl,
@@ -2238,25 +2274,34 @@ export default function VirtualDjConsole({
     const hasTrackA = Boolean(!isEjectedA && (deckTrackA || manualTrackA));
 
     if (hasTrackA) {
-      setIsPlayingA(true);
-      unlockAudioA();
-      if (deckModeA === "native" && audioRefA.current) {
-        audioRefA.current.play().catch(() => {});
-      } else if (iframeRefA.current) {
-        sendPlayerCommand(iframeRefA.current, "unMute");
-        sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
-        sendPlayerCommand(iframeRefA.current, "playVideo");
+      // Si Deck A ya estaba reproduciendo (el DJ ya le dio play e hizo el enganche), ¡mantenerlo sonando!
+      if (!isPlayingA) {
+        setIsPlayingA(true);
+        unlockAudioA();
+        if (deckModeA === "native" && audioRefA.current) {
+          audioRefA.current.play().catch(() => {});
+        } else if (iframeRefA.current) {
+          sendPlayerCommand(iframeRefA.current, "unMute");
+          sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+          sendPlayerCommand(iframeRefA.current, "playVideo");
+        }
+        onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
+        animateCrossfaderTo(-100, 600);
+      } else {
+        onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
       }
-      onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
-      animateCrossfaderTo(-100, 600);
       setEngancheDirection("A_TO_B");
-      showFeedback("info", "🔄 Pista de Deck B finalizada. Crossfader desplazado a Deck A");
+      showFeedback("info", "🔄 Pista de Deck B finalizada. Deck A activo.");
     } else {
-      onPlaybackControl?.("PAUSE", "B", getDeckSyncDetails("B"));
+      if (isPlayingA) {
+        onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
+      } else {
+        onPlaybackControl?.("PAUSE", "B", getDeckSyncDetails("B"));
+      }
       showFeedback("info", "🏁 Pista de Deck B finalizada. Bandeja B vaciada.");
     }
 
-    // Limpiar y vaciar automáticamente la bandeja B para dejarla lista para el siguiente tema
+    // Limpiar y vaciar automáticamente SOLO la bandeja B para dejarla lista para el siguiente tema
     handleClearDeckB();
 
     // Notificar avance de pista a la cola en el servidor
@@ -2267,6 +2312,7 @@ export default function VirtualDjConsole({
     isEjectedA,
     deckTrackA,
     manualTrackA,
+    isPlayingA,
     deckModeA,
     effectiveVolA,
     onPlaybackControl,
@@ -2307,19 +2353,23 @@ export default function VirtualDjConsole({
 
       // playerState === 0 es YT.PlayerState.ENDED
       if (playerState === 0) {
-        const isFromA =
-          event.source === iframeRefA.current?.contentWindow ||
-          data.widgetId === 1 ||
-          data.id === 1;
+        const winA = iframeRefA.current?.contentWindow;
+        const winB = iframeRefB.current?.contentWindow;
 
-        const isFromB =
-          event.source === iframeRefB.current?.contentWindow ||
-          data.widgetId === 2 ||
-          data.id === 2;
+        let deck: "A" | "B" | null = null;
+        if (winA && event.source === winA) {
+          deck = "A";
+        } else if (winB && event.source === winB) {
+          deck = "B";
+        } else if (data.widgetId === 1 || data.id === 1) {
+          deck = "A";
+        } else if (data.widgetId === 2 || data.id === 2) {
+          deck = "B";
+        }
 
-        if (isFromA) {
+        if (deck === "A") {
           handleDeckAEndedRef.current?.();
-        } else if (isFromB) {
+        } else if (deck === "B") {
           handleDeckBEndedRef.current?.();
         }
       }
@@ -2386,43 +2436,38 @@ export default function VirtualDjConsole({
 
     if (resolvedTarget === "A") {
       loadTrackIntoDeckA(entry.songRequest, entry.youtubeVideoId, entry.id);
-      // Limpiar Deck B si contenía este mismo tema para que SOLO esté en una bandeja
+      // Limpiar Deck B SOLO si contenía exactamente este mismo tema Y Deck B NO está sonando
       if (
-        deckTrackB?.id === entry.songRequest.id ||
+        !isPlayingB &&
+        (deckTrackB?.id === entry.songRequest.id ||
         activeTrackReqIdBRef.current === entry.songRequest.id ||
-        deckQueueEntryIdB === entry.id
+        deckQueueEntryIdB === entry.id)
       ) {
         handleClearDeckB();
       }
-      if (!isPlayingB) {
-        animateCrossfaderTo(-100, 500);
-      }
-      showFeedback("success", `🎧 Cargada en Bandeja A: "${title}"${tableLabel}`);
+      showFeedback("success", `🎧 Cargada en Bandeja A: "${title}"${tableLabel} (Listo para Play)`);
     } else {
       loadTrackIntoDeckB(entry.songRequest, entry.id, entry.youtubeVideoId);
-      // Limpiar Deck A si contenía este mismo tema para que SOLO esté en una bandeja
+      // Limpiar Deck A SOLO si contenía exactamente este mismo tema Y Deck A NO está sonando
       if (
-        deckTrackA?.id === entry.songRequest.id ||
-        activeTrackReqIdARef.current === entry.songRequest.id
+        !isPlayingA &&
+        (deckTrackA?.id === entry.songRequest.id ||
+        activeTrackReqIdARef.current === entry.songRequest.id)
       ) {
         handleClearDeckA();
       }
-      if (!isPlayingA) {
-        animateCrossfaderTo(100, 500);
-      }
-      showFeedback("success", `🎧 Cargada en Bandeja B: "${title}"${tableLabel}`);
+      showFeedback("success", `🎧 Cargada en Bandeja B: "${title}"${tableLabel} (Listo para Play)`);
     }
 
     if (onDeckLoaded) onDeckLoaded();
-  }, [pendingDeckLoad]);
+  }, [pendingDeckLoad, isPlayingA, isPlayingB]);
 
   // Avance de tema del servidor / Sincronización cuando entra un nuevo tema al aire
   useEffect(() => {
     const currentId = currentPlaying?.id || null;
-    if (!currentId && prevCurrentPlayingIdRef.current) {
+    if (!currentId) {
       prevCurrentPlayingIdRef.current = null;
-      if (isPlayingA) handleClearDeckA();
-      if (isPlayingB) handleClearDeckB();
+      // NUNCA vaciar ni interrumpir bandejas que estén en reproducción activa
       return;
     }
 
@@ -2458,24 +2503,22 @@ export default function VirtualDjConsole({
         return;
       }
 
-      // Si no estaba en ninguna bandeja (ej: arranque de la noche o reproducción automática), cargar en UNA sola bandeja
-      const target = determineFreeDeck("AUTO");
+      // Solo montar en una bandeja que esté verdaderamente libre (sin tema y sin reproducción activa)
+      // NUNCA vaciar ni detener la otra bandeja que esté sonando en vivo
+      const isAOccupied = Boolean(trackA) || isPlayingA;
+      const isBOccupied = Boolean(trackB) || isPlayingB;
       const title = currentPlaying.songRequest.song?.title || currentPlaying.songRequest.customTitle || "Tema";
       const tableLabel = currentPlaying.songRequest.table?.label ? ` (${currentPlaying.songRequest.table.label})` : "";
 
-      if (target === "A") {
-        if (isPlayingB) handleClearDeckB();
+      if (!isAOccupied) {
         loadTrackIntoDeckA(currentPlaying.songRequest, currentPlaying.youtubeVideoId, currentPlaying.id);
-        animateCrossfaderTo(-100, 500);
-        showFeedback("success", `🎧 Cargada en Bandeja A: "${title}"${tableLabel}`);
-      } else {
-        if (isPlayingA) handleClearDeckA();
+        showFeedback("info", `🎧 Montada en Bandeja A: "${title}"${tableLabel} (Listo para Play)`);
+      } else if (!isBOccupied) {
         loadTrackIntoDeckB(currentPlaying.songRequest, currentPlaying.id, currentPlaying.youtubeVideoId);
-        animateCrossfaderTo(100, 500);
-        showFeedback("success", `🎧 Cargada en Bandeja B: "${title}"${tableLabel}`);
+        showFeedback("info", `🎧 Montada en Bandeja B: "${title}"${tableLabel} (Listo para Play)`);
       }
     }
-  }, [currentPlaying?.id, trackA?.id, trackB?.id, isPlayingA, isPlayingB, crossfaderValue]);
+  }, [currentPlaying?.id, trackA?.id, trackB?.id, isPlayingA, isPlayingB]);
 
   // Detección inteligente de dirección para Auto-Enganche según la bandeja que está al aire
   useEffect(() => {
@@ -3176,7 +3219,7 @@ export default function VirtualDjConsole({
 
     const syntheticTrack: SongRequestData = {
       id: `lib-a-${song.id}-${Date.now()}`,
-      status: isPlayingA ? "PLAYING" : "PENDING",
+      status: "PENDING",
       customTitle: song.title,
       customArtist: song.artist?.name || "Artista",
       notes: song.genre || null,
@@ -3204,19 +3247,18 @@ export default function VirtualDjConsole({
       setManualTrackA(syntheticTrack);
       setIsEjectedA(false);
       setPlaybackSecondsA(0);
+      setIsPlayingA(false);
       if (audioRefA.current) {
         audioRefA.current.src = song.fileUrl;
         audioRefA.current.currentTime = 0;
-        if (isPlayingA) {
-          audioRefA.current.play().catch(() => {});
-        }
+        audioRefA.current.pause();
       }
     } else {
       setIsVideoA(false);
       loadTrackIntoDeckA(syntheticTrack);
     }
 
-    showFeedback("success", `🎧 "${song.title}" cargada en Bandeja A (Música en vivo continua)`);
+    showFeedback("success", `🎧 "${song.title}" cargada en Bandeja A (Listo para Play)`);
   };
 
   const handleLoadSongFromLibraryB = (song: LibSong) => {
@@ -3224,7 +3266,7 @@ export default function VirtualDjConsole({
 
     const syntheticTrack: SongRequestData = {
       id: `lib-b-${song.id}-${Date.now()}`,
-      status: isPlayingB ? "PLAYING" : "PENDING",
+      status: "PENDING",
       customTitle: song.title,
       customArtist: song.artist?.name || "Artista",
       notes: song.genre || null,
@@ -3252,19 +3294,18 @@ export default function VirtualDjConsole({
       setManualTrackB(syntheticTrack);
       setIsEjectedB(false);
       setPlaybackSecondsB(0);
+      setIsPlayingB(false);
       if (audioRefB.current) {
         audioRefB.current.src = song.fileUrl;
         audioRefB.current.currentTime = 0;
-        if (isPlayingB) {
-          audioRefB.current.play().catch(() => {});
-        }
+        audioRefB.current.pause();
       }
     } else {
       setIsVideoB(false);
       loadTrackIntoDeckB(syntheticTrack);
     }
 
-    showFeedback("success", `🎧 "${song.title}" cargada en Bandeja B (Música en vivo continua)`);
+    showFeedback("success", `🎧 "${song.title}" cargada en Bandeja B (Listo para Play)`);
   };
 
   // CUE handler
