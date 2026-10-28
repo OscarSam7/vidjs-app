@@ -640,11 +640,21 @@ function GuestContent() {
     };
   }, [session?.event?.code]);
 
-  // Enviar voto de mesa al concurso
+  // Enviar voto individual de este dispositivo / persona al concurso
   const handleSendContestPublicVote = async () => {
     if (!activeContestVote?.contestId || !activeContestVote?.performance?.id) return;
     setContestVoteLoading(true);
     try {
+      // Token único de dispositivo para que cada persona en la mesa tenga su propio voto
+      let deviceToken = "anon_device";
+      if (typeof window !== "undefined") {
+        deviceToken = localStorage.getItem("vidjs_device_voter_token") || "";
+        if (!deviceToken) {
+          deviceToken = `voter_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+          localStorage.setItem("vidjs_device_voter_token", deviceToken);
+        }
+      }
+
       const res = await fetch(`/api/v1/contest/${activeContestVote.contestId}/vote/public`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -652,13 +662,19 @@ function GuestContent() {
           performanceId: activeContestVote.performance.id,
           stars: contestStars,
           cheerCount: contestCheered ? 5 : 1,
-          guestSessionToken: session?.table?.id || "guest",
+          guestSessionToken: deviceToken,
           tableLabel: session?.table?.label || "Mesa de Invitados",
         }),
       });
       if (res.ok) {
         setContestVoteSubmitted(true);
-        setSuccessMessage("⭐ ¡Tu voto fue enviado y sumado al certamen!");
+        if (typeof window !== "undefined") {
+          localStorage.setItem(
+            `vidjs_voted_${activeContestVote.performance.id}`,
+            JSON.stringify({ stars: contestStars })
+          );
+        }
+        setSuccessMessage("⭐ ¡Tu voto individual fue enviado y sumado al certamen!");
         setTimeout(() => setSuccessMessage(null), 5000);
       }
     } catch {
@@ -1510,8 +1526,11 @@ function GuestContent() {
                       <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
                         GALA OFICIAL &bull; VOTACIÓN DEL PÚBLICO
                       </span>
-                      <span className="text-sm font-black text-white">
+                      <span className="text-sm font-black text-white block">
                         {activeContestVote.performance.stageName || activeContestVote.performance.participantName}
+                      </span>
+                      <span className="text-[10px] text-zinc-400">
+                        📱 Voto individual &bull; Cada celular de la mesa vota por separado
                       </span>
                     </div>
                   </div>
@@ -1594,14 +1613,21 @@ function GuestContent() {
                     </button>
                   </div>
                 ) : (
-                  <div className="p-4 rounded-2xl bg-emerald-950/70 border border-emerald-500/50 text-center space-y-1.5">
+                  <div className="p-4 rounded-2xl bg-emerald-950/70 border border-emerald-500/50 text-center space-y-2">
                     <div className="flex items-center justify-center gap-1.5 text-emerald-400 text-sm font-bold">
                       <CheckCircle2 className="w-5 h-5" />
-                      <span>¡Tu voto de {contestStars} estrellas fue sumado al certamen!</span>
+                      <span>¡Tu voto individual de {contestStars} estrellas fue sumado!</span>
                     </div>
                     <p className="text-[11px] text-zinc-300">
-                      Los resultados de los jueces se revelarán en la pantalla TV al cerrar la votación.
+                      Tus acompañantes de mesa también pueden votar desde sus propios celulares.
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => setContestVoteSubmitted(false)}
+                      className="mt-1 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-zinc-500 text-[11px] text-amber-400 hover:text-amber-300 font-bold transition-all cursor-pointer inline-flex items-center gap-1"
+                    >
+                      <span>✏️ Modificar mi voto</span>
+                    </button>
                   </div>
                 )}
               </div>
