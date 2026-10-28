@@ -1163,8 +1163,13 @@ export default function VirtualDjConsole({
     setIsMasterMuted(false);
     webDjEngine.unlock();
     if (iframeRefA.current && videoIdA && !isEjectedA) {
-      sendPlayerCommand(iframeRefA.current, "unMute");
-      sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+      if (effectiveVolA === 0) {
+        sendPlayerCommand(iframeRefA.current, "mute");
+        sendPlayerCommand(iframeRefA.current, "setVolume", [0]);
+      } else {
+        sendPlayerCommand(iframeRefA.current, "unMute");
+        sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+      }
       if (isPlayingA) sendPlayerCommand(iframeRefA.current, "playVideo");
     }
   };
@@ -1174,8 +1179,13 @@ export default function VirtualDjConsole({
     setIsMasterMuted(false);
     webDjEngine.unlock();
     if (iframeRefB.current && videoIdB && !isEjectedB) {
-      sendPlayerCommand(iframeRefB.current, "unMute");
-      sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+      if (effectiveVolB === 0) {
+        sendPlayerCommand(iframeRefB.current, "mute");
+        sendPlayerCommand(iframeRefB.current, "setVolume", [0]);
+      } else {
+        sendPlayerCommand(iframeRefB.current, "unMute");
+        sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+      }
       if (isPlayingB) sendPlayerCommand(iframeRefB.current, "playVideo");
     }
   };
@@ -1185,13 +1195,23 @@ export default function VirtualDjConsole({
     setIsMasterMuted(false);
     webDjEngine.unlock();
     if (iframeRefA.current && videoIdA && !isEjectedA) {
-      sendPlayerCommand(iframeRefA.current, "unMute");
-      sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+      if (effectiveVolA === 0) {
+        sendPlayerCommand(iframeRefA.current, "mute");
+        sendPlayerCommand(iframeRefA.current, "setVolume", [0]);
+      } else {
+        sendPlayerCommand(iframeRefA.current, "unMute");
+        sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+      }
       if (isPlayingA) sendPlayerCommand(iframeRefA.current, "playVideo");
     }
     if (iframeRefB.current && videoIdB && !isEjectedB) {
-      sendPlayerCommand(iframeRefB.current, "unMute");
-      sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+      if (effectiveVolB === 0) {
+        sendPlayerCommand(iframeRefB.current, "mute");
+        sendPlayerCommand(iframeRefB.current, "setVolume", [0]);
+      } else {
+        sendPlayerCommand(iframeRefB.current, "unMute");
+        sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+      }
       if (isPlayingB) sendPlayerCommand(iframeRefB.current, "playVideo");
     }
   };
@@ -1279,13 +1299,23 @@ export default function VirtualDjConsole({
         startSilentAudioAnchor();
 
         if (isPlayingA && iframeRefA.current && videoIdA && !isEjectedA) {
-          sendPlayerCommand(iframeRefA.current, "unMute");
-          sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+          if (effectiveVolA === 0) {
+            sendPlayerCommand(iframeRefA.current, "mute");
+            sendPlayerCommand(iframeRefA.current, "setVolume", [0]);
+          } else {
+            sendPlayerCommand(iframeRefA.current, "unMute");
+            sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+          }
           sendPlayerCommand(iframeRefA.current, "playVideo");
         }
         if (isPlayingB && iframeRefB.current && videoIdB && !isEjectedB) {
-          sendPlayerCommand(iframeRefB.current, "unMute");
-          sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+          if (effectiveVolB === 0) {
+            sendPlayerCommand(iframeRefB.current, "mute");
+            sendPlayerCommand(iframeRefB.current, "setVolume", [0]);
+          } else {
+            sendPlayerCommand(iframeRefB.current, "unMute");
+            sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+          }
           sendPlayerCommand(iframeRefB.current, "playVideo");
         }
       }
@@ -1317,13 +1347,16 @@ export default function VirtualDjConsole({
   }, [audioRefB.current]);
 
   // Sincronizar parámetros en tiempo real con Web Audio API
-  useEffect(() => {
-    webDjEngine.setChannelVolume("A", effectiveVolA);
-  }, [effectiveVolA]);
+  const channelOnlyVolA = isMasterMuted ? 0 : Math.min(100, Math.round((channelVolA / 100) * (gainA / 100) * 100));
+  const channelOnlyVolB = isMasterMuted ? 0 : Math.min(100, Math.round((channelVolB / 100) * (gainB / 100) * 100));
 
   useEffect(() => {
-    webDjEngine.setChannelVolume("B", effectiveVolB);
-  }, [effectiveVolB]);
+    webDjEngine.setChannelVolume("A", channelOnlyVolA);
+  }, [channelOnlyVolA]);
+
+  useEffect(() => {
+    webDjEngine.setChannelVolume("B", channelOnlyVolB);
+  }, [channelOnlyVolB]);
 
   useEffect(() => {
     webDjEngine.setEq("A", eqLowA, eqMidA, eqHiA);
@@ -1549,6 +1582,15 @@ export default function VirtualDjConsole({
     ]
   );
 
+  // Determinar la bandeja actualmente al aire según reproducción simultánea y posición del crossfader
+  const currentOnAirDeck = useMemo<"A" | "B" | null>(() => {
+    if (!isPlayingA && !isPlayingB) return null;
+    if (isPlayingA && !isPlayingB) return "A";
+    if (isPlayingB && !isPlayingA) return "B";
+    // Ambas bandejas están reproduciendo al mismo tiempo: la salida al aire está gobernada por el crossfader
+    return crossfaderValue > 0 ? "B" : "A";
+  }, [isPlayingA, isPlayingB, crossfaderValue]);
+
   // Guardar en la Biblioteca Musical la pista cargada / en reproducción de cualquier bandeja
   const handleSaveDeckToLibrary = useCallback(
     async (deck: "A" | "B") => {
@@ -1664,8 +1706,11 @@ export default function VirtualDjConsole({
       } else {
         audioRefA.current.play().catch(() => {});
         setIsPlayingA(true);
-        onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
-        if (!isPlayingB) {
+        if (isPlayingB) {
+          const onAir = crossfaderValue > 0 ? "B" : "A";
+          onPlaybackControl?.("PLAY", onAir, getDeckSyncDetails(onAir));
+        } else {
+          onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
           animateCrossfaderTo(-100, 500);
         }
       }
@@ -1682,10 +1727,22 @@ export default function VirtualDjConsole({
       }
     } else {
       unlockAudioA();
-      if (iframeRefA.current) sendPlayerCommand(iframeRefA.current, "playVideo");
+      if (iframeRefA.current) {
+        if (effectiveVolA === 0) {
+          sendPlayerCommand(iframeRefA.current, "mute");
+          sendPlayerCommand(iframeRefA.current, "setVolume", [0]);
+        } else {
+          sendPlayerCommand(iframeRefA.current, "unMute");
+          sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+        }
+        sendPlayerCommand(iframeRefA.current, "playVideo");
+      }
       setIsPlayingA(true);
-      onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
-      if (!isPlayingB) {
+      if (isPlayingB) {
+        const onAir = crossfaderValue > 0 ? "B" : "A";
+        onPlaybackControl?.("PLAY", onAir, getDeckSyncDetails(onAir));
+      } else {
+        onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
         animateCrossfaderTo(-100, 500);
       }
     }
@@ -1707,8 +1764,11 @@ export default function VirtualDjConsole({
       } else {
         audioRefB.current.play().catch(() => {});
         setIsPlayingB(true);
-        onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
-        if (!isPlayingA) {
+        if (isPlayingA) {
+          const onAir = crossfaderValue > 0 ? "B" : "A";
+          onPlaybackControl?.("PLAY", onAir, getDeckSyncDetails(onAir));
+        } else {
+          onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
           animateCrossfaderTo(100, 500);
         }
       }
@@ -1725,10 +1785,22 @@ export default function VirtualDjConsole({
       }
     } else {
       unlockAudioB();
-      if (iframeRefB.current) sendPlayerCommand(iframeRefB.current, "playVideo");
+      if (iframeRefB.current) {
+        if (effectiveVolB === 0) {
+          sendPlayerCommand(iframeRefB.current, "mute");
+          sendPlayerCommand(iframeRefB.current, "setVolume", [0]);
+        } else {
+          sendPlayerCommand(iframeRefB.current, "unMute");
+          sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+        }
+        sendPlayerCommand(iframeRefB.current, "playVideo");
+      }
       setIsPlayingB(true);
-      onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
-      if (!isPlayingA) {
+      if (isPlayingA) {
+        const onAir = crossfaderValue > 0 ? "B" : "A";
+        onPlaybackControl?.("PLAY", onAir, getDeckSyncDetails(onAir));
+      } else {
+        onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
         animateCrossfaderTo(100, 500);
       }
     }
@@ -1769,7 +1841,8 @@ export default function VirtualDjConsole({
   useEffect(() => {
     if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
     try {
-      const activeTrack = trackA || trackB;
+      const activeDeck = currentOnAirDeck || (trackA ? "A" : "B");
+      const activeTrack = activeDeck === "A" ? trackA : trackB;
       const title = activeTrack?.song?.title || activeTrack?.customTitle || "Vidjs DJ Live Session";
       const artist = activeTrack?.song?.artist?.name || activeTrack?.customArtist || "Vidjs DJ";
 
@@ -1832,20 +1905,19 @@ export default function VirtualDjConsole({
   }, [trackA, trackB, isPlayingA, isPlayingB]);
 
   // Sincronización reactiva del estado global de reproducción con la pantalla de TV
-  const isAnyPlaying = isPlayingA || isPlayingB;
-  const prevIsAnyPlayingRef = useRef(isAnyPlaying);
+  const prevOnAirDeckRef = useRef<"A" | "B" | null>(null);
   useEffect(() => {
-    if (prevIsAnyPlayingRef.current !== isAnyPlaying) {
-      prevIsAnyPlayingRef.current = isAnyPlaying;
-      if (isAnyPlaying) {
-        const activeDeck = isPlayingA ? "A" : "B";
-        onPlaybackControl?.("PLAY", activeDeck, getDeckSyncDetails(activeDeck));
+    if (currentOnAirDeck !== prevOnAirDeckRef.current) {
+      const prevDeck = prevOnAirDeckRef.current;
+      prevOnAirDeckRef.current = currentOnAirDeck;
+      if (currentOnAirDeck) {
+        onPlaybackControl?.("PLAY", currentOnAirDeck, getDeckSyncDetails(currentOnAirDeck));
       } else {
-        const lastDeck = !isPlayingA && isPlayingB ? "B" : "A";
-        onPlaybackControl?.("PAUSE", lastDeck, getDeckSyncDetails(lastDeck));
+        const deckToPause = prevDeck || (!isPlayingA && isPlayingB ? "B" : "A");
+        onPlaybackControl?.("PAUSE", deckToPause, getDeckSyncDetails(deckToPause));
       }
     }
-  }, [isAnyPlaying, isPlayingA, isPlayingB, onPlaybackControl, getDeckSyncDetails]);
+  }, [currentOnAirDeck, onPlaybackControl, getDeckSyncDetails, isPlayingA, isPlayingB]);
 
   // Formato mm:ss
   const formatTime = (secs: number) => {
@@ -3315,10 +3387,19 @@ export default function VirtualDjConsole({
     if (deck === "A") {
       if (isPlayingA) {
         setIsPlayingA(false);
-        onPlaybackControl?.("PAUSE", "A", { ...getDeckSyncDetails("A"), currentTime: cuePointA });
+        if (deckModeA === "native" && audioRefA.current) {
+          audioRefA.current.pause();
+          audioRefA.current.currentTime = cuePointA;
+        } else if (iframeRefA.current) {
+          sendPlayerCommand(iframeRefA.current, "pauseVideo");
+          sendPlayerCommand(iframeRefA.current, "seekTo", [cuePointA, true]);
+        }
         setPlaybackSecondsA(cuePointA);
-        sendPlayerCommand(iframeRefA.current, "pauseVideo");
-        sendPlayerCommand(iframeRefA.current, "seekTo", [cuePointA, true]);
+        if (isPlayingB) {
+          onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
+        } else {
+          onPlaybackControl?.("PAUSE", "A", { ...getDeckSyncDetails("A"), currentTime: cuePointA });
+        }
       } else {
         setCuePointA(playbackSecondsA);
         showFeedback("info", `Deck A CUE fijado en ${formatTime(playbackSecondsA)}`);
@@ -3326,10 +3407,19 @@ export default function VirtualDjConsole({
     } else {
       if (isPlayingB) {
         setIsPlayingB(false);
-        onPlaybackControl?.("PAUSE", "B", { ...getDeckSyncDetails("B"), currentTime: cuePointB });
+        if (deckModeB === "native" && audioRefB.current) {
+          audioRefB.current.pause();
+          audioRefB.current.currentTime = cuePointB;
+        } else if (iframeRefB.current) {
+          sendPlayerCommand(iframeRefB.current, "pauseVideo");
+          sendPlayerCommand(iframeRefB.current, "seekTo", [cuePointB, true]);
+        }
         setPlaybackSecondsB(cuePointB);
-        sendPlayerCommand(iframeRefB.current, "pauseVideo");
-        sendPlayerCommand(iframeRefB.current, "seekTo", [cuePointB, true]);
+        if (isPlayingA) {
+          onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
+        } else {
+          onPlaybackControl?.("PAUSE", "B", { ...getDeckSyncDetails("B"), currentTime: cuePointB });
+        }
       } else {
         setCuePointB(playbackSecondsB);
         showFeedback("info", `Deck B CUE fijado en ${formatTime(playbackSecondsB)}`);
@@ -3667,9 +3757,9 @@ export default function VirtualDjConsole({
               <span className="px-2.5 py-1 rounded-md bg-purple-600 text-white text-[10px] font-black tracking-widest uppercase shadow-md shadow-purple-600/30">
                 DECK A &bull; CANAL 1
               </span>
-              <span className={`w-2 h-2 rounded-full ${trackA ? "bg-emerald-400 animate-ping" : "bg-zinc-600"}`} />
-              <span className={`text-[10px] font-bold uppercase tracking-wider ${trackA ? "text-emerald-400" : "text-zinc-500"}`}>
-                {trackA ? (isPlayingA ? "Al Aire" : "Preparado") : "Bandeja Vacía"}
+              <span className={`w-2 h-2 rounded-full ${trackA ? (isPlayingA ? (currentOnAirDeck === "A" ? "bg-emerald-400 animate-ping" : "bg-purple-400") : "bg-purple-500/50") : "bg-zinc-600"}`} />
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${trackA ? (isPlayingA ? (currentOnAirDeck === "A" ? "text-emerald-400 font-black" : "text-purple-300 font-bold") : "text-purple-400") : "text-zinc-500"}`}>
+                {trackA ? (isPlayingA ? (currentOnAirDeck === "A" ? "Al Aire" : "En Mezcla") : "Preparado") : "Bandeja Vacía"}
               </span>
               {trackA?.table && (
                 <span className="px-2 py-0.5 rounded bg-zinc-950 text-purple-300 border border-purple-500/30 text-xs font-bold">
@@ -4822,9 +4912,9 @@ export default function VirtualDjConsole({
               <span className="px-2.5 py-1 rounded-md bg-cyan-600 text-white text-[10px] font-black tracking-widest uppercase shadow-md shadow-cyan-600/30">
                 DECK B &bull; CANAL 2
               </span>
-              <span className={`w-2 h-2 rounded-full ${trackB ? (isPlayingB ? "bg-cyan-400 animate-ping" : "bg-cyan-400") : "bg-zinc-600"}`} />
-              <span className={`text-[10px] font-bold uppercase tracking-wider ${trackB ? "text-cyan-400" : "text-zinc-500"}`}>
-                {trackB ? (isPlayingB ? "En Mezcla" : "Preparado") : "Bandeja Vacía"}
+              <span className={`w-2 h-2 rounded-full ${trackB ? (isPlayingB ? (currentOnAirDeck === "B" ? "bg-emerald-400 animate-ping" : "bg-cyan-400") : "bg-cyan-500/50") : "bg-zinc-600"}`} />
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${trackB ? (isPlayingB ? (currentOnAirDeck === "B" ? "text-emerald-400 font-black" : "text-cyan-300 font-bold") : "text-cyan-400") : "text-zinc-500"}`}>
+                {trackB ? (isPlayingB ? (currentOnAirDeck === "B" ? "Al Aire" : "En Mezcla") : "Preparado") : "Bandeja Vacía"}
               </span>
               {trackB?.tipAmountCents && trackB.tipAmountCents > 0 ? (
                 <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-[10px] font-black">
@@ -5700,11 +5790,13 @@ export default function VirtualDjConsole({
                 <span
                   className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ${
                     isPlayingA
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      ? currentOnAirDeck === "A"
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-black"
+                        : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
                       : "bg-zinc-800 text-zinc-400"
                   }`}
                 >
-                  {isPlayingA ? "▶ AL AIRE" : "⏸ PAUSA"}
+                  {isPlayingA ? (currentOnAirDeck === "A" ? "▶ AL AIRE" : "▶ EN MEZCLA") : "⏸ PAUSA"}
                 </span>
               </div>
               <div className="truncate text-xs text-white font-medium flex-1">
@@ -5764,11 +5856,13 @@ export default function VirtualDjConsole({
                 <span
                   className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ${
                     isPlayingB
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      ? currentOnAirDeck === "B"
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-black"
+                        : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
                       : "bg-zinc-800 text-zinc-400"
                   }`}
                 >
-                  {isPlayingB ? "▶ AL AIRE" : "⏸ PAUSA"}
+                  {isPlayingB ? (currentOnAirDeck === "B" ? "▶ AL AIRE" : "▶ EN MEZCLA") : "⏸ PAUSA"}
                 </span>
               </div>
               <div className="truncate text-xs text-white font-medium flex-1">
