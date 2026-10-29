@@ -2021,6 +2021,7 @@ export default function VirtualDjConsole({
   };
 
   // Refs para recordar la pista activa y evitar recargas o reinicios no deseados entre bandejas
+  const prevServerCurrentPlayingIdRef = useRef<string | null>(currentPlaying?.id || null);
   const prevCurrentPlayingIdRef = useRef<string | null>(currentPlaying?.id || null);
   const prevTrackAKeyRef = useRef<string | null>(null);
   const prevTrackBKeyRef = useRef<string | null>(null);
@@ -2060,9 +2061,14 @@ export default function VirtualDjConsole({
       extractYoutubeId(track.notes);
     const trackKey = getTrackKey(track, directId);
 
-    // Si ya está montada en Deck A y ya está sonando, NO reiniciar ni pausar
-    if (prevTrackAKeyRef.current === trackKey && (deckTrackA?.id === track.id || activeTrackReqIdARef.current === track.id)) {
-      if (isPlayingA) {
+    // Si ya está montada en Deck A o sonando, NUNCA reiniciar ni interrumpir
+    if (isPlayingARef.current || isPlayingA) {
+      if (
+        deckTrackA?.id === track.id ||
+        activeTrackReqIdARef.current === track.id ||
+        prevTrackAKeyRef.current === trackKey ||
+        (directId && activeVideoIdARef.current === directId)
+      ) {
         return;
       }
     }
@@ -2081,7 +2087,6 @@ export default function VirtualDjConsole({
     }
     setLocalAudioUrlA(null);
     setLocalAudioNameA(null);
-    prevCurrentPlayingIdRef.current = queueEntryId || currentPlaying?.id || null;
     prevTrackAKeyRef.current = trackKey;
     activeTrackReqIdARef.current = track.id;
     activeQueueEntryIdARef.current = queueEntryId || null;
@@ -2147,9 +2152,14 @@ export default function VirtualDjConsole({
       extractYoutubeId(track.notes);
     const trackKey = getTrackKey(track, directId);
 
-    // Si ya está montada en Deck B y ya está sonando, NO reiniciar ni pausar
-    if (prevTrackBKeyRef.current === trackKey && (deckTrackB?.id === track.id || activeTrackReqIdBRef.current === track.id)) {
-      if (isPlayingB) {
+    // Si ya está montada en Deck B o sonando, NUNCA reiniciar ni interrumpir
+    if (isPlayingBRef.current || isPlayingB) {
+      if (
+        deckTrackB?.id === track.id ||
+        activeTrackReqIdBRef.current === track.id ||
+        prevTrackBKeyRef.current === trackKey ||
+        (directId && activeVideoIdBRef.current === directId)
+      ) {
         return;
       }
     }
@@ -2168,7 +2178,6 @@ export default function VirtualDjConsole({
     }
     setLocalAudioUrlB(null);
     setLocalAudioNameB(null);
-    prevCurrentPlayingIdRef.current = queueEntryId || currentPlaying?.id || null;
     activeTrackReqIdBRef.current = track.id;
     activeQueueEntryIdBRef.current = queueEntryId || null;
     prevTrackBKeyRef.current = trackKey;
@@ -2248,7 +2257,6 @@ export default function VirtualDjConsole({
       sendPlayerCommand(iframeRefA.current, "pauseVideo");
       sendPlayerCommand(iframeRefA.current, "mute");
     }
-    prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
     prevTrackAKeyRef.current = null;
     activeVideoIdARef.current = null;
     activeTrackReqIdARef.current = null;
@@ -2306,7 +2314,7 @@ export default function VirtualDjConsole({
     }
   };
 
-  // Manejador automático de fin de pista en DECK A con relevo a DECK B y desplazamiento de crossfader
+  // Manejador automático de fin de pista en DECK A (Aislamiento Total: NUNCA vacía la bandeja ni interrumpe Deck B)
   const handleDeckAEnded = useCallback(() => {
     if (isEndingARef.current) return;
     isEndingARef.current = true;
@@ -2315,65 +2323,33 @@ export default function VirtualDjConsole({
     }, 2000);
 
     setIsPlayingA(false);
+    if (deckModeA === "native" && audioRefA.current) {
+      audioRefA.current.pause();
+    } else if (iframeRefA.current) {
+      sendPlayerCommand(iframeRefA.current, "pauseVideo");
+    }
 
-    // Verificar si Deck B tiene tema cargado para tomar el relevo
-    const hasTrackB = Boolean(
-      !isEjectedB && (deckTrackB || manualTrackB || (effectiveQueueEntryB && selectedQueueIdB !== "EMPTY"))
-    );
-
-    if (hasTrackB) {
-      // Si Deck B ya estaba reproduciendo (el DJ ya le dio play e hizo el enganche), ¡mantenerlo sonando!
-      if (!isPlayingB) {
-        setIsPlayingB(true);
-        unlockAudioB();
-        if (deckModeB === "native" && audioRefB.current) {
-          audioRefB.current.play().catch(() => {});
-        } else if (iframeRefB.current) {
-          sendPlayerCommand(iframeRefB.current, "unMute");
-          sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
-          sendPlayerCommand(iframeRefB.current, "playVideo");
-        }
-        onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
-        animateCrossfaderTo(100, 600);
-      } else {
-        onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
-      }
+    // Si Deck B está en reproducción, mantenerlo al aire sin interrupciones
+    if (isPlayingB) {
+      onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
       setEngancheDirection("B_TO_A");
-      showFeedback("info", "🔄 Pista de Deck A finalizada. Deck B activo.");
+      showFeedback("info", "🔄 Fin de pista Deck A. Deck B continúa al aire.");
     } else {
-      if (isPlayingB) {
-        onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
-      } else {
-        onPlaybackControl?.("PAUSE", "A", getDeckSyncDetails("A"));
-      }
-      showFeedback("info", "🏁 Pista de Deck A finalizada. Bandeja A vaciada.");
+      onPlaybackControl?.("PAUSE", "A", getDeckSyncDetails("A"));
+      showFeedback("info", "🏁 Pista de Deck A finalizada.");
     }
 
-    // Limpiar y vaciar automáticamente SOLO la bandeja A para dejarla lista para el siguiente tema
-    handleClearDeckA();
-
-    // Notificar avance de pista a la cola en el servidor
-    if (onNextTrack) {
-      onNextTrack();
-    }
+    // NUNCA llamar a handleClearDeckA(): la pista y sus controles se preservan en la bandeja como en un DJ profesional.
+    // NUNCA llamar a onNextTrack() automáticamente: el DJ controla cuándo avanzar de tema en la cola.
   }, [
-    isEjectedB,
-    deckTrackB,
-    manualTrackB,
-    effectiveQueueEntryB,
-    selectedQueueIdB,
     isPlayingB,
-    deckModeB,
-    effectiveVolB,
+    deckModeA,
     onPlaybackControl,
     getDeckSyncDetails,
-    animateCrossfaderTo,
     showFeedback,
-    unlockAudioB,
-    onNextTrack,
   ]);
 
-  // Manejador automático de fin de pista en DECK B con relevo a DECK A y desplazamiento de crossfader
+  // Manejador automático de fin de pista en DECK B (Aislamiento Total: NUNCA vacía la bandeja ni interrumpe Deck A)
   const handleDeckBEnded = useCallback(() => {
     if (isEndingBRef.current) return;
     isEndingBRef.current = true;
@@ -2382,58 +2358,30 @@ export default function VirtualDjConsole({
     }, 2000);
 
     setIsPlayingB(false);
+    if (deckModeB === "native" && audioRefB.current) {
+      audioRefB.current.pause();
+    } else if (iframeRefB.current) {
+      sendPlayerCommand(iframeRefB.current, "pauseVideo");
+    }
 
-    // Verificar si Deck A tiene tema cargado para tomar el relevo
-    const hasTrackA = Boolean(!isEjectedA && (deckTrackA || manualTrackA));
-
-    if (hasTrackA) {
-      // Si Deck A ya estaba reproduciendo (el DJ ya le dio play e hizo el enganche), ¡mantenerlo sonando!
-      if (!isPlayingA) {
-        setIsPlayingA(true);
-        unlockAudioA();
-        if (deckModeA === "native" && audioRefA.current) {
-          audioRefA.current.play().catch(() => {});
-        } else if (iframeRefA.current) {
-          sendPlayerCommand(iframeRefA.current, "unMute");
-          sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
-          sendPlayerCommand(iframeRefA.current, "playVideo");
-        }
-        onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
-        animateCrossfaderTo(-100, 600);
-      } else {
-        onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
-      }
+    // Si Deck A está en reproducción, mantenerlo al aire sin interrupciones
+    if (isPlayingA) {
+      onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
       setEngancheDirection("A_TO_B");
-      showFeedback("info", "🔄 Pista de Deck B finalizada. Deck A activo.");
+      showFeedback("info", "🔄 Fin de pista Deck B. Deck A continúa al aire.");
     } else {
-      if (isPlayingA) {
-        onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
-      } else {
-        onPlaybackControl?.("PAUSE", "B", getDeckSyncDetails("B"));
-      }
-      showFeedback("info", "🏁 Pista de Deck B finalizada. Bandeja B vaciada.");
+      onPlaybackControl?.("PAUSE", "B", getDeckSyncDetails("B"));
+      showFeedback("info", "🏁 Pista de Deck B finalizada.");
     }
 
-    // Limpiar y vaciar automáticamente SOLO la bandeja B para dejarla lista para el siguiente tema
-    handleClearDeckB();
-
-    // Notificar avance de pista a la cola en el servidor
-    if (onNextTrack) {
-      onNextTrack();
-    }
+    // NUNCA llamar a handleClearDeckB(): la pista y sus controles se preservan en la bandeja como en un DJ profesional.
+    // NUNCA llamar a onNextTrack() automáticamente: el DJ controla cuándo avanzar de tema en la cola.
   }, [
-    isEjectedA,
-    deckTrackA,
-    manualTrackA,
     isPlayingA,
-    deckModeA,
-    effectiveVolA,
+    deckModeB,
     onPlaybackControl,
     getDeckSyncDetails,
-    animateCrossfaderTo,
     showFeedback,
-    unlockAudioA,
-    onNextTrack,
   ]);
 
   useEffect(() => {
@@ -2474,17 +2422,13 @@ export default function VirtualDjConsole({
           deck = "A";
         } else if (winB && event.source === winB) {
           deck = "B";
-        } else if (data.widgetId === 1 || data.widgetId === "1" || data.info?.widgetId === 1 || data.info?.widgetId === "1") {
-          deck = "A";
-        } else if (data.widgetId === 2 || data.widgetId === "2" || data.info?.widgetId === 2 || data.info?.widgetId === "2") {
-          deck = "B";
         }
 
-        // NUNCA usar data.id === 1 o 2 como indicador de bandeja (es un contador RPC interno de YouTube)
-        // Y SOLO disparar fin de tema si la bandeja estaba efectivamente reproduciendo y ya había avanzado al menos 5s
-        if (deck === "A" && isPlayingARef.current && playbackSecondsARef.current >= 5) {
+        // SOLO disparar fin de tema si la bandeja estaba efectivamente reproduciendo y
+        // la pista realmente llegó al final (evita que inicializaciones de Deck B o pausas de iframe maten Deck A)
+        if (deck === "A" && isPlayingARef.current && playbackSecondsARef.current >= Math.max(10, trackADuration - 5)) {
           handleDeckAEndedRef.current?.();
-        } else if (deck === "B" && isPlayingBRef.current && playbackSecondsBRef.current >= 5) {
+        } else if (deck === "B" && isPlayingBRef.current && playbackSecondsBRef.current >= Math.max(10, trackBDuration - 5)) {
           handleDeckBEndedRef.current?.();
         }
       }
@@ -2494,7 +2438,7 @@ export default function VirtualDjConsole({
     return () => {
       window.removeEventListener("message", handleWindowMessage);
     };
-  }, []);
+  }, [trackADuration, trackBDuration]);
 
   // Carga inicial no reactiva: Solo monta el tema que ya esté al aire si la bandeja A está vacía
   const initialLoadedA = useRef(false);
@@ -2541,9 +2485,6 @@ export default function VirtualDjConsole({
     lastHandledLoadTimestamp.current = pendingDeckLoad.timestamp;
 
     const { entry, targetDeck = "AUTO" } = pendingDeckLoad;
-    
-    // Registrar inmediatamente para que ningún efecto posterior intente re-cargar el tema en la otra bandeja
-    prevCurrentPlayingIdRef.current = entry.id;
 
     const resolvedTarget = determineFreeDeck(targetDeck);
     const title = entry.songRequest.song?.title || entry.songRequest.customTitle || "Tema";
@@ -2564,13 +2505,13 @@ export default function VirtualDjConsole({
   useEffect(() => {
     const currentId = currentPlaying?.id || null;
     if (!currentId) {
-      prevCurrentPlayingIdRef.current = null;
+      prevServerCurrentPlayingIdRef.current = null;
       // NUNCA vaciar ni interrumpir bandejas que estén en reproducción activa
       return;
     }
 
-    if (currentId && currentId !== prevCurrentPlayingIdRef.current) {
-      prevCurrentPlayingIdRef.current = currentId;
+    if (currentId && currentId !== prevServerCurrentPlayingIdRef.current) {
+      prevServerCurrentPlayingIdRef.current = currentId;
 
       if (!currentPlaying?.songRequest) return;
 
@@ -2602,9 +2543,9 @@ export default function VirtualDjConsole({
       }
 
       // Solo montar en una bandeja que esté verdaderamente libre (sin tema y sin reproducción activa)
-      // NUNCA vaciar ni detener la otra bandeja que esté sonando en vivo
-      const isAOccupied = Boolean(trackA) || isPlayingA;
-      const isBOccupied = Boolean(trackB) || isPlayingB;
+      // NUNCA vaciar ni interrumpir ninguna bandeja que tenga tema o esté sonando en vivo
+      const isAOccupied = Boolean(trackA) || Boolean(deckTrackA) || isPlayingA;
+      const isBOccupied = Boolean(trackB) || Boolean(deckTrackB) || isPlayingB;
       const title = currentPlaying.songRequest.song?.title || currentPlaying.songRequest.customTitle || "Tema";
       const tableLabel = currentPlaying.songRequest.table?.label ? ` (${currentPlaying.songRequest.table.label})` : "";
 
@@ -2838,12 +2779,11 @@ export default function VirtualDjConsole({
           setCrossfaderValue(100);
           setTransitionProgress(100);
           setIsPlayingA(false); // Detener Deck A
-          handleClearDeckA(); // Limpiar y vaciar automáticamente bandeja A
+          if (iframeRefA.current) sendPlayerCommand(iframeRefA.current, "pauseVideo");
           setEngancheDirection("B_TO_A");
 
           const queueEntryId = effectiveQueueEntryB?.id;
           if (queueEntryId) {
-            prevCurrentPlayingIdRef.current = queueEntryId;
             onPlayQueueEntry(queueEntryId).then(() => {
               showFeedback("success", `🎉 ¡Enganche A ➔ B completado! "${trackB.song?.title || trackB.customTitle}" al aire`);
             });
@@ -2898,7 +2838,7 @@ export default function VirtualDjConsole({
           setCrossfaderValue(-100);
           setTransitionProgress(100);
           setIsPlayingB(false); // Detener Deck B
-          handleClearDeckB(); // Limpiar y vaciar automáticamente bandeja B
+          if (iframeRefB.current) sendPlayerCommand(iframeRefB.current, "pauseVideo");
           setEngancheDirection("A_TO_B");
 
           showFeedback("success", `🎉 ¡Enganche B ➔ A completado! "${trackA.song?.title || trackA.customTitle}" al aire`);
@@ -2925,12 +2865,11 @@ export default function VirtualDjConsole({
       djSoundEffects.playScratch();
       setCrossfaderValue(100);
       setIsPlayingA(false);
-      handleClearDeckA(); // Limpiar y vaciar automáticamente bandeja A
+      if (iframeRefA.current) sendPlayerCommand(iframeRefA.current, "pauseVideo");
       setIsPlayingB(true);
       setEngancheDirection("B_TO_A");
       const queueEntryId = effectiveQueueEntryB?.id;
       if (queueEntryId) {
-        prevCurrentPlayingIdRef.current = queueEntryId;
         onPlayQueueEntry(queueEntryId).then(() => {
           showFeedback("success", `⚡ ¡Corte Directo A ➔ B! Deck B al aire`);
         });
@@ -2946,7 +2885,7 @@ export default function VirtualDjConsole({
       djSoundEffects.playScratch();
       setCrossfaderValue(-100);
       setIsPlayingB(false);
-      handleClearDeckB(); // Limpiar y vaciar automáticamente bandeja B
+      if (iframeRefB.current) sendPlayerCommand(iframeRefB.current, "pauseVideo");
       setIsPlayingA(true);
       setEngancheDirection("A_TO_B");
       showFeedback("success", `⚡ ¡Corte Directo B ➔ A! Deck A al aire`);
@@ -4108,7 +4047,7 @@ export default function VirtualDjConsole({
               }
             }}
             onEnded={() => {
-              if (isPlayingARef.current && playbackSecondsARef.current >= 5) {
+              if (isPlayingARef.current && playbackSecondsARef.current >= Math.max(10, trackADuration - 5)) {
                 handleDeckAEndedRef.current?.();
               }
             }}
@@ -5252,7 +5191,7 @@ export default function VirtualDjConsole({
               }
             }}
             onEnded={() => {
-              if (isPlayingBRef.current && playbackSecondsBRef.current >= 5) {
+              if (isPlayingBRef.current && playbackSecondsBRef.current >= Math.max(10, trackBDuration - 5)) {
                 handleDeckBEndedRef.current?.();
               }
             }}
