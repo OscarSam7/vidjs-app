@@ -951,26 +951,6 @@ export default function KaraokeBoothPage() {
                     <span className="px-2 py-0.5 rounded bg-zinc-950 text-purple-300 border border-zinc-800 font-bold">
                       REGLA: Canta y Libera
                     </span>
-                    <button
-                      type="button"
-                      onClick={handleSaveCurrentKaraokeToLibrary}
-                      disabled={savingKaraokeTrack || savedKaraokeTrack}
-                      className={`px-2 py-0.5 rounded-md border text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0 select-none ${
-                        savedKaraokeTrack
-                          ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300"
-                          : "bg-cyan-900/60 hover:bg-cyan-800 border-cyan-500/60 text-cyan-200 shadow-sm"
-                      }`}
-                      title={savedKaraokeTrack ? "Guardada en biblioteca" : "Guardar en biblioteca"}
-                    >
-                      {savedKaraokeTrack ? (
-                        <BookmarkCheck className="w-3 h-3 text-emerald-400" />
-                      ) : savingKaraokeTrack ? (
-                        <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
-                      ) : (
-                        <BookmarkPlus className="w-3 h-3 text-cyan-400" />
-                      )}
-                      <span>{savedKaraokeTrack ? "Guardado" : "Guardar"}</span>
-                    </button>
                   </div>
                 </div>
               </div>

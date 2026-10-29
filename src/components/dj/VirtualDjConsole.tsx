@@ -3970,29 +3970,6 @@ export default function VirtualDjConsole({
                       {trackA.song?.artist?.name || trackA.customArtist}
                     </p>
                   </div>
-                  {/* Botón flotante para guardar en biblioteca */}
-                  <button
-                    type="button"
-                    onClick={() => handleSaveDeckToLibrary("A")}
-                    disabled={savingDeckA || savedDeckA}
-                    className={`px-2 py-0.5 rounded-md border text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0 select-none ${
-                      savedDeckA
-                        ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300"
-                        : isPlayingA
-                        ? "bg-purple-900/60 hover:bg-purple-800 border-purple-500/60 text-purple-200 shadow-sm"
-                        : "bg-zinc-900 hover:bg-zinc-800 border-zinc-800 text-zinc-400 hover:text-white"
-                    }`}
-                    title={savedDeckA ? "Guardada en biblioteca" : "Guardar en biblioteca"}
-                  >
-                    {savedDeckA ? (
-                      <BookmarkCheck className="w-3 h-3 text-emerald-400" />
-                    ) : savingDeckA ? (
-                      <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
-                    ) : (
-                      <BookmarkPlus className="w-3 h-3 text-purple-400" />
-                    )}
-                    <span>{savedDeckA ? "Guardado" : "Guardar"}</span>
-                  </button>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-zinc-400">
                   <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
@@ -5114,29 +5091,6 @@ export default function VirtualDjConsole({
                       {trackB.song?.artist?.name || trackB.customArtist}
                     </p>
                   </div>
-                  {/* Botón flotante para guardar en biblioteca */}
-                  <button
-                    type="button"
-                    onClick={() => handleSaveDeckToLibrary("B")}
-                    disabled={savingDeckB || savedDeckB}
-                    className={`px-2 py-0.5 rounded-md border text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0 select-none ${
-                      savedDeckB
-                        ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300"
-                        : isPlayingB
-                        ? "bg-cyan-900/60 hover:bg-cyan-800 border-cyan-500/60 text-cyan-200 shadow-sm"
-                        : "bg-zinc-900 hover:bg-zinc-800 border-zinc-800 text-zinc-400 hover:text-white"
-                    }`}
-                    title={savedDeckB ? "Guardada en biblioteca" : "Guardar en biblioteca"}
-                  >
-                    {savedDeckB ? (
-                      <BookmarkCheck className="w-3 h-3 text-emerald-400" />
-                    ) : savingDeckB ? (
-                      <Loader2 className="w-3 h-3 animate-spin text-amber-400" />
-                    ) : (
-                      <BookmarkPlus className="w-3 h-3 text-cyan-400" />
-                    )}
-                    <span>{savedDeckB ? "Guardado" : "Guardar"}</span>
-                  </button>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-zinc-400">
                   <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
