@@ -21,6 +21,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Users,
+  Sparkles,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -63,6 +64,7 @@ export function Sidebar({
     { name: "Equipo & Roles", icon: Users, href: "/dashboard/team", active: pathname === "/dashboard/team", badge: "Roles" },
     { name: "Marca & White-Label", icon: Palette, href: "/dashboard/branding", active: pathname === "/dashboard/branding", tag: "Nuevo" },
     { name: "Suscripción & Plan", icon: CreditCard, href: "/dashboard/subscription", active: pathname === "/dashboard/subscription" },
+    { name: "Showcase Comercial", icon: Sparkles, href: "/showcase", active: pathname === "/showcase", tag: "VENTAS" },
     { name: "Auditoría & Logs", icon: ShieldCheck, href: "/dashboard/audit", active: pathname === "/dashboard/audit" },
     { name: "Configuración", icon: Settings, href: "/dashboard/settings", active: pathname === "/dashboard/settings" },
   ];

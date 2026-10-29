@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Music, Disc3, ShieldCheck, ArrowRight, Sparkles, Building2, UserCircle2, QrCode } from "lucide-react";
 
 export default function LoginPage() {
@@ -63,7 +64,7 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md relative z-10">
         {/* Brand Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 mb-4 glow-purple">
             <Disc3 className="w-8 h-8 animate-spin text-purple-400 [animation-duration:12s]" />
           </div>
@@ -73,6 +74,28 @@ export default function LoginPage() {
           <p className="text-sm text-zinc-400 mt-2">
             Plataforma SaaS para Bares, Karaokes, Clubes y DJs
           </p>
+        </div>
+
+        {/* Banner Showcase Comercial y Presentación */}
+        <div className="mb-6">
+          <Link
+            href="/showcase"
+            className="p-3 rounded-2xl bg-gradient-to-r from-purple-950/80 via-zinc-900 to-cyan-950/80 border border-purple-500/40 hover:border-cyan-400/60 flex items-center justify-between gap-3 text-left transition-all group shadow-lg"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors">
+                  ¿Quieres conocer todo lo que Vidjs Pro puede hacer?
+                </div>
+                <div className="text-[10px] text-zinc-400">
+                  Explorar Showcase Comercial y Simulador en Vivo &rarr;
+                </div>
+              </div>
+            </div>
+          </Link>
         </div>
 
         {/* Login Card */}
