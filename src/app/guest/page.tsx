@@ -280,6 +280,14 @@ function GuestContent() {
   const [contestVoteSubmitted, setContestVoteSubmitted] = useState<boolean>(false);
   const [contestVoteLoading, setContestVoteLoading] = useState<boolean>(false);
 
+  // 💳 Estado de Consumo Mínimo de Mesa y Súper Voto (x2)
+  const [tableConsumption, setTableConsumption] = useState<{
+    status: "PENDING" | "VERIFIED" | "SUPER_VOTE";
+    isSuperVote: boolean;
+    requireConsumption: boolean;
+    notes?: string | null;
+  } | null>(null);
+
   // Catálogo state
   const [songs, setSongs] = useState<Song[]>([]);
   const [youtubeSongs, setYoutubeSongs] = useState<any[]>([]);
@@ -533,9 +541,39 @@ function GuestContent() {
     }
   };
 
+  const fetchTableConsumption = async (contestId?: string, tableLabel?: string) => {
+    const cId = contestId || activeContestVote?.contestId || activeContestInfo?.id;
+    const tLabel = tableLabel || session?.table?.label;
+    if (!cId || !tLabel) return;
+    try {
+      const res = await fetch(
+        `/api/v1/contest/${cId}/consumption?tableLabel=${encodeURIComponent(tLabel)}`
+      );
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) {
+          setTableConsumption({
+            status: json.data.status,
+            isSuperVote: Boolean(json.data.isSuperVote),
+            requireConsumption: Boolean(json.data.requireConsumption),
+            notes: json.data.notes || null,
+          });
+        }
+      }
+    } catch {
+      // Silencioso
+    }
+  };
+
   useEffect(() => {
     loadSessionAndRequests();
   }, []);
+
+  useEffect(() => {
+    if (session?.table?.label && (activeContestInfo?.id || activeContestVote?.contestId)) {
+      fetchTableConsumption();
+    }
+  }, [session?.table?.label, activeContestInfo?.id, activeContestVote?.contestId]);
 
   // Cargar catálogo de canciones con debounce, soporte de moods y modo DJ vs Karaoke
   useEffect(() => {
@@ -615,8 +653,23 @@ function GuestContent() {
         type === "CONTEST_VOTING_OPEN" ||
         type === "CONTEST_VOTING_CLOSED" ||
         type === "CONTEST_REVEAL_SCORES" ||
-        type === "CONTEST_LEADERBOARD_UPDATE"
+        type === "CONTEST_LEADERBOARD_UPDATE" ||
+        type === "CONTEST_VOTE_UPDATE"
       ) {
+        if (payload?.type === "TABLE_CONSUMPTION_UPDATE") {
+          const myTable = session?.table?.label?.toLowerCase().trim();
+          const targetTable = payload.tableLabel ? String(payload.tableLabel).toLowerCase().trim() : null;
+          if (!targetTable || !myTable || targetTable === myTable) {
+            setTableConsumption((prev) => ({
+              status: payload.status || prev?.status || "PENDING",
+              isSuperVote: payload.status === "SUPER_VOTE",
+              requireConsumption: payload.requireConsumption !== undefined ? payload.requireConsumption : (prev?.requireConsumption ?? true),
+              notes: payload.notes !== undefined ? payload.notes : prev?.notes,
+            }));
+          }
+          return;
+        }
+
         if (payload?.contestName || payload?.stageTitle) {
           setActiveContestInfo((prev) => ({
             id: payload.contestId || prev?.id || "contest",
@@ -645,6 +698,7 @@ function GuestContent() {
                 tableLabel: perf.participant?.tableLabel,
               },
             });
+            fetchTableConsumption(payload.contestId || perf.contestId, session?.table?.label);
             if (typeof window !== "undefined") {
               const saved = localStorage.getItem(`vidjs_voted_${perf.id}`);
               setContestVoteSubmitted(Boolean(saved));
@@ -750,9 +804,21 @@ function GuestContent() {
             JSON.stringify({ stars: contestStars })
           );
         }
-        setSuccessMessage(`⭐ ¡Tu voto individual fue registrado desde ${session?.table?.label || "tu mesa"}!`);
+        if (tableConsumption?.status === "SUPER_VOTE" || data.data?.isSuperVote) {
+          setSuccessMessage(`🌟 ¡Tu SÚPER VOTO individual (x2) fue registrado desde ${session?.table?.label || "tu mesa"}!`);
+        } else {
+          setSuccessMessage(`⭐ ¡Tu voto individual fue registrado desde ${session?.table?.label || "tu mesa"}!`);
+        }
         setTimeout(() => setSuccessMessage(null), 5000);
       } else {
+        if (data?.requiresConsumption) {
+          setTableConsumption((prev) => ({
+            status: "PENDING",
+            isSuperVote: false,
+            requireConsumption: true,
+            notes: prev?.notes,
+          }));
+        }
         alert(data.error || "No se pudo emitir el voto");
       }
     } catch {
@@ -1757,20 +1823,72 @@ function GuestContent() {
                           Para garantizar que el concurso sea 100% justo, debes escanear el código QR de tu mesa para votar.
                         </p>
                       </div>
+                    ) : tableConsumption?.requireConsumption && tableConsumption?.status === "PENDING" ? (
+                      <div className="p-3.5 rounded-2xl bg-amber-950/60 border border-amber-500/60 text-center space-y-2">
+                        <div className="flex items-center justify-center gap-2 text-amber-300 font-black text-xs uppercase tracking-wide">
+                          <Lock className="w-4 h-4 text-amber-400 animate-bounce" />
+                          <span>Voto Sujeto a Consumo de Mesa</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-200 leading-relaxed">
+                          La mesa <span className="text-amber-300 font-bold">{session.table.label}</span> aún no ha sido validada con consumo mínimo.
+                        </p>
+                        <div className="text-[10px] text-zinc-400 bg-black/50 p-2 rounded-xl border border-zinc-800">
+                          💡 Solicita a tu mozo o en barra confirmar el consumo de tu mesa para desbloquear el voto a todos los comensales presentes.
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => fetchTableConsumption()}
+                          className="w-full py-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>Comprobar estado de consumo</span>
+                        </button>
+                      </div>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={handleSendContestPublicVote}
-                        disabled={contestVoteLoading}
-                        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30 cursor-pointer disabled:opacity-50"
-                      >
-                        {contestVoteLoading ? (
-                          <RefreshCw className="w-4 h-4 animate-spin" />
+                      <div className="space-y-2">
+                        {tableConsumption?.status === "SUPER_VOTE" ? (
+                          <div className="p-2 rounded-xl bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border border-amber-400/50 flex items-center justify-between px-3 text-xs text-amber-300 font-black animate-pulse">
+                            <span className="flex items-center gap-1.5">
+                              <Sparkles className="w-4 h-4 text-yellow-300" />
+                              🌟 ¡SÚPER VOTO ACTIVADO!
+                            </span>
+                            <span className="text-[10px] bg-amber-400 text-black px-2 py-0.5 rounded-full font-black">
+                              PODER x2
+                            </span>
+                          </div>
                         ) : (
-                          <Trophy className="w-4 h-4 text-black" />
+                          <div className="flex items-center justify-between text-[11px] px-1 text-zinc-400">
+                            <span className="flex items-center gap-1 text-emerald-400 font-medium">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Consumo verificado ({session.table.label})
+                            </span>
+                            <span className="text-zinc-500">Poder 1.0x</span>
+                          </div>
                         )}
-                        <span>Enviar Mi Calificación ({session.table.label})</span>
-                      </button>
+
+                        <button
+                          type="button"
+                          onClick={handleSendContestPublicVote}
+                          disabled={contestVoteLoading}
+                          className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 ${
+                            tableConsumption?.status === "SUPER_VOTE"
+                              ? "bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 text-black shadow-xl shadow-yellow-500/40 hover:scale-[1.01]"
+                              : "bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black shadow-lg shadow-amber-500/30"
+                          }`}
+                        >
+                          {contestVoteLoading ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : tableConsumption?.status === "SUPER_VOTE" ? (
+                            <Sparkles className="w-4 h-4 text-black" />
+                          ) : (
+                            <Trophy className="w-4 h-4 text-black" />
+                          )}
+                          <span>
+                            {tableConsumption?.status === "SUPER_VOTE"
+                              ? `Enviar Súper Voto x2 (${session.table.label})`
+                              : `Enviar Mi Calificación (${session.table.label})`}
+                          </span>
+                        </button>
+                      </div>
                     )}
                   </div>
                 ) : (
@@ -2733,20 +2851,72 @@ function GuestContent() {
                           Para garantizar que el concurso sea 100% justo, la votación está reservada a comensales presentes en las mesas. Escanea el código QR de tu mesa para votar.
                         </p>
                       </div>
+                    ) : tableConsumption?.requireConsumption && tableConsumption?.status === "PENDING" ? (
+                      <div className="p-4 rounded-2xl bg-amber-950/60 border border-amber-500/60 text-center space-y-2.5">
+                        <div className="flex items-center justify-center gap-2 text-amber-300 font-black text-xs uppercase tracking-wide">
+                          <Lock className="w-4 h-4 text-amber-400 animate-bounce" />
+                          <span>Voto Sujeto a Consumo Mínimo de Mesa</span>
+                        </div>
+                        <p className="text-xs text-zinc-200 leading-relaxed">
+                          La mesa <span className="text-amber-300 font-bold">{session.table.label}</span> está a la espera de validación de consumo por el personal del local.
+                        </p>
+                        <div className="text-[11px] text-zinc-400 bg-black/50 p-2.5 rounded-xl border border-zinc-800">
+                          💡 Solicita a tu mozo o en caja confirmar el consumo de tu mesa para habilitar de inmediato el voto individual a todos los comensales presentes en tu mesa.
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => fetchTableConsumption()}
+                          className="w-full py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>Comprobar estado de consumo</span>
+                        </button>
+                      </div>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={handleSendContestPublicVote}
-                        disabled={contestVoteLoading}
-                        className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-xl shadow-amber-500/30 cursor-pointer disabled:opacity-50"
-                      >
-                        {contestVoteLoading ? (
-                          <RefreshCw className="w-4 h-4 animate-spin" />
+                      <div className="space-y-2.5">
+                        {tableConsumption?.status === "SUPER_VOTE" ? (
+                          <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border border-amber-400/50 flex items-center justify-between px-4 text-xs text-amber-300 font-black animate-pulse">
+                            <span className="flex items-center gap-2">
+                              <Sparkles className="w-4 h-4 text-yellow-300" />
+                              🌟 ¡SÚPER VOTO ACTIVADO PARA TU MESA!
+                            </span>
+                            <span className="text-[10px] bg-amber-400 text-black px-2.5 py-0.5 rounded-full font-black">
+                              PODER x2
+                            </span>
+                          </div>
                         ) : (
-                          <Trophy className="w-4 h-4 text-black" />
+                          <div className="flex items-center justify-between text-xs px-1 text-zinc-400">
+                            <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
+                              <CheckCircle2 className="w-4 h-4" /> Consumo verificado en {session.table.label}
+                            </span>
+                            <span className="text-zinc-500 font-mono">Poder 1.0x</span>
+                          </div>
                         )}
-                        <span>Enviar Mi Calificación ({session.table.label})</span>
-                      </button>
+
+                        <button
+                          type="button"
+                          onClick={handleSendContestPublicVote}
+                          disabled={contestVoteLoading}
+                          className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 ${
+                            tableConsumption?.status === "SUPER_VOTE"
+                              ? "bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 text-black shadow-xl shadow-yellow-500/40 hover:scale-[1.01]"
+                              : "bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black shadow-xl shadow-amber-500/30"
+                          }`}
+                        >
+                          {contestVoteLoading ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : tableConsumption?.status === "SUPER_VOTE" ? (
+                            <Sparkles className="w-4 h-4 text-black" />
+                          ) : (
+                            <Trophy className="w-4 h-4 text-black" />
+                          )}
+                          <span>
+                            {tableConsumption?.status === "SUPER_VOTE"
+                              ? `Enviar Súper Voto x2 (${session.table.label})`
+                              : `Enviar Mi Calificación (${session.table.label})`}
+                          </span>
+                        </button>
+                      </div>
                     )}
                   </div>
                 ) : (

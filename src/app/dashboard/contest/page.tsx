@@ -127,6 +127,8 @@ interface ContestDetail {
   status: string;
   scoringMode: string;
   publicVoteWeight: number;
+  requireConsumption?: boolean;
+  minConsumptionNotes?: string | null;
   rules: string | null;
   prizes: string | null;
   activeStageId: string | null;
@@ -164,6 +166,22 @@ export default function ContestDashboardPage() {
     recentVotes: Array<{ id: string; tableLabel: string; stars: number; cheerCount: number; createdAt: string }>;
   } | null>(null);
 
+  // 💳 Gestión de Consumo Mínimo de Mesas y Súper Votos
+  const [tableConsumptions, setTableConsumptions] = useState<
+    Array<{
+      id: string;
+      tableLabel: string;
+      status: "PENDING" | "VERIFIED" | "SUPER_VOTE";
+      consumptionAmount: number | null;
+      notes: string | null;
+      verifiedBy: string | null;
+      updatedAt: string;
+    }>
+  >([]);
+  const [quickTableInput, setQuickTableInput] = useState("");
+  const [quickNotesInput, setQuickNotesInput] = useState("");
+  const [tableStatusFilter, setTableStatusFilter] = useState<"ALL" | "PENDING" | "VERIFIED" | "SUPER_VOTE">("ALL");
+
   const [showPublicVotesModal, setShowPublicVotesModal] = useState(false);
 
   // Modales
@@ -182,6 +200,7 @@ export default function ContestDashboardPage() {
     scoringMode: "AVERAGE",
     publicVoteWeight: 20,
     judgesCount: 3,
+    requireConsumption: true,
   });
 
   // Form State para Nuevo Participante
@@ -342,6 +361,78 @@ export default function ContestDashboardPage() {
     } catch {}
   };
 
+  // 💳 Cargar estados de consumo de mesas y súper votos
+  const fetchTableConsumptions = async (contestId: string) => {
+    try {
+      const res = await fetch(`/api/v1/contest/${contestId}/consumption`);
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setTableConsumptions(json.data.tableConsumptions || []);
+      }
+    } catch {}
+  };
+
+  const handleToggleRequireConsumption = async () => {
+    if (!contest) return;
+    try {
+      const newReq = !contest.requireConsumption;
+      const res = await fetch(`/api/v1/contest/${contest.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requireConsumption: newReq }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setContest((prev) => (prev ? { ...prev, requireConsumption: newReq } : prev));
+        showFeedback(
+          "success",
+          newReq
+            ? "🔒 Política activada: solo mesas con consumo confirmado podrán votar"
+            : "🔓 Política desactivada: todas las mesas tienen votación libre"
+        );
+      } else {
+        showFeedback("error", json.error || "No se pudo actualizar la política");
+      }
+    } catch {
+      showFeedback("error", "Error al actualizar política de consumo");
+    }
+  };
+
+  const handleSetTableStatus = async (
+    tableLabel: string,
+    status: "PENDING" | "VERIFIED" | "SUPER_VOTE",
+    notes?: string
+  ) => {
+    if (!contest || !tableLabel.trim()) return;
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/consumption`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tableLabel: tableLabel.trim(),
+          status,
+          notes,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback(
+          "success",
+          status === "SUPER_VOTE"
+            ? `🌟 ¡SÚPER VOTO (x2) asignado a ${tableLabel}!`
+            : status === "VERIFIED"
+            ? `✅ Consumo validado para ${tableLabel}`
+            : `🔒 ${tableLabel} bloqueada a la espera de consumo`
+        );
+        fetchTableConsumptions(contest.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo actualizar el estado de la mesa");
+      }
+    } catch {
+      showFeedback("error", "Error de red al actualizar estado de consumo");
+    }
+  };
+
   useEffect(() => {
     fetchContests();
   }, []);
@@ -351,6 +442,7 @@ export default function ContestDashboardPage() {
       fetchContestDetail(selectedContestId);
       fetchReports(selectedContestId);
       fetchGlobalTableVotes(selectedContestId);
+      fetchTableConsumptions(selectedContestId);
     }
   }, [selectedContestId]);
 
@@ -369,6 +461,20 @@ export default function ContestDashboardPage() {
           fetchContestDetail(selectedContestId);
           fetchReports(selectedContestId);
           fetchGlobalTableVotes(selectedContestId);
+          fetchTableConsumptions(selectedContestId);
+          if (payload?.type === "TABLE_CONSUMPTION_UPDATE") {
+            showFeedback(
+              "info",
+              `💳 Mesa ${payload.tableLabel}: Estado actualizado a ${
+                payload.status === "SUPER_VOTE"
+                  ? "🌟 Súper Voto (x2)"
+                  : payload.status === "VERIFIED"
+                  ? "✅ Validado"
+                  : "🔒 Pendiente"
+              }`
+            );
+            return;
+          }
           if (payload?.performanceId) {
             fetchPerformancePublicVotes(selectedContestId, payload.performanceId);
           }
@@ -381,6 +487,7 @@ export default function ContestDashboardPage() {
           fetchContestDetail(selectedContestId);
           fetchReports(selectedContestId);
           fetchGlobalTableVotes(selectedContestId);
+          fetchTableConsumptions(selectedContestId);
         }
       }
     },
@@ -1444,6 +1551,315 @@ export default function ContestDashboardPage() {
                 <span className="text-[10px] text-emerald-500/80">Solo comensales en el local</span>
               </div>
             </div>
+          </div>
+
+          {/* ============================================================ */}
+          {/* GESTIÓN DE CONSUMO MÍNIMO Y SÚPER VOTOS (X2) POR MESA       */}
+          {/* ============================================================ */}
+          <div className="bg-zinc-900/80 border border-amber-500/30 p-6 rounded-3xl space-y-5 shadow-xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-amber-400" />
+                  <h3 className="text-base font-black text-white uppercase tracking-wider">
+                    Gestión de Consumo Mínimo & Súper Votos por Mesa
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-xs font-black border border-amber-500/40">
+                    Control de Mozos / Barra
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                  Garantiza que solo las mesas con consumo confirmado puedan votar. Activa el <strong>Súper Voto</strong> (peso doble x2) a mesas destacadas.
+                </p>
+              </div>
+
+              {/* Interruptor de Política de Consumo */}
+              <div className="flex items-center gap-3 bg-zinc-950 p-2.5 rounded-2xl border border-zinc-800 shrink-0">
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-bold text-zinc-400 block">Exigir Consumo:</span>
+                  <span
+                    className={`text-xs font-black ${
+                      contest?.requireConsumption !== false ? "text-amber-400" : "text-emerald-400"
+                    }`}
+                  >
+                    {contest?.requireConsumption !== false ? "🔒 ACTIVADO (Obligatorio)" : "🔓 DESACTIVADO (Libre)"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleToggleRequireConsumption}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    contest?.requireConsumption !== false
+                      ? "bg-amber-500 text-black hover:bg-amber-400 shadow-md shadow-amber-500/30"
+                      : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                  }`}
+                >
+                  {contest?.requireConsumption !== false ? "Desactivar" : "Activar Exigencia"}
+                </button>
+              </div>
+            </div>
+
+            {/* Barra de Validación Rápida por Mozo o Barra */}
+            <div className="bg-zinc-950/70 p-4 rounded-2xl border border-zinc-800 space-y-3">
+              <span className="text-[11px] font-black uppercase tracking-wider text-zinc-300 block">
+                ⚡ Validación Rápida de Mesa
+              </span>
+              <div className="flex flex-col sm:flex-row items-center gap-2.5">
+                <input
+                  type="text"
+                  placeholder="Ej: Mesa 7, VIP 2, Barra 1..."
+                  value={quickTableInput}
+                  onChange={(e) => setQuickTableInput(e.target.value)}
+                  className="w-full sm:w-64 p-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs font-bold outline-none placeholder:text-zinc-600 focus:border-amber-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Nota u observaciones (opcional)"
+                  value={quickNotesInput}
+                  onChange={(e) => setQuickNotesInput(e.target.value)}
+                  className="w-full sm:flex-1 p-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs outline-none placeholder:text-zinc-600 focus:border-amber-400"
+                />
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!quickTableInput.trim()) {
+                        showFeedback("error", "Ingresa el nombre o número de la mesa");
+                        return;
+                      }
+                      handleSetTableStatus(quickTableInput, "VERIFIED", quickNotesInput);
+                      setQuickTableInput("");
+                      setQuickNotesInput("");
+                    }}
+                    className="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shadow-emerald-900/30"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>✓ Validar Consumo</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!quickTableInput.trim()) {
+                        showFeedback("error", "Ingresa el nombre o número de la mesa");
+                        return;
+                      }
+                      handleSetTableStatus(quickTableInput, "SUPER_VOTE", quickNotesInput);
+                      setQuickTableInput("");
+                      setQuickNotesInput("");
+                    }}
+                    className="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shadow-amber-500/30"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>🌟 Súper Voto (x2)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Listado de Mesas con Acciones Rápidas */}
+            {(() => {
+              const knownTableLabels = new Set<string>();
+              tableConsumptions.forEach((tc) => knownTableLabels.add(tc.tableLabel));
+              globalTableVotes?.byTable?.forEach((tb) => knownTableLabels.add(tb.tableLabel));
+              contest?.participants?.forEach((p) => {
+                if (p.tableLabel) knownTableLabels.add(p.tableLabel);
+              });
+
+              const tablesList = Array.from(knownTableLabels).map((label) => {
+                const consumption = tableConsumptions.find(
+                  (tc) => tc.tableLabel.toLowerCase().trim() === label.toLowerCase().trim()
+                );
+                const voteStats = globalTableVotes?.byTable?.find(
+                  (tb) => tb.tableLabel.toLowerCase().trim() === label.toLowerCase().trim()
+                );
+                return {
+                  tableLabel: label,
+                  status: consumption?.status || "PENDING",
+                  isSuperVote: consumption?.status === "SUPER_VOTE",
+                  notes: consumption?.notes || null,
+                  totalVotes: voteStats?.totalVotes || 0,
+                  avgStars: voteStats?.avgStars || 0,
+                  updatedAt: consumption?.updatedAt,
+                };
+              });
+
+              const filteredTables = tablesList.filter((t) => {
+                if (tableStatusFilter === "ALL") return true;
+                return t.status === tableStatusFilter;
+              });
+
+              const verifiedCount = tablesList.filter((t) => t.status === "VERIFIED").length;
+              const superCount = tablesList.filter((t) => t.status === "SUPER_VOTE").length;
+              const pendingCount = tablesList.filter((t) => t.status === "PENDING").length;
+
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    {/* Filtros */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setTableStatusFilter("ALL")}
+                        className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          tableStatusFilter === "ALL"
+                            ? "bg-zinc-800 text-white border border-zinc-600"
+                            : "bg-zinc-950 text-zinc-400 hover:text-white"
+                        }`}
+                      >
+                        Todas ({tablesList.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTableStatusFilter("VERIFIED")}
+                        className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                          tableStatusFilter === "VERIFIED"
+                            ? "bg-emerald-950/80 text-emerald-300 border border-emerald-500/50"
+                            : "bg-zinc-950 text-zinc-400 hover:text-white"
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                        <span>Validadas ({verifiedCount})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTableStatusFilter("SUPER_VOTE")}
+                        className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                          tableStatusFilter === "SUPER_VOTE"
+                            ? "bg-amber-950/80 text-amber-300 border border-amber-500/50"
+                            : "bg-zinc-950 text-zinc-400 hover:text-white"
+                        }`}
+                      >
+                        <Sparkles className="w-3 h-3 text-yellow-400" />
+                        <span>Súper Votos ({superCount})</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTableStatusFilter("PENDING")}
+                        className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                          tableStatusFilter === "PENDING"
+                            ? "bg-zinc-800 text-zinc-300 border border-zinc-600"
+                            : "bg-zinc-950 text-zinc-400 hover:text-white"
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-amber-500" />
+                        <span>Pendientes ({pendingCount})</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => contest && fetchTableConsumptions(contest.id)}
+                      className="text-xs font-bold text-zinc-400 hover:text-amber-400 flex items-center gap-1 cursor-pointer"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>Actualizar lista</span>
+                    </button>
+                  </div>
+
+                  {filteredTables.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {filteredTables.map((tbl) => (
+                        <div
+                          key={tbl.tableLabel}
+                          className={`p-3.5 rounded-2xl border transition-all space-y-3 ${
+                            tbl.status === "SUPER_VOTE"
+                              ? "bg-gradient-to-br from-amber-950/50 via-zinc-900 to-zinc-950 border-amber-500/60 shadow-lg shadow-amber-950/30"
+                              : tbl.status === "VERIFIED"
+                              ? "bg-zinc-950/90 border-emerald-500/40"
+                              : "bg-zinc-950/60 border-zinc-800"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-sm font-black text-white block">
+                                {tbl.tableLabel}
+                              </span>
+                              {tbl.notes && (
+                                <span className="text-[10px] text-zinc-400 italic block">
+                                  {tbl.notes}
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              {tbl.status === "SUPER_VOTE" ? (
+                                <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-[10px] font-black uppercase flex items-center gap-1 shadow-md">
+                                  <Sparkles className="w-3 h-3" />
+                                  <span>Súper Voto x2</span>
+                                </span>
+                              ) : tbl.status === "VERIFIED" ? (
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold uppercase flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  <span>Validado (1.0x)</span>
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold uppercase flex items-center gap-1">
+                                  <Lock className="w-3 h-3" />
+                                  <span>Pendiente</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] text-zinc-400 border-t border-zinc-900 pt-2 font-mono">
+                            <span>Votos emitidos: {tbl.totalVotes}</span>
+                            <span>Promedio: ⭐ {tbl.avgStars}</span>
+                          </div>
+
+                          {/* Acciones de 1 toque */}
+                          <div className="grid grid-cols-3 gap-1.5 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => handleSetTableStatus(tbl.tableLabel, "VERIFIED")}
+                              className={`py-1.5 px-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                                tbl.status === "VERIFIED"
+                                  ? "bg-emerald-600 text-white font-black"
+                                  : "bg-zinc-900 hover:bg-emerald-950/60 text-emerald-400 border border-zinc-800 hover:border-emerald-500/40"
+                              }`}
+                              title="Validar consumo normal (1.0x)"
+                            >
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>Validar</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleSetTableStatus(tbl.tableLabel, "SUPER_VOTE")}
+                              className={`py-1.5 px-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                                tbl.status === "SUPER_VOTE"
+                                  ? "bg-amber-400 text-black font-black"
+                                  : "bg-zinc-900 hover:bg-amber-950/60 text-amber-400 border border-zinc-800 hover:border-amber-500/40"
+                              }`}
+                              title="Asignar beneficio de Súper Voto doble (2.0x)"
+                            >
+                              <Sparkles className="w-3 h-3" />
+                              <span>Súper x2</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleSetTableStatus(tbl.tableLabel, "PENDING")}
+                              className={`py-1.5 px-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                                tbl.status === "PENDING"
+                                  ? "bg-zinc-800 text-zinc-400 font-bold"
+                                  : "bg-zinc-900 hover:bg-red-950/40 text-zinc-400 hover:text-red-400 border border-zinc-800"
+                              }`}
+                              title="Restablecer o bloquear hasta nuevo consumo"
+                            >
+                              <Lock className="w-3 h-3" />
+                              <span>Bloquear</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-xs text-zinc-500 bg-zinc-950/40 rounded-2xl border border-zinc-800/60">
+                      No hay mesas registradas en este filtro. Usa el formulario de validación rápida arriba para ingresar cualquier mesa.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Actuación actual en escenario y sus votos */}
@@ -2707,6 +3123,25 @@ export default function ContestDashboardPage() {
                     className="w-full p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-bold outline-none"
                   />
                 </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-white block">
+                    Exigir Consumo Mínimo de Mesas
+                  </span>
+                  <span className="text-[10px] text-zinc-400 block">
+                    Solo los comensales de mesas validadas por mozo podrán votar
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={newContestForm.requireConsumption}
+                  onChange={(e) =>
+                    setNewContestForm({ ...newContestForm, requireConsumption: e.target.checked })
+                  }
+                  className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
+                />
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2">

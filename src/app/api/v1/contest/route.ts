@@ -22,6 +22,7 @@ const CreateContestSchema = z.object({
   prizes: z.string().optional().nullable(),
   initialStageTitle: z.string().default("Gala 1: Audiciones y Clasificatorias"),
   judgesCount: z.number().min(1).max(10).default(3),
+  requireConsumption: z.boolean().default(true),
 });
 
 /**
@@ -117,6 +118,7 @@ export async function POST(req: NextRequest) {
         publicVoteWeight: parsed.publicVoteWeight,
         rules: parsed.rules || null,
         prizes: parsed.prizes || null,
+        requireConsumption: parsed.requireConsumption,
       },
     });
 

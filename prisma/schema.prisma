@@ -350,15 +350,18 @@ model KaraokeContest {
   logoUrl          String?              // Logo oficial del concurso/certamen
   sponsors         String?              // Auspiciadores, patrocinadores y marcas colaboradoras (JSON o texto)
   organizers       String?              // Organizadores, director de certamen, DJ anfitrión (JSON o texto)
-  activeStageId    String?              // ID de la fecha/gala activa
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  activeStageId       String?              // ID de la fecha/gala activa
+  requireConsumption Boolean               @default(true) // Exigir consumo mínimo verificado para votar
+  minConsumptionNotes String?               // Ej: "$5.000 o 1 Trago"
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
-  stages           ContestStage[]
-  criteria         ContestCriteria[]
-  judges           ContestJudge[]
-  participants     ContestParticipant[]
-  performances     ContestPerformance[]
+  stages              ContestStage[]
+  criteria            ContestCriteria[]
+  judges              ContestJudge[]
+  participants        ContestParticipant[]
+  performances        ContestPerformance[]
+  tableConsumptions   ContestTableConsumption[]
 
   @@index([tenantId])
   @@index([code])
@@ -512,10 +515,30 @@ model ContestPublicVote {
   tableLabel        String?
   stars             Int                @default(5) // 1 a 5 estrellas
   cheerCount        Int                @default(0)
+  isSuperVote       Boolean            @default(false) // Súper Voto por consumo especial
+  voteWeight        Float              @default(1.0)   // Multiplicador (1.0 o 2.0)
   ipAddress         String?
   createdAt         DateTime           @default(now())
 
   @@index([performanceId])
   @@index([guestSessionToken])
+}
+
+// 23. ContestTableConsumption (Estado de consumo y súper votos por mesa)
+model ContestTableConsumption {
+  id                String         @id @default(cuid())
+  contestId         String
+  contest           KaraokeContest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  tableLabel        String         // "Mesa 1", "Mesa 4", etc.
+  status            String         @default("PENDING") // PENDING, VERIFIED, SUPER_VOTE
+  consumptionAmount Float          @default(0)
+  notes             String?        // "Balde de Cerveza Corona", "$15.000", etc.
+  verifiedBy        String?        // "Mozo Juan", "Caja", "DJ"
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@unique([contestId, tableLabel])
+  @@index([contestId])
+  @@index([tableLabel])
 }
 

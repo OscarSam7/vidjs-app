@@ -76,6 +76,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
             tableLabel: v.tableLabel,
             stars: v.stars,
             cheerCount: v.cheerCount,
+            isSuperVote: v.isSuperVote,
+            voteWeight: v.voteWeight,
             createdAt: v.createdAt,
           })),
         },
@@ -138,6 +140,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           tableLabel: v.tableLabel,
           stars: v.stars,
           cheerCount: v.cheerCount,
+          isSuperVote: v.isSuperVote,
+          voteWeight: v.voteWeight,
           voterId: v.guestSessionToken ? `${v.guestSessionToken.slice(0, 10)}...` : "anon",
           createdAt: v.createdAt,
         })),
@@ -205,7 +209,40 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || null;
     const deviceVoterToken = parsed.guestSessionToken || guestSession.sessionToken;
 
-    // 2. Validar si este dispositivo ya votó en esta actuación
+    // 2. Validación de Consumo Mínimo por Mesa y Súper Voto
+    let isSuperVote = false;
+    let voteWeight = 1.0;
+
+    const tableConsumption = await prisma.contestTableConsumption.findUnique({
+      where: {
+        contestId_tableLabel: {
+          contestId: contest.id,
+          tableLabel: authoritativeTableLabel,
+        },
+      },
+    });
+
+    if (contest.requireConsumption) {
+      if (!tableConsumption || tableConsumption.status === "PENDING") {
+        return NextResponse.json(
+          {
+            error:
+              "Tu mesa aún no tiene confirmado el consumo mínimo requerido. Solicita al mozo o en la barra validar tu consumición para habilitar tu voto.",
+            requiresConsumption: true,
+            minConsumptionNotes: contest.minConsumptionNotes || "Consumo mínimo requerido por la casa",
+            tableLabel: authoritativeTableLabel,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    if (tableConsumption?.status === "SUPER_VOTE") {
+      isSuperVote = true;
+      voteWeight = 2.0; // Doble impacto por consumo premium
+    }
+
+    // 3. Validar si este dispositivo ya votó en esta actuación
     const existing = await prisma.contestPublicVote.findFirst({
       where: {
         performanceId: parsed.performanceId,
@@ -221,16 +258,22 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           stars: parsed.stars,
           tableLabel: authoritativeTableLabel,
           cheerCount: { increment: parsed.cheerCount },
+          isSuperVote,
+          voteWeight,
         },
       });
 
-      // Recalcular promedio de estrellas
+      // Recalcular promedio ponderado de estrellas (los Súper Votos valen x2)
       const allPublicVotes = await prisma.contestPublicVote.findMany({
         where: { performanceId: parsed.performanceId },
-        select: { stars: true },
+        select: { stars: true, voteWeight: true, isSuperVote: true },
       });
-      const avgStars =
-        allPublicVotes.reduce((acc, curr) => acc + curr.stars, 0) / allPublicVotes.length;
+      const totalWeights = allPublicVotes.reduce((acc, curr) => acc + (curr.voteWeight || 1.0), 0);
+      const totalWeightedStars = allPublicVotes.reduce(
+        (acc, curr) => acc + curr.stars * (curr.voteWeight || 1.0),
+        0
+      );
+      const avgStars = totalWeights > 0 ? totalWeightedStars / totalWeights : 0;
 
       broadcastContestEvent(contest.id, contest.eventId, "CONTEST_VOTE_UPDATE", {
         performanceId: parsed.performanceId,
@@ -239,12 +282,18 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         totalPublicVotes: allPublicVotes.length,
         avgStars: Number(avgStars.toFixed(1)),
         cheerCount: parsed.cheerCount,
+        isSuperVote,
+        voteWeight,
       });
+
+      const message = isSuperVote
+        ? `🌟 ¡SÚPER VOTO (x2) actualizado con éxito desde ${authoritativeTableLabel}!`
+        : `¡Voto actualizado con éxito desde ${authoritativeTableLabel}!`;
 
       return NextResponse.json({
         success: true,
         data: updated,
-        message: `¡Voto actualizado con éxito desde ${authoritativeTableLabel}!`,
+        message,
       });
     }
 
@@ -255,17 +304,23 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         tableLabel: authoritativeTableLabel,
         stars: parsed.stars,
         cheerCount: parsed.cheerCount,
+        isSuperVote,
+        voteWeight,
         ipAddress: ip,
       },
     });
 
-    // Calcular total de votos públicos
+    // Calcular total y promedio ponderado de votos públicos
     const allPublicVotes = await prisma.contestPublicVote.findMany({
       where: { performanceId: parsed.performanceId },
-      select: { stars: true },
+      select: { stars: true, voteWeight: true, isSuperVote: true },
     });
-    const avgStars =
-      allPublicVotes.reduce((acc, curr) => acc + curr.stars, 0) / allPublicVotes.length;
+    const totalWeights = allPublicVotes.reduce((acc, curr) => acc + (curr.voteWeight || 1.0), 0);
+    const totalWeightedStars = allPublicVotes.reduce(
+      (acc, curr) => acc + curr.stars * (curr.voteWeight || 1.0),
+      0
+    );
+    const avgStars = totalWeights > 0 ? totalWeightedStars / totalWeights : 0;
 
     broadcastContestEvent(contest.id, contest.eventId, "CONTEST_VOTE_UPDATE", {
       performanceId: parsed.performanceId,
@@ -274,12 +329,18 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       totalPublicVotes: allPublicVotes.length,
       avgStars: Number(avgStars.toFixed(1)),
       cheerCount: parsed.cheerCount,
+      isSuperVote,
+      voteWeight,
     });
+
+    const message = isSuperVote
+      ? `🌟 ¡SÚPER VOTO (x2) emitido con éxito desde ${authoritativeTableLabel}! ¡Gracias por tu consumo premium!`
+      : `¡Gracias por votar desde ${authoritativeTableLabel}!`;
 
     return NextResponse.json({
       success: true,
       data: vote,
-      message: `¡Gracias por votar desde ${authoritativeTableLabel}!`,
+      message,
     });
   } catch (error) {
     return handleApiError(error);

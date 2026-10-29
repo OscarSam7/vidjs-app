@@ -114,6 +114,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         sponsors: body.sponsors !== undefined ? (typeof body.sponsors === "string" ? body.sponsors : JSON.stringify(body.sponsors)) : undefined,
         organizers: body.organizers !== undefined ? (typeof body.organizers === "string" ? body.organizers : JSON.stringify(body.organizers)) : undefined,
         activeStageId: body.activeStageId !== undefined ? body.activeStageId : undefined,
+        requireConsumption: body.requireConsumption !== undefined ? Boolean(body.requireConsumption) : undefined,
+        minConsumptionNotes: body.minConsumptionNotes !== undefined ? body.minConsumptionNotes : undefined,
       },
       include: {
         stages: true,
