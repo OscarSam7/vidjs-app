@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { calculateCrossfaderGains, djSoundEffects, webDjEngine, AudioLevels } from "@/lib/audio/dj-audio-engine";
 import { MusicLibraryView, Song as LibSong } from "@/components/library/MusicLibraryView";
+import { SaveToLibraryModal, SaveToLibraryData } from "@/components/library/SaveToLibraryModal";
 
 interface SongRequestData {
   id: string;
@@ -1591,9 +1592,13 @@ export default function VirtualDjConsole({
     return crossfaderValue > 0 ? "B" : "A";
   }, [isPlayingA, isPlayingB, crossfaderValue]);
 
-  // Guardar en la Biblioteca Musical la pista cargada / en reproducción de cualquier bandeja
+  // Estado para el modal de confirmación y selección de categoría al guardar en biblioteca
+  const [saveLibraryTrackData, setSaveLibraryTrackData] = useState<SaveToLibraryData | null>(null);
+  const [isSaveLibraryModalOpen, setIsSaveLibraryModalOpen] = useState(false);
+
+  // Abrir modal interactivo para guardar en la Biblioteca Musical preguntando categoría
   const handleSaveDeckToLibrary = useCallback(
-    async (deck: "A" | "B") => {
+    (deck: "A" | "B") => {
       const isDeckA = deck === "A";
       const track = isDeckA ? trackA : trackB;
       const videoId = isDeckA ? videoIdA : videoIdB;
@@ -1630,49 +1635,21 @@ export default function VirtualDjConsole({
         ? `https://www.youtube.com/watch?v=${videoId}`
         : (track?.song as any)?.fileUrl || null;
 
-      const payload = {
+      // Sugerencia inicial de categoría
+      const initialGenre = track?.song?.genre || (isDeckA ? "Cumbia / Cuarteto / Fiesta" : "Reggaeton / Urbano / RKT");
+
+      setSaveLibraryTrackData({
+        deckLabel: `Deck ${deck}`,
         title: cleanTitle || rawTitle,
         artistName: rawArtist,
-        genre: track?.song?.genre || (isDeckA ? "Boliche / DJ Mix" : "Electro / House"),
+        initialGenre,
         bpm: bpm ? Math.round(bpm) : 124,
         key: track?.song?.key || "8A / Am",
         durationSeconds: duration || 210,
-        fileUrl: fileUrl,
-        type: "BOTH",
-      };
-
-      const setSaving = isDeckA ? setSavingDeckA : setSavingDeckB;
-      const setSaved = isDeckA ? setSavedDeckA : setSavedDeckB;
-
-      setSaving(true);
-      try {
-        const res = await fetch("/api/v1/library", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        const json = await res.json();
-        if (res.ok && json.success) {
-          setSaved(true);
-          const feedbackMsg = json.alreadyExists
-            ? `ℹ️ "${payload.title}" ya formaba parte de tu biblioteca.`
-            : `📚 ¡"${payload.title}" guardada con éxito en la biblioteca!`;
-          showFeedback("success", feedbackMsg);
-
-          // Disparar evento para que la vista de biblioteca se refresque automáticamente
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("vidjs-library-updated", { detail: json.data }));
-          }
-        } else {
-          showFeedback("error", json.error || "No se pudo guardar la pista en la biblioteca.");
-        }
-      } catch (err) {
-        console.error("Error al guardar pista en biblioteca:", err);
-        showFeedback("error", "Error de conexión al guardar en la biblioteca.");
-      } finally {
-        setSaving(false);
-      }
+        fileUrl,
+        defaultType: "BOTH",
+      });
+      setIsSaveLibraryModalOpen(true);
     },
     [
       trackA,
@@ -1688,6 +1665,14 @@ export default function VirtualDjConsole({
       showFeedback,
     ]
   );
+
+  const handleSaveLibrarySuccess = (savedSong: any, categoryName: string, alreadyExists: boolean) => {
+    if (saveLibraryTrackData?.deckLabel?.includes("Deck A")) {
+      setSavedDeckA(true);
+    } else if (saveLibraryTrackData?.deckLabel?.includes("Deck B")) {
+      setSavedDeckB(true);
+    }
+  };
 
   // Play / Pause toggles con soporte dual Web Audio / YouTube y desplazamiento de crossfader
   const togglePlayA = () => {
@@ -5835,6 +5820,18 @@ export default function VirtualDjConsole({
           </div>
         </div>
       )}
+
+      {/* 6. MODAL INTERACTIVO DE CONFIRMACIÓN Y CATEGORÍA PARA GUARDAR EN BIBLIOTECA */}
+      <SaveToLibraryModal
+        isOpen={isSaveLibraryModalOpen}
+        onClose={() => {
+          setIsSaveLibraryModalOpen(false);
+          setSaveLibraryTrackData(null);
+        }}
+        trackData={saveLibraryTrackData}
+        onSuccess={handleSaveLibrarySuccess}
+        showFeedback={showFeedback}
+      />
     </div>
   );
 }

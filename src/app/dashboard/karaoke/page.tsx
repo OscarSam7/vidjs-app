@@ -43,6 +43,7 @@ import DjSoundboard from "@/components/dj/DjSoundboard";
 import ManualRequestModal from "@/components/dj/ManualRequestModal";
 import ModeSettingsModal from "@/components/dashboard/ModeSettingsModal";
 import TvDisplayConnectModal from "@/components/dashboard/TvDisplayConnectModal";
+import { SaveToLibraryModal, SaveToLibraryData } from "@/components/library/SaveToLibraryModal";
 import { djSoundEffects } from "@/lib/audio/dj-audio-engine";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -144,6 +145,8 @@ export default function KaraokeBoothPage() {
   const [policy, setPolicy] = useState<QueuePolicy>(parseQueuePolicy(null));
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isTvModalOpen, setIsTvModalOpen] = useState(false);
+  const [saveLibraryTrackData, setSaveLibraryTrackData] = useState<SaveToLibraryData | null>(null);
+  const [isSaveLibraryModalOpen, setIsSaveLibraryModalOpen] = useState(false);
 
   // Reproductor / Progreso del cantante al aire
   const [isPlaying, setIsPlaying] = useState(true);
@@ -690,8 +693,8 @@ export default function KaraokeBoothPage() {
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  // Guardar canción en reproducción del Karaoke en la Biblioteca Musical
-  const handleSaveCurrentKaraokeToLibrary = async () => {
+  // Guardar canción en reproducción del Karaoke en la Biblioteca Musical (abriendo modal de categoría)
+  const handleSaveCurrentKaraokeToLibrary = () => {
     const currentSong = data?.currentPlaying?.songRequest;
     if (!currentSong && !selectedKaraokeVideoId) {
       showFeedback("info", "No hay ninguna canción al aire para guardar en la biblioteca.");
@@ -720,45 +723,18 @@ export default function KaraokeBoothPage() {
       ? `https://www.youtube.com/watch?v=${videoId}`
       : (currentSong?.song as any)?.fileUrl || null;
 
-    const payload = {
+    setSaveLibraryTrackData({
+      deckLabel: "Escenario Karaoke",
       title: cleanTitle || rawTitle,
       artistName: rawArtist,
-      genre: currentSong?.song?.genre || "Karaoke / Pop",
+      initialGenre: currentSong?.song?.genre || "Karaoke / Hits Inmortales",
       bpm: currentSong?.song?.bpm || 120,
       key: currentSong?.song?.key || "Original",
       durationSeconds: currentSong?.song?.durationSeconds || 240,
-      fileUrl: fileUrl,
-      type: "KARAOKE",
-    };
-
-    setSavingKaraokeTrack(true);
-    try {
-      const res = await fetch("/api/v1/library", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const json = await res.json();
-      if (res.ok && json.success) {
-        setSavedKaraokeTrack(true);
-        const feedbackMsg = json.alreadyExists
-          ? `ℹ️ "${payload.title}" ya formaba parte de tu biblioteca.`
-          : `📚 ¡"${payload.title}" guardada con éxito en la biblioteca!`;
-        showFeedback("success", feedbackMsg);
-
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("vidjs-library-updated", { detail: json.data }));
-        }
-      } else {
-        showFeedback("error", json.error || "No se pudo guardar la canción en la biblioteca.");
-      }
-    } catch (err) {
-      console.error("Error al guardar karaoke en biblioteca:", err);
-      showFeedback("error", "Error de conexión al guardar en la biblioteca.");
-    } finally {
-      setSavingKaraokeTrack(false);
-    }
+      fileUrl,
+      defaultType: "KARAOKE",
+    });
+    setIsSaveLibraryModalOpen(true);
   };
 
   const currentTrack = data?.currentPlaying?.songRequest;
@@ -1572,6 +1548,18 @@ export default function KaraokeBoothPage() {
           venueName={data.event.venueName}
         />
       )}
+
+      {/* Modal de confirmación y selección de categoría al guardar en biblioteca */}
+      <SaveToLibraryModal
+        isOpen={isSaveLibraryModalOpen}
+        onClose={() => {
+          setIsSaveLibraryModalOpen(false);
+          setSaveLibraryTrackData(null);
+        }}
+        trackData={saveLibraryTrackData}
+        onSuccess={() => setSavedKaraokeTrack(true)}
+        showFeedback={showFeedback}
+      />
     </div>
   );
 }
