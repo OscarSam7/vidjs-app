@@ -2022,6 +2022,7 @@ export default function VirtualDjConsole({
 
   // Refs para recordar la pista activa y evitar recargas o reinicios no deseados entre bandejas
   const prevCurrentPlayingIdRef = useRef<string | null>(currentPlaying?.id || null);
+  const prevTrackAKeyRef = useRef<string | null>(null);
   const prevTrackBKeyRef = useRef<string | null>(null);
   const activeVideoIdARef = useRef<string | null>(null);
   const activeVideoIdBRef = useRef<string | null>(null);
@@ -2030,8 +2031,42 @@ export default function VirtualDjConsole({
   const activeQueueEntryIdARef = useRef<string | null>(null);
   const activeQueueEntryIdBRef = useRef<string | null>(null);
 
+  const isPlayingARef = useRef(isPlayingA);
+  const isPlayingBRef = useRef(isPlayingB);
+  const playbackSecondsARef = useRef(playbackSecondsA);
+  const playbackSecondsBRef = useRef(playbackSecondsB);
+
+  useEffect(() => {
+    isPlayingARef.current = isPlayingA;
+  }, [isPlayingA]);
+
+  useEffect(() => {
+    isPlayingBRef.current = isPlayingB;
+  }, [isPlayingB]);
+
+  useEffect(() => {
+    playbackSecondsARef.current = playbackSecondsA;
+  }, [playbackSecondsA]);
+
+  useEffect(() => {
+    playbackSecondsBRef.current = playbackSecondsB;
+  }, [playbackSecondsB]);
+
   // Cargar pista en DECK A de forma completamente aislada
   const loadTrackIntoDeckA = async (track: SongRequestData, explicitVideoId?: string | null, queueEntryId?: string | null) => {
+    const directId =
+      explicitVideoId ||
+      track.youtubeVideoId ||
+      extractYoutubeId(track.notes);
+    const trackKey = getTrackKey(track, directId);
+
+    // Si ya está montada en Deck A y ya está sonando, NO reiniciar ni pausar
+    if (prevTrackAKeyRef.current === trackKey && (deckTrackA?.id === track.id || activeTrackReqIdARef.current === track.id)) {
+      if (isPlayingA) {
+        return;
+      }
+    }
+
     searchRequestIdA.current++;
     const reqId = searchRequestIdA.current;
     if (iframeRefA.current) {
@@ -2047,12 +2082,9 @@ export default function VirtualDjConsole({
     setLocalAudioUrlA(null);
     setLocalAudioNameA(null);
     prevCurrentPlayingIdRef.current = queueEntryId || currentPlaying?.id || null;
+    prevTrackAKeyRef.current = trackKey;
     activeTrackReqIdARef.current = track.id;
     activeQueueEntryIdARef.current = queueEntryId || null;
-    const directId =
-      explicitVideoId ||
-      track.youtubeVideoId ||
-      extractYoutubeId(track.notes);
     activeVideoIdARef.current = null;
     setIsPlayingA(false);
     setPlaybackSecondsA(0);
@@ -2109,6 +2141,19 @@ export default function VirtualDjConsole({
 
   // Cargar pista en DECK B de forma completamente aislada
   const loadTrackIntoDeckB = async (track: SongRequestData, queueEntryId?: string | null, explicitVideoId?: string | null) => {
+    const directId =
+      explicitVideoId ||
+      track.youtubeVideoId ||
+      extractYoutubeId(track.notes);
+    const trackKey = getTrackKey(track, directId);
+
+    // Si ya está montada en Deck B y ya está sonando, NO reiniciar ni pausar
+    if (prevTrackBKeyRef.current === trackKey && (deckTrackB?.id === track.id || activeTrackReqIdBRef.current === track.id)) {
+      if (isPlayingB) {
+        return;
+      }
+    }
+
     searchRequestIdB.current++;
     const reqId = searchRequestIdB.current;
     if (iframeRefB.current) {
@@ -2126,11 +2171,6 @@ export default function VirtualDjConsole({
     prevCurrentPlayingIdRef.current = queueEntryId || currentPlaying?.id || null;
     activeTrackReqIdBRef.current = track.id;
     activeQueueEntryIdBRef.current = queueEntryId || null;
-    const directId =
-      explicitVideoId ||
-      track.youtubeVideoId ||
-      extractYoutubeId(track.notes);
-    const trackKey = getTrackKey(track, directId);
     prevTrackBKeyRef.current = trackKey;
     activeVideoIdBRef.current = null;
     setIsPlayingB(false);
@@ -2209,6 +2249,7 @@ export default function VirtualDjConsole({
       sendPlayerCommand(iframeRefA.current, "mute");
     }
     prevCurrentPlayingIdRef.current = currentPlaying?.id || null;
+    prevTrackAKeyRef.current = null;
     activeVideoIdARef.current = null;
     activeTrackReqIdARef.current = null;
     activeQueueEntryIdARef.current = null;
@@ -2433,15 +2474,17 @@ export default function VirtualDjConsole({
           deck = "A";
         } else if (winB && event.source === winB) {
           deck = "B";
-        } else if (data.widgetId === 1 || data.id === 1) {
+        } else if (data.widgetId === 1 || data.widgetId === "1" || data.info?.widgetId === 1 || data.info?.widgetId === "1") {
           deck = "A";
-        } else if (data.widgetId === 2 || data.id === 2) {
+        } else if (data.widgetId === 2 || data.widgetId === "2" || data.info?.widgetId === 2 || data.info?.widgetId === "2") {
           deck = "B";
         }
 
-        if (deck === "A") {
+        // NUNCA usar data.id === 1 o 2 como indicador de bandeja (es un contador RPC interno de YouTube)
+        // Y SOLO disparar fin de tema si la bandeja estaba efectivamente reproduciendo y ya había avanzado al menos 5s
+        if (deck === "A" && isPlayingARef.current && playbackSecondsARef.current >= 5) {
           handleDeckAEndedRef.current?.();
-        } else if (deck === "B") {
+        } else if (deck === "B" && isPlayingBRef.current && playbackSecondsBRef.current >= 5) {
           handleDeckBEndedRef.current?.();
         }
       }
@@ -2508,26 +2551,9 @@ export default function VirtualDjConsole({
 
     if (resolvedTarget === "A") {
       loadTrackIntoDeckA(entry.songRequest, entry.youtubeVideoId, entry.id);
-      // Limpiar Deck B SOLO si contenía exactamente este mismo tema Y Deck B NO está sonando
-      if (
-        !isPlayingB &&
-        (deckTrackB?.id === entry.songRequest.id ||
-        activeTrackReqIdBRef.current === entry.songRequest.id ||
-        deckQueueEntryIdB === entry.id)
-      ) {
-        handleClearDeckB();
-      }
       showFeedback("success", `🎧 Cargada en Bandeja A: "${title}"${tableLabel} (Listo para Play)`);
     } else {
       loadTrackIntoDeckB(entry.songRequest, entry.id, entry.youtubeVideoId);
-      // Limpiar Deck A SOLO si contenía exactamente este mismo tema Y Deck A NO está sonando
-      if (
-        !isPlayingA &&
-        (deckTrackA?.id === entry.songRequest.id ||
-        activeTrackReqIdARef.current === entry.songRequest.id)
-      ) {
-        handleClearDeckA();
-      }
       showFeedback("success", `🎧 Cargada en Bandeja B: "${title}"${tableLabel} (Listo para Play)`);
     }
 
@@ -4082,7 +4108,9 @@ export default function VirtualDjConsole({
               }
             }}
             onEnded={() => {
-              handleDeckAEndedRef.current?.();
+              if (isPlayingARef.current && playbackSecondsARef.current >= 5) {
+                handleDeckAEndedRef.current?.();
+              }
             }}
           />
 
@@ -4469,19 +4497,11 @@ export default function VirtualDjConsole({
             </button>
             <button
               onClick={togglePlayA}
-              disabled={!trackA || (!isPlayingA && isPlayingB)}
-              title={
-                !isPlayingA && isPlayingB
-                  ? "Bandeja B en reproducción. Espera a que termine para dar Play en Bandeja A."
-                  : isPlayingA
-                  ? "Pausar Bandeja A"
-                  : "Reproducir Bandeja A"
-              }
-              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-85 ${
+              disabled={!trackA}
+              title={isPlayingA ? "Pausar Bandeja A" : "Reproducir Bandeja A"}
+              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 ${
                 isPlayingA
                   ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-purple-600/30"
-                  : isPlayingB
-                  ? "bg-red-950/80 border border-red-700/80 text-red-300 shadow-sm cursor-not-allowed"
                   : trackA
                   ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/40 ring-1 ring-emerald-400/50 animate-pulse"
                   : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400"
@@ -4489,17 +4509,11 @@ export default function VirtualDjConsole({
             >
               {isPlayingA ? (
                 <Pause className="w-4 h-4" />
-              ) : isPlayingB ? (
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
               ) : (
                 <Play className="w-4 h-4 fill-current" />
               )}
               <span>
-                {isPlayingA
-                  ? "PAUSA"
-                  : isPlayingB
-                  ? "EN ESPERA"
-                  : "PLAY"}
+                {isPlayingA ? "PAUSA" : "PLAY"}
               </span>
             </button>
             <button
@@ -5238,7 +5252,9 @@ export default function VirtualDjConsole({
               }
             }}
             onEnded={() => {
-              handleDeckBEndedRef.current?.();
+              if (isPlayingBRef.current && playbackSecondsBRef.current >= 5) {
+                handleDeckBEndedRef.current?.();
+              }
             }}
           />
 
@@ -5626,19 +5642,11 @@ export default function VirtualDjConsole({
             </button>
             <button
               onClick={togglePlayB}
-              disabled={!trackB || (!isPlayingB && isPlayingA)}
-              title={
-                !isPlayingB && isPlayingA
-                  ? "Bandeja A en reproducción. Espera a que termine para dar Play en Bandeja B."
-                  : isPlayingB
-                  ? "Pausar Bandeja B"
-                  : "Reproducir Bandeja B"
-              }
-              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-85 ${
+              disabled={!trackB}
+              title={isPlayingB ? "Pausar Bandeja B" : "Reproducir Bandeja B"}
+              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 ${
                 isPlayingB
                   ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-cyan-600/30"
-                  : isPlayingA
-                  ? "bg-red-950/80 border border-red-700/80 text-red-300 shadow-sm cursor-not-allowed"
                   : trackB
                   ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/40 ring-1 ring-emerald-400/50 animate-pulse"
                   : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400"
@@ -5646,17 +5654,11 @@ export default function VirtualDjConsole({
             >
               {isPlayingB ? (
                 <Pause className="w-4 h-4" />
-              ) : isPlayingA ? (
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
               ) : (
                 <Play className="w-4 h-4 fill-current" />
               )}
               <span>
-                {isPlayingB
-                  ? "PAUSA"
-                  : isPlayingA
-                  ? "EN ESPERA"
-                  : "PLAY"}
+                {isPlayingB ? "PAUSA" : "PLAY"}
               </span>
             </button>
             <button

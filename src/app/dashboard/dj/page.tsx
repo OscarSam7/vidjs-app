@@ -870,12 +870,21 @@ export default function DjBoothPage() {
     }
   };
 
-  // Cargar / Reproducir tema de la cola en la bandeja libre o seleccionada
+  // Cargar / Preparar o Reproducir tema de la cola en la bandeja libre o seleccionada
   const handleLoadQueueEntry = async (entry: QueueEntryData, targetDeck: "AUTO" | "A" | "B" = "AUTO") => {
-    // 1. Cargar y arrancar inmediatamente en la consola Virtual DJ en la bandeja correspondiente
+    // 1. Cargar y preparar en la consola Virtual DJ en la bandeja solicitada
     setPendingDeckLoad({ entry, targetDeck, timestamp: Date.now() });
 
-    // 2. Notificar al backend de la acción
+    // Si el DJ seleccionó explícitamente cargar en Bandeja A o B ("◀ A" o "B ▶"),
+    // o si ya hay una reproducción activa sonando en cabina, NO llamamos al backend con action: "PLAY"
+    // porque eso marcaría prematuramente la pista actual como COMPLETED y desincronizaría las bandejas.
+    if (targetDeck === "A" || targetDeck === "B" || isPlaying || data?.currentPlaying) {
+      const deckName = targetDeck === "A" ? "Bandeja A" : targetDeck === "B" ? "Bandeja B" : "Bandeja libre";
+      showFeedback("info", `🎧 Tema montado en ${deckName} (Listo para Play / Mezcla previa)`);
+      return;
+    }
+
+    // 2. Si la cabina estaba totalmente silenciada/vacía y fue Play ("AUTO"), notificar al backend para iniciar
     try {
       const res = await fetch("/api/v1/dj/queue", {
         method: "POST",
