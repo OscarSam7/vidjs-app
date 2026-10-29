@@ -21,6 +21,7 @@ import {
   Wifi,
   Tv,
   Video,
+  VideoOff,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
@@ -440,70 +441,24 @@ export default function PublicDisplayScreenPage({
   const [isResetting, setIsResetting] = useState(false);
   const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null);
 
-  // Limpiar y resetear la pantalla TV cuando un tema queda desfasado o trabado
-  const handleResetScreen = async () => {
+  // Borrar solamente el video de la pantalla TV (sin resetear el evento, sin cortar el audio del DJ y sin reiniciar la carga)
+  const handleClearVideoOnly = () => {
     setIsResetting(true);
     try {
-      // 1. Limpieza local inmediata (0ms)
-      setIsTvPaused(false);
+      sendYouTubeCommand("stopVideo");
       sendYouTubeCommand("pauseVideo");
       setKaraokeVideoId(null);
       setMediaFileUrl(null);
-      setElapsedSeconds(0);
-      setData((prev) => (prev ? { ...prev, currentPlaying: null } : null));
-
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.removeItem("vidjs_playback_sync_payload");
-        } catch {}
-
-        // Difusión local a todas las pestañas y consolas DJ
-        const resetPayload = {
-          type: "PLAYBACK_CONTROL",
-          action: "RESET",
-          timestamp: Date.now(),
-        };
-        const channelNames = ["vidjs_karaoke_sync_global"];
-        if (code) {
-          channelNames.push(`vidjs_karaoke_sync_${code}`);
-          channelNames.push(`vidjs_karaoke_sync_${code.toUpperCase()}`);
-        }
-        if (data?.event?.id) {
-          channelNames.push(`vidjs_karaoke_sync_${data.event.id}`);
-        }
-        channelNames.forEach((chName) => {
-          try {
-            const ch = new BroadcastChannel(chName);
-            ch.postMessage(resetPayload);
-            setTimeout(() => {
-              try {
-                ch.close();
-              } catch {}
-            }, 1000);
-          } catch {}
-        });
-      }
-
-      // 2. Notificar al backend para liberar la canción en la base de datos
-      const res = await fetch("/api/v1/display/state", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, action: "RESET" }),
-      });
-
-      if (res.ok) {
-        setResetSuccessMessage("✨ Pantalla liberada. Lista para el siguiente pedido.");
-        setTimeout(() => setResetSuccessMessage(null), 4000);
-      }
-
-      // 3. Recargar estado fresco del servidor
-      await fetchDisplayState();
+      setIsKaraokeVideoEnabled(false);
+      setResetSuccessMessage("🎬 Video borrado de la pantalla. Visualizador de audio y música activos.");
+      setTimeout(() => setResetSuccessMessage(null), 3500);
     } catch (err) {
-      console.warn("Error reseteando pantalla:", err);
+      console.warn("Error borrando video de pantalla:", err);
     } finally {
       setIsResetting(false);
     }
   };
+  const handleResetScreen = handleClearVideoOnly;
 
   const fetchDisplayState = async () => {
     try {
@@ -1068,14 +1023,14 @@ export default function PublicDisplayScreenPage({
 
           {/* Botón para Limpiar / Resetear pantalla y permitir que entre el siguiente pedido */}
           <button
-            onClick={handleResetScreen}
+            onClick={handleClearVideoOnly}
             disabled={isResetting}
             className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-rose-950/80 to-red-950/80 hover:from-rose-600 hover:to-red-600 border border-rose-600/60 hover:border-rose-400 text-rose-200 hover:text-white text-xs font-black shadow-md shadow-rose-950/60 transition-all cursor-pointer active:scale-95"
-            title="Limpiar / Resetear pantalla para dar paso al siguiente pedido si un tema se quedó trabado o desincronizado"
+            title="Borrar solamente el video de la pantalla TV (sin cortar el audio ni resetear la música)"
           >
-            <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? "animate-spin text-white" : "text-rose-400"}`} />
-            <span className="hidden sm:inline">Limpiar / Resetear</span>
-            <span className="sm:hidden">Reset</span>
+            <VideoOff className="w-3.5 h-3.5 text-rose-400" />
+            <span className="hidden sm:inline">Borrar Video</span>
+            <span className="sm:hidden">Borrar Video</span>
           </button>
 
           {/* Botón para volver a la Consola y Panel de Control del DJ */}
@@ -1439,13 +1394,13 @@ export default function PublicDisplayScreenPage({
 
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={handleResetScreen}
+                      onClick={handleClearVideoOnly}
                       disabled={isResetting}
                       className="text-[11px] text-rose-300 hover:text-white px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-800 border border-rose-700/60 transition-colors cursor-pointer flex items-center gap-1.5 active:scale-95"
-                      title="Limpiar pantalla y desbloquear para permitir entrar el siguiente pedido"
+                      title="Borrar solamente el video de la pantalla (manteniendo el audio intacto)"
                     >
-                      <RotateCcw className={`w-3 h-3 ${isResetting ? "animate-spin" : ""}`} />
-                      <span>Reset</span>
+                      <VideoOff className="w-3 h-3 text-rose-400" />
+                      <span>Borrar Video</span>
                     </button>
 
                     <button
@@ -1587,15 +1542,17 @@ export default function PublicDisplayScreenPage({
                     </button>
                   )}
 
-                  <button
-                    onClick={handleResetScreen}
-                    disabled={isResetting}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white border border-rose-600/60 hover:border-rose-400 text-xs font-bold transition-colors cursor-pointer shadow-sm active:scale-95"
-                    title="Limpiar y liberar pantalla para que entre el siguiente pedido"
-                  >
-                    <RotateCcw className={`w-3 h-3 ${isResetting ? "animate-spin" : ""}`} />
-                    <span>Limpiar</span>
-                  </button>
+                  {(karaokeVideoId || mediaFileUrl) && (
+                    <button
+                      onClick={handleClearVideoOnly}
+                      disabled={isResetting}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white border border-rose-600/60 hover:border-rose-400 text-xs font-bold transition-colors cursor-pointer shadow-sm active:scale-95"
+                      title="Borrar solamente el video de la pantalla (manteniendo el audio y la música intactos)"
+                    >
+                      <VideoOff className="w-3 h-3 text-rose-400" />
+                      <span>Borrar Video</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Vinilo Giratorio Proporcional */}

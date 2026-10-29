@@ -43,6 +43,7 @@ import {
   BookmarkCheck,
   Loader2,
   Video,
+  VideoOff,
   FileVideo,
 } from "lucide-react";
 import { calculateCrossfaderGains, djSoundEffects, webDjEngine, AudioLevels } from "@/lib/audio/dj-audio-engine";
@@ -128,6 +129,7 @@ interface DeckPlayerProps {
   isVideo?: boolean;
   onTimeUpdate?: () => void;
   onEnded?: () => void;
+  onClearVideo?: () => void;
 }
 
 interface StableIframeProps {
@@ -232,6 +234,7 @@ const DeckPlayer = memo(
     isVideo = false,
     onTimeUpdate,
     onEnded,
+    onClearVideo,
   }: DeckPlayerProps) {
     const isA = deckId === "A";
     const borderColor = isA ? "border-purple-500/40" : "border-cyan-500/40";
@@ -337,17 +340,34 @@ const DeckPlayer = memo(
             >
               {chLabel} &bull; VOL: {effectiveVol}%
             </span>
-            <span
-              className={`px-2 py-0.5 rounded text-[9px] font-bold backdrop-blur-xs ${
-                isPlaying
-                  ? isA
-                    ? "bg-emerald-950/80 text-emerald-400 border border-emerald-500/40"
-                    : "bg-cyan-950/80 text-cyan-400 border border-cyan-500/40"
-                  : "bg-zinc-900/80 text-zinc-400 border border-zinc-700"
-              }`}
-            >
-              {isPlaying ? "▶ PLAYING" : "⏸ PAUSED"}
-            </span>
+            <div className="flex items-center gap-1.5 pointer-events-auto">
+              {Boolean(videoId) && onClearVideo && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClearVideo();
+                  }}
+                  className="px-1.5 py-0.5 rounded bg-black/85 hover:bg-rose-950 text-rose-300 hover:text-white border border-rose-500/50 hover:border-rose-400 text-[9px] font-bold flex items-center gap-1 cursor-pointer shadow-sm transition-colors"
+                  title={`Borrar solamente el video de la Bandeja ${deckId} (sin afectar audio ni la otra bandeja)`}
+                >
+                  <VideoOff className="w-2.5 h-2.5 text-rose-400" />
+                  <span>Borrar Video</span>
+                </button>
+              )}
+              <span
+                className={`px-2 py-0.5 rounded text-[9px] font-bold backdrop-blur-xs ${
+                  isPlaying
+                    ? isA
+                      ? "bg-emerald-950/80 text-emerald-400 border border-emerald-500/40"
+                      : "bg-cyan-950/80 text-cyan-400 border border-cyan-500/40"
+                    : "bg-zinc-900/80 text-zinc-400 border border-zinc-700"
+                }`}
+              >
+                {isPlaying ? "▶ PLAYING" : "⏸ PAUSED"}
+              </span>
+            </div>
           </div>
         )}
 
@@ -2228,6 +2248,42 @@ export default function VirtualDjConsole({
     }
   };
 
+  // Borrar SOLAMENTE el video de la Bandeja A (Deck B y el audio del sistema quedan 100% protegidos)
+  const handleClearVideoOnlyA = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    searchRequestIdA.current++;
+    if (iframeRefA.current) {
+      sendPlayerCommand(iframeRefA.current, "stopVideo");
+      sendPlayerCommand(iframeRefA.current, "pauseVideo");
+    }
+    activeVideoIdARef.current = null;
+    setVideoIdA(null);
+    setIsVideoA(false);
+    setIsLoadingVideoA(false);
+    showFeedback("info", "🎬 Video de Bandeja A borrado (Deck B no afectado)");
+  };
+
+  // Borrar SOLAMENTE el video de la Bandeja B (Deck A y el audio del sistema quedan 100% protegidos)
+  const handleClearVideoOnlyB = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    searchRequestIdB.current++;
+    if (iframeRefB.current) {
+      sendPlayerCommand(iframeRefB.current, "stopVideo");
+      sendPlayerCommand(iframeRefB.current, "pauseVideo");
+    }
+    activeVideoIdBRef.current = null;
+    setVideoIdB(null);
+    setIsVideoB(false);
+    setIsLoadingVideoB(false);
+    showFeedback("info", "🎬 Video de Bandeja B borrado (Deck A no afectado)");
+  };
+
   // Limpiar / Expulsar pista de DECK A (Aislamiento Total: Deck B NUNCA es afectada)
   const handleClearDeckA = () => {
     searchRequestIdA.current++;
@@ -3759,6 +3815,19 @@ export default function VirtualDjConsole({
                 </button>
               )}
 
+              {/* Opción para Borrar solamente el video de Deck A */}
+              {videoIdA && (
+                <button
+                  type="button"
+                  onClick={handleClearVideoOnlyA}
+                  className="px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all cursor-pointer select-none bg-rose-950/40 hover:bg-rose-900/60 border-rose-800/60 hover:border-rose-600 text-rose-300 shadow-sm"
+                  title="Borrar solamente el video de la Bandeja A (Deck B y audio del sistema intactos)"
+                >
+                  <VideoOff className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Borrar Video</span>
+                </button>
+              )}
+
               {trackA && (
                 <button
                   type="button"
@@ -3766,16 +3835,16 @@ export default function VirtualDjConsole({
                   className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all cursor-pointer select-none ${
                     resetDeckAState
                       ? "bg-amber-500 border-amber-400 text-black font-black animate-pulse shadow-md scale-105"
-                      : "bg-red-950/40 hover:bg-red-900/60 border-red-800/60 hover:border-red-600 text-red-300"
+                      : "bg-zinc-900 hover:bg-zinc-800 border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white"
                   }`}
                   title={
                     resetDeckAState
-                      ? "2° toque: Toca para confirmar y limpiar/resetear la bandeja A"
-                      : "1° toque: Toca para activar reseteo/limpieza de bandeja A"
+                      ? "2° toque: Toca para confirmar y borrar la pista cargada en Bandeja A"
+                      : "1° toque: Toca para borrar la pista cargada en Bandeja A"
                   }
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>{resetDeckAState ? "¿CONFIRMAR RESET?" : "Limpiar"}</span>
+                  <Trash2 className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>{resetDeckAState ? "¿CONFIRMAR BORRADO?" : "Borrar Pista"}</span>
                 </button>
               )}
 
@@ -3804,8 +3873,24 @@ export default function VirtualDjConsole({
                         }}
                         className="w-full text-left p-1.5 rounded-lg bg-red-950/30 hover:bg-red-900/50 border border-red-900/50 text-red-300 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
                       >
-                        <Trash2 className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                        <span>⏹ Limpiar bandeja (Expulsar pista actual)</span>
+                        <Trash2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                        <span>⏹ Borrar pista actual de la bandeja</span>
+                      </button>
+                    )}
+
+                    {videoIdA && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleClearVideoOnlyA();
+                          setIsSelectorOpenA(false);
+                        }}
+                        className="w-full text-left p-1.5 rounded-lg bg-rose-950/30 hover:bg-rose-900/50 border border-rose-900/50 text-rose-300 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
+                      >
+                        <VideoOff className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                        <span>🎬 Borrar solamente video (Mantener pista)</span>
                       </button>
                     )}
 
@@ -4013,6 +4098,7 @@ export default function VirtualDjConsole({
                 handleDeckAEndedRef.current?.();
               }
             }}
+            onClearVideo={handleClearVideoOnlyA}
           />
 
           {/* Platter / Jogwheel Deck A & Pitch Fader */}
@@ -4879,6 +4965,19 @@ export default function VirtualDjConsole({
                 </button>
               )}
 
+              {/* Opción para Borrar solamente el video de Deck B */}
+              {videoIdB && (
+                <button
+                  type="button"
+                  onClick={handleClearVideoOnlyB}
+                  className="px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all cursor-pointer select-none bg-rose-950/40 hover:bg-rose-900/60 border-rose-800/60 hover:border-rose-600 text-rose-300 shadow-sm"
+                  title="Borrar solamente el video de la Bandeja B (Deck A y audio del sistema intactos)"
+                >
+                  <VideoOff className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Borrar Video</span>
+                </button>
+              )}
+
               {trackB && (
                 <button
                   type="button"
@@ -4886,16 +4985,16 @@ export default function VirtualDjConsole({
                   className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all cursor-pointer select-none ${
                     resetDeckBState
                       ? "bg-amber-500 border-amber-400 text-black font-black animate-pulse shadow-md scale-105"
-                      : "bg-red-950/40 hover:bg-red-900/60 border-red-800/60 hover:border-red-600 text-red-300"
+                      : "bg-zinc-900 hover:bg-zinc-800 border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white"
                   }`}
                   title={
                     resetDeckBState
-                      ? "2° toque: Toca para confirmar y limpiar/resetear la bandeja B"
-                      : "1° toque: Toca para activar reseteo/limpieza de bandeja B"
+                      ? "2° toque: Toca para confirmar y borrar la pista cargada en Bandeja B"
+                      : "1° toque: Toca para borrar la pista cargada en Bandeja B"
                   }
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>{resetDeckBState ? "¿CONFIRMAR RESET?" : "Limpiar"}</span>
+                  <Trash2 className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>{resetDeckBState ? "¿CONFIRMAR BORRADO?" : "Borrar Pista"}</span>
                 </button>
               )}
 
@@ -4924,8 +5023,24 @@ export default function VirtualDjConsole({
                         }}
                         className="w-full text-left p-1.5 rounded-lg bg-red-950/30 hover:bg-red-900/50 border border-red-900/50 text-red-300 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
                       >
-                        <Trash2 className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                        <span>⏹ Limpiar bandeja (Expulsar pista actual)</span>
+                        <Trash2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                        <span>⏹ Borrar pista actual de la bandeja</span>
+                      </button>
+                    )}
+
+                    {videoIdB && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleClearVideoOnlyB();
+                          setIsSelectorOpenB(false);
+                        }}
+                        className="w-full text-left p-1.5 rounded-lg bg-rose-950/30 hover:bg-rose-900/50 border border-rose-900/50 text-rose-300 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
+                      >
+                        <VideoOff className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                        <span>🎬 Borrar solamente video (Mantener pista)</span>
                       </button>
                     )}
 
@@ -5134,6 +5249,7 @@ export default function VirtualDjConsole({
                 handleDeckBEndedRef.current?.();
               }
             }}
+            onClearVideo={handleClearVideoOnlyB}
           />
 
           {/* Platter / Jogwheel Deck B & Pitch Fader */}

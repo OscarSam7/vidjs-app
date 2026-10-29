@@ -661,8 +661,6 @@ export default function DjBoothPage() {
         );
       } else if (type === "KARAOKE_PLAYBACK_CONTROL") {
         if (payload?.action === "RESET") {
-          setIsPlaying(false);
-          setPlaybackSeconds(0);
           fetchDjState();
           showFeedback("info", "📺 Pantalla TV reseteada / Pista liberada");
         }
@@ -688,8 +686,6 @@ export default function DjBoothPage() {
         try {
           const parsed = JSON.parse(e.newValue);
           if (parsed.action === "RESET") {
-            setIsPlaying(false);
-            setPlaybackSeconds(0);
             fetchDjState();
             showFeedback("info", "📺 Pantalla TV reseteada / Pista liberada");
           }
@@ -712,8 +708,6 @@ export default function DjBoothPage() {
           ch.onmessage = (e) => {
             const msg = e.data || {};
             if (msg.action === "RESET") {
-              setIsPlaying(false);
-              setPlaybackSeconds(0);
               fetchDjState();
               showFeedback("info", "📺 Pantalla TV reseteada / Pista liberada");
             }
