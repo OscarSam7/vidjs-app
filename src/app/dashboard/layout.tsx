@@ -24,17 +24,37 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Obtener nombre del establecimiento con fallback tolerante a fallos
+  // Obtener nombre del establecimiento y venues disponibles con fallback tolerante a fallos
   let tenantName = "Plataforma Central";
-  if (session.tenantId) {
+  let tenantId = session.tenantId;
+
+  if (tenantId) {
     const tenant = await prisma.tenant.findUnique({
-      where: { id: session.tenantId },
+      where: { id: tenantId },
       select: { name: true },
     }).catch(() => null);
     if (tenant) tenantName = tenant.name;
   } else if (session.role === "SUPER_ADMIN") {
     tenantName = "Vidjeis Global SaaS (Admin)";
+    const firstTenant = await prisma.tenant.findFirst({
+      where: { status: "ACTIVE" },
+      select: { id: true, name: true },
+    }).catch(() => null);
+    if (firstTenant) {
+      tenantId = firstTenant.id;
+      tenantName = `${firstTenant.name} (Global)`;
+    }
   }
+
+  const venues = tenantId
+    ? await prisma.venue
+        .findMany({
+          where: { tenantId, active: true },
+          select: { id: true, name: true, active: true },
+          orderBy: { name: "asc" },
+        })
+        .catch(() => [])
+    : [];
 
   return (
     <DashboardShell
@@ -44,6 +64,7 @@ export default async function DashboardLayout({
         role: session.role,
       }}
       tenantName={tenantName}
+      venues={venues}
     >
       {children}
     </DashboardShell>

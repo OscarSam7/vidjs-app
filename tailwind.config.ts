@@ -31,6 +31,33 @@ const config: Config = {
           300: "#52525b",
           800: "#09090b",
           900: "#040406",
+        },
+        navy: {
+          950: "#080F1F", // Fondo principal
+          900: "#0D1930", // Sidebar
+          850: "#111F38", // Tarjetas
+          800: "#162644", // Hover tarjeta
+          750: "#1A2C4E", // Superficie elevada
+          700: "#263858", // Borde estándar
+          650: "#1D2E4D", // Borde sutil
+          600: "#3B537E", // Borde focus
+        },
+        saas: {
+          bg: "#080F1F",
+          sidebar: "#0D1930",
+          card: "#111F38",
+          "card-hover": "#162644",
+          elevated: "#1A2C4E",
+          border: "#263858",
+          "border-subtle": "#1D2E4D",
+          primary: "#8B5CF6",
+          "primary-hover": "#7C3AED",
+          success: "#22C55E",
+          karaoke: "#06B6D4",
+          dj: "#F59E0B",
+          "text-primary": "#F8FAFC",
+          "text-secondary": "#94A3B8",
+          "text-muted": "#64748B",
         }
       },
     },

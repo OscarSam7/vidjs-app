@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { Topbar } from "@/components/layout/Topbar";
+import { Topbar, TopbarVenue } from "@/components/layout/Topbar";
 import { BottomNavigationDock } from "@/components/layout/BottomNavigationDock";
 
 interface DashboardShellProps {
@@ -14,9 +14,10 @@ interface DashboardShellProps {
     role: string;
   };
   tenantName: string;
+  venues?: TopbarVenue[];
 }
 
-export function DashboardShell({ children, user, tenantName }: DashboardShellProps) {
+export function DashboardShell({ children, user, tenantName, venues = [] }: DashboardShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
@@ -29,7 +30,7 @@ export function DashboardShell({ children, user, tenantName }: DashboardShellPro
         setIsCollapsed(saved === "true");
       }
     } catch {
-      // Ignorar fallos de almacenamiento en navegadores privados
+      // Ignorar fallos en contextos privados
     }
   }, []);
 
@@ -57,7 +58,7 @@ export function DashboardShell({ children, user, tenantName }: DashboardShellPro
   }, [pathname]);
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-[#070709] text-slate-900 dark:text-zinc-100 overflow-x-hidden">
+    <div className="flex min-h-screen bg-[#080F1F] text-[#F8FAFC] overflow-x-hidden selection:bg-purple-600/30 selection:text-white">
       {/* Sidebar Desktop y Drawer Móvil */}
       <Sidebar
         role={user.role}
@@ -69,18 +70,19 @@ export function DashboardShell({ children, user, tenantName }: DashboardShellPro
       />
 
       {/* Contenedor Principal */}
-      <div className="flex-1 flex flex-col min-w-0 w-full overflow-x-hidden transition-all duration-300">
+      <div className="flex-1 flex flex-col min-w-0 w-full overflow-x-hidden transition-all duration-200">
         <Topbar
           user={user}
           tenantName={tenantName}
+          venues={venues}
           isSidebarCollapsed={isCollapsed}
           onToggleSidebar={handleToggleSidebar}
         />
-        <main className="flex-1 p-3 sm:p-5 md:p-8 pb-20 sm:pb-24 max-w-7xl w-full mx-auto overflow-y-auto overflow-x-hidden max-w-full">
+        <main className="flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 pb-24 sm:pb-28 max-w-7xl w-full mx-auto overflow-y-auto overflow-x-hidden">
           {children}
         </main>
 
-        {/* Barra de Acceso Rápido Estática en el pie del app */}
+        {/* Dock de Navegación Rápida */}
         <BottomNavigationDock />
       </div>
     </div>

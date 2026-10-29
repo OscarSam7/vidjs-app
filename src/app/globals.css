@@ -7,27 +7,28 @@
 /* ========================================================================= */
 
 :root {
-  --background: #09090b;
-  --foreground: #f4f4f5;
-  --card-bg: #121217;
-  --card-bg-elevated: #18181f;
-  --card-bg-subtle: #1f1f28;
-  --card-border: #272732;
-  --card-border-subtle: #1e1e26;
-  --card-border-hover: #3f3f50;
+  --background: #080F1F;
+  --foreground: #F8FAFC;
+  --sidebar-bg: #0D1930;
+  --card-bg: #111F38;
+  --card-bg-elevated: #1A2C4E;
+  --card-bg-subtle: #162644;
+  --card-border: #263858;
+  --card-border-subtle: #1D2E4D;
+  --card-border-hover: #3B537E;
 
-  --text-heading: #ffffff;
-  --text-body: #e4e4e7;
-  --text-muted: #a1a1aa;
-  --text-subtle: #71717a;
+  --text-heading: #F8FAFC;
+  --text-body: #E2E8F0;
+  --text-muted: #94A3B8;
+  --text-subtle: #64748B;
 
-  --brand-purple: #a855f7;
-  --brand-purple-dark: #7e22ce;
-  --brand-cyan: #06b6d4;
-  --brand-amber: #f59e0b;
-  --brand-emerald: #10b981;
-  --brand-pink: #ec4899;
-  --brand-red: #ef4444;
+  --brand-purple: #8B5CF6;
+  --brand-purple-dark: #7C3AED;
+  --brand-cyan: #06B6D4;
+  --brand-amber: #F59E0B;
+  --brand-emerald: #22C55E;
+  --brand-pink: #EC4899;
+  --brand-red: #EF4444;
 }
 
 /* ========================================================================= */

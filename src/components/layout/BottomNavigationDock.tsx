@@ -174,11 +174,7 @@ export function BottomNavigationDock() {
       {activeToast && (
         <div
           id="bottom-navigation-dock-toast"
-          className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 shadow-2xl backdrop-blur-md border ${
-            isBlue
-              ? "bg-[#0f224a]/95 text-blue-50 border-blue-500/60 shadow-blue-950/80"
-              : "bg-zinc-950/95 text-white border-purple-500/40 shadow-black/80"
-          }`}
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 shadow-2xl backdrop-blur-md border bg-[#0D1930]/95 text-white border-purple-500/40 shadow-black/80"
         >
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
           <span>{activeToast}</span>
@@ -193,22 +189,14 @@ export function BottomNavigationDock() {
       >
         <div
           id="bottom-navigation-dock"
-          className={`backdrop-blur-xl border rounded-2xl p-1.5 sm:p-2 flex items-center justify-between sm:justify-center gap-1 sm:gap-1.5 transition-colors duration-200 ${
-            isBlue
-              ? "bg-[#0b1c3d]/95 border-[#1e428a] text-blue-100 shadow-[0_12px_40px_rgba(4,10,24,0.95)]"
-              : "bg-zinc-950/95 border-zinc-800/80 text-zinc-200 shadow-[0_12px_40px_rgba(0,0,0,0.85)]"
-          }`}
+          className="backdrop-blur-xl border border-[#263858] rounded-2xl p-1.5 sm:p-2 flex items-center justify-between sm:justify-center gap-1 sm:gap-1.5 transition-colors duration-200 bg-[#0D1930]/95 text-[#F8FAFC] shadow-[0_12px_40px_rgba(4,10,24,0.95)]"
         >
           {/* Si está colapsado: muestra solo una barra ultra delgada con botón para expandir */}
           {isCollapsed ? (
             <button
               type="button"
               onClick={toggleCollapsed}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer select-none border ${
-                isBlue
-                  ? "bg-blue-600/20 hover:bg-blue-600/30 text-blue-200 border-blue-500/40"
-                  : "bg-purple-600/10 hover:bg-purple-600/20 text-purple-300 border-purple-500/30"
-              }`}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer select-none border bg-purple-600/10 hover:bg-purple-600/20 text-purple-300 border-purple-500/30"
               title="Expandir barra de acceso rápido"
             >
               <Layers className="w-3.5 h-3.5 text-purple-400" />
