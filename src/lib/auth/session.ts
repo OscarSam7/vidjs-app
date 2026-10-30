@@ -1,17 +1,37 @@
+import { NextRequest } from "next/server";
 import { getSessionTokenFromCookies } from "./cookies";
 import { verifySessionToken, SessionPayload } from "./jwt";
 import { prisma } from "../db/prisma";
 import { UnauthorizedError, ForbiddenError } from "../errors";
 import { Role, Permission, hasPermission } from "../rbac/permissions";
+import { env } from "../env";
 
-export async function getCurrentSession(): Promise<SessionPayload | null> {
-  const token = await getSessionTokenFromCookies();
+export async function getCurrentSession(req?: NextRequest): Promise<SessionPayload | null> {
+  let token: string | null = null;
+  if (req) {
+    token = req.cookies.get(env.COOKIE_NAME)?.value || null;
+    if (!token) {
+      const authHeader = req.headers.get("authorization");
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+  }
+
+  if (!token) {
+    try {
+      token = await getSessionTokenFromCookies();
+    } catch {
+      token = null;
+    }
+  }
+
   if (!token) return null;
   return verifySessionToken(token);
 }
 
-export async function requireUserSession(): Promise<SessionPayload> {
-  const session = await getCurrentSession();
+export async function requireUserSession(req?: NextRequest): Promise<SessionPayload> {
+  const session = await getCurrentSession(req);
   if (!session) {
     throw new UnauthorizedError("Debes iniciar sesión para acceder");
   }
@@ -29,16 +49,16 @@ export async function requireUserSession(): Promise<SessionPayload> {
   return session;
 }
 
-export async function requireRole(allowedRoles: Role[]): Promise<SessionPayload> {
-  const session = await requireUserSession();
+export async function requireRole(allowedRoles: Role[], req?: NextRequest): Promise<SessionPayload> {
+  const session = await requireUserSession(req);
   if (!allowedRoles.includes(session.role)) {
     throw new ForbiddenError("No tienes permisos suficientes para realizar esta acción");
   }
   return session;
 }
 
-export async function requirePermission(permission: Permission): Promise<SessionPayload> {
-  const session = await requireUserSession();
+export async function requirePermission(permission: Permission, req?: NextRequest): Promise<SessionPayload> {
+  const session = await requireUserSession(req);
 
   let customRolePermissions: Record<string, string[]> | null = null;
   if (session.tenantId) {
@@ -64,8 +84,8 @@ export async function requirePermission(permission: Permission): Promise<Session
   return session;
 }
 
-export async function requireTenantContext(): Promise<{ session: SessionPayload; tenantId: string }> {
-  const session = await requireUserSession();
+export async function requireTenantContext(req?: NextRequest): Promise<{ session: SessionPayload; tenantId: string }> {
+  const session = await requireUserSession(req);
 
   if (!session.tenantId && session.role !== "SUPER_ADMIN") {
     throw new ForbiddenError("El usuario no pertenece a ningún establecimiento");

@@ -37,9 +37,9 @@ export default function RoomMapMini({ tables, venueName }: RoomMapMiniProps) {
       case "WAITING":
         return "bg-amber-950/60 border-amber-500/80 text-amber-200 shadow-[0_0_10px_rgba(245,158,11,0.25)]";
       case "CONNECTED":
-        return "bg-cyan-950/50 border-cyan-500/70 text-cyan-200";
+        return "bg-cyan-950/50 border-cyan-500/70 text-cyan-200 shadow-[0_0_8px_rgba(6,182,212,0.2)]";
       default:
-        return "bg-zinc-950/60 border-zinc-800 text-zinc-500 hover:border-zinc-700";
+        return "bg-[#080F1F]/60 border-[#263858] text-[#94A3B8] hover:border-[#3B537E]";
     }
   };
 
@@ -61,17 +61,17 @@ export default function RoomMapMini({ tables, venueName }: RoomMapMiniProps) {
       {/* Cabecera & Leyenda */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <h3 className="text-xs font-bold text-[#F8FAFC] uppercase tracking-wider flex items-center gap-2">
             <span>Mapa Operativo de Sala</span>
-            {venueName && <span className="text-zinc-400 font-normal">&bull; {venueName}</span>}
+            {venueName && <span className="text-[#94A3B8] font-normal">&bull; {venueName}</span>}
           </h3>
-          <p className="text-[11px] text-zinc-400">
+          <p className="text-[11px] text-[#94A3B8]">
             Monitoreo en tiempo real de mesas y estado de consumo de entretenimiento
           </p>
         </div>
 
         {/* Leyenda de colores */}
-        <div className="flex items-center gap-2.5 text-[10px] text-zinc-400 flex-wrap">
+        <div className="flex items-center gap-2.5 text-[10px] text-[#94A3B8] flex-wrap">
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
             <span>En Vivo</span>
@@ -85,7 +85,7 @@ export default function RoomMapMini({ tables, venueName }: RoomMapMiniProps) {
             <span>Conectada</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-zinc-600" />
+            <span className="w-2 h-2 rounded-full bg-[#3B537E]" />
             <span>Inactiva</span>
           </div>
         </div>
@@ -101,12 +101,12 @@ export default function RoomMapMini({ tables, venueName }: RoomMapMiniProps) {
             <button
               key={table.id}
               onClick={() => setSelectedTable(table)}
-              className={`p-3 rounded-xl border text-left transition-all relative group cursor-pointer ${colorClass} ${
-                isSelected ? "ring-2 ring-purple-400 ring-offset-2 ring-offset-zinc-950" : ""
+              className={`p-3 rounded-xl border text-left transition-all relative group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 ${colorClass} ${
+                isSelected ? "ring-2 ring-purple-400 ring-offset-2 ring-offset-[#080F1F]" : ""
               }`}
             >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-black tracking-tight text-white">
+                <span className="text-xs font-black tracking-tight text-[#F8FAFC]">
                   M{table.number}
                 </span>
                 {table.status === "SINGING" && (
@@ -120,14 +120,14 @@ export default function RoomMapMini({ tables, venueName }: RoomMapMiniProps) {
                 )}
               </div>
 
-              <div className="text-[11px] font-medium truncate text-zinc-300">
+              <div className="text-[11px] font-medium truncate text-slate-300">
                 {table.label}
               </div>
 
-              <div className="text-[10px] mt-1 flex items-center justify-between opacity-80">
+              <div className="text-[10px] mt-1 flex items-center justify-between opacity-80 text-[#94A3B8]">
                 <span>Cap: {table.capacity}p</span>
                 {table.guestCount > 0 && (
-                  <span className="font-bold">{table.guestCount} QR</span>
+                  <span className="font-bold text-[#F8FAFC]">{table.guestCount} QR</span>
                 )}
               </div>
 
@@ -143,19 +143,19 @@ export default function RoomMapMini({ tables, venueName }: RoomMapMiniProps) {
 
       {/* Detalle de Mesa Seleccionada */}
       {selectedTable && (
-        <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fadeIn">
+        <div className="p-3.5 rounded-xl bg-[#0D1930] border border-[#263858] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-fadeIn shadow-md">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-sm font-black text-white">
+            <div className="w-10 h-10 rounded-lg bg-[#111F38] border border-[#263858] flex items-center justify-center text-sm font-black text-[#F8FAFC]">
               M{selectedTable.number}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-white">{selectedTable.label}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-400 border border-zinc-800">
+                <span className="font-bold text-[#F8FAFC]">{selectedTable.label}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#111F38] text-[#94A3B8] border border-[#263858]">
                   {getStatusLabel(selectedTable.status)}
                 </span>
               </div>
-              <div className="text-[11px] text-zinc-400 mt-0.5">
+              <div className="text-[11px] text-[#94A3B8] mt-0.5">
                 Capacidad: {selectedTable.capacity} personas &bull; {selectedTable.guestCount} clientes con sesión activa
               </div>
             </div>
@@ -165,18 +165,18 @@ export default function RoomMapMini({ tables, venueName }: RoomMapMiniProps) {
             {selectedTable.currentSong && (
               <div className="text-right">
                 <div className="text-[10px] text-purple-400 font-bold uppercase">Sonando Ahora</div>
-                <div className="text-xs text-white font-medium">{selectedTable.currentSong.title}</div>
+                <div className="text-xs text-[#F8FAFC] font-medium">{selectedTable.currentSong.title}</div>
               </div>
             )}
             {selectedTable.pendingSong && !selectedTable.currentSong && (
               <div className="text-right">
                 <div className="text-[10px] text-amber-400 font-bold uppercase">En Espera</div>
-                <div className="text-xs text-white font-medium">{selectedTable.pendingSong.title}</div>
+                <div className="text-xs text-[#F8FAFC] font-medium">{selectedTable.pendingSong.title}</div>
               </div>
             )}
             <button
               onClick={() => setSelectedTable(null)}
-              className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] transition-colors"
+              className="px-2.5 py-1 rounded-lg bg-[#111F38] hover:bg-[#162644] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858] text-[11px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 cursor-pointer"
             >
               Cerrar
             </button>

@@ -9,3 +9,5 @@ export * from "./Table";
 export * from "./EmptyState";
 export * from "./Skeleton";
 export * from "./Alert";
+export * from "./Tabs";
+export * from "./Toggle";

@@ -77,7 +77,7 @@ export function Topbar({
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-white hover:bg-navy-800 border border-navy-700 transition-colors shrink-0 cursor-pointer flex items-center justify-center"
+          className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-white bg-[#111F38] hover:bg-[#162644] border border-[#263858] transition-all shrink-0 cursor-pointer flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
           aria-label={isSidebarCollapsed ? "Expandir menú de módulos" : "Minimizar menú de módulos"}
           title={isSidebarCollapsed ? "Expandir menú" : "Minimizar menú"}
         >
@@ -96,19 +96,19 @@ export function Topbar({
               <select
                 value={selectedVenueId}
                 onChange={(e) => setSelectedVenueId(e.target.value)}
-                className="appearance-none bg-navy-850 hover:bg-navy-800 border border-navy-700 rounded-xl pl-8 pr-7 py-1 text-xs font-semibold text-slate-200 outline-none focus:border-purple-500 cursor-pointer transition-colors max-w-[150px] sm:max-w-[200px] truncate"
+                className="appearance-none bg-[#111F38] hover:bg-[#162644] border border-[#263858] rounded-xl pl-8 pr-7 py-1 text-xs font-semibold text-[#F8FAFC] outline-none focus:border-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 cursor-pointer transition-colors max-w-[150px] sm:max-w-[200px] truncate shadow-sm"
                 aria-label="Seleccionar sede o local"
               >
                 {venues.map((v) => (
-                  <option key={v.id} value={v.id} className="bg-navy-900 text-slate-200">
+                  <option key={v.id} value={v.id} className="bg-[#0D1930] text-[#F8FAFC]">
                     {v.name}
                   </option>
                 ))}
               </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] absolute right-2 pointer-events-none" />
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-navy-850 border border-navy-700 text-slate-200 text-xs font-semibold max-w-[160px] sm:max-w-[240px] truncate shadow-sm">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#111F38] border border-[#263858] text-[#F8FAFC] text-xs font-semibold max-w-[160px] sm:max-w-[240px] truncate shadow-sm">
               <Sparkles className="w-3.5 h-3.5 text-purple-400 shrink-0" />
               <span className="truncate">{tenantName}</span>
             </div>
@@ -126,8 +126,8 @@ export function Topbar({
       {/* Right section: User info, Role Badge, ThemeToggle, Logout */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* User Card */}
-        <div className="flex items-center gap-2 sm:gap-2.5 pl-2 sm:pl-3 border-l border-navy-700">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-950/80 border border-purple-700/60 flex items-center justify-center text-purple-200 text-xs font-bold shrink-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 pl-2 sm:pl-3 border-l border-[#263858]">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-950/80 border border-purple-600/50 flex items-center justify-center text-purple-200 text-xs font-bold shrink-0 shadow-[0_0_10px_rgba(139,92,246,0.25)]">
             {user.name ? user.name.charAt(0).toUpperCase() : "U"}
           </div>
           <div className="hidden lg:block text-left">
@@ -153,10 +153,10 @@ export function Topbar({
           onClick={handleLogout}
           disabled={isLoggingOut}
           title="Cerrar sesión"
-          className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-red-300 hover:bg-red-950/40 border border-transparent hover:border-red-800/60 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-medium shrink-0 disabled:opacity-50"
+          className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-red-300 hover:bg-red-950/40 border border-transparent hover:border-red-800/60 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-medium shrink-0 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
         >
           <LogOut className="w-4 h-4" />
-          <span className="hidden md:inline">Salir</span>
+          <span className="hidden md:inline">{isLoggingOut ? "Saliendo..." : "Salir"}</span>
         </button>
       </div>
     </header>

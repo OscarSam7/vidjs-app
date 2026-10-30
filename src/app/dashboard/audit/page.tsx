@@ -131,20 +131,20 @@ export default function AuditPage() {
   return (
     <div className="space-y-6">
       {/* 1. Header con Resumen de Integridad Forense */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 backdrop-blur-xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-[#111F38] border border-[#263858] backdrop-blur-xl shadow-lg">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1.5">
               <Lock className="w-3 h-3 text-purple-400" />
               REGISTRO INMUTABLE SHA-256
             </span>
-            <span className="text-xs text-zinc-400">Trazabilidad legal de operaciones</span>
+            <span className="text-xs text-[#94A3B8]">Trazabilidad legal de operaciones</span>
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl font-black text-[#F8FAFC] tracking-tight flex items-center gap-2.5">
             <ShieldCheck className="w-7 h-7 text-purple-400" />
             Auditoría & Logs de Seguridad
           </h1>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-[#94A3B8]">
             Registro cronológico inalterable de inicios de sesión, cambios de permisos, ajustes del sistema y acciones de DJ.
           </p>
         </div>
@@ -153,7 +153,7 @@ export default function AuditPage() {
           <button
             onClick={() => fetchLogs()}
             disabled={loading}
-            className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-semibold text-zinc-300 hover:text-white flex items-center gap-2 transition-all cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-[#0D1930] hover:bg-[#111F38] border border-[#263858] text-xs font-semibold text-[#94A3B8] hover:text-[#F8FAFC] flex items-center gap-2 transition-all cursor-pointer"
             title="Refrescar registros"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -161,7 +161,7 @@ export default function AuditPage() {
           </button>
           <button
             onClick={handleExportCsv}
-            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs font-bold text-white flex items-center gap-2 transition-all shadow-md cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs font-bold text-white flex items-center gap-2 transition-all shadow-md shadow-purple-600/25 cursor-pointer"
             title="Exportar archivo CSV con firma forense"
           >
             <Download className="w-3.5 h-3.5" />
@@ -172,42 +172,42 @@ export default function AuditPage() {
 
       {/* 2. Tarjetas de Métricas de Seguridad */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center gap-3.5">
+        <div className="p-4 rounded-2xl bg-[#111F38] border border-[#263858] flex items-center gap-3.5 shadow-sm">
           <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
             <Database className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[11px] text-zinc-400 uppercase font-bold tracking-wider">Total Eventos</div>
-            <div className="text-xl font-black text-white">{data?.metrics.totalEvents ?? "—"}</div>
+            <div className="text-[11px] text-[#94A3B8] uppercase font-bold tracking-wider">Total Eventos</div>
+            <div className="text-xl font-black text-[#F8FAFC]">{data?.metrics.totalEvents ?? "—"}</div>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center gap-3.5">
+        <div className="p-4 rounded-2xl bg-[#111F38] border border-[#263858] flex items-center gap-3.5 shadow-sm">
           <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
             <KeyRound className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[11px] text-zinc-400 uppercase font-bold tracking-wider">Logins (Últimas 24h)</div>
-            <div className="text-xl font-black text-white">{data?.metrics.logins24h ?? "—"}</div>
+            <div className="text-[11px] text-[#94A3B8] uppercase font-bold tracking-wider">Logins (Últimas 24h)</div>
+            <div className="text-xl font-black text-[#F8FAFC]">{data?.metrics.logins24h ?? "—"}</div>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center gap-3.5">
+        <div className="p-4 rounded-2xl bg-[#111F38] border border-[#263858] flex items-center gap-3.5 shadow-sm">
           <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
             <UserCheck className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[11px] text-zinc-400 uppercase font-bold tracking-wider">Operadores Registrados</div>
-            <div className="text-xl font-black text-white">{data?.metrics.uniqueOperators ?? "—"}</div>
+            <div className="text-[11px] text-[#94A3B8] uppercase font-bold tracking-wider">Operadores Registrados</div>
+            <div className="text-xl font-black text-[#F8FAFC]">{data?.metrics.uniqueOperators ?? "—"}</div>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center gap-3.5">
+        <div className="p-4 rounded-2xl bg-[#111F38] border border-[#263858] flex items-center gap-3.5 shadow-sm">
           <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
             <Server className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[11px] text-zinc-400 uppercase font-bold tracking-wider">Estado de Trazabilidad</div>
+            <div className="text-[11px] text-[#94A3B8] uppercase font-bold tracking-wider">Estado de Trazabilidad</div>
             <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 mt-0.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               100% Inmutable & Activo
@@ -217,9 +217,9 @@ export default function AuditPage() {
       </div>
 
       {/* 3. Barra de Búsqueda y Filtros */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800">
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between p-4 rounded-2xl bg-[#111F38] border border-[#263858]">
         <div className="relative w-full sm:w-96">
-          <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={search}
@@ -228,19 +228,19 @@ export default function AuditPage() {
               setPage(1);
             }}
             placeholder="Buscar por usuario, IP, acción o recurso..."
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500/60 transition-colors"
+            className="w-full bg-[#0D1930] border border-[#263858] rounded-xl pl-10 pr-4 py-2 text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-purple-500/60 transition-colors"
           />
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter className="w-3.5 h-3.5 text-zinc-400" />
+          <Filter className="w-3.5 h-3.5 text-[#94A3B8]" />
           <select
             value={selectedAction}
             onChange={(e) => {
               setSelectedAction(e.target.value);
               setPage(1);
             }}
-            className="w-full sm:w-auto bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-300 focus:outline-none focus:border-purple-500/60 cursor-pointer"
+            className="w-full sm:w-auto bg-[#0D1930] border border-[#263858] rounded-xl px-3 py-2 text-xs text-[#94A3B8] focus:outline-none focus:border-purple-500/60 cursor-pointer"
           >
             <option value="ALL">Todas las acciones</option>
             <option value="AUTH_LOGIN">Inicios de sesión (AUTH_LOGIN)</option>
@@ -254,10 +254,10 @@ export default function AuditPage() {
       </div>
 
       {/* 4. Tabla de Registros de Auditoría */}
-      <div className="rounded-2xl bg-zinc-900/60 border border-zinc-800 overflow-hidden shadow-xl">
+      <div className="rounded-2xl bg-[#111F38] border border-[#263858] overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-zinc-950/80 text-zinc-400 font-bold uppercase tracking-wider text-[10px] border-b border-zinc-800">
+            <thead className="bg-[#0D1930] text-[#94A3B8] font-bold uppercase tracking-wider text-[10px] border-b border-[#263858]">
               <tr>
                 <th className="py-3 px-4">Fecha y Hora</th>
                 <th className="py-3 px-4">Usuario Operador</th>
@@ -267,10 +267,10 @@ export default function AuditPage() {
                 <th className="py-3 px-4 text-right">Detalles</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/60">
+            <tbody className="divide-y divide-[#263858]/60">
               {loading && !data ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-zinc-500">
+                  <td colSpan={6} className="py-12 text-center text-[#64748B]">
                     <div className="flex flex-col items-center gap-2">
                       <RefreshCw className="w-5 h-5 animate-spin text-purple-400" />
                       <span>Consultando registro criptográfico de auditoría...</span>
@@ -279,16 +279,16 @@ export default function AuditPage() {
                 </tr>
               ) : !data || data.items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-zinc-500">
+                  <td colSpan={6} className="py-12 text-center text-[#64748B]">
                     No se encontraron registros con los filtros seleccionados.
                   </td>
                 </tr>
               ) : (
                 data.items.map((log) => (
-                  <tr key={log.id} className="hover:bg-zinc-800/30 transition-colors">
-                    <td className="py-3.5 px-4 whitespace-nowrap text-zinc-400 font-mono text-[11px]">
+                  <tr key={log.id} className="hover:bg-[#0D1930]/40 transition-colors">
+                    <td className="py-3.5 px-4 whitespace-nowrap text-[#94A3B8] font-mono text-[11px]">
                       <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                        <Clock className="w-3.5 h-3.5 text-[#64748B]" />
                         <span>{formatDate(log.createdAt)}</span>
                       </div>
                     </td>
@@ -296,35 +296,35 @@ export default function AuditPage() {
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       {log.user ? (
                         <div>
-                          <div className="font-bold text-white flex items-center gap-1.5">
+                          <div className="font-bold text-[#F8FAFC] flex items-center gap-1.5">
                             <span>{log.user.name}</span>
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 border border-zinc-700 font-normal">
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#0D1930] text-[#94A3B8] border border-[#263858] font-normal">
                               {log.user.role}
                             </span>
                           </div>
-                          <div className="text-[11px] text-zinc-500">{log.user.email}</div>
+                          <div className="text-[11px] text-[#64748B]">{log.user.email}</div>
                         </div>
                       ) : (
-                        <span className="text-zinc-500 italic">Sistema / Invitado</span>
+                        <span className="text-[#64748B] italic">Sistema / Invitado</span>
                       )}
                     </td>
 
                     <td className="py-3.5 px-4 whitespace-nowrap">{getActionBadge(log.action)}</td>
 
                     <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className="font-mono text-zinc-300 text-[11px] bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">
+                      <span className="font-mono text-[#F8FAFC] text-[11px] bg-[#0D1930] px-2 py-0.5 rounded border border-[#263858]">
                         {log.resource}
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4 whitespace-nowrap text-zinc-400 font-mono text-[11px]">
+                    <td className="py-3.5 px-4 whitespace-nowrap text-[#94A3B8] font-mono text-[11px]">
                       {log.ipAddress || "127.0.0.1"}
                     </td>
 
                     <td className="py-3.5 px-4 whitespace-nowrap text-right">
                       <button
                         onClick={() => setSelectedLog(log)}
-                        className="px-2.5 py-1 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 text-[11px] font-medium inline-flex items-center gap-1 transition-all cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-[#0D1930] hover:bg-[#111F38] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858] text-[11px] font-medium inline-flex items-center gap-1 transition-all cursor-pointer"
                         title="Ver payload técnico"
                       >
                         <Eye className="w-3 h-3 text-purple-400" />
@@ -340,23 +340,23 @@ export default function AuditPage() {
 
         {/* Paginación */}
         {data && data.pagination.totalPages > 1 && (
-          <div className="p-4 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
+          <div className="p-4 border-t border-[#263858] flex items-center justify-between text-xs text-[#94A3B8]">
             <div>
-              Mostrando página <strong className="text-white">{data.pagination.page}</strong> de{" "}
-              <strong className="text-white">{data.pagination.totalPages}</strong> ({data.pagination.total} registros)
+              Mostrando página <strong className="text-[#F8FAFC]">{data.pagination.page}</strong> de{" "}
+              <strong className="text-[#F8FAFC]">{data.pagination.totalPages}</strong> ({data.pagination.total} registros)
             </div>
             <div className="flex items-center gap-1.5">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="p-1.5 rounded-lg bg-[#0D1930] hover:bg-[#111F38] border border-[#263858] text-[#94A3B8] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 disabled={page >= data.pagination.totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                className="p-1.5 rounded-lg bg-[#0D1930] hover:bg-[#111F38] border border-[#263858] text-[#94A3B8] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -368,47 +368,47 @@ export default function AuditPage() {
       {/* 5. Modal de Inspección Forense de Metadata */}
       {selectedLog && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-150">
-            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+          <div className="bg-[#111F38] border border-[#263858] rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-150">
+            <div className="p-4 border-b border-[#263858] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Terminal className="w-4 h-4 text-purple-400" />
-                <h3 className="text-sm font-bold text-white">Inspección de Registro #{selectedLog.id}</h3>
+                <h3 className="text-sm font-bold text-[#F8FAFC]">Inspección de Registro #{selectedLog.id}</h3>
               </div>
               <button
                 onClick={() => setSelectedLog(null)}
-                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="p-1 rounded-lg text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#0D1930] transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-6 overflow-y-auto space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-zinc-900 border border-zinc-800">
+              <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-[#0D1930] border border-[#263858]">
                 <div>
-                  <span className="text-zinc-500 block text-[10px] uppercase font-bold">Acción</span>
-                  <span className="font-bold text-white">{selectedLog.action}</span>
+                  <span className="text-[#64748B] block text-[10px] uppercase font-bold">Acción</span>
+                  <span className="font-bold text-[#F8FAFC]">{selectedLog.action}</span>
                 </div>
                 <div>
-                  <span className="text-zinc-500 block text-[10px] uppercase font-bold">Recurso</span>
+                  <span className="text-[#64748B] block text-[10px] uppercase font-bold">Recurso</span>
                   <span className="font-mono text-purple-300">{selectedLog.resource}</span>
                 </div>
                 <div>
-                  <span className="text-zinc-500 block text-[10px] uppercase font-bold">Usuario</span>
-                  <span className="text-zinc-200">
+                  <span className="text-[#64748B] block text-[10px] uppercase font-bold">Usuario</span>
+                  <span className="text-[#F8FAFC]">
                     {selectedLog.user ? `${selectedLog.user.name} (${selectedLog.user.email})` : "Sistema"}
                   </span>
                 </div>
                 <div>
-                  <span className="text-zinc-500 block text-[10px] uppercase font-bold">Fecha Criptográfica</span>
-                  <span className="text-zinc-200">{new Date(selectedLog.createdAt).toISOString()}</span>
+                  <span className="text-[#64748B] block text-[10px] uppercase font-bold">Fecha Criptográfica</span>
+                  <span className="text-[#F8FAFC]">{new Date(selectedLog.createdAt).toISOString()}</span>
                 </div>
               </div>
 
               <div>
-                <span className="text-zinc-400 block text-[11px] font-bold uppercase tracking-wider mb-1.5">
+                <span className="text-[#94A3B8] block text-[11px] font-bold uppercase tracking-wider mb-1.5">
                   Payload Metadata (JSON Crudo)
                 </span>
-                <pre className="p-4 rounded-xl bg-zinc-900/90 border border-zinc-800 font-mono text-[11px] text-purple-200 overflow-x-auto whitespace-pre-wrap max-h-60">
+                <pre className="p-4 rounded-xl bg-[#080F1F] border border-[#263858] font-mono text-[11px] text-purple-200 overflow-x-auto whitespace-pre-wrap max-h-60">
                   {typeof selectedLog.metadata === "object"
                     ? JSON.stringify(selectedLog.metadata, null, 2)
                     : selectedLog.metadata || "Sin metadata adjunta"}
@@ -416,10 +416,10 @@ export default function AuditPage() {
               </div>
             </div>
 
-            <div className="p-4 border-t border-zinc-800 flex justify-end">
+            <div className="p-4 border-t border-[#263858] flex justify-end">
               <button
                 onClick={() => setSelectedLog(null)}
-                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-white cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-[#0D1930] hover:bg-[#111F38] border border-[#263858] text-xs font-semibold text-[#F8FAFC] cursor-pointer"
               >
                 Cerrar
               </button>

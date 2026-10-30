@@ -105,9 +105,9 @@ export default function DedicatedContestDisplayPage({
   };
 
   return (
-    <div className="relative w-screen h-screen bg-black overflow-hidden select-none">
+    <div className="relative w-screen h-screen bg-[#080F1F] overflow-hidden select-none">
       {/* Fondo visual dinámico de escenario / luces */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-purple-950/40 via-black to-amber-950/40 opacity-80" />
+      <div className="absolute inset-0 bg-gradient-to-tr from-purple-950/40 via-[#080F1F] to-amber-950/40 opacity-80" />
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl animate-pulse" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl animate-pulse" />
 
@@ -115,7 +115,7 @@ export default function DedicatedContestDisplayPage({
       <div className="absolute top-4 right-4 z-50">
         <button
           onClick={toggleFullscreen}
-          className="p-3 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800 text-white border border-zinc-700 backdrop-blur-md shadow-xl transition-all cursor-pointer hover:scale-105 active:scale-95"
+          className="p-3 rounded-2xl bg-[#111F38]/90 hover:bg-[#1A2E56] text-[#F8FAFC] border border-[#263858] backdrop-blur-md shadow-xl transition-all cursor-pointer hover:scale-105 active:scale-95"
           title="Pantalla Completa"
         >
           {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
@@ -140,13 +140,13 @@ export default function DedicatedContestDisplayPage({
       {/* En caso de estar esperando */}
       {!currentPerformance && !showLeaderboard && (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 z-30 pointer-events-none">
-          <div className="w-24 h-24 rounded-3xl bg-zinc-900/90 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-2xl mb-4 animate-pulse">
+          <div className="w-24 h-24 rounded-3xl bg-[#111F38]/90 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-2xl mb-4 animate-pulse">
             <Trophy className="w-12 h-12" />
           </div>
-          <h2 className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight">
+          <h2 className="text-3xl sm:text-5xl font-black text-[#F8FAFC] uppercase tracking-tight">
             {contest?.name || "Campeonato de Karaoke"}
           </h2>
-          <p className="text-sm text-zinc-400 max-w-md mt-2">
+          <p className="text-sm text-[#94A3B8] max-w-md mt-2">
             La gala comenzará en unos instantes. Los jurados y participantes están listos.
           </p>
         </div>

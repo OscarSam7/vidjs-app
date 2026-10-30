@@ -766,7 +766,7 @@ export default function KaraokeBoothPage() {
       )}
 
       {/* 1. HEADER DE LA CABINA KARAOKE */}
-      <div className="p-4 sm:p-6 rounded-3xl bg-gradient-to-r from-cyan-950/80 via-zinc-900/90 to-zinc-950 border-2 border-cyan-500/30 backdrop-blur-xl shadow-2xl">
+      <div className="p-4 sm:p-6 rounded-3xl bg-[#111F38] border border-[#263858] shadow-2xl">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -774,12 +774,12 @@ export default function KaraokeBoothPage() {
                 <Mic className="w-3 h-3" />
                 <span>CABINA KARAOKE &bull; KJ HOST CONSOLE</span>
               </span>
-              <span className="text-xs text-zinc-400 font-mono">
+              <span className="text-xs text-[#94A3B8] font-mono">
                 {data?.event?.venueName || "Escenario Principal"}
               </span>
             </div>
 
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2 sm:gap-3 flex-wrap">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#F8FAFC] tracking-tight flex items-center gap-2 sm:gap-3 flex-wrap">
               <span className="truncate">{data?.event?.name || "Noche de Karaoke"}</span>
               <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 animate-pulse shrink-0">
                 <span className="w-2 h-2 rounded-full bg-cyan-400" />
@@ -787,7 +787,7 @@ export default function KaraokeBoothPage() {
               </span>
             </h1>
 
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-[#94A3B8]">
               Operación 100% dedicada al animador/KJ: llamados al escenario, letras en TV y equidad
               Fair-Play.
             </p>
@@ -830,7 +830,7 @@ export default function KaraokeBoothPage() {
             <button
               type="button"
               onClick={() => setIsSettingsModalOpen(true)}
-              className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="px-3 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1A2E56] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Sliders className="w-4 h-4 text-cyan-400 shrink-0" />
               <span>Configuración</span>
@@ -841,7 +841,7 @@ export default function KaraokeBoothPage() {
               <button
                 type="button"
                 onClick={() => setIsTvModalOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-950 to-zinc-900 hover:from-cyan-900/60 hover:to-zinc-800 border-2 border-cyan-500/50 text-cyan-300 text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/20 group"
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-950 to-[#0D1930] hover:from-cyan-900/60 hover:to-[#1A2E56] border-2 border-cyan-500/40 text-cyan-300 text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/20 group"
                 title="Conectar Smart TV desde celular o 3ra Pantalla desde PC"
               >
                 <Tv className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform shrink-0" />
@@ -851,7 +851,7 @@ export default function KaraokeBoothPage() {
 
             <PwaInstallButton
               label="Instalar App KJ"
-              className="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-medium text-zinc-400 hover:text-white"
+              className="px-3 py-2 rounded-xl bg-[#0D1930] border border-[#263858] text-xs font-medium text-[#94A3B8] hover:text-[#F8FAFC]"
             />
           </div>
         </div>
@@ -860,7 +860,7 @@ export default function KaraokeBoothPage() {
       {/* 2. ESCENARIO CENTRAL: CANTANTE AL AIRE & PRÓXIMOS TURNOS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* CANTANTE EN ESCENARIO (Col 7) */}
-        <div className="lg:col-span-7 p-6 rounded-3xl bg-gradient-to-br from-zinc-900 via-zinc-900 to-cyan-950/40 border-2 border-cyan-500/50 shadow-2xl relative overflow-hidden flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-7 p-6 rounded-3xl bg-gradient-to-br from-[#111F38] via-[#0D1930] to-cyan-950/30 border-2 border-cyan-500/40 shadow-2xl relative overflow-hidden flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 text-white text-xs font-black tracking-widest uppercase shadow-md shadow-cyan-600/30 flex items-center gap-1.5">
@@ -912,7 +912,7 @@ export default function KaraokeBoothPage() {
               )}
 
               {currentTrack?.table && (
-                <span className="px-3 py-1 rounded-xl bg-zinc-950 text-cyan-300 border border-cyan-500/40 text-xs font-mono font-black">
+                <span className="px-3 py-1 rounded-xl bg-[#080F1F] text-cyan-300 border border-cyan-500/40 text-xs font-mono font-black">
                   {currentTrack.table.label}
                 </span>
               )}
@@ -924,7 +924,7 @@ export default function KaraokeBoothPage() {
               <div className="flex items-center gap-4">
                 {/* Spotlight Mic Visual */}
                 <div className="relative shrink-0">
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-teal-500/10 border-2 border-cyan-500/40 shadow-xl flex items-center justify-center">
+                  <div className="w-20 h-20 rounded-2xl bg-[#0D1930] border-2 border-cyan-500/40 shadow-xl flex items-center justify-center">
                     <Mic className="w-10 h-10 text-cyan-300 animate-bounce" />
                   </div>
                 </div>
@@ -935,20 +935,20 @@ export default function KaraokeBoothPage() {
                       ? `🎤 Cantante: ${currentTrack.guestSession.guestName}`
                       : `🎤 Mesa: ${currentTrack.table?.label || "Sin mesa"}`}
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-black text-white truncate drop-shadow-md">
+                  <h2 className="text-xl sm:text-2xl font-black text-[#F8FAFC] truncate drop-shadow-md">
                     {currentTrack.song?.title || currentTrack.customTitle || "Canción de Karaoke"}
                   </h2>
-                  <p className="text-sm font-semibold text-zinc-300 truncate">
+                  <p className="text-sm font-semibold text-[#94A3B8] truncate">
                     {currentTrack.song?.artist?.name ||
                       currentTrack.customArtist ||
                       "Pista personalizada"}
                   </p>
 
                   <div className="flex items-center gap-2 mt-2 text-[11px] font-mono flex-wrap">
-                    <span className="px-2 py-0.5 rounded bg-zinc-950 text-zinc-300 border border-zinc-800">
+                    <span className="px-2 py-0.5 rounded bg-[#080F1F] text-[#94A3B8] border border-[#263858]">
                       TONO: {currentTrack.song?.key || "Original"}
                     </span>
-                    <span className="px-2 py-0.5 rounded bg-zinc-950 text-purple-300 border border-zinc-800 font-bold">
+                    <span className="px-2 py-0.5 rounded bg-[#080F1F] text-purple-300 border border-[#263858] font-bold">
                       REGLA: Canta y Libera
                     </span>
                   </div>
@@ -957,7 +957,7 @@ export default function KaraokeBoothPage() {
 
               {/* Dedicatoria del Cantante */}
               {currentTrack.notes && (
-                <div className="p-3 rounded-xl bg-cyan-950/50 border border-cyan-800/80 text-xs text-cyan-100 italic">
+                <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-100 italic">
                   &ldquo;{currentTrack.notes}&rdquo;
                   {currentTrack.guestSession?.guestName && (
                     <span className="block not-italic font-bold text-[10px] text-cyan-300 mt-1">
@@ -969,13 +969,13 @@ export default function KaraokeBoothPage() {
 
               {/* Barra de Progreso */}
               <div className="space-y-1">
-                <div className="w-full h-2.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+                <div className="w-full h-2.5 bg-[#080F1F] rounded-full overflow-hidden border border-[#263858]">
                   <div
                     className="h-full bg-gradient-to-r from-cyan-500 to-teal-400 transition-all duration-1000"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-[11px] font-mono text-zinc-400">
+                <div className="flex justify-between text-[11px] font-mono text-[#94A3B8]">
                   <span>{formatTime(playbackSeconds)}</span>
                   <span>{formatTime(trackDuration)}</span>
                 </div>
@@ -983,7 +983,7 @@ export default function KaraokeBoothPage() {
 
               {/* Preview de YouTube en Cabina (si el video está activo) */}
               {isTvVideoEnabled && (
-                <div className="p-3 rounded-2xl bg-zinc-950/90 border border-cyan-500/30 space-y-2">
+                <div className="p-3 rounded-2xl bg-[#080F1F] border border-cyan-500/30 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-cyan-300 flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
@@ -1000,7 +1000,7 @@ export default function KaraokeBoothPage() {
                       Cambiar Pista ({karaokeResults.length || "Buscar"}) ▾
                     </button>
                   </div>
-                  <div className="relative aspect-video max-h-48 w-full rounded-xl overflow-hidden border border-zinc-800 bg-black">
+                  <div className="relative aspect-video max-h-48 w-full rounded-xl overflow-hidden border border-[#263858] bg-black">
                     {selectedKaraokeVideoId ? (
                       <iframe
                         key={selectedKaraokeVideoId}
@@ -1011,7 +1011,7 @@ export default function KaraokeBoothPage() {
                         allowFullScreen
                       />
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500 text-xs p-4 text-center">
+                      <div className="w-full h-full flex flex-col items-center justify-center text-[#64748B] text-xs p-4 text-center">
                         <Youtube className="w-8 h-8 text-red-500/50 mb-1" />
                         <span>Sin video asignado. Haz clic en &ldquo;Cambiar Pista&rdquo; para vincular una versión de YouTube.</span>
                       </div>
@@ -1022,10 +1022,10 @@ export default function KaraokeBoothPage() {
             </div>
           ) : (
             <div className="py-16 text-center space-y-3">
-              <Mic className="w-12 h-12 text-zinc-700 mx-auto" />
+              <Mic className="w-12 h-12 text-[#263858] mx-auto" />
               <div className="space-y-1">
-                <h3 className="text-base font-bold text-white">Escenario Libre</h3>
-                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                <h3 className="text-base font-bold text-[#F8FAFC]">Escenario Libre</h3>
+                <p className="text-xs text-[#94A3B8] max-w-sm mx-auto">
                   No hay ningún cantante cantando en este momento. Selecciona el siguiente turno de
                   la cola o llama a una mesa.
                 </p>
@@ -1034,7 +1034,7 @@ export default function KaraokeBoothPage() {
           )}
 
           {/* ACCIONES DEL KJ HOST */}
-          <div className="pt-3 border-t border-zinc-800/80 flex flex-wrap items-center justify-between gap-2">
+          <div className="pt-3 border-t border-[#263858] flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-wrap">
               {/* Botón Llamar Cantante al Escenario */}
               <button
@@ -1055,7 +1055,7 @@ export default function KaraokeBoothPage() {
                 className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
                   isTvVideoEnabled
                     ? "bg-cyan-600/20 hover:bg-cyan-600/30 border-cyan-500/50 text-cyan-200"
-                    : "bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-400"
+                    : "bg-[#0D1930] hover:bg-[#1A2E56] border-[#263858] text-[#94A3B8]"
                 }`}
                 title="Alternar entre video con letras de YouTube y visualizador de fiesta en la TV"
               >
@@ -1069,7 +1069,7 @@ export default function KaraokeBoothPage() {
                 type="button"
                 onClick={handleTogglePlay}
                 disabled={!currentTrack}
-                className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                className="px-3 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1A2E56] border border-[#263858] text-[#F8FAFC] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
               >
                 {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                 <span>{isPlaying ? "Pausar" : "Seguir"}</span>
@@ -1090,11 +1090,11 @@ export default function KaraokeBoothPage() {
         </div>
 
         {/* PRÓXIMOS TURNOS EN ROTACIÓN FAIR-PLAY (Col 5) */}
-        <div className="lg:col-span-5 p-6 rounded-3xl bg-zinc-900/90 border border-zinc-800 shadow-xl flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+        <div className="lg:col-span-5 p-6 rounded-3xl bg-[#111F38] border border-[#263858] shadow-xl flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#263858]">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-black text-white uppercase tracking-wider">
+              <h3 className="text-sm font-black text-[#F8FAFC] uppercase tracking-wider">
                 Próximos Turnos ({data?.queue?.length || 0})
               </h3>
             </div>
@@ -1111,10 +1111,10 @@ export default function KaraokeBoothPage() {
           </div>
 
           {!data?.queue || data.queue.length === 0 ? (
-            <div className="py-16 text-center text-zinc-500 space-y-2">
-              <Music className="w-10 h-10 mx-auto text-zinc-700" />
-              <p className="text-xs text-zinc-400">No hay más cantantes en espera.</p>
-              <p className="text-[10px] text-zinc-500">
+            <div className="py-16 text-center text-[#94A3B8] space-y-2">
+              <Music className="w-10 h-10 mx-auto text-[#263858]" />
+              <p className="text-xs text-[#94A3B8]">No hay más cantantes en espera.</p>
+              <p className="text-[10px] text-[#64748B]">
                 Las mesas pueden pedir temas desde su celular escaneando el QR.
               </p>
             </div>
@@ -1123,19 +1123,19 @@ export default function KaraokeBoothPage() {
               {data.queue.map((entry, index) => (
                 <div
                   key={entry.id}
-                  className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800/90 hover:border-cyan-500/40 transition-all flex items-center justify-between gap-3 group"
+                  className="p-3 rounded-2xl bg-[#0D1930] border border-[#263858] hover:border-cyan-500/40 transition-all flex items-center justify-between gap-3 group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-7 h-7 rounded-xl bg-zinc-900 text-cyan-400 border border-zinc-800 flex items-center justify-center font-mono font-black text-xs shrink-0">
+                    <div className="w-7 h-7 rounded-xl bg-[#080F1F] text-cyan-400 border border-[#263858] flex items-center justify-center font-mono font-black text-xs shrink-0">
                       #{index + 1}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-xs font-bold text-white truncate">
+                      <div className="text-xs font-bold text-[#F8FAFC] truncate">
                         {entry.songRequest.song?.title ||
                           entry.songRequest.customTitle ||
                           "Canción"}
                       </div>
-                      <div className="text-[11px] text-zinc-400 truncate flex items-center gap-1.5">
+                      <div className="text-[11px] text-[#94A3B8] truncate flex items-center gap-1.5">
                         <span>
                           {entry.songRequest.guestSession?.guestName
                             ? `${entry.songRequest.guestSession.guestName} (${entry.songRequest.table.label})`
@@ -1155,7 +1155,7 @@ export default function KaraokeBoothPage() {
                     <button
                       type="button"
                       onClick={() => handleCallSinger(entry)}
-                      className="p-1.5 rounded-lg bg-zinc-800 hover:bg-cyan-950 text-zinc-400 hover:text-cyan-300 border border-zinc-700 hover:border-cyan-700 transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg bg-[#080F1F] hover:bg-cyan-950 text-[#94A3B8] hover:text-cyan-300 border border-[#263858] hover:border-cyan-700 transition-colors cursor-pointer"
                       title="Llamar a esta mesa al escenario"
                     >
                       <Megaphone className="w-3.5 h-3.5" />
@@ -1166,7 +1166,7 @@ export default function KaraokeBoothPage() {
             </div>
           )}
 
-          <div className="pt-2 border-t border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
+          <div className="pt-2 border-t border-[#263858] text-[11px] text-[#94A3B8] flex items-center justify-between">
             <span>Fair-Play activo: 1 turno por mesa</span>
             <span className="font-mono text-cyan-400 font-bold">Canta y Libera</span>
           </div>
@@ -1179,23 +1179,23 @@ export default function KaraokeBoothPage() {
       {/* 4. COLUMNAS DIVIDIDAS: Bandeja de Solicitudes Entrantes & Dinámicas */}
       <div id="solicitudes-cola-section" className="grid grid-cols-1 lg:grid-cols-2 gap-6 scroll-mt-24 transition-all duration-300">
         {/* COLUMNA IZQUIERDA: Solicitudes de Cantantes (Bandeja de Moderación) */}
-        <div className="p-6 rounded-3xl bg-zinc-900/70 border border-zinc-800 space-y-4">
+        <div className="p-6 rounded-3xl bg-[#111F38] border border-[#263858] space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Flame className="w-5 h-5 text-cyan-400" />
-              <h2 className="text-base font-bold text-white">Solicitudes de Cantantes</h2>
+              <h2 className="text-base font-bold text-[#F8FAFC]">Solicitudes de Cantantes</h2>
               <span className="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-[10px] font-bold">
                 {data?.pendingRequests.length || 0}
               </span>
             </div>
-            <span className="text-[11px] text-zinc-500">De las mesas al KJ</span>
+            <span className="text-[11px] text-[#64748B]">De las mesas al KJ</span>
           </div>
 
           {!data?.pendingRequests || data.pendingRequests.length === 0 ? (
-            <div className="p-12 text-center text-zinc-500 space-y-2">
-              <Clock className="w-8 h-8 mx-auto text-zinc-700" />
-              <p className="text-xs text-zinc-400">No hay solicitudes pendientes de cantantes.</p>
-              <p className="text-[10px] text-zinc-500">
+            <div className="p-12 text-center text-[#94A3B8] space-y-2">
+              <Clock className="w-8 h-8 mx-auto text-[#263858]" />
+              <p className="text-xs text-[#94A3B8]">No hay solicitudes pendientes de cantantes.</p>
+              <p className="text-[10px] text-[#64748B]">
                 Los clientes pueden pedir canciones desde su celular.
               </p>
             </div>
@@ -1204,14 +1204,14 @@ export default function KaraokeBoothPage() {
               {data.pendingRequests.map((req) => (
                 <div
                   key={req.id}
-                  className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3 hover:border-cyan-500/40 transition-all"
+                  className="p-4 rounded-2xl bg-[#0D1930] border border-[#263858] space-y-3 hover:border-cyan-500/40 transition-all"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-sm font-bold text-white truncate">
+                      <div className="text-sm font-bold text-[#F8FAFC] truncate">
                         {req.song?.title || req.customTitle || "Canción solicitada"}
                       </div>
-                      <div className="text-xs text-zinc-400 truncate">
+                      <div className="text-xs text-[#94A3B8] truncate">
                         {req.song?.artist?.name || req.customArtist || "Artista"}
                       </div>
                       <div className="flex items-center gap-2 mt-1 text-[11px] text-cyan-400 font-medium">
@@ -1227,7 +1227,7 @@ export default function KaraokeBoothPage() {
                       </div>
                     </div>
 
-                    <div className="text-[10px] text-zinc-500 font-mono">
+                    <div className="text-[10px] text-[#64748B] font-mono">
                       {new Date(req.createdAt).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -1236,17 +1236,17 @@ export default function KaraokeBoothPage() {
                   </div>
 
                   {req.notes && (
-                    <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-300 italic">
+                    <div className="p-2.5 rounded-xl bg-[#080F1F] border border-[#263858] text-[11px] text-[#94A3B8] italic">
                       &ldquo;{req.notes}&rdquo;
                     </div>
                   )}
 
-                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-zinc-900">
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-[#263858]">
                     <button
                       type="button"
                       onClick={() => handleModerateRequest(req.id, "REJECTED")}
                       disabled={actionLoading === req.id}
-                      className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-red-950/60 text-zinc-400 hover:text-red-300 border border-zinc-800 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                      className="px-3 py-1.5 rounded-xl bg-[#080F1F] hover:bg-red-950/60 text-[#94A3B8] hover:text-red-300 border border-[#263858] text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
                     >
                       Rechazar
                     </button>
@@ -1266,11 +1266,11 @@ export default function KaraokeBoothPage() {
         </div>
 
         {/* COLUMNA DERECHA: Dinámicas del Escenario (Fotos y Duelos) */}
-        <div className="p-6 rounded-3xl bg-zinc-900/70 border border-zinc-800 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-zinc-800">
+        <div className="p-6 rounded-3xl bg-[#111F38] border border-[#263858] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-[#263858]">
             <div className="flex items-center gap-2">
               <Camera className="w-5 h-5 text-pink-400" />
-              <h2 className="text-base font-bold text-white">Muro de Fotos en Pantalla TV</h2>
+              <h2 className="text-base font-bold text-[#F8FAFC]">Muro de Fotos en Pantalla TV</h2>
               <span className="px-2 py-0.5 rounded-full bg-pink-950 text-pink-300 border border-pink-800 text-[10px] font-bold">
                 {(Array.isArray(photos) ? photos : []).length}
               </span>
@@ -1295,7 +1295,7 @@ export default function KaraokeBoothPage() {
                 className={`px-2.5 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 border transition-colors ${
                   (Array.isArray(photos) ? photos : []).length > 0
                     ? "bg-red-950/80 hover:bg-red-900 text-red-200 border-red-700 cursor-pointer shadow-sm"
-                    : "bg-zinc-900 text-zinc-600 border border-zinc-800 cursor-not-allowed opacity-50"
+                    : "bg-[#080F1F] text-[#64748B] border border-[#263858] cursor-not-allowed opacity-50"
                 }`}
                 title="Eliminar permanentemente todas las fotos del muro en este evento"
               >
@@ -1305,14 +1305,14 @@ export default function KaraokeBoothPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+          <div className="flex items-center justify-between gap-1 bg-[#080F1F] p-1 rounded-xl border border-[#263858]">
             <button
               type="button"
               onClick={() => setActivePhotoTab("PENDING")}
               className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer text-center ${
                 activePhotoTab === "PENDING"
                   ? "bg-pink-600 text-white shadow-md shadow-pink-600/30"
-                  : "text-zinc-400 hover:text-white"
+                  : "text-[#94A3B8] hover:text-[#F8FAFC]"
               }`}
             >
               📥 Por Moderar ({(Array.isArray(photos) ? photos : []).filter((p) => p.status === "PENDING").length})
@@ -1323,7 +1323,7 @@ export default function KaraokeBoothPage() {
               className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer text-center ${
                 activePhotoTab === "APPROVED"
                   ? "bg-cyan-600 text-white shadow-md shadow-cyan-600/30"
-                  : "text-zinc-400 hover:text-white"
+                  : "text-[#94A3B8] hover:text-[#F8FAFC]"
               }`}
             >
               📺 En TV ({(Array.isArray(photos) ? photos : []).filter((p) => p.status === "APPROVED").length})
@@ -1333,8 +1333,8 @@ export default function KaraokeBoothPage() {
               onClick={() => setActivePhotoTab("REMOVED")}
               className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer text-center ${
                 activePhotoTab === "REMOVED"
-                  ? "bg-zinc-700 text-white shadow-md"
-                  : "text-zinc-400 hover:text-white"
+                  ? "bg-[#1A2E56] text-white shadow-md"
+                  : "text-[#94A3B8] hover:text-[#F8FAFC]"
               }`}
             >
               🚫 Retiradas ({(Array.isArray(photos) ? photos : []).filter((p) => p.status === "REMOVED").length})
@@ -1342,9 +1342,9 @@ export default function KaraokeBoothPage() {
           </div>
 
           {(Array.isArray(photos) ? photos : []).filter((p) => p.status === activePhotoTab).length === 0 ? (
-            <div className="p-12 text-center text-zinc-500 space-y-2">
-              <Camera className="w-8 h-8 mx-auto text-zinc-700" />
-              <p className="text-xs text-zinc-400">
+            <div className="p-12 text-center text-[#94A3B8] space-y-2">
+              <Camera className="w-8 h-8 mx-auto text-[#263858]" />
+              <p className="text-xs text-[#94A3B8]">
                 {activePhotoTab === "PENDING"
                   ? "No hay fotos pendientes de moderación."
                   : "No hay fotos rotando en la TV actualmente."}
@@ -1357,10 +1357,10 @@ export default function KaraokeBoothPage() {
                 .map((photo) => (
                   <div
                     key={photo.id}
-                    className="p-2.5 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-2 flex flex-col justify-between"
+                    className="p-2.5 rounded-2xl bg-[#0D1930] border border-[#263858] space-y-2 flex flex-col justify-between"
                   >
                     <div>
-                      <div className="aspect-square rounded-xl overflow-hidden bg-black border border-zinc-800 relative">
+                      <div className="aspect-square rounded-xl overflow-hidden bg-black border border-[#263858] relative">
                         <img
                           src={photo.imageUrl}
                           alt={photo.caption || "Foto"}
@@ -1370,18 +1370,18 @@ export default function KaraokeBoothPage() {
                           {photo.table.label}
                         </span>
                       </div>
-                      <div className="text-xs text-white font-bold truncate mt-1">
+                      <div className="text-xs text-[#F8FAFC] font-bold truncate mt-1">
                         de {photo.guestName}
                       </div>
                       {photo.caption && (
-                        <p className="text-[10px] text-zinc-400 italic line-clamp-1">
+                        <p className="text-[10px] text-[#94A3B8] italic line-clamp-1">
                           &ldquo;{photo.caption}&rdquo;
                         </p>
                       )}
                     </div>
 
                     {/* Botones de Moderación Rápida */}
-                    <div className="flex items-center gap-1.5 pt-1.5 border-t border-zinc-800/80">
+                    <div className="flex items-center gap-1.5 pt-1.5 border-t border-[#263858]">
                       {photo.status === "PENDING" ? (
                         <>
                           <button
@@ -1398,7 +1398,7 @@ export default function KaraokeBoothPage() {
                             type="button"
                             onClick={() => handleModeratePhoto(photo.id, "REJECT")}
                             disabled={actionLoading === photo.id}
-                            className="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white border border-zinc-700 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                            className="p-1 rounded-lg bg-[#080F1F] hover:bg-[#1A2E56] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858] text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
                             title="Rechazar foto"
                           >
                             <X className="w-3 h-3" />
@@ -1411,7 +1411,7 @@ export default function KaraokeBoothPage() {
                               }
                             }}
                             disabled={actionLoading === photo.id}
-                            className="p-1 rounded-lg bg-zinc-800 hover:bg-red-950 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-800 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                            className="p-1 rounded-lg bg-[#080F1F] hover:bg-red-950 text-[#94A3B8] hover:text-red-400 border border-[#263858] hover:border-red-800 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
                             title="Eliminar foto permanentemente de la base de datos"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -1423,10 +1423,10 @@ export default function KaraokeBoothPage() {
                             type="button"
                             onClick={() => handleModeratePhoto(photo.id, "REMOVE")}
                             disabled={actionLoading === photo.id}
-                            className="flex-1 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                            className="flex-1 py-1 rounded-lg bg-[#080F1F] hover:bg-[#1A2E56] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858] text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
                             title="Sacar de la pantalla de TV temporalmente"
                           >
-                            <EyeOff className="w-3 h-3 text-zinc-400" />
+                            <EyeOff className="w-3 h-3 text-[#94A3B8]" />
                             <span>Quitar de TV</span>
                           </button>
                           <button
@@ -1437,7 +1437,7 @@ export default function KaraokeBoothPage() {
                               }
                             }}
                             disabled={actionLoading === photo.id}
-                            className="p-1 rounded-lg bg-zinc-800 hover:bg-red-950 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-800 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                            className="p-1 rounded-lg bg-[#080F1F] hover:bg-red-950 text-[#94A3B8] hover:text-red-400 border border-[#263858] hover:border-red-800 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
                             title="Eliminar foto permanentemente de la base de datos"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -1463,7 +1463,7 @@ export default function KaraokeBoothPage() {
                               }
                             }}
                             disabled={actionLoading === photo.id}
-                            className="p-1 rounded-lg bg-zinc-800 hover:bg-red-950 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-800 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
+                            className="p-1 rounded-lg bg-[#080F1F] hover:bg-red-950 text-[#94A3B8] hover:text-red-400 border border-[#263858] hover:border-red-800 text-[10px] font-bold transition-colors cursor-pointer disabled:opacity-50"
                             title="Eliminar foto permanentemente de la base de datos"
                           >
                             <Trash2 className="w-3 h-3" />

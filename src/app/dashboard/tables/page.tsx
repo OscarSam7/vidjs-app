@@ -468,7 +468,7 @@ export default function TablesManagementPage() {
               ? "bg-emerald-950/90 border-emerald-500/50 text-emerald-200 shadow-emerald-900/30"
               : toast.type === "error"
               ? "bg-red-950/90 border-red-500/50 text-red-200 shadow-red-900/30"
-              : "bg-zinc-900/95 border-zinc-700 text-zinc-200 shadow-black/50"
+              : "bg-[#111F38]/95 border-[#263858] text-[#F8FAFC] shadow-black/50"
           }`}
         >
           {toast.type === "success" ? (
@@ -481,7 +481,7 @@ export default function TablesManagementPage() {
           <span>{toast.message}</span>
           <button
             onClick={() => setToast(null)}
-            className="p-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white"
+            className="p-1 rounded-lg hover:bg-white/10 text-[#94A3B8] hover:text-[#F8FAFC]"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -489,18 +489,19 @@ export default function TablesManagementPage() {
       )}
 
       {/* 1. Header & Acciones */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-zinc-900/80 border border-zinc-800 backdrop-blur-xl shadow-xl">
-        <div className="space-y-1">
+      <div className="relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-gradient-to-br from-[#111F38] via-[#0D1930] to-[#080F1F] border border-[#263858] shadow-xl">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
+        <div className="relative z-10 space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
               ACCESO MÓVIL CLIENTES
             </span>
-            <span className="text-xs text-zinc-400">Total: {tables.length} mesas registradas</span>
+            <span className="text-xs text-[#94A3B8]">Total: {tables.length} mesas registradas</span>
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">
+          <h1 className="text-2xl font-black text-[#F8FAFC] tracking-tight">
             Gestión de Mesas y Códigos QR
           </h1>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-[#94A3B8]">
             Administra, edita, descarga e imprime los códigos QR seguros de cada mesa. Los clientes escanean para pedir música sin descargas.
           </p>
         </div>
@@ -512,7 +513,7 @@ export default function TablesManagementPage() {
             setNewZone("MAIN");
             setIsNewTableOpen(true);
           }}
-          className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-2xl transition-all shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2 shrink-0 cursor-pointer active:scale-95"
+          className="relative z-10 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-2xl transition-all shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2 shrink-0 cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         >
           <Plus className="w-4 h-4" />
           <span>Crear Nueva Mesa</span>
@@ -523,26 +524,26 @@ export default function TablesManagementPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <button
           onClick={() => setFilterOccupancy("ALL")}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 ${
             filterOccupancy === "ALL"
-              ? "bg-purple-950/40 border-purple-500/80 shadow-lg shadow-purple-950/50 ring-1 ring-purple-500/50"
-              : "bg-zinc-900/80 border-zinc-800 hover:border-zinc-700"
+              ? "bg-purple-950/50 border-purple-500/80 shadow-md ring-1 ring-purple-500/50"
+              : "bg-[#111F38] border-[#263858] hover:border-slate-500/50"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-zinc-400">Total Mesas</span>
-            <Building2 className="w-4 h-4 text-zinc-500" />
+            <span className="text-xs font-semibold text-[#94A3B8]">Total Mesas</span>
+            <Building2 className="w-4 h-4 text-[#94A3B8]" />
           </div>
-          <div className="text-2xl font-black text-white mt-1.5">{totalCount}</div>
-          <span className="text-[10px] text-zinc-500 mt-0.5 block">Todas las configuradas</span>
+          <div className="text-2xl font-black text-[#F8FAFC] mt-1.5">{totalCount}</div>
+          <span className="text-[10px] text-[#94A3B8] mt-0.5 block">Todas las configuradas</span>
         </button>
 
         <button
           onClick={() => setFilterOccupancy("LIBRE")}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
             filterOccupancy === "LIBRE"
-              ? "bg-emerald-950/40 border-emerald-500/80 shadow-lg shadow-emerald-950/50 ring-1 ring-emerald-500/50"
-              : "bg-zinc-900/80 border-zinc-800 hover:border-emerald-600/40"
+              ? "bg-emerald-950/50 border-emerald-500/80 shadow-md ring-1 ring-emerald-500/50"
+              : "bg-[#111F38] border-[#263858] hover:border-emerald-600/50"
           }`}
         >
           <div className="flex items-center justify-between">
@@ -550,15 +551,15 @@ export default function TablesManagementPage() {
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
           </div>
           <div className="text-2xl font-black text-emerald-300 mt-1.5">{freeCount}</div>
-          <span className="text-[10px] text-emerald-400/70 mt-0.5 block">Listas para nuevos comensales</span>
+          <span className="text-[10px] text-emerald-400/80 mt-0.5 block">Listas para nuevos comensales</span>
         </button>
 
         <button
           onClick={() => setFilterOccupancy("OCUPADA_STAFF")}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
             filterOccupancy === "OCUPADA_STAFF"
-              ? "bg-amber-950/50 border-amber-500/80 shadow-lg shadow-amber-950/50 ring-1 ring-amber-500/50"
-              : "bg-zinc-900/80 border-zinc-800 hover:border-amber-600/40"
+              ? "bg-amber-950/50 border-amber-500/80 shadow-md ring-1 ring-amber-500/50"
+              : "bg-[#111F38] border-[#263858] hover:border-amber-600/50"
           }`}
         >
           <div className="flex items-center justify-between">
@@ -566,15 +567,15 @@ export default function TablesManagementPage() {
             <Headphones className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-2xl font-black text-amber-300 mt-1.5">{staffCount}</div>
-          <span className="text-[10px] text-amber-400/70 mt-0.5 block">Sin registro QR (verbales)</span>
+          <span className="text-[10px] text-amber-400/80 mt-0.5 block">Sin registro QR (verbales)</span>
         </button>
 
         <button
           onClick={() => setFilterOccupancy("OCUPADA_QR")}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
             filterOccupancy === "OCUPADA_QR"
-              ? "bg-indigo-950/50 border-indigo-500/80 shadow-lg shadow-indigo-950/50 ring-1 ring-indigo-500/50"
-              : "bg-zinc-900/80 border-zinc-800 hover:border-indigo-600/40"
+              ? "bg-indigo-950/50 border-indigo-500/80 shadow-md ring-1 ring-indigo-500/50"
+              : "bg-[#111F38] border-[#263858] hover:border-indigo-600/50"
           }`}
         >
           <div className="flex items-center justify-between">
@@ -582,19 +583,19 @@ export default function TablesManagementPage() {
             <UserCheck className="w-4 h-4 text-indigo-400" />
           </div>
           <div className="text-2xl font-black text-indigo-300 mt-1.5">{qrCount}</div>
-          <span className="text-[10px] text-indigo-400/70 mt-0.5 block">Escaneado desde su móvil</span>
+          <span className="text-[10px] text-indigo-400/80 mt-0.5 block">Escaneado desde su móvil</span>
         </button>
       </div>
 
       {/* 3. Filtro por Sede */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-        <span className="text-zinc-500 font-medium mr-2">Filtrar por Local:</span>
+        <span className="text-[#94A3B8] font-medium mr-2">Filtrar por Local:</span>
         <button
           onClick={() => setSelectedVenue("ALL")}
-          className={`px-3.5 py-1.5 rounded-xl font-semibold transition-all cursor-pointer ${
+          className={`px-3.5 py-1.5 rounded-xl font-semibold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 ${
             selectedVenue === "ALL"
-              ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
-              : "bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800"
+              ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
+              : "bg-[#111F38] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858]"
           }`}
         >
           Todas las sedes ({tables.length})
@@ -606,10 +607,10 @@ export default function TablesManagementPage() {
             <button
               key={id}
               onClick={() => setSelectedVenue(id)}
-              className={`px-3.5 py-1.5 rounded-xl font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-xl font-semibold transition-all cursor-pointer flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 ${
                 selectedVenue === id
-                  ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
-                  : "bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800"
+                  ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
+                  : "bg-[#111F38] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858]"
               }`}
             >
               <Building2 className="w-3.5 h-3.5" />
@@ -623,15 +624,15 @@ export default function TablesManagementPage() {
 
       {/* 3. Grilla de Mesas con Códigos QR */}
       {loading ? (
-        <div className="p-16 text-center text-zinc-400 flex flex-col items-center justify-center gap-3">
+        <div className="p-16 text-center text-[#94A3B8] flex flex-col items-center justify-center gap-3">
           <RefreshCw className="w-6 h-6 animate-spin text-purple-400" />
           <span className="text-xs">Cargando mesas y verificando códigos QR vectoriales...</span>
         </div>
       ) : filteredTables.length === 0 ? (
-        <div className="p-16 text-center bg-zinc-900/40 border border-zinc-800 rounded-3xl space-y-3">
-          <QrCode className="w-12 h-12 text-zinc-600 mx-auto" />
-          <p className="text-sm font-bold text-zinc-300">No hay mesas registradas en este local.</p>
-          <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+        <div className="p-16 text-center bg-[#111F38]/60 border border-[#263858] rounded-3xl space-y-3">
+          <QrCode className="w-12 h-12 text-[#94A3B8] mx-auto opacity-50" />
+          <p className="text-sm font-bold text-slate-300">No hay mesas registradas en este local.</p>
+          <p className="text-xs text-[#94A3B8] max-w-sm mx-auto">
             Haz clic en &quot;Crear Nueva Mesa&quot; para registrar la primera y generar automáticamente su código QR.
           </p>
         </div>
@@ -640,10 +641,10 @@ export default function TablesManagementPage() {
           {filteredTables.map((table) => (
             <div
               key={table.id}
-              className={`p-5 rounded-3xl bg-zinc-900/70 border transition-all flex flex-col justify-between space-y-4 shadow-lg group relative ${
+              className={`p-5 rounded-3xl bg-[#111F38] border transition-all flex flex-col justify-between space-y-4 shadow-sm group relative ${
                 table.active
-                  ? "border-zinc-800 hover:border-purple-600/40"
-                  : "border-zinc-850 opacity-75 bg-zinc-950/60"
+                  ? "border-[#263858] hover:border-purple-600/50 hover:shadow-[0_8px_24px_rgba(139,92,246,0.15)]"
+                  : "border-[#263858]/60 opacity-75 bg-[#0D1930]/80"
               }`}
             >
               <div>
@@ -651,7 +652,7 @@ export default function TablesManagementPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-purple-300 border border-zinc-700">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#0D1930] text-purple-300 border border-[#263858]">
                         MESA #{table.number}
                       </span>
 
@@ -662,14 +663,14 @@ export default function TablesManagementPage() {
                           Activa
                         </span>
                       ) : (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#0D1930] text-[#94A3B8] border border-[#263858]">
                           Inactiva
                         </span>
                       )}
 
                       {/* Badge de Zona */}
                       {table.zone && (
-                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-zinc-750">
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#0D1930] text-[#94A3B8] border border-[#263858]">
                           {table.zone === "MAIN"
                             ? "Principal"
                             : table.zone === "DJ"
@@ -685,24 +686,24 @@ export default function TablesManagementPage() {
                       )}
                     </div>
 
-                    <h3 className="text-base font-bold text-white mt-1">{table.label}</h3>
-                    <div className="flex items-center gap-2 text-xs text-zinc-400">
-                      <Building2 className="w-3.5 h-3.5 text-zinc-500" />
+                    <h3 className="text-base font-bold text-[#F8FAFC] mt-1">{table.label}</h3>
+                    <div className="flex items-center gap-2 text-xs text-[#94A3B8]">
+                      <Building2 className="w-3.5 h-3.5 text-[#94A3B8]" />
                       <span>{table.venue.name}</span>
                     </div>
                   </div>
 
                   {/* Acciones Superiores: Capacidad + Botones Editar / Eliminar */}
                   <div className="flex items-center gap-1.5">
-                    <div className="flex items-center gap-1 text-xs text-zinc-400 px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800" title="Capacidad en comensales">
-                      <Users className="w-3 h-3 text-zinc-500" />
+                    <div className="flex items-center gap-1 text-xs text-[#94A3B8] px-2 py-1 rounded-xl bg-[#0D1930] border border-[#263858]" title="Capacidad en comensales">
+                      <Users className="w-3 h-3 text-[#94A3B8]" />
                       <span>{table.capacity}p</span>
                     </div>
 
                     {/* Botón Editar Mesa */}
                     <button
                       onClick={() => handleOpenEdit(table)}
-                      className="p-1.5 rounded-xl bg-zinc-800 hover:bg-purple-950/60 text-zinc-400 hover:text-purple-300 border border-zinc-750 hover:border-purple-600/40 transition-colors cursor-pointer"
+                      className="p-1.5 rounded-xl bg-[#0D1930] hover:bg-[#162644] text-[#94A3B8] hover:text-purple-300 border border-[#263858] hover:border-purple-600/40 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
                       title="Editar mesa y opciones de QR"
                     >
                       <Pencil className="w-3.5 h-3.5" />
@@ -711,7 +712,7 @@ export default function TablesManagementPage() {
                     {/* Botón Eliminar Mesa */}
                     <button
                       onClick={() => handleOpenDelete(table)}
-                      className="p-1.5 rounded-xl bg-zinc-800 hover:bg-red-950/60 text-zinc-400 hover:text-red-400 border border-zinc-750 hover:border-red-600/40 transition-colors cursor-pointer"
+                      className="p-1.5 rounded-xl bg-[#0D1930] hover:bg-red-950/40 text-[#94A3B8] hover:text-red-400 border border-[#263858] hover:border-red-600/40 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                       title="Eliminar mesa e invalidar su QR"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -731,11 +732,11 @@ export default function TablesManagementPage() {
                           Staff: {table.occupancy.staffName}
                         </div>
                         {table.occupancy.customerReference ? (
-                          <div className="text-[10px] text-zinc-400 truncate">
+                          <div className="text-[10px] text-[#94A3B8] truncate">
                             Ref: {table.occupancy.customerReference}
                           </div>
                         ) : (
-                          <div className="text-[10px] text-amber-400/70">Atención presencial / verbal</div>
+                          <div className="text-[10px] text-amber-400/80">Atención presencial / verbal</div>
                         )}
                       </div>
                     </div>
@@ -755,7 +756,7 @@ export default function TablesManagementPage() {
                         <div className="font-bold text-purple-300 truncate">
                           Cliente QR: {table.occupancy.guestName || "Escaneado"}
                         </div>
-                        <div className="text-[10px] text-purple-300/70">Pedido desde móvil</div>
+                        <div className="text-[10px] text-purple-300/80">Pedido desde móvil</div>
                       </div>
                     </div>
                     {typeof table.occupancy.activeRequestsCount === "number" && table.occupancy.activeRequestsCount > 0 ? (
@@ -765,12 +766,12 @@ export default function TablesManagementPage() {
                     ) : null}
                   </div>
                 ) : (
-                  <div className="mt-3 p-2 rounded-xl bg-zinc-950/60 border border-zinc-800/80 flex items-center justify-between text-xs">
+                  <div className="mt-3 p-2 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                       <span className="text-[11px] font-medium text-emerald-400">Mesa Libre / Disponible</span>
                     </div>
-                    <span className="text-[10px] text-zinc-500">Sin pedidos activos</span>
+                    <span className="text-[10px] text-[#94A3B8]">Sin pedidos activos</span>
                   </div>
                 )}
 
@@ -783,31 +784,31 @@ export default function TablesManagementPage() {
                     className="w-36 h-36 object-contain transition-transform group-hover/qr:scale-105"
                   />
                   {!table.active && (
-                    <div className="absolute inset-0 bg-zinc-950/80 rounded-2xl backdrop-blur-xs flex flex-col items-center justify-center text-center p-2 text-zinc-300">
+                    <div className="absolute inset-0 bg-[#080F1F]/85 rounded-2xl backdrop-blur-xs flex flex-col items-center justify-center text-center p-2 text-slate-300">
                       <ShieldAlert className="w-6 h-6 text-amber-400 mb-1" />
                       <span className="text-[11px] font-bold text-white">QR Inactivo</span>
-                      <span className="text-[9px] text-zinc-400">Escaneos bloqueados temporalmente</span>
+                      <span className="text-[9px] text-[#94A3B8]">Escaneos bloqueados temporalmente</span>
                     </div>
                   )}
                 </div>
 
                 <div className="text-center mt-2">
-                  <div className="text-[10px] font-mono text-zinc-500 truncate" title={table.scanUrl}>
+                  <div className="text-[10px] font-mono text-[#94A3B8] truncate" title={table.scanUrl}>
                     {table.scanUrl}
                   </div>
                 </div>
               </div>
 
               {/* Botones de Acción de la Mesa */}
-              <div className="space-y-2 pt-2 border-t border-zinc-800/80">
+              <div className="space-y-2 pt-2 border-t border-[#263858]">
                 {/* Asignación a Staff / DJ y Carga de Pedido Verbal */}
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => handleOpenOccupy(table)}
-                    className={`p-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border ${
+                    className={`p-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
                       table.occupancy?.status === "OCUPADA_STAFF"
                         ? "bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-500/40"
-                        : "bg-zinc-800 hover:bg-zinc-750 text-zinc-200 border-zinc-750 hover:border-zinc-700"
+                        : "bg-[#0D1930] hover:bg-[#162644] text-slate-200 border-[#263858]"
                     }`}
                     title="Enmarcar al DJ o staff para atender clientes sin QR"
                   >
@@ -819,7 +820,7 @@ export default function TablesManagementPage() {
 
                   <button
                     onClick={() => handleOpenOrder(table)}
-                    className="p-2 rounded-xl bg-gradient-to-r from-pink-600/25 to-purple-600/25 hover:from-pink-600/35 hover:to-purple-600/35 border border-pink-500/40 text-pink-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                    className="p-2 rounded-xl bg-gradient-to-r from-pink-600/25 to-purple-600/25 hover:from-pink-600/35 hover:to-purple-600/35 border border-pink-500/40 text-pink-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
                     title="Cargar pedido verbal directamente a nombre de esta mesa"
                   >
                     <Mic className="w-3.5 h-3.5 text-pink-400" />
@@ -832,7 +833,7 @@ export default function TablesManagementPage() {
                   <button
                     onClick={() => handleReleaseTableStaff(table.id, table.label)}
                     disabled={resettingId === table.id}
-                    className="w-full py-1.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[11px] text-amber-300 hover:text-amber-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                    className="w-full py-1.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[11px] text-amber-300 hover:text-amber-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                   >
                     {resettingId === table.id ? (
                       <>
@@ -853,7 +854,7 @@ export default function TablesManagementPage() {
                     href={`/qr/${table.qrToken}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                    className="p-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     <span>Simular Escaneo</span>
@@ -862,7 +863,7 @@ export default function TablesManagementPage() {
                   {/* Imprimir Plantilla */}
                   <button
                     onClick={() => setPrintingTable(table)}
-                    className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="p-2 rounded-xl bg-[#0D1930] hover:bg-[#162644] border border-[#263858] text-[#F8FAFC] text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
                   >
                     <Printer className="w-3.5 h-3.5" />
                     <span>Imprimir Stand</span>
@@ -873,7 +874,7 @@ export default function TablesManagementPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => handleDownloadPng(table.qrDataUrl, `${table.venue.name}-${table.label}`)}
-                    className="py-1.5 px-2 rounded-xl bg-zinc-950 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-[11px] text-zinc-300 hover:text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="py-1.5 px-2 rounded-xl bg-[#0D1930] hover:bg-[#162644] border border-[#263858] text-[11px] text-slate-300 hover:text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
                     title="Descargar imagen PNG de alta definición para imprenta o diseño"
                   >
                     <Download className="w-3 h-3 text-cyan-400" />
@@ -881,7 +882,7 @@ export default function TablesManagementPage() {
                   </button>
                   <button
                     onClick={() => handleDownloadSvg(table.qrSvg, `${table.venue.name}-${table.label}`)}
-                    className="py-1.5 px-2 rounded-xl bg-zinc-950 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-[11px] text-zinc-300 hover:text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="py-1.5 px-2 rounded-xl bg-[#0D1930] hover:bg-[#162644] border border-[#263858] text-[11px] text-slate-300 hover:text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
                     title="Descargar vector SVG escalable sin pérdida de calidad"
                   >
                     <Download className="w-3 h-3 text-purple-400" />
@@ -892,7 +893,7 @@ export default function TablesManagementPage() {
                 {/* Copiar enlace */}
                 <button
                   onClick={() => handleCopy(table.scanUrl, table.qrToken)}
-                  className="w-full py-1.5 px-3 rounded-xl bg-zinc-950/80 hover:bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400 hover:text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  className="w-full py-1.5 px-3 rounded-xl bg-[#0D1930] hover:bg-[#162644] border border-[#263858] text-[11px] text-[#94A3B8] hover:text-[#F8FAFC] flex items-center justify-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
                 >
                   {copiedToken === table.qrToken ? (
                     <>
@@ -911,7 +912,7 @@ export default function TablesManagementPage() {
                 <button
                   onClick={() => handleResetTable(table.id, table.label)}
                   disabled={resettingId === table.id}
-                  className="w-full py-1.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[11px] text-amber-300 hover:text-amber-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  className="w-full py-1.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[11px] text-amber-300 hover:text-amber-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                   title="Cancela pedidos huérfanos y renueva el cupo para los nuevos comensales"
                 >
                   {resettingId === table.id ? (
@@ -934,15 +935,15 @@ export default function TablesManagementPage() {
 
       {/* 4. Modal de Plantilla Imprimible de Mesa */}
       {printingTable && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+        <div className="fixed inset-0 z-50 bg-[#080F1F]/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-[#111F38] border border-[#263858] rounded-3xl p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#263858] pb-3">
+              <span className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider">
                 Plantilla para Imprimir
               </span>
               <button
                 onClick={() => setPrintingTable(null)}
-                className="text-zinc-400 hover:text-white cursor-pointer"
+                className="text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -951,18 +952,18 @@ export default function TablesManagementPage() {
             {/* Standee Imprimible Card */}
             <div
               id="printable-card"
-              className="p-6 rounded-2xl bg-gradient-to-b from-zinc-900 to-black border-2 border-purple-500/40 text-center space-y-4 shadow-2xl"
+              className="p-6 rounded-2xl bg-gradient-to-b from-[#111F38] to-[#080F1F] border-2 border-purple-500/40 text-center space-y-4 shadow-2xl"
             >
               <div className="flex items-center justify-center gap-2 text-purple-400">
                 <Disc3 className="w-5 h-5 text-purple-400 animate-spin [animation-duration:12s]" />
-                <span className="font-extrabold text-sm tracking-wider text-white">VIDJEIS LIVE</span>
+                <span className="font-extrabold text-sm tracking-wider text-[#F8FAFC]">VIDJEIS LIVE</span>
               </div>
 
               <div>
                 <div className="text-[10px] uppercase font-bold text-purple-300 tracking-widest">
                   {printingTable.venue.name}
                 </div>
-                <h2 className="text-2xl font-black text-white mt-0.5">
+                <h2 className="text-2xl font-black text-[#F8FAFC] mt-0.5">
                   {printingTable.label.toUpperCase()}
                 </h2>
               </div>
@@ -978,10 +979,10 @@ export default function TablesManagementPage() {
               </div>
 
               <div className="space-y-1">
-                <p className="text-xs font-bold text-white">
+                <p className="text-xs font-bold text-[#F8FAFC]">
                   📱 ESCANEA PARA PEDIR TU CANCIÓN
                 </p>
-                <p className="text-[10px] text-zinc-400">
+                <p className="text-[10px] text-[#94A3B8]">
                   Sin descargas ni registros &bull; Directo a la cabina del DJ
                 </p>
               </div>
@@ -990,14 +991,14 @@ export default function TablesManagementPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => window.print()}
-                className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-purple-600/20"
+                className="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-purple-600/20"
               >
                 <Printer className="w-4 h-4" />
                 <span>Imprimir Tarjeta</span>
               </button>
               <button
                 onClick={() => setPrintingTable(null)}
-                className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2.5 bg-[#0D1930] hover:bg-[#162644] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858] text-xs font-bold rounded-xl transition-colors cursor-pointer"
               >
                 Cerrar
               </button>
@@ -1008,16 +1009,16 @@ export default function TablesManagementPage() {
 
       {/* 5. Modal de Crear Mesa */}
       {isNewTableOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-[#080F1F]/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#111F38] border border-[#263858] rounded-3xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#263858] pb-3">
               <div className="flex items-center gap-2">
                 <QrCode className="w-4 h-4 text-purple-400" />
-                <h3 className="text-sm font-bold text-white">Registrar Nueva Mesa</h3>
+                <h3 className="text-sm font-bold text-[#F8FAFC]">Registrar Nueva Mesa</h3>
               </div>
               <button
                 onClick={() => setIsNewTableOpen(false)}
-                className="text-zinc-400 hover:text-white cursor-pointer"
+                className="text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1032,11 +1033,11 @@ export default function TablesManagementPage() {
 
             <form onSubmit={handleCreateTable} className="space-y-3 text-xs">
               <div>
-                <label className="block text-zinc-300 font-medium mb-1">Local / Sede *</label>
+                <label className="block text-[#94A3B8] font-medium mb-1">Local / Sede *</label>
                 <select
                   value={newVenueId}
                   onChange={(e) => setNewVenueId(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-[#F8FAFC] focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                 >
                   {venues.map(([id, name]) => (
                     <option key={id} value={id}>
@@ -1048,34 +1049,34 @@ export default function TablesManagementPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-zinc-300 font-medium mb-1">Número de Mesa *</label>
+                  <label className="block text-[#94A3B8] font-medium mb-1">Número de Mesa *</label>
                   <input
                     type="number"
                     min={1}
                     required
                     value={newNumber}
                     onChange={(e) => setNewNumber(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500 font-mono"
+                    className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-[#F8FAFC] focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-zinc-300 font-medium mb-1">Capacidad (Personas)</label>
+                  <label className="block text-[#94A3B8] font-medium mb-1">Capacidad (Personas)</label>
                   <input
                     type="number"
                     min={1}
                     value={newCapacity}
                     onChange={(e) => setNewCapacity(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500 font-mono"
+                    className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-[#F8FAFC] focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-mono"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-zinc-300 font-medium mb-1">Zona del Local</label>
+                <label className="block text-[#94A3B8] font-medium mb-1">Zona del Local</label>
                 <select
                   value={newZone}
                   onChange={(e) => setNewZone(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-[#F8FAFC] focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                 >
                   <option value="MAIN">Zona Principal / Salón General</option>
                   <option value="DJ">Cerca a Cabina DJ</option>
@@ -1086,14 +1087,14 @@ export default function TablesManagementPage() {
               </div>
 
               <div>
-                <label className="block text-zinc-300 font-medium mb-1">Etiqueta de la Mesa *</label>
+                <label className="block text-[#94A3B8] font-medium mb-1">Etiqueta de la Mesa *</label>
                 <input
                   type="text"
                   required
                   value={newLabel}
                   onChange={(e) => setNewLabel(e.target.value)}
                   placeholder="Ej: Mesa 7 (Patio) / VIP Box 2"
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-[#F8FAFC] placeholder-[#94A3B8]/60 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                 />
               </div>
 
@@ -1101,14 +1102,14 @@ export default function TablesManagementPage() {
                 <button
                   type="submit"
                   disabled={creating}
-                  className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50 shadow-lg shadow-purple-600/20"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50 shadow-lg shadow-purple-600/20"
                 >
                   {creating ? "Generando QR..." : "Crear Mesa y Generar QR"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsNewTableOpen(false)}
-                  className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2.5 bg-[#0D1930] hover:bg-[#162644] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858] font-bold rounded-xl transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -1120,23 +1121,23 @@ export default function TablesManagementPage() {
 
       {/* 6. Modal de Edición de Mesa & Opciones de QR */}
       {editingTable && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-[#080F1F]/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-[#111F38] border border-[#263858] rounded-3xl p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#263858] pb-3">
               <div className="flex items-center gap-2">
                 <Pencil className="w-4 h-4 text-purple-400" />
                 <div>
-                  <h3 className="text-sm font-bold text-white">
+                  <h3 className="text-sm font-bold text-[#F8FAFC]">
                     Editar {editingTable.label} (#{editingTable.number})
                   </h3>
-                  <p className="text-[10px] text-zinc-400">
+                  <p className="text-[10px] text-[#94A3B8]">
                     Modifica los parámetros de la mesa y gestiona su código QR
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setEditingTable(null)}
-                className="text-zinc-400 hover:text-white cursor-pointer"
+                className="text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1151,11 +1152,11 @@ export default function TablesManagementPage() {
 
             <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
               <div>
-                <label className="block text-zinc-300 font-medium mb-1">Local / Sede *</label>
+                <label className="block text-[#94A3B8] font-medium mb-1">Local / Sede *</label>
                 <select
                   value={editVenueId}
                   onChange={(e) => setEditVenueId(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-[#F8FAFC] focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                 >
                   {venues.map(([id, name]) => (
                     <option key={id} value={id}>
@@ -1167,48 +1168,48 @@ export default function TablesManagementPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-zinc-300 font-medium mb-1">Número de Mesa *</label>
+                  <label className="block text-[#94A3B8] font-medium mb-1">Número de Mesa *</label>
                   <input
                     type="number"
                     min={1}
                     required
                     value={editNumber}
                     onChange={(e) => setEditNumber(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500 font-mono"
+                    className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-[#F8FAFC] focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-zinc-300 font-medium mb-1">Capacidad (Personas) *</label>
+                  <label className="block text-[#94A3B8] font-medium mb-1">Capacidad (Personas) *</label>
                   <input
                     type="number"
                     min={1}
                     required
                     value={editCapacity}
                     onChange={(e) => setEditCapacity(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500 font-mono"
+                    className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-[#F8FAFC] focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-mono"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-zinc-300 font-medium mb-1">Etiqueta / Nombre Visible *</label>
+                <label className="block text-[#94A3B8] font-medium mb-1">Etiqueta / Nombre Visible *</label>
                 <input
                   type="text"
                   required
                   value={editLabel}
                   onChange={(e) => setEditLabel(e.target.value)}
                   placeholder="Ej: Mesa 12 (Terraza) / Box VIP A"
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-[#F8FAFC] placeholder-[#94A3B8]/60 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-zinc-300 font-medium mb-1">Zona del Local</label>
+                  <label className="block text-[#94A3B8] font-medium mb-1">Zona del Local</label>
                   <select
                     value={editZone}
                     onChange={(e) => setEditZone(e.target.value)}
-                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-[#F8FAFC] focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                   >
                     <option value="MAIN">Zona Principal / General</option>
                     <option value="DJ">Cerca a Cabina DJ</option>
@@ -1219,11 +1220,11 @@ export default function TablesManagementPage() {
                 </div>
 
                 <div>
-                  <label className="block text-zinc-300 font-medium mb-1">Estado de la Mesa</label>
+                  <label className="block text-[#94A3B8] font-medium mb-1">Estado de la Mesa</label>
                   <select
                     value={editActive ? "ACTIVE" : "INACTIVE"}
                     onChange={(e) => setEditActive(e.target.value === "ACTIVE")}
-                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-[#F8FAFC] focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                   >
                     <option value="ACTIVE">🟢 Activa (Permite escaneos y pedidos)</option>
                     <option value="INACTIVE">🔴 Inactiva (En mantenimiento / Bloqueada)</option>
@@ -1232,18 +1233,18 @@ export default function TablesManagementPage() {
               </div>
 
               {/* SECCIÓN ESPECIAL: GESTIÓN DE CÓDIGO QR Y REGENERACIÓN */}
-              <div className="p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3">
+              <div className="p-3.5 rounded-2xl bg-[#0D1930] border border-[#263858] space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <QrCode className="w-4 h-4 text-purple-400" />
-                    <span className="font-bold text-white text-xs">Seguridad del Código QR</span>
+                    <span className="font-bold text-[#F8FAFC] text-xs">Seguridad del Código QR</span>
                   </div>
-                  <span className="text-[10px] font-mono text-zinc-500 truncate max-w-[140px]" title={editingTable.qrToken}>
+                  <span className="text-[10px] font-mono text-[#94A3B8] truncate max-w-[140px]" title={editingTable.qrToken}>
                     Token: {editingTable.qrToken}
                   </span>
                 </div>
 
-                <label className="flex items-start gap-2.5 p-2 rounded-xl bg-zinc-900/80 hover:bg-zinc-900 border border-zinc-800 cursor-pointer transition-colors">
+                <label className="flex items-start gap-2.5 p-2 rounded-xl bg-[#111F38] hover:bg-[#162644] border border-[#263858] cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={editRegenerateQr}
@@ -1255,7 +1256,7 @@ export default function TablesManagementPage() {
                       <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
                       Regenerar nuevo Código QR (Rotación de seguridad)
                     </span>
-                    <p className="text-[10px] text-zinc-400 leading-relaxed">
+                    <p className="text-[10px] text-[#94A3B8] leading-relaxed">
                       Genera una clave criptográfica completamente nueva. <strong>Invalida de inmediato el QR impreso anterior</strong> y cierra sesiones huérfanas. Útil si el QR fue fotografiado y se comparten pedidos no autorizados desde fuera del local.
                     </p>
                   </div>
@@ -1280,7 +1281,7 @@ export default function TablesManagementPage() {
                 <button
                   type="button"
                   onClick={() => setEditingTable(null)}
-                  className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2.5 bg-[#0D1930] hover:bg-[#162644] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858] font-bold rounded-xl transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -1292,15 +1293,15 @@ export default function TablesManagementPage() {
 
       {/* 7. Modal de Confirmación de Eliminación de Mesa */}
       {deletingTable && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-zinc-900 border border-red-900/60 rounded-3xl p-6 space-y-4 shadow-2xl shadow-red-950/40">
-            <div className="flex items-center gap-3 border-b border-zinc-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-[#080F1F]/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#111F38] border border-red-900/60 rounded-3xl p-6 space-y-4 shadow-2xl shadow-red-950/40">
+            <div className="flex items-center gap-3 border-b border-[#263858] pb-3">
               <div className="p-2.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400">
                 <Trash2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-black text-white">¿Eliminar Mesa y QR?</h3>
-                <p className="text-xs text-zinc-400">Esta acción no se puede deshacer</p>
+                <h3 className="text-base font-black text-[#F8FAFC]">¿Eliminar Mesa y QR?</h3>
+                <p className="text-xs text-[#94A3B8]">Esta acción no se puede deshacer</p>
               </div>
             </div>
 
@@ -1311,24 +1312,24 @@ export default function TablesManagementPage() {
               </div>
             )}
 
-            <div className="space-y-3 text-xs text-zinc-300">
+            <div className="space-y-3 text-xs text-slate-300">
               <p>
                 Estás a punto de eliminar permanentemente la mesa{" "}
-                <strong className="text-white">
+                <strong className="text-[#F8FAFC]">
                   &quot;{deletingTable.label}&quot; (Mesa #{deletingTable.number})
                 </strong>{" "}
-                del local <strong className="text-white">{deletingTable.venue.name}</strong>.
+                del local <strong className="text-[#F8FAFC]">{deletingTable.venue.name}</strong>.
               </p>
 
-              <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-2 text-[11px]">
+              <div className="p-3 rounded-2xl bg-[#0D1930] border border-[#263858] space-y-2 text-[11px]">
                 <div className="flex items-start gap-2 text-amber-300">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
                   <span>
                     <strong>El código QR se invalidará inmediatamente:</strong> Si algún cliente escanea el QR físico impreso en la mesa, verá un mensaje informando que la mesa ya no existe.
                   </span>
                 </div>
-                <div className="flex items-start gap-2 text-zinc-400">
-                  <ShieldAlert className="w-3.5 h-3.5 shrink-0 mt-0.5 text-zinc-500" />
+                <div className="flex items-start gap-2 text-[#94A3B8]">
+                  <ShieldAlert className="w-3.5 h-3.5 shrink-0 mt-0.5 text-[#94A3B8]" />
                   <span>
                     Se cancelarán pedidos huérfanos pendientes o aceptados vinculados a esta mesa.
                   </span>
@@ -1358,7 +1359,7 @@ export default function TablesManagementPage() {
               <button
                 type="button"
                 onClick={() => setDeletingTable(null)}
-                className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2.5 bg-[#0D1930] hover:bg-[#162644] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858] font-bold rounded-xl transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -1369,25 +1370,25 @@ export default function TablesManagementPage() {
 
       {/* 8. Modal de Asignación de Mesa a DJ / Staff */}
       {occupyingTable && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-[#080F1F]/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#111F38] border border-[#263858] rounded-3xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#263858] pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
                   <Headphones className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">
+                  <h3 className="text-sm font-bold text-[#F8FAFC]">
                     Enmarcar Mesa: {occupyingTable.label}
                   </h3>
-                  <p className="text-[10px] text-zinc-400">
+                  <p className="text-[10px] text-[#94A3B8]">
                     Asignar al DJ o staff cuando los clientes no se registran por QR
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setOccupyingTable(null)}
-                className="text-zinc-400 hover:text-white cursor-pointer"
+                className="text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1402,13 +1403,13 @@ export default function TablesManagementPage() {
 
             <div className="space-y-3.5 text-xs">
               <div>
-                <label className="block text-zinc-300 font-medium mb-1">
+                <label className="block text-[#94A3B8] font-medium mb-1">
                   Atendido por (DJ / Miembro del Staff) *
                 </label>
                 <select
                   value={selectedStaffName}
                   onChange={(e) => setSelectedStaffName(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-amber-500"
+                  className="w-full px-3 py-2.5 bg-[#0D1930] border border-[#263858] rounded-xl text-[#F8FAFC] focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                 >
                   <option value="Cabina DJ">🎧 Cabina DJ (General)</option>
                   <option value="Barra / Mozo">🍹 Barra / Mozo de Turno</option>
@@ -1423,7 +1424,7 @@ export default function TablesManagementPage() {
 
               {selectedStaffName === "custom" && (
                 <div>
-                  <label className="block text-zinc-300 font-medium mb-1">
+                  <label className="block text-[#94A3B8] font-medium mb-1">
                     Nombre o Apodo del Responsable *
                   </label>
                   <input
@@ -1432,14 +1433,14 @@ export default function TablesManagementPage() {
                     value={customStaffName}
                     onChange={(e) => setCustomStaffName(e.target.value)}
                     placeholder="Ej: Mozo Lucas / DJ Residente / Barra VIP"
-                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-[#F8FAFC] placeholder-[#94A3B8]/60 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                     autoFocus
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-zinc-300 font-medium mb-1">
+                <label className="block text-[#94A3B8] font-medium mb-1">
                   Referencia o Descripción de los Clientes (Opcional)
                 </label>
                 <input
@@ -1447,9 +1448,9 @@ export default function TablesManagementPage() {
                   value={customerReference}
                   onChange={(e) => setCustomerReference(e.target.value)}
                   placeholder="Ej: Grupo cumpleaños remeras negras / Pareja junto a la ventana"
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-amber-500"
+                  className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-[#F8FAFC] placeholder-[#94A3B8]/60 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                 />
-                <span className="text-[10px] text-zinc-500 mt-1 block">
+                <span className="text-[10px] text-[#94A3B8] mt-1 block">
                   Ayuda a identificar la mesa al entregar o reproducir pedidos.
                 </span>
               </div>
@@ -1479,7 +1480,7 @@ export default function TablesManagementPage() {
                     type="button"
                     onClick={() => handleReleaseTableStaff(occupyingTable.id, occupyingTable.label)}
                     disabled={isSavingOccupy}
-                    className="w-full py-2 bg-zinc-800 hover:bg-red-950/40 text-red-300 border border-zinc-700 hover:border-red-600/40 rounded-xl font-bold transition-colors cursor-pointer"
+                    className="w-full py-2 bg-[#0D1930] hover:bg-red-950/40 text-red-300 border border-[#263858] hover:border-red-600/40 rounded-xl font-bold transition-colors cursor-pointer"
                   >
                     Desocupar / Liberar Mesa
                   </button>
@@ -1488,7 +1489,7 @@ export default function TablesManagementPage() {
                 <button
                   type="button"
                   onClick={() => setOccupyingTable(null)}
-                  className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-xl font-semibold transition-colors cursor-pointer"
+                  className="w-full py-2 bg-[#0D1930] hover:bg-[#162644] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858] rounded-xl font-semibold transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>

@@ -130,20 +130,20 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       {/* 1. Header con feedback */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 backdrop-blur-xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-[#111F38] border border-[#263858] backdrop-blur-xl shadow-lg">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
               <Sliders className="w-3 h-3 text-indigo-400" />
               SISTEMA & CABINA
             </span>
-            <span className="text-xs text-zinc-400">Personalización de políticas operativas</span>
+            <span className="text-xs text-[#94A3B8]">Personalización de políticas operativas</span>
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
+          <h1 className="text-2xl font-black text-[#F8FAFC] tracking-tight flex items-center gap-2.5">
             <Settings className="w-7 h-7 text-indigo-400" />
             Configuración General del Establecimiento
           </h1>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-[#94A3B8]">
             Ajusta los motores de reproducción de audio, reglas de pedidos para clientes, filtros de pantalla y seguridad.
           </p>
         </div>
@@ -169,7 +169,7 @@ export default function SettingsPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs font-bold text-white flex items-center gap-2 transition-all shadow-lg cursor-pointer disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs font-bold text-white flex items-center gap-2 transition-all shadow-lg shadow-purple-600/20 cursor-pointer disabled:opacity-50"
           >
             {saving ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -182,13 +182,13 @@ export default function SettingsPage() {
       </div>
 
       {/* 2. Pestañas de Navegación por Categoría */}
-      <div className="flex flex-wrap gap-2 border-b border-zinc-800 pb-2">
+      <div className="flex flex-wrap gap-2 border-b border-[#263858] pb-2">
         <button
           onClick={() => setActiveTab("general")}
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "general"
               ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
-              : "bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800"
+              : "bg-[#0D1930] text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#111F38] border border-[#263858]"
           }`}
         >
           <Building className="w-4 h-4" />
@@ -200,7 +200,7 @@ export default function SettingsPage() {
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "appearance"
               ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
-              : "bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800"
+              : "bg-[#0D1930] text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#111F38] border border-[#263858]"
           }`}
         >
           <Palette className="w-4 h-4" />
@@ -212,7 +212,7 @@ export default function SettingsPage() {
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "dj"
               ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
-              : "bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800"
+              : "bg-[#0D1930] text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#111F38] border border-[#263858]"
           }`}
         >
           <Headphones className="w-4 h-4" />
@@ -224,7 +224,7 @@ export default function SettingsPage() {
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "requests"
               ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
-              : "bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800"
+              : "bg-[#0D1930] text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#111F38] border border-[#263858]"
           }`}
         >
           <Music className="w-4 h-4" />
@@ -236,7 +236,7 @@ export default function SettingsPage() {
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "screen"
               ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
-              : "bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800"
+              : "bg-[#0D1930] text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#111F38] border border-[#263858]"
           }`}
         >
           <Tv className="w-4 h-4" />
@@ -248,7 +248,7 @@ export default function SettingsPage() {
           className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "security"
               ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
-              : "bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800"
+              : "bg-[#0D1930] text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#111F38] border border-[#263858]"
           }`}
         >
           <ShieldCheck className="w-4 h-4" />
@@ -260,15 +260,15 @@ export default function SettingsPage() {
       <form onSubmit={handleSave} className="space-y-6">
         {/* TAB 1: GENERAL */}
         {activeTab === "general" && (
-          <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-5">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
+          <div className="p-6 rounded-2xl bg-[#111F38] border border-[#263858] space-y-5">
+            <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
               <Building className="w-5 h-5 text-purple-400" />
               <span>Identidad y Datos del Establecimiento</span>
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-300">Nombre Comercial</label>
+                <label className="text-xs font-semibold text-[#94A3B8]">Nombre Comercial</label>
                 <input
                   type="text"
                   value={settings.general.clubName}
@@ -279,12 +279,12 @@ export default function SettingsPage() {
                     })
                   }
                   required
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 transition-colors"
+                  className="w-full bg-[#080F1F] border border-[#263858] rounded-xl px-4 py-2.5 text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-purple-500 transition-colors"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-300">Zona Horaria Oficial</label>
+                <label className="text-xs font-semibold text-[#94A3B8]">Zona Horaria Oficial</label>
                 <select
                   value={settings.general.timezone}
                   onChange={(e) =>
@@ -293,7 +293,7 @@ export default function SettingsPage() {
                       general: { ...settings.general, timezone: e.target.value },
                     })
                   }
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 cursor-pointer"
+                  className="w-full bg-[#080F1F] border border-[#263858] rounded-xl px-4 py-2.5 text-xs text-[#F8FAFC] focus:outline-none focus:border-purple-500 cursor-pointer"
                 >
                   <option value="America/Asuncion">América / Asunción - Paraguay (UTC-3 / UTC-4)</option>
                   <option value="America/Montevideo">América / Montevideo (UTC-3)</option>
@@ -307,7 +307,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-300">Teléfono / WhatsApp de Contacto</label>
+                <label className="text-xs font-semibold text-[#94A3B8]">Teléfono / WhatsApp de Contacto</label>
                 <input
                   type="text"
                   value={settings.general.phone}
@@ -318,12 +318,12 @@ export default function SettingsPage() {
                     })
                   }
                   placeholder="+595 981 000 000"
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 transition-colors"
+                  className="w-full bg-[#080F1F] border border-[#263858] rounded-xl px-4 py-2.5 text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-purple-500 transition-colors"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-300">Dirección Física</label>
+                <label className="text-xs font-semibold text-[#94A3B8]">Dirección Física</label>
                 <input
                   type="text"
                   value={settings.general.address}
@@ -334,19 +334,19 @@ export default function SettingsPage() {
                     })
                   }
                   placeholder="Av. Monseñor Rodríguez esq. Boquerón, CDE"
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 transition-colors"
+                  className="w-full bg-[#080F1F] border border-[#263858] rounded-xl px-4 py-2.5 text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-purple-500 transition-colors"
                 />
               </div>
             </div>
 
             {/* Selector Rápido de Tema de Aplicación */}
-            <div className="pt-5 border-t border-zinc-800/80 space-y-3">
+            <div className="pt-5 border-t border-[#263858] space-y-3">
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <h3 className="text-sm font-bold text-[#F8FAFC] flex items-center gap-2">
                   <Palette className="w-4 h-4 text-blue-400" />
                   <span>Tema de la Aplicación</span>
                 </h3>
-                <p className="text-xs text-zinc-400 mt-0.5">
+                <p className="text-xs text-[#94A3B8] mt-0.5">
                   Elige entre el Modo Oscuro nativo o el elegante Azul Francia de alto contraste
                 </p>
               </div>
@@ -357,8 +357,8 @@ export default function SettingsPage() {
 
         {/* TAB TEMA & APARIENCIA */}
         {activeTab === "appearance" && (
-          <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-4">
+          <div className="p-6 rounded-2xl bg-[#111F38] border border-[#263858] space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#263858] pb-4">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1.5">
@@ -366,10 +366,10 @@ export default function SettingsPage() {
                     APARIENCIA VISUAL
                   </span>
                 </div>
-                <h2 className="text-base font-bold text-white mt-1">
+                <h2 className="text-base font-bold text-[#F8FAFC] mt-1">
                   Tema de la Aplicación
                 </h2>
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs text-[#94A3B8]">
                   Personaliza cómo se visualiza el panel de Vidjeis en tu dispositivo: Modo Oscuro o Azul Francia.
                 </p>
               </div>
@@ -377,7 +377,7 @@ export default function SettingsPage() {
 
             {/* Selector de Tema en Tarjetas Grandes */}
             <div className="space-y-3">
-              <label className="text-xs font-semibold text-zinc-300 block">
+              <label className="text-xs font-semibold text-[#94A3B8] block">
                 Selecciona tu modo preferido
               </label>
               <ThemeToggle variant="cards" />
@@ -385,22 +385,22 @@ export default function SettingsPage() {
 
             {/* Explicación de cada modo */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-2">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] space-y-2">
                 <div className="flex items-center gap-2 text-purple-400 font-bold text-xs">
                   <Moon className="w-4 h-4" />
                   <span>Modo Oscuro (Obsidian)</span>
                 </div>
-                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                <p className="text-[11px] text-[#94A3B8] leading-relaxed">
                   Fondo negro azabache con acentos de neón vibrantes. El modo por defecto para clubes, discotecas y cabinas de DJ para evitar encandilamiento en ambientes nocturnos.
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800/80 space-y-2">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] space-y-2">
                 <div className="flex items-center gap-2 text-blue-400 font-bold text-xs">
                   <Sparkles className="w-4 h-4" />
                   <span>Modo Azul Francia (French Blue)</span>
                 </div>
-                <p className="text-[11px] text-zinc-400 leading-relaxed">
+                <p className="text-[11px] text-[#94A3B8] leading-relaxed">
                   Fondo azul francia real profundo de alta gama con tipografía ultra nítida en blanco y azul cobalto. Perfecto para una visibilidad premium sin fatiga visual.
                 </p>
               </div>
@@ -410,17 +410,17 @@ export default function SettingsPage() {
 
         {/* TAB 2: DJ & CABINA */}
         {activeTab === "dj" && (
-          <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-6">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
+          <div className="p-6 rounded-2xl bg-[#111F38] border border-[#263858] space-y-6">
+            <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
               <Headphones className="w-5 h-5 text-purple-400" />
               <span>Motor de Mezcla & Cabina VirtualDJ</span>
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Crossfader duration */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] space-y-3">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-white">Transición Crossfader Automático</span>
+                  <span className="font-semibold text-[#F8FAFC]">Transición Crossfader Automático</span>
                   <span className="font-bold text-purple-400 font-mono text-sm">
                     {settings.djAudio.crossfaderDurationSec} segundos
                   </span>
@@ -442,16 +442,16 @@ export default function SettingsPage() {
                   }
                   className="w-full accent-purple-500 cursor-pointer"
                 />
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-[11px] text-[#64748B]">
                   Tiempo de fundido entre Deck A y Deck B al presionar Auto-Mix o cambiar pista.
                 </p>
               </div>
 
               {/* Auto Gain */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-white">Normalización de Ganancia (Auto-Gain)</div>
-                  <div className="text-[11px] text-zinc-500">
+                  <div className="text-xs font-semibold text-[#F8FAFC]">Normalización de Ganancia (Auto-Gain)</div>
+                  <div className="text-[11px] text-[#64748B]">
                     Nivela automáticamente los decibeles (EBU R128) para evitar saltos bruscos de volumen.
                   </div>
                 </div>
@@ -469,10 +469,10 @@ export default function SettingsPage() {
               </div>
 
               {/* Sound Effects */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-white">Efectos de Sonido Rápidos (Sampler)</div>
-                  <div className="text-[11px] text-zinc-500">
+                  <div className="text-xs font-semibold text-[#F8FAFC]">Efectos de Sonido Rápidos (Sampler)</div>
+                  <div className="text-[11px] text-[#64748B]">
                     Habilitar botones de Airhorn / Sirena, Aplausos y Scratch en cabina de DJ.
                   </div>
                 </div>
@@ -490,10 +490,10 @@ export default function SettingsPage() {
               </div>
 
               {/* Auto-Play Requests */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-white">Modo Auto-DJ Autónomo</div>
-                  <div className="text-[11px] text-zinc-500">
+                  <div className="text-xs font-semibold text-[#F8FAFC]">Modo Auto-DJ Autónomo</div>
+                  <div className="text-[11px] text-[#64748B]">
                     Carga y reproduce automáticamente las pistas aprobadas si la bandeja activa se detiene.
                   </div>
                 </div>
@@ -515,17 +515,17 @@ export default function SettingsPage() {
 
         {/* TAB 3: PEDIDOS Y FAIRPLAY */}
         {activeTab === "requests" && (
-          <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-6">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
+          <div className="p-6 rounded-2xl bg-[#111F38] border border-[#263858] space-y-6">
+            <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
               <Music className="w-5 h-5 text-purple-400" />
               <span>Reglas de Pedidos de Canciones (FairPlay Anti-Spam)</span>
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Max requests per table */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-white">Máximo de Pedidos Activos por Mesa</span>
+                  <span className="font-semibold text-[#F8FAFC]">Máximo de Pedidos Activos por Mesa</span>
                   <span className="font-bold text-indigo-400 font-mono text-sm">
                     {settings.requestsFairPlay.maxRequestsPerTable} canciones
                   </span>
@@ -547,15 +547,15 @@ export default function SettingsPage() {
                   }
                   className="w-full accent-indigo-500 cursor-pointer"
                 />
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-[11px] text-[#64748B]">
                   Evita que una sola mesa monopolice la cola de reproducción del local.
                 </p>
               </div>
 
               {/* Cooldown */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-white">Tiempo de Enfriamiento (Cooldown)</span>
+                  <span className="font-semibold text-[#F8FAFC]">Tiempo de Enfriamiento (Cooldown)</span>
                   <span className="font-bold text-indigo-400 font-mono text-sm">
                     {settings.requestsFairPlay.requestCooldownMinutes} minutos
                   </span>
@@ -577,16 +577,16 @@ export default function SettingsPage() {
                   }
                   className="w-full accent-indigo-500 cursor-pointer"
                 />
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-[11px] text-[#64748B]">
                   Tiempo mínimo que debe esperar un cliente para enviar otro pedido tras ser atendido.
                 </p>
               </div>
 
               {/* DJ approval */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-white">Aprobación Obligatoria del DJ</div>
-                  <div className="text-[11px] text-zinc-500">
+                  <div className="text-xs font-semibold text-[#F8FAFC]">Aprobación Obligatoria del DJ</div>
+                  <div className="text-[11px] text-[#64748B]">
                     Los pedidos entran a revisión pendiente; el DJ decide si entran a la cola o los rechaza.
                   </div>
                 </div>
@@ -607,10 +607,10 @@ export default function SettingsPage() {
               </div>
 
               {/* Dedications */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-white">Permitir Dedicatorias & Mensajes</div>
-                  <div className="text-[11px] text-zinc-500">
+                  <div className="text-xs font-semibold text-[#F8FAFC]">Permitir Dedicatorias & Mensajes</div>
+                  <div className="text-[11px] text-[#64748B]">
                     Los invitados pueden adjuntar un mensaje o dedicatoria que se muestra en la pantalla de la pista.
                   </div>
                 </div>
@@ -635,18 +635,18 @@ export default function SettingsPage() {
 
         {/* TAB 4: PANTALLAS Y FOTOS */}
         {activeTab === "screen" && (
-          <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-6">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
+          <div className="p-6 rounded-2xl bg-[#111F38] border border-[#263858] space-y-6">
+            <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
               <Tv className="w-5 h-5 text-purple-400" />
               <span>Pantallas Gigantes & Muro Social de Fotos</span>
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Photo approval */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-white">Moderación Previa de Fotos (Obligatoria)</div>
-                  <div className="text-[11px] text-zinc-500">
+                  <div className="text-xs font-semibold text-[#F8FAFC]">Moderación Previa de Fotos (Obligatoria)</div>
+                  <div className="text-[11px] text-[#64748B]">
                     Ninguna foto de clientes se muestra en pantalla hasta que el DJ o Barman la apruebe.
                   </div>
                 </div>
@@ -667,9 +667,9 @@ export default function SettingsPage() {
               </div>
 
               {/* Photo rotation */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-white">Rotación de Fotos en TV</span>
+                  <span className="font-semibold text-[#F8FAFC]">Rotación de Fotos en TV</span>
                   <span className="font-bold text-purple-400 font-mono text-sm">
                     {settings.screenPhotos.photoRotationSeconds} segundos
                   </span>
@@ -691,16 +691,16 @@ export default function SettingsPage() {
                   }
                   className="w-full accent-purple-500 cursor-pointer"
                 />
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-[11px] text-[#64748B]">
                   Intervalo de transición entre fotos aprobadas mostradas en el carrusel de TV.
                 </p>
               </div>
 
               {/* Allow selfies */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-white">Cámara Web & Subida de Selfies</div>
-                  <div className="text-[11px] text-zinc-500">
+                  <div className="text-xs font-semibold text-[#F8FAFC]">Cámara Web & Subida de Selfies</div>
+                  <div className="text-[11px] text-[#64748B]">
                     Permitir a los invitados de las mesas subir fotos directamente desde sus celulares.
                   </div>
                 </div>
@@ -721,10 +721,10 @@ export default function SettingsPage() {
               </div>
 
               {/* Karaoke lyrics on TV */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-white">Letras de Karaoke en Pantalla Grande</div>
-                  <div className="text-[11px] text-zinc-500">
+                  <div className="text-xs font-semibold text-[#F8FAFC]">Letras de Karaoke en Pantalla Grande</div>
+                  <div className="text-[11px] text-[#64748B]">
                     Muestra subtítulos sincronizados y visualizadores rítmicos en el display público.
                   </div>
                 </div>
@@ -745,14 +745,14 @@ export default function SettingsPage() {
               </div>
 
               {/* Acceso directo a Promoción de Barra & Ofertas Flash */}
-              <div className="p-4 rounded-xl bg-gradient-to-r from-amber-950/40 via-zinc-950 to-purple-950/40 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
+              <div className="p-4 rounded-xl bg-gradient-to-r from-amber-950/40 via-[#111F38] to-purple-950/40 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
                     <Sparkles className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-white">Promoción Activa de Barra & Ofertas (Flash Deals)</div>
-                    <div className="text-[11px] text-zinc-400">
+                    <div className="text-xs font-bold text-[#F8FAFC]">Promoción Activa de Barra & Ofertas (Flash Deals)</div>
+                    <div className="text-[11px] text-[#94A3B8]">
                       Personaliza los tragos 2x1, happy hour, descuentos y textos de la marquesina en TV y celular.
                     </div>
                   </div>
@@ -770,18 +770,18 @@ export default function SettingsPage() {
 
         {/* TAB 5: SEGURIDAD Y QR */}
         {activeTab === "security" && (
-          <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-6">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
+          <div className="p-6 rounded-2xl bg-[#111F38] border border-[#263858] space-y-6">
+            <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-purple-400" />
               <span>Seguridad, Acceso y Gestión de Códigos QR</span>
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Force session logout */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-white">Cierre de Sesión al Finalizar la Noche</div>
-                  <div className="text-[11px] text-zinc-500">
+                  <div className="text-xs font-semibold text-[#F8FAFC]">Cierre de Sesión al Finalizar la Noche</div>
+                  <div className="text-[11px] text-[#64748B]">
                     Invalida automáticamente los tokens de invitados cuando el evento pasa a estado FINALIZADO.
                   </div>
                 </div>
@@ -802,10 +802,10 @@ export default function SettingsPage() {
               </div>
 
               {/* Auto rotate QR */}
-              <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-semibold text-white">Rotación de Tokens QR de Mesas</div>
-                  <div className="text-[11px] text-zinc-500">
+                  <div className="text-xs font-semibold text-[#F8FAFC]">Rotación de Tokens QR de Mesas</div>
+                  <div className="text-[11px] text-[#64748B]">
                     Genera nuevos tokens criptográficos para los QR de las mesas cada semana para evitar pedidos remotos.
                   </div>
                 </div>
@@ -828,36 +828,36 @@ export default function SettingsPage() {
 
             <div className="p-4 rounded-xl bg-purple-950/20 border border-purple-800/40 flex items-center justify-between">
               <div className="space-y-1">
-                <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <span className="text-xs font-bold text-[#F8FAFC] flex items-center gap-1.5">
                   <Lock className="w-4 h-4 text-purple-400" />
                   Registro Forense de Auditoría Activo
                 </span>
-                <p className="text-[11px] text-zinc-400">
+                <p className="text-[11px] text-[#94A3B8]">
                   Todas las operaciones críticas y cambios de configuración quedan sellados en el registro inmutable.
                 </p>
               </div>
               <a
                 href="/dashboard/audit"
-                className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-md shrink-0"
+                className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-md shadow-purple-600/30 shrink-0"
               >
                 Ver Auditoría & Logs
               </a>
             </div>
 
             {/* Acceso a Gestión de Equipo, Roles y Permisos */}
-            <div className="p-4 rounded-xl bg-gradient-to-r from-purple-950/40 via-zinc-950 to-indigo-950/40 border border-purple-500/30 flex items-center justify-between gap-3">
+            <div className="p-4 rounded-xl bg-gradient-to-r from-purple-950/40 via-[#111F38] to-indigo-950/40 border border-purple-500/30 flex items-center justify-between gap-3">
               <div className="space-y-1">
-                <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <span className="text-xs font-bold text-[#F8FAFC] flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-purple-400" />
                   Roles y Permisos de Personal (Manager y DJ)
                 </span>
-                <p className="text-[11px] text-zinc-400">
+                <p className="text-[11px] text-[#94A3B8]">
                   Asigna roles a los miembros de tu equipo y personaliza la matriz de permisos para cabina y sala.
                 </p>
               </div>
               <a
                 href="/dashboard/team"
-                className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shrink-0"
+                className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-purple-600/30 shrink-0"
               >
                 Administrar Equipo &rarr;
               </a>
@@ -866,11 +866,11 @@ export default function SettingsPage() {
         )}
 
         {/* Botón flotante inferior para guardar */}
-        <div className="flex justify-end pt-4 border-t border-zinc-800">
+        <div className="flex justify-end pt-4 border-t border-[#263858]">
           <button
             type="submit"
             disabled={saving}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs font-bold text-white flex items-center gap-2 transition-all shadow-lg cursor-pointer disabled:opacity-50"
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs font-bold text-white flex items-center gap-2 transition-all shadow-lg shadow-purple-600/25 cursor-pointer disabled:opacity-50"
           >
             {saving ? (
               <RefreshCw className="w-4 h-4 animate-spin" />

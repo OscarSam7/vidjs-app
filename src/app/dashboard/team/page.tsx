@@ -419,7 +419,7 @@ export default function TeamRolesPermissionsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 animate-fadeIn">
       {/* Feedback Toast */}
       {feedback && (
         <div className="fixed top-6 right-6 z-50 animate-fadeIn">
@@ -441,17 +441,22 @@ export default function TeamRolesPermissionsPage() {
       )}
 
       {/* Header Principal */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#263858] pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-purple-600/20 border border-purple-500/40 text-purple-400 shadow-xl">
+            <div className="p-2.5 rounded-2xl bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#A78BFA] shadow-xl">
               <Users className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                Equipo, Roles y Permisos
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded-md bg-[#8B5CF6]/15 text-[#A78BFA] border border-[#8B5CF6]/30 text-[10px] font-black tracking-widest uppercase">
+                  GESTIÓN DE PERSONAL & RBAC
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-[#F8FAFC] tracking-tight">
+                Equipo, Roles y Permisos VIDJSPRO
               </h1>
-              <p className="text-xs sm:text-sm text-zinc-400">
+              <p className="text-xs sm:text-sm text-[#94A3B8]">
                 Asigna roles a tu personal de discoteca y personaliza los permisos operativos de Manager y DJ
               </p>
             </div>
@@ -461,7 +466,7 @@ export default function TeamRolesPermissionsPage() {
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
             onClick={() => setIsAddUserOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-purple-950/60 transition-all cursor-pointer active:scale-95"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] hover:from-[#7C3AED] hover:to-[#4F46E5] text-white font-black text-xs sm:text-sm shadow-lg shadow-violet-600/30 transition-all cursor-pointer active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>Nuevo Miembro</span>
@@ -472,10 +477,10 @@ export default function TeamRolesPermissionsPage() {
               <button
                 onClick={handleResetMatrix}
                 disabled={savingMatrix}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#0D1930] hover:bg-[#111F38] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
                 title="Restablecer a la configuración recomendada"
               >
-                <RotateCcw className="w-4 h-4 text-zinc-400" />
+                <RotateCcw className="w-4 h-4 text-[#64748B]" />
                 <span className="hidden sm:inline">Restablecer</span>
               </button>
 
@@ -485,7 +490,7 @@ export default function TeamRolesPermissionsPage() {
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer shadow-lg ${
                   isMatrixDirty
                     ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-500 hover:to-teal-500 shadow-emerald-950/50 animate-pulse"
-                    : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700"
+                    : "bg-[#0D1930] text-[#64748B] cursor-not-allowed border border-[#263858]"
                 }`}
               >
                 <Save className="w-4 h-4" />
@@ -498,35 +503,35 @@ export default function TeamRolesPermissionsPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800">
-          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">Total Personal</span>
-          <span className="text-2xl font-black text-white mt-1 block">{users.length}</span>
-          <span className="text-[10px] text-zinc-500">Miembros registrados</span>
+        <div className="p-4 rounded-2xl bg-[#111F38] border border-[#263858] shadow-md">
+          <span className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-wider block">Total Personal</span>
+          <span className="text-2xl font-black text-[#F8FAFC] mt-1 block">{users.length}</span>
+          <span className="text-[10px] text-[#64748B]">Miembros registrados</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-purple-950/20 border border-purple-500/30">
-          <span className="text-[11px] font-bold text-purple-300 uppercase tracking-wider block">Managers</span>
-          <span className="text-2xl font-black text-purple-200 mt-1 block">
+        <div className="p-4 rounded-2xl bg-[#111F38] border border-[#8B5CF6]/40 shadow-md">
+          <span className="text-[11px] font-bold text-[#A78BFA] uppercase tracking-wider block">Managers</span>
+          <span className="text-2xl font-black text-[#F8FAFC] mt-1 block">
             {users.filter((u) => u.role === "MANAGER").length}
           </span>
-          <span className="text-[10px] text-purple-400">
+          <span className="text-[10px] text-[#A78BFA]">
             {rolePermissions.MANAGER?.length || 0} permisos activos
           </span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-cyan-950/20 border border-cyan-500/30">
-          <span className="text-[11px] font-bold text-cyan-300 uppercase tracking-wider block">DJs de Cabina</span>
-          <span className="text-2xl font-black text-cyan-200 mt-1 block">
+        <div className="p-4 rounded-2xl bg-[#111F38] border border-[#06B6D4]/40 shadow-md">
+          <span className="text-[11px] font-bold text-[#22D3EE] uppercase tracking-wider block">DJs de Cabina</span>
+          <span className="text-2xl font-black text-[#F8FAFC] mt-1 block">
             {users.filter((u) => u.role === "DJ").length}
           </span>
-          <span className="text-[10px] text-cyan-400">
+          <span className="text-[10px] text-[#22D3EE]">
             {rolePermissions.DJ?.length || 0} permisos activos
           </span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30">
-          <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider block">Staff / Operadores</span>
-          <span className="text-2xl font-black text-emerald-200 mt-1 block">
+        <div className="p-4 rounded-2xl bg-[#111F38] border border-emerald-500/40 shadow-md">
+          <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">Staff / Operadores</span>
+          <span className="text-2xl font-black text-[#F8FAFC] mt-1 block">
             {users.filter((u) => u.role === "OPERATOR").length}
           </span>
           <span className="text-[10px] text-emerald-400">Atención y mesas</span>
@@ -534,18 +539,18 @@ export default function TeamRolesPermissionsPage() {
       </div>
 
       {/* Tabs Selector */}
-      <div className="flex border-b border-zinc-800">
+      <div className="flex border-b border-[#263858]">
         <button
           onClick={() => setActiveTab("members")}
           className={`flex items-center gap-2 py-3 px-5 text-sm font-black border-b-2 transition-all cursor-pointer ${
             activeTab === "members"
-              ? "border-purple-500 text-purple-400 bg-purple-500/10"
-              : "border-transparent text-zinc-400 hover:text-white"
+              ? "border-[#8B5CF6] text-[#A78BFA] bg-[#8B5CF6]/15"
+              : "border-transparent text-[#94A3B8] hover:text-[#F8FAFC]"
           }`}
         >
           <UserCheck className="w-4 h-4" />
           <span>Miembros del Equipo & Asignar Roles</span>
-          <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-[10px] font-mono text-zinc-300">
+          <span className="px-2 py-0.5 rounded-full bg-[#0D1930] text-[10px] font-mono text-[#F8FAFC] border border-[#263858]">
             {users.length}
           </span>
         </button>
@@ -554,8 +559,8 @@ export default function TeamRolesPermissionsPage() {
           onClick={() => setActiveTab("matrix")}
           className={`flex items-center gap-2 py-3 px-5 text-sm font-black border-b-2 transition-all cursor-pointer relative ${
             activeTab === "matrix"
-              ? "border-purple-500 text-purple-400 bg-purple-500/10"
-              : "border-transparent text-zinc-400 hover:text-white"
+              ? "border-[#8B5CF6] text-[#A78BFA] bg-[#8B5CF6]/15"
+              : "border-transparent text-[#94A3B8] hover:text-[#F8FAFC]"
           }`}
         >
           <Sliders className="w-4 h-4" />
@@ -563,7 +568,7 @@ export default function TeamRolesPermissionsPage() {
           {isMatrixDirty && (
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping absolute top-2 right-2" />
           )}
-          <span className="px-2 py-0.5 rounded-full bg-cyan-950 border border-cyan-800 text-[10px] font-mono text-cyan-300">
+          <span className="px-2 py-0.5 rounded-full bg-[#06B6D4]/15 border border-[#06B6D4]/40 text-[10px] font-mono text-[#22D3EE]">
             Configurable
           </span>
         </button>
@@ -573,15 +578,15 @@ export default function TeamRolesPermissionsPage() {
       {activeTab === "members" && (
         <div className="space-y-4 animate-fadeIn">
           {/* Filtros y Buscador */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-2xl bg-zinc-900/60 border border-zinc-800">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-2xl bg-[#111F38] border border-[#263858] shadow-md">
             <div className="relative w-full sm:w-80">
-              <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Buscar por nombre, correo o teléfono..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500"
+                className="w-full bg-[#0D1930] border border-[#263858] rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
               />
             </div>
 
@@ -592,8 +597,8 @@ export default function TeamRolesPermissionsPage() {
                   onClick={() => setRoleFilter(r)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0 ${
                     roleFilter === r
-                      ? "bg-purple-600 text-white"
-                      : "bg-zinc-800/80 text-zinc-400 hover:text-white"
+                      ? "bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] text-white shadow-sm"
+                      : "bg-[#0D1930] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC]"
                   }`}
                 >
                   {r === "ALL" ? "Todos" : r}
@@ -603,20 +608,20 @@ export default function TeamRolesPermissionsPage() {
           </div>
 
           {/* Tabla / Lista de Miembros */}
-          <div className="rounded-3xl bg-zinc-950/80 border border-zinc-800/80 overflow-hidden shadow-xl">
+          <div className="rounded-3xl bg-[#111F38] border border-[#263858] overflow-hidden shadow-xl">
             {loading ? (
               <div className="p-12 text-center space-y-3">
-                <RefreshCw className="w-8 h-8 animate-spin text-purple-400 mx-auto" />
-                <p className="text-xs text-zinc-400">Cargando personal del establecimiento...</p>
+                <RefreshCw className="w-8 h-8 animate-spin text-[#8B5CF6] mx-auto" />
+                <p className="text-xs text-[#94A3B8]">Cargando personal del establecimiento...</p>
               </div>
             ) : filteredUsers.length === 0 ? (
               <div className="p-12 text-center space-y-2">
-                <Users className="w-10 h-10 text-zinc-600 mx-auto" />
-                <p className="text-sm font-bold text-zinc-300">No se encontraron miembros con ese filtro</p>
-                <p className="text-xs text-zinc-500">Prueba ajustando el texto de búsqueda o el rol seleccionado.</p>
+                <Users className="w-10 h-10 text-[#64748B] mx-auto" />
+                <p className="text-sm font-bold text-[#F8FAFC]">No se encontraron miembros con ese filtro</p>
+                <p className="text-xs text-[#64748B]">Prueba ajustando el texto de búsqueda o el rol seleccionado.</p>
               </div>
             ) : (
-              <div className="divide-y divide-zinc-800/80">
+              <div className="divide-y divide-[#263858]">
                 {filteredUsers.map((user) => {
                   const isSelf = currentUser?.id === user.id;
                   const isOwner = user.role === "OWNER";
@@ -624,7 +629,7 @@ export default function TeamRolesPermissionsPage() {
                   return (
                     <div
                       key={user.id}
-                      className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-zinc-900/40 transition-colors"
+                      className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#0D1930]/70 transition-colors"
                     >
                       {/* Avatar e Info */}
                       <div className="flex items-center gap-3.5">
@@ -636,7 +641,7 @@ export default function TeamRolesPermissionsPage() {
                               ? "bg-gradient-to-tr from-purple-600 to-indigo-600 text-white border border-purple-400"
                               : user.role === "DJ"
                               ? "bg-gradient-to-tr from-cyan-600 to-blue-600 text-white border border-cyan-400"
-                              : "bg-zinc-800 text-zinc-300 border border-zinc-700"
+                              : "bg-[#0D1930] text-[#94A3B8] border border-[#263858]"
                           }`}
                         >
                           {user.name.slice(0, 2)}
@@ -644,9 +649,9 @@ export default function TeamRolesPermissionsPage() {
 
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-black text-white text-sm sm:text-base">{user.name}</h3>
+                            <h3 className="font-black text-[#F8FAFC] text-sm sm:text-base">{user.name}</h3>
                             {isSelf && (
-                              <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-purple-950 text-purple-300 border border-purple-800">
+                              <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-[#8B5CF6]/20 text-[#A78BFA] border border-[#8B5CF6]/50">
                                 Tú
                               </span>
                             )}
@@ -654,22 +659,22 @@ export default function TeamRolesPermissionsPage() {
                             <span
                               className={`text-[10px] font-bold px-2 py-0.2 rounded-full ${
                                 user.status === "ACTIVE"
-                                  ? "bg-emerald-950/80 text-emerald-300 border border-emerald-800"
-                                  : "bg-rose-950/80 text-rose-300 border border-rose-800"
+                                  ? "bg-emerald-950/80 text-emerald-300 border border-emerald-500/50"
+                                  : "bg-rose-950/80 text-rose-300 border border-rose-500/50"
                               }`}
                             >
                               {user.status === "ACTIVE" ? "ACTIVO" : "SUSPENDIDO"}
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-3 text-xs text-zinc-400 flex-wrap">
+                          <div className="flex items-center gap-3 text-xs text-[#94A3B8] flex-wrap">
                             <span className="flex items-center gap-1 font-mono">
-                              <Mail className="w-3.5 h-3.5 text-zinc-500" />
+                              <Mail className="w-3.5 h-3.5 text-[#64748B]" />
                               {user.email}
                             </span>
                             {user.phone && (
-                              <span className="flex items-center gap-1 font-mono text-zinc-400">
-                                <Phone className="w-3.5 h-3.5 text-zinc-500" />
+                              <span className="flex items-center gap-1 font-mono text-[#94A3B8]">
+                                <Phone className="w-3.5 h-3.5 text-[#64748B]" />
                                 {user.phone}
                               </span>
                             )}
@@ -681,7 +686,7 @@ export default function TeamRolesPermissionsPage() {
                       <div className="flex items-center gap-2.5 flex-wrap self-end md:self-center">
                         {/* Selector rápido de rol (si no es Owner ni a sí mismo) */}
                         {!isOwner && !isSelf && (
-                          <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-xl p-1">
+                          <div className="flex items-center gap-1 bg-[#0D1930] border border-[#263858] rounded-xl p-1">
                             {(["MANAGER", "DJ", "OPERATOR"] as Role[]).map((r) => (
                               <button
                                 key={r}
@@ -693,7 +698,7 @@ export default function TeamRolesPermissionsPage() {
                                       : r === "DJ"
                                       ? "bg-cyan-600 text-white shadow-sm"
                                       : "bg-emerald-600 text-white shadow-sm"
-                                    : "text-zinc-400 hover:text-white"
+                                    : "text-[#94A3B8] hover:text-[#F8FAFC]"
                                 }`}
                                 title={`Asignar rol ${r}`}
                               >
@@ -709,8 +714,8 @@ export default function TeamRolesPermissionsPage() {
                             onClick={() => handleToggleStatus(user)}
                             className={`p-2 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${
                               user.status === "ACTIVE"
-                                ? "bg-zinc-900 hover:bg-rose-950/60 border-zinc-800 hover:border-rose-700 text-zinc-400 hover:text-rose-300"
-                                : "bg-emerald-950/70 hover:bg-emerald-900 border-emerald-700 text-emerald-200"
+                                ? "bg-[#0D1930] hover:bg-rose-950/60 border-[#263858] hover:border-rose-700 text-[#94A3B8] hover:text-rose-300"
+                                : "bg-emerald-950/80 hover:bg-emerald-900 border-emerald-500 text-emerald-200"
                             }`}
                             title={user.status === "ACTIVE" ? "Suspender acceso" : "Reactivar acceso"}
                           >
@@ -726,7 +731,7 @@ export default function TeamRolesPermissionsPage() {
                               setNewPasswordInput("");
                               setIsResetPasswordOpen(true);
                             }}
-                            className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            className="p-2 rounded-xl bg-[#0D1930] hover:bg-[#1E293B] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer"
                             title="Restablecer contraseña"
                           >
                             <Key className="w-4 h-4" />
@@ -746,7 +751,7 @@ export default function TeamRolesPermissionsPage() {
                               });
                               setIsEditUserOpen(true);
                             }}
-                            className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            className="p-2 rounded-xl bg-[#0D1930] hover:bg-[#1E293B] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer"
                             title="Editar miembro"
                           >
                             <Edit3 className="w-4 h-4" />
@@ -757,7 +762,7 @@ export default function TeamRolesPermissionsPage() {
                         {!isOwner && !isSelf && (
                           <button
                             onClick={() => handleDeleteUser(user)}
-                            className="p-2 rounded-xl bg-zinc-900 hover:bg-rose-900/60 border border-zinc-800 hover:border-rose-700 text-zinc-400 hover:text-rose-300 transition-colors cursor-pointer"
+                            className="p-2 rounded-xl bg-[#0D1930] hover:bg-rose-900/60 border border-[#263858] hover:border-rose-700 text-[#94A3B8] hover:text-rose-300 transition-colors cursor-pointer"
                             title="Eliminar miembro"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -777,15 +782,15 @@ export default function TeamRolesPermissionsPage() {
       {activeTab === "matrix" && (
         <div className="space-y-6 animate-fadeIn">
           {/* Banner de Ayuda y Contexto */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-purple-950/40 via-zinc-900/90 to-cyan-950/40 border border-purple-500/30 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
+          <div className="p-4 sm:p-5 rounded-3xl bg-[#111F38] border border-[#263858] flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
             <div className="space-y-1 text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-2">
-                <ShieldCheck className="w-5 h-5 text-purple-400" />
-                <h2 className="text-base font-black text-white">
+                <ShieldCheck className="w-5 h-5 text-[#8B5CF6]" />
+                <h2 className="text-base font-black text-[#F8FAFC]">
                   Personalización de Permisos para Manager y DJ
                 </h2>
               </div>
-              <p className="text-xs text-zinc-300 max-w-2xl">
+              <p className="text-xs text-[#94A3B8] max-w-2xl">
                 Activa o desactiva qué módulos y acciones puede ejecutar cada rol en tu establecimiento. Los cambios se
                 propagan en tiempo real a las cabinas y pantallas conectadas.
               </p>
@@ -803,19 +808,19 @@ export default function TeamRolesPermissionsPage() {
           {/* Comparador de Roles: Tarjetas Resumen */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* MANAGER CARD */}
-            <div className="p-5 rounded-3xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-purple-950/30 border-2 border-purple-500/40 shadow-xl space-y-3">
+            <div className="p-5 rounded-3xl bg-[#111F38] border-2 border-[#8B5CF6]/50 shadow-xl space-y-3">
               <div className="flex items-center justify-between">
-                <span className="px-3 py-1 rounded-xl bg-purple-600 text-white font-black text-xs uppercase tracking-wider">
+                <span className="px-3 py-1 rounded-xl bg-[#8B5CF6] text-white font-black text-xs uppercase tracking-wider shadow-sm">
                   👔 ROL: MANAGER
                 </span>
-                <span className="text-xs font-mono text-purple-300 font-bold">
+                <span className="text-xs font-mono text-[#A78BFA] font-bold">
                   {rolePermissions.MANAGER?.length || 0} de {permissions.length} permisos
                 </span>
               </div>
-              <p className="text-xs text-zinc-300">
+              <p className="text-xs text-[#94A3B8]">
                 Supervisión del local: mesas, promociones de barra, reportes de recaudación y control de eventos.
               </p>
-              <div className="w-full h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+              <div className="w-full h-2 bg-[#080F1F] rounded-full overflow-hidden border border-[#263858]">
                 <div
                   className="h-full bg-gradient-to-r from-purple-500 to-indigo-400 transition-all duration-300"
                   style={{
@@ -826,19 +831,19 @@ export default function TeamRolesPermissionsPage() {
             </div>
 
             {/* DJ CARD */}
-            <div className="p-5 rounded-3xl bg-gradient-to-bl from-zinc-950 via-zinc-900 to-cyan-950/30 border-2 border-cyan-500/40 shadow-xl space-y-3">
+            <div className="p-5 rounded-3xl bg-[#111F38] border-2 border-[#06B6D4]/50 shadow-xl space-y-3">
               <div className="flex items-center justify-between">
-                <span className="px-3 py-1 rounded-xl bg-cyan-600 text-white font-black text-xs uppercase tracking-wider">
+                <span className="px-3 py-1 rounded-xl bg-[#06B6D4] text-white font-black text-xs uppercase tracking-wider shadow-sm">
                   🎧 ROL: DJ CABINA
                 </span>
-                <span className="text-xs font-mono text-cyan-300 font-bold">
+                <span className="text-xs font-mono text-[#22D3EE] font-bold">
                   {rolePermissions.DJ?.length || 0} de {permissions.length} permisos
                 </span>
               </div>
-              <p className="text-xs text-zinc-300">
+              <p className="text-xs text-[#94A3B8]">
                 Operación musical: cola en vivo, pistas karaoke, moderación de canciones y dinámicas interactivas en TV.
               </p>
-              <div className="w-full h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
+              <div className="w-full h-2 bg-[#080F1F] rounded-full overflow-hidden border border-[#263858]">
                 <div
                   className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 transition-all duration-300"
                   style={{
@@ -858,31 +863,31 @@ export default function TeamRolesPermissionsPage() {
               return (
                 <div
                   key={catKey}
-                  className="rounded-3xl bg-zinc-950/80 border border-zinc-800/80 overflow-hidden shadow-xl"
+                  className="rounded-3xl bg-[#111F38] border border-[#263858] overflow-hidden shadow-xl"
                 >
                   {/* Encabezado de Categoría */}
-                  <div className="px-5 py-4 bg-zinc-900/80 border-b border-zinc-800/80 flex items-center justify-between">
+                  <div className="px-5 py-4 bg-[#0D1930] border-b border-[#263858] flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      {catKey === "dj_music" && <Headphones className="w-5 h-5 text-cyan-400" />}
+                      {catKey === "dj_music" && <Headphones className="w-5 h-5 text-[#06B6D4]" />}
                       {catKey === "screen_karaoke" && <Tv className="w-5 h-5 text-pink-400" />}
-                      {catKey === "venue_tables" && <Building2 className="w-5 h-5 text-purple-400" />}
+                      {catKey === "venue_tables" && <Building2 className="w-5 h-5 text-[#8B5CF6]" />}
                       {catKey === "admin_management" && <ShieldCheck className="w-5 h-5 text-amber-400" />}
                       <div>
-                        <h3 className="font-black text-white text-sm sm:text-base">
+                        <h3 className="font-black text-[#F8FAFC] text-sm sm:text-base">
                           {cat?.label || catKey}
                         </h3>
-                        <p className="text-[11px] text-zinc-400">{cat?.description}</p>
+                        <p className="text-[11px] text-[#94A3B8]">{cat?.description}</p>
                       </div>
                     </div>
 
-                    <div className="hidden sm:flex items-center gap-8 text-xs font-black uppercase tracking-wider text-zinc-400 pr-4">
-                      <span className="w-24 text-center text-purple-400">MANAGER</span>
-                      <span className="w-24 text-center text-cyan-400">DJ</span>
+                    <div className="hidden sm:flex items-center gap-8 text-xs font-black uppercase tracking-wider text-[#94A3B8] pr-4">
+                      <span className="w-24 text-center text-[#A78BFA]">MANAGER</span>
+                      <span className="w-24 text-center text-[#22D3EE]">DJ</span>
                     </div>
                   </div>
 
                   {/* Lista de Permisos en la Categoría */}
-                  <div className="divide-y divide-zinc-800/60">
+                  <div className="divide-y divide-[#263858]">
                     {categoryPermissions.map((perm) => {
                       const managerHas = rolePermissions.MANAGER?.includes(perm.id);
                       const djHas = rolePermissions.DJ?.includes(perm.id);
@@ -890,29 +895,29 @@ export default function TeamRolesPermissionsPage() {
                       return (
                         <div
                           key={perm.id}
-                          className="px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-zinc-900/30 transition-colors"
+                          className="px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#0D1930]/70 transition-colors"
                         >
                           {/* Información del Permiso */}
                           <div className="space-y-0.5 max-w-xl">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-white text-xs sm:text-sm">{perm.label}</span>
-                              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-800">
+                              <span className="font-bold text-[#F8FAFC] text-xs sm:text-sm">{perm.label}</span>
+                              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#0D1930] text-[#94A3B8] border border-[#263858]">
                                 {perm.id}
                               </span>
                             </div>
-                            <p className="text-xs text-zinc-400 leading-relaxed">{perm.description}</p>
+                            <p className="text-xs text-[#94A3B8] leading-relaxed">{perm.description}</p>
                           </div>
 
                           {/* Switches para Manager y DJ */}
-                          <div className="flex items-center justify-between sm:justify-end gap-6 pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-800/40">
+                          <div className="flex items-center justify-between sm:justify-end gap-6 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#263858]">
                             {/* Switch Manager */}
                             <div className="flex items-center gap-2 sm:w-24 sm:justify-center">
-                              <span className="text-[11px] font-bold text-purple-300 sm:hidden">Manager:</span>
+                              <span className="text-[11px] font-bold text-[#A78BFA] sm:hidden">Manager:</span>
                               <button
                                 type="button"
                                 onClick={() => handleTogglePermission("MANAGER", perm.id)}
                                 className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer focus:outline-none ${
-                                  managerHas ? "bg-purple-600 shadow-[0_0_12px_rgba(168,85,247,0.4)]" : "bg-zinc-800"
+                                  managerHas ? "bg-[#8B5CF6] shadow-[0_0_12px_rgba(168,85,247,0.4)]" : "bg-[#0D1930] border border-[#263858]"
                                 }`}
                               >
                                 <span
@@ -925,12 +930,12 @@ export default function TeamRolesPermissionsPage() {
 
                             {/* Switch DJ */}
                             <div className="flex items-center gap-2 sm:w-24 sm:justify-center">
-                              <span className="text-[11px] font-bold text-cyan-300 sm:hidden">DJ:</span>
+                              <span className="text-[11px] font-bold text-[#22D3EE] sm:hidden">DJ:</span>
                               <button
                                 type="button"
                                 onClick={() => handleTogglePermission("DJ", perm.id)}
                                 className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer focus:outline-none ${
-                                  djHas ? "bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]" : "bg-zinc-800"
+                                  djHas ? "bg-[#06B6D4] shadow-[0_0_12px_rgba(6,182,212,0.4)]" : "bg-[#0D1930] border border-[#263858]"
                                 }`}
                               >
                                 <span
@@ -953,10 +958,10 @@ export default function TeamRolesPermissionsPage() {
           {/* Barra Flotante de Guardar si hay cambios */}
           {isMatrixDirty && (
             <div className="sticky bottom-6 z-30 animate-fadeIn">
-              <div className="p-4 rounded-3xl bg-zinc-950/95 border-2 border-purple-500 shadow-2xl backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3 max-w-4xl mx-auto">
+              <div className="p-4 rounded-3xl bg-[#111F38]/95 border-2 border-[#8B5CF6] shadow-2xl backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3 max-w-4xl mx-auto">
                 <div className="flex items-center gap-2.5">
                   <Sparkles className="w-5 h-5 text-amber-400 animate-spin [animation-duration:8s]" />
-                  <span className="text-xs sm:text-sm font-black text-white">
+                  <span className="text-xs sm:text-sm font-black text-[#F8FAFC]">
                     Tienes modificaciones sin guardar en los permisos de Manager y DJ
                   </span>
                 </div>
@@ -964,7 +969,7 @@ export default function TeamRolesPermissionsPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setRolePermissions(initialRolePermissions)}
-                    className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-bold text-zinc-300 cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1E293B] border border-[#263858] text-xs font-bold text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
                   >
                     Descartar
                   </button>
@@ -986,53 +991,53 @@ export default function TeamRolesPermissionsPage() {
       {/* MODAL: AGREGAR NUEVO MIEMBRO */}
       {isAddUserOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-zinc-950 border border-purple-500/40 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
+          <div className="bg-[#111F38] border border-[#263858] rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
             <button
               onClick={() => setIsAddUserOpen(false)}
-              className="absolute top-4 right-4 text-zinc-500 hover:text-white p-1"
+              className="absolute top-4 right-4 text-[#64748B] hover:text-[#F8FAFC] p-1"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-600/20 text-purple-300 border border-purple-500/40 text-[11px] font-black uppercase">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#8B5CF6]/20 text-[#A78BFA] border border-[#8B5CF6]/40 text-[11px] font-black uppercase">
                 <Users className="w-3.5 h-3.5" />
                 <span>Alta de Personal</span>
               </div>
-              <h2 className="text-xl font-black text-white">Nuevo Miembro del Equipo</h2>
-              <p className="text-xs text-zinc-400">
+              <h2 className="text-xl font-black text-[#F8FAFC]">Nuevo Miembro del Equipo</h2>
+              <p className="text-xs text-[#94A3B8]">
                 Registra a un nuevo DJ, Manager o miembro del staff para tu establecimiento.
               </p>
             </div>
 
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-300">Nombre Completo *</label>
+                <label className="text-xs font-bold text-[#94A3B8]">Nombre Completo *</label>
                 <input
                   type="text"
                   required
                   placeholder="ej. Alex Beat"
                   value={newUserData.name}
                   onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#0D1930] border border-[#263858] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-300">Correo Electrónico *</label>
+                <label className="text-xs font-bold text-[#94A3B8]">Correo Electrónico *</label>
                 <input
                   type="email"
                   required
                   placeholder="ej. dj@retrobar.com"
                   value={newUserData.email}
                   onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#0D1930] border border-[#263858] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
                 />
               </div>
 
               {/* Selector de Rol Visual */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-zinc-300">Rol a Asignar *</label>
+                <label className="text-xs font-bold text-[#94A3B8]">Rol a Asignar *</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { id: "MANAGER" as Role, name: "Manager", color: "purple", icon: "👔" },
@@ -1046,11 +1051,11 @@ export default function TeamRolesPermissionsPage() {
                       className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${
                         newUserData.role === r.id
                           ? r.id === "MANAGER"
-                            ? "bg-purple-950/80 border-purple-500 text-white shadow-lg shadow-purple-950/80"
+                            ? "bg-[#8B5CF6]/30 border-[#8B5CF6] text-white shadow-lg shadow-violet-950/80"
                             : r.id === "DJ"
-                            ? "bg-cyan-950/80 border-cyan-500 text-white shadow-lg shadow-cyan-950/80"
+                            ? "bg-[#06B6D4]/30 border-[#06B6D4] text-white shadow-lg shadow-cyan-950/80"
                             : "bg-emerald-950/80 border-emerald-500 text-white shadow-lg shadow-emerald-950/80"
-                          : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                          : "bg-[#0D1930] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC]"
                       }`}
                     >
                       <span className="text-lg block mb-1">{r.icon}</span>
@@ -1062,11 +1067,11 @@ export default function TeamRolesPermissionsPage() {
 
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-zinc-300">Contraseña de Acceso *</label>
+                  <label className="text-xs font-bold text-[#94A3B8]">Contraseña de Acceso *</label>
                   <button
                     type="button"
                     onClick={() => setNewUserData({ ...newUserData, password: generateRandomPassword() })}
-                    className="text-[10px] text-purple-400 hover:text-purple-300 font-semibold cursor-pointer"
+                    className="text-[10px] text-[#A78BFA] hover:text-white font-semibold cursor-pointer"
                   >
                     ⚡ Generar aleatoria
                   </button>
@@ -1077,33 +1082,33 @@ export default function TeamRolesPermissionsPage() {
                   placeholder="Mínimo 6 caracteres"
                   value={newUserData.password}
                   onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white font-mono focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#0D1930] border border-[#263858] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-[#F8FAFC] font-mono placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-300">Teléfono (Opcional)</label>
+                <label className="text-xs font-bold text-[#94A3B8]">Teléfono (Opcional)</label>
                 <input
                   type="text"
                   placeholder="ej. +54 9 11 2233-4455"
                   value={newUserData.phone}
                   onChange={(e) => setNewUserData({ ...newUserData, phone: e.target.value })}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#0D1930] border border-[#263858] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#263858]">
                 <button
                   type="button"
                   onClick={() => setIsAddUserOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-zinc-300 cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-[#0D1930] hover:bg-[#1E293B] border border-[#263858] text-xs font-bold text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submittingUser}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm cursor-pointer shadow-lg shadow-purple-950/60"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] hover:from-[#7C3AED] hover:to-[#4F46E5] text-white font-black text-xs sm:text-sm cursor-pointer shadow-lg shadow-violet-600/30"
                 >
                   {submittingUser ? "Creando..." : "Crear Miembro"}
                 </button>
@@ -1116,34 +1121,34 @@ export default function TeamRolesPermissionsPage() {
       {/* MODAL: EDITAR MIEMBRO */}
       {isEditUserOpen && selectedUser && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-zinc-950 border border-purple-500/40 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
+          <div className="bg-[#111F38] border border-[#263858] rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
             <button
               onClick={() => setIsEditUserOpen(false)}
-              className="absolute top-4 right-4 text-zinc-500 hover:text-white p-1"
+              className="absolute top-4 right-4 text-[#64748B] hover:text-[#F8FAFC] p-1"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="space-y-1">
-              <h2 className="text-xl font-black text-white">Editar Datos y Rol</h2>
-              <p className="text-xs text-zinc-400">Modifica el rol asignado o información de {selectedUser.name}</p>
+              <h2 className="text-xl font-black text-[#F8FAFC]">Editar Datos y Rol</h2>
+              <p className="text-xs text-[#94A3B8]">Modifica el rol asignado o información de {selectedUser.name}</p>
             </div>
 
             <form onSubmit={handleUpdateUser} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-300">Nombre Completo</label>
+                <label className="text-xs font-bold text-[#94A3B8]">Nombre Completo</label>
                 <input
                   type="text"
                   required
                   value={editUserData.name}
                   onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#0D1930] border border-[#263858] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
                 />
               </div>
 
               {/* Selector de Rol */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-zinc-300">Rol Asignado</label>
+                <label className="text-xs font-bold text-[#94A3B8]">Rol Asignado</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { id: "MANAGER" as Role, name: "Manager" },
@@ -1157,11 +1162,11 @@ export default function TeamRolesPermissionsPage() {
                       className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
                         editUserData.role === r.id
                           ? r.id === "MANAGER"
-                            ? "bg-purple-950/80 border-purple-500 text-white font-black"
+                            ? "bg-[#8B5CF6]/30 border-[#8B5CF6] text-white font-black"
                             : r.id === "DJ"
-                            ? "bg-cyan-950/80 border-cyan-500 text-white font-black"
+                            ? "bg-[#06B6D4]/30 border-[#06B6D4] text-white font-black"
                             : "bg-emerald-950/80 border-emerald-500 text-white font-black"
-                          : "bg-zinc-900 border-zinc-800 text-zinc-400"
+                          : "bg-[#0D1930] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC]"
                       }`}
                     >
                       <span className="text-xs block">{r.name}</span>
@@ -1171,17 +1176,17 @@ export default function TeamRolesPermissionsPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-300">Teléfono</label>
+                <label className="text-xs font-bold text-[#94A3B8]">Teléfono</label>
                 <input
                   type="text"
                   value={editUserData.phone}
                   onChange={(e) => setEditUserData({ ...editUserData, phone: e.target.value })}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#0D1930] border border-[#263858] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-300">Estado de la Cuenta</label>
+                <label className="text-xs font-bold text-[#94A3B8]">Estado de la Cuenta</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -1189,7 +1194,7 @@ export default function TeamRolesPermissionsPage() {
                     className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
                       editUserData.status === "ACTIVE"
                         ? "bg-emerald-950/80 border-emerald-500 text-emerald-300"
-                        : "bg-zinc-900 border-zinc-800 text-zinc-400"
+                        : "bg-[#0D1930] border border-[#263858] text-[#94A3B8]"
                     }`}
                   >
                     Activo
@@ -1200,7 +1205,7 @@ export default function TeamRolesPermissionsPage() {
                     className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
                       editUserData.status === "SUSPENDED"
                         ? "bg-rose-950/80 border-rose-500 text-rose-300"
-                        : "bg-zinc-900 border-zinc-800 text-zinc-400"
+                        : "bg-[#0D1930] border border-[#263858] text-[#94A3B8]"
                     }`}
                   >
                     Suspendido
@@ -1208,18 +1213,18 @@ export default function TeamRolesPermissionsPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#263858]">
                 <button
                   type="button"
                   onClick={() => setIsEditUserOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-zinc-300 cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-[#0D1930] hover:bg-[#1E293B] border border-[#263858] text-xs font-bold text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submittingUser}
-                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xs sm:text-sm cursor-pointer shadow-lg"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] hover:from-[#7C3AED] hover:to-[#4F46E5] text-white font-black text-xs sm:text-sm cursor-pointer shadow-lg shadow-violet-600/30"
                 >
                   {submittingUser ? "Guardando..." : "Guardar Cambios"}
                 </button>
@@ -1232,10 +1237,10 @@ export default function TeamRolesPermissionsPage() {
       {/* MODAL: RESTABLECER CONTRASEÑA */}
       {isResetPasswordOpen && selectedUser && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-zinc-950 border border-purple-500/40 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
+          <div className="bg-[#111F38] border border-[#263858] rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
             <button
               onClick={() => setIsResetPasswordOpen(false)}
-              className="absolute top-4 right-4 text-zinc-500 hover:text-white p-1"
+              className="absolute top-4 right-4 text-[#64748B] hover:text-[#F8FAFC] p-1"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1245,20 +1250,20 @@ export default function TeamRolesPermissionsPage() {
                 <Key className="w-3.5 h-3.5" />
                 <span>Seguridad de Acceso</span>
               </div>
-              <h2 className="text-xl font-black text-white">Nueva Contraseña</h2>
-              <p className="text-xs text-zinc-400">
-                Asigna una nueva clave para el acceso de <strong className="text-white">{selectedUser.name}</strong>
+              <h2 className="text-xl font-black text-[#F8FAFC]">Nueva Contraseña</h2>
+              <p className="text-xs text-[#94A3B8]">
+                Asigna una nueva clave para el acceso de <strong className="text-[#F8FAFC]">{selectedUser.name}</strong>
               </p>
             </div>
 
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-zinc-300">Nueva Contraseña *</label>
+                  <label className="text-xs font-bold text-[#94A3B8]">Nueva Contraseña *</label>
                   <button
                     type="button"
                     onClick={() => setNewPasswordInput(generateRandomPassword())}
-                    className="text-[10px] text-purple-400 hover:text-purple-300 font-semibold cursor-pointer"
+                    className="text-[10px] text-[#A78BFA] hover:text-white font-semibold cursor-pointer"
                   >
                     ⚡ Generar aleatoria
                   </button>
@@ -1269,22 +1274,22 @@ export default function TeamRolesPermissionsPage() {
                   placeholder="Mínimo 6 caracteres"
                   value={newPasswordInput}
                   onChange={(e) => setNewPasswordInput(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white font-mono focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#0D1930] border border-[#263858] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-[#F8FAFC] font-mono placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#263858]">
                 <button
                   type="button"
                   onClick={() => setIsResetPasswordOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-zinc-300 cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-[#0D1930] hover:bg-[#1E293B] border border-[#263858] text-xs font-bold text-[#94A3B8] hover:text-[#F8FAFC] cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submittingUser || !newPasswordInput}
-                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xs sm:text-sm cursor-pointer shadow-lg disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] hover:from-[#7C3AED] hover:to-[#4F46E5] text-white font-black text-xs sm:text-sm cursor-pointer shadow-lg shadow-violet-600/30 disabled:opacity-50"
                 >
                   {submittingUser ? "Guardando..." : "Actualizar Clave"}
                 </button>

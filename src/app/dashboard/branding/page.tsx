@@ -219,18 +219,18 @@ export default function BrandingSettingsPage() {
   return (
     <div className="space-y-8 pb-12 animate-fadeIn">
       {/* 1. Header de Página */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#263858] pb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-md bg-purple-600/20 text-purple-400 border border-purple-500/30 text-[10px] font-bold tracking-widest uppercase">
-              WHITE-LABEL & BRANDING
+            <span className="px-2.5 py-0.5 rounded-md bg-[#8B5CF6]/15 text-[#A78BFA] border border-[#8B5CF6]/30 text-[10px] font-black tracking-widest uppercase">
+              WHITE-LABEL & BRANDING VIDJSPRO
             </span>
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
-            <Palette className="w-6 h-6 text-purple-400" />
+          <h1 className="text-2xl font-black text-[#F8FAFC] tracking-tight flex items-center gap-2.5">
+            <Palette className="w-6 h-6 text-[#8B5CF6]" />
             <span>Personalización de Marca para Locales</span>
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">
+          <p className="text-sm text-[#94A3B8] mt-1">
             Adapta los colores temáticos, logos, cintas de anuncios y datos de Wi-Fi de la pantalla TV y el móvil del cliente.
           </p>
         </div>
@@ -240,8 +240,8 @@ export default function BrandingSettingsPage() {
             <div
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border animate-fadeIn ${
                 feedback.type === "success"
-                  ? "bg-emerald-950 text-emerald-200 border-emerald-700"
-                  : "bg-red-950 text-red-200 border-red-700"
+                  ? "bg-emerald-950/80 text-emerald-200 border-emerald-500/40"
+                  : "bg-red-950/80 text-red-200 border-red-500/40"
               }`}
             >
               {feedback.type === "success" ? (
@@ -256,7 +256,7 @@ export default function BrandingSettingsPage() {
           <button
             onClick={handleSave}
             disabled={saving || loading}
-            className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-lg shadow-purple-600/30 disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] hover:from-[#7C3AED] hover:to-[#4F46E5] text-white text-xs font-black flex items-center gap-2 transition-all cursor-pointer shadow-lg shadow-violet-600/30 disabled:opacity-50 active:scale-95"
           >
             {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             <span>{saving ? "Guardando..." : "Guardar Cambios"}</span>
@@ -265,13 +265,13 @@ export default function BrandingSettingsPage() {
       </div>
 
       {/* 2. Selector de Ámbito (Marca Global vs. Local Específico) */}
-      <div className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-4 rounded-2xl bg-[#111F38] border border-[#263858] flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg shadow-black/20">
         <div>
-          <div className="text-xs font-bold text-white flex items-center gap-1.5">
-            <Building2 className="w-4 h-4 text-purple-400" />
+          <div className="text-xs font-black text-[#F8FAFC] flex items-center gap-1.5">
+            <Building2 className="w-4 h-4 text-[#8B5CF6]" />
             <span>Ámbito de Personalización</span>
           </div>
-          <p className="text-[11px] text-zinc-400">
+          <p className="text-[11px] text-[#94A3B8]">
             Define si los cambios aplican a toda la cadena o a una sucursal en particular.
           </p>
         </div>
@@ -281,8 +281,8 @@ export default function BrandingSettingsPage() {
             onClick={() => setSelectedTarget("TENANT")}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
               selectedTarget === "TENANT"
-                ? "bg-purple-600/20 text-purple-300 border-purple-500"
-                : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                ? "bg-[#8B5CF6]/20 text-[#A78BFA] border-[#8B5CF6]/60 shadow-sm"
+                : "bg-[#0D1930] text-[#94A3B8] border-[#263858] hover:text-[#F8FAFC] hover:border-slate-600"
             }`}
           >
             🏢 Marca General (Cadena)
@@ -297,8 +297,8 @@ export default function BrandingSettingsPage() {
             }}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
               selectedTarget === "VENUE"
-                ? "bg-purple-600/20 text-purple-300 border-purple-500"
-                : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                ? "bg-[#8B5CF6]/20 text-[#A78BFA] border-[#8B5CF6]/60 shadow-sm"
+                : "bg-[#0D1930] text-[#94A3B8] border-[#263858] hover:text-[#F8FAFC] hover:border-slate-600"
             }`}
           >
             📍 Local Específico
@@ -308,7 +308,7 @@ export default function BrandingSettingsPage() {
             <select
               value={selectedVenueId}
               onChange={(e) => setSelectedVenueId(e.target.value)}
-              className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-700 text-xs text-white font-medium focus:outline-none focus:border-purple-500"
+              className="px-3 py-1.5 rounded-xl bg-[#0D1930] border border-[#263858] text-xs text-[#F8FAFC] font-medium focus:outline-none focus:border-[#8B5CF6]"
             >
               {venues.map((v) => (
                 <option key={v.id} value={v.id}>
@@ -325,13 +325,13 @@ export default function BrandingSettingsPage() {
         {/* Formulario de Configuración (Col 7) */}
         <div className="lg:col-span-7 space-y-6">
           {/* Paleta y Presets */}
-          <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-4">
+          <div className="p-5 rounded-2xl bg-[#111F38] border border-[#263858] space-y-4 shadow-lg shadow-black/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                <h2 className="text-sm font-bold text-white">Plantillas de Estilo Neón</h2>
+                <h2 className="text-sm font-black text-[#F8FAFC]">Plantillas de Estilo Neón VIDJSPRO</h2>
               </div>
-              <span className="text-[10px] text-zinc-500">1-clic para aplicar</span>
+              <span className="text-[10px] text-[#64748B] font-mono">1-clic para aplicar</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -344,33 +344,33 @@ export default function BrandingSettingsPage() {
                     onClick={() => handleSelectPreset(preset.id)}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden ${
                       isSelected
-                        ? "bg-zinc-900 border-white shadow-lg ring-2 ring-purple-500/50"
-                        : "bg-zinc-950/80 border-zinc-800 hover:border-zinc-700"
+                        ? "bg-[#0D1930] border-[#8B5CF6] shadow-lg ring-2 ring-[#8B5CF6]/50"
+                        : "bg-[#0D1930]/60 border-[#263858] hover:border-slate-600 hover:bg-[#0D1930]"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-white">{preset.name}</span>
+                      <span className="text-xs font-bold text-[#F8FAFC]">{preset.name}</span>
                       <div className="flex items-center gap-1">
                         <span
-                          className="w-3.5 h-3.5 rounded-full border border-black/40"
+                          className="w-3.5 h-3.5 rounded-full border border-black/40 shadow-sm"
                           style={{ backgroundColor: preset.primaryColor }}
                         />
                         <span
-                          className="w-3.5 h-3.5 rounded-full border border-black/40"
+                          className="w-3.5 h-3.5 rounded-full border border-black/40 shadow-sm"
                           style={{ backgroundColor: preset.accentColor }}
                         />
                       </div>
                     </div>
-                    <p className="text-[10px] text-zinc-400 line-clamp-1">{preset.description}</p>
+                    <p className="text-[10px] text-[#94A3B8] line-clamp-1">{preset.description}</p>
                   </button>
                 );
               })}
             </div>
 
             {/* Selectores de Color Manuales */}
-            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-zinc-800/80">
+            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-[#263858]">
               <div>
-                <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                <label className="text-[11px] font-bold text-[#94A3B8] block mb-1">
                   Color Primario (Botones & Acentos)
                 </label>
                 <div className="flex items-center gap-2">
@@ -380,7 +380,7 @@ export default function BrandingSettingsPage() {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, primaryColor: e.target.value }))
                     }
-                    className="w-9 h-9 rounded-lg bg-zinc-950 border border-zinc-800 cursor-pointer p-0.5"
+                    className="w-9 h-9 rounded-lg bg-[#0D1930] border border-[#263858] cursor-pointer p-0.5"
                   />
                   <input
                     type="text"
@@ -388,13 +388,13 @@ export default function BrandingSettingsPage() {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, primaryColor: e.target.value }))
                     }
-                    className="flex-1 px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-white uppercase"
+                    className="flex-1 px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs font-mono text-[#F8FAFC] uppercase focus:outline-none focus:border-[#8B5CF6]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                <label className="text-[11px] font-bold text-[#94A3B8] block mb-1">
                   Color de Resplandor / Destello
                 </label>
                 <div className="flex items-center gap-2">
@@ -404,7 +404,7 @@ export default function BrandingSettingsPage() {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, accentColor: e.target.value }))
                     }
-                    className="w-9 h-9 rounded-lg bg-zinc-950 border border-zinc-800 cursor-pointer p-0.5"
+                    className="w-9 h-9 rounded-lg bg-[#0D1930] border border-[#263858] cursor-pointer p-0.5"
                   />
                   <input
                     type="text"
@@ -412,7 +412,7 @@ export default function BrandingSettingsPage() {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, accentColor: e.target.value }))
                     }
-                    className="flex-1 px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-white uppercase"
+                    className="flex-1 px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs font-mono text-[#F8FAFC] uppercase focus:outline-none focus:border-[#06B6D4]"
                   />
                 </div>
               </div>
@@ -420,13 +420,13 @@ export default function BrandingSettingsPage() {
           </div>
 
           {/* Logotipo y Banner desde Dispositivo */}
-          <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-6">
+          <div className="p-5 rounded-2xl bg-[#111F38] border border-[#263858] space-y-6 shadow-lg shadow-black/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-purple-400" />
-                <h2 className="text-sm font-bold text-white">Logotipo & Portada del Local</h2>
+                <ImageIcon className="w-4 h-4 text-[#8B5CF6]" />
+                <h2 className="text-sm font-black text-[#F8FAFC]">Logotipo & Portada del Local</h2>
               </div>
-              <span className="text-[10px] text-purple-400 bg-purple-950/60 border border-purple-800/60 px-2 py-0.5 rounded-full font-bold">
+              <span className="text-[10px] text-[#A78BFA] bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 px-2 py-0.5 rounded-full font-bold">
                 Carga desde dispositivo
               </span>
             </div>
@@ -434,9 +434,9 @@ export default function BrandingSettingsPage() {
             {/* 1. Logotipo del Establecimiento */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold text-zinc-300 flex items-center gap-1.5">
+                <label className="text-[11px] font-bold text-[#F8FAFC] flex items-center gap-1.5">
                   <span>Logotipo del Establecimiento</span>
-                  <span className="text-zinc-500 font-normal">(PNG transparente, SVG, WebP o JPG)</span>
+                  <span className="text-[#64748B] font-normal">(PNG transparente, SVG, WebP o JPG)</span>
                 </label>
                 {formData.logoUrl && (
                   <button
@@ -464,8 +464,8 @@ export default function BrandingSettingsPage() {
 
               {formData.logoUrl ? (
                 /* Card con Logo Cargado */
-                <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col sm:flex-row items-center gap-4">
-                  <div className="w-24 h-24 rounded-lg bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:8px_8px] bg-zinc-900 border border-zinc-800 p-2 flex items-center justify-center shrink-0 overflow-hidden relative group">
+                <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] flex flex-col sm:flex-row items-center gap-4">
+                  <div className="w-24 h-24 rounded-lg bg-[radial-gradient(#1E293B_1px,transparent_1px)] [background-size:8px_8px] bg-[#080F1F] border border-[#263858] p-2 flex items-center justify-center shrink-0 overflow-hidden relative group">
                     <img
                       src={formData.logoUrl}
                       alt="Logo cargado"
@@ -474,11 +474,11 @@ export default function BrandingSettingsPage() {
                   </div>
 
                   <div className="flex-1 text-center sm:text-left min-w-0">
-                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-800/80 text-[10px] font-bold mb-1">
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold mb-1">
                       <Check className="w-3 h-3" />
                       <span>Logotipo activo en Pantalla TV y Móvil</span>
                     </div>
-                    <p className="text-[11px] text-zinc-400 truncate max-w-xs sm:max-w-md">
+                    <p className="text-[11px] text-[#94A3B8] truncate max-w-xs sm:max-w-md">
                       {formData.logoUrl.startsWith("data:")
                         ? "Archivo cargado en memoria"
                         : formData.logoUrl.split("/").pop()}
@@ -488,7 +488,7 @@ export default function BrandingSettingsPage() {
                         type="button"
                         onClick={() => logoInputRef.current?.click()}
                         disabled={uploadingLogo}
-                        className="px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        className="px-3 py-1 rounded-lg bg-[#111F38] hover:bg-[#1E293B] border border-[#263858] text-[#F8FAFC] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                       >
                         {uploadingLogo ? (
                           <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -517,11 +517,11 @@ export default function BrandingSettingsPage() {
                   onClick={() => logoInputRef.current?.click()}
                   className={`p-6 rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center flex flex-col items-center justify-center gap-2.5 ${
                     logoDragOver
-                      ? "border-purple-500 bg-purple-950/20 shadow-lg shadow-purple-500/10"
-                      : "border-zinc-800 bg-zinc-950 hover:border-zinc-700 hover:bg-zinc-950/80"
+                      ? "border-[#8B5CF6] bg-[#8B5CF6]/15 shadow-lg shadow-violet-500/10"
+                      : "border-[#263858] bg-[#0D1930] hover:border-slate-500 hover:bg-[#0D1930]/80"
                   }`}
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-purple-600/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-2xl bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[#A78BFA] flex items-center justify-center">
                     {uploadingLogo ? (
                       <RefreshCw className="w-6 h-6 animate-spin" />
                     ) : (
@@ -529,14 +529,14 @@ export default function BrandingSettingsPage() {
                     )}
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-white block">
+                    <span className="text-xs font-bold text-[#F8FAFC] block">
                       {uploadingLogo ? "Subiendo archivo..." : "Haz clic o arrastra tu logotipo aquí"}
                     </span>
-                    <span className="text-[10px] text-zinc-400 block mt-0.5">
+                    <span className="text-[10px] text-[#94A3B8] block mt-0.5">
                       Sube el logo de tu local desde este dispositivo (PNG, SVG, WebP o JPG)
                     </span>
                   </div>
-                  <span className="px-3 py-1 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold shadow-md shadow-purple-600/30">
+                  <span className="px-3 py-1 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] hover:from-[#7C3AED] hover:to-[#4F46E5] text-white text-[11px] font-bold shadow-md shadow-violet-600/30">
                     Elegir archivo desde el equipo
                   </span>
                 </div>
@@ -547,7 +547,7 @@ export default function BrandingSettingsPage() {
                 <button
                   type="button"
                   onClick={() => setShowManualUrl((prev) => ({ ...prev, logo: !prev.logo }))}
-                  className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1 cursor-pointer transition-colors"
+                  className="text-[10px] text-[#64748B] hover:text-[#94A3B8] flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <LinkIcon className="w-3 h-3" />
                   <span>{showManualUrl.logo ? "Ocultar opción de enlace URL" : "O pegar enlace web externo"}</span>
@@ -558,18 +558,18 @@ export default function BrandingSettingsPage() {
                     placeholder="https://ejemplo.com/logo.png"
                     value={formData.logoUrl || ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, logoUrl: e.target.value }))}
-                    className="mt-1.5 w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500"
+                    className="mt-1.5 w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
                   />
                 )}
               </div>
             </div>
 
             {/* 2. Banner / Portada del Móvil */}
-            <div className="space-y-2 pt-4 border-t border-zinc-800/80">
+            <div className="space-y-2 pt-4 border-t border-[#263858]">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold text-zinc-300 flex items-center gap-1.5">
+                <label className="text-[11px] font-bold text-[#F8FAFC] flex items-center gap-1.5">
                   <span>Banner / Portada para Móvil de Clientes</span>
-                  <span className="text-zinc-500 font-normal">(Opcional • Recomendado 1200x400)</span>
+                  <span className="text-[#64748B] font-normal">(Opcional • Recomendado 1200x400)</span>
                 </label>
                 {formData.bannerUrl && (
                   <button
@@ -597,8 +597,8 @@ export default function BrandingSettingsPage() {
 
               {formData.bannerUrl ? (
                 /* Card con Banner Cargado */
-                <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-3">
-                  <div className="w-full h-28 rounded-lg overflow-hidden border border-zinc-800 relative bg-zinc-900">
+                <div className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] space-y-3">
+                  <div className="w-full h-28 rounded-lg overflow-hidden border border-[#263858] relative bg-[#080F1F]">
                     <img
                       src={formData.bannerUrl}
                       alt="Banner cargado"
@@ -606,7 +606,7 @@ export default function BrandingSettingsPage() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-800/80 text-[10px] font-bold">
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
                       <Check className="w-3 h-3" />
                       <span>Portada lista para el móvil de los clientes</span>
                     </div>
@@ -614,7 +614,7 @@ export default function BrandingSettingsPage() {
                       type="button"
                       onClick={() => bannerInputRef.current?.click()}
                       disabled={uploadingBanner}
-                      className="px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="px-3 py-1 rounded-lg bg-[#111F38] hover:bg-[#1E293B] border border-[#263858] text-[#F8FAFC] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       {uploadingBanner ? (
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -642,11 +642,11 @@ export default function BrandingSettingsPage() {
                   onClick={() => bannerInputRef.current?.click()}
                   className={`p-6 rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center flex flex-col items-center justify-center gap-2.5 ${
                     bannerDragOver
-                      ? "border-cyan-500 bg-cyan-950/20 shadow-lg shadow-cyan-500/10"
-                      : "border-zinc-800 bg-zinc-950 hover:border-zinc-700 hover:bg-zinc-950/80"
+                      ? "border-[#06B6D4] bg-[#06B6D4]/15 shadow-lg shadow-cyan-500/10"
+                      : "border-[#263858] bg-[#0D1930] hover:border-slate-500 hover:bg-[#0D1930]/80"
                   }`}
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-cyan-600/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-2xl bg-[#06B6D4]/15 border border-[#06B6D4]/30 text-[#22D3EE] flex items-center justify-center">
                     {uploadingBanner ? (
                       <RefreshCw className="w-6 h-6 animate-spin" />
                     ) : (
@@ -654,14 +654,14 @@ export default function BrandingSettingsPage() {
                     )}
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-white block">
+                    <span className="text-xs font-bold text-[#F8FAFC] block">
                       {uploadingBanner ? "Subiendo archivo..." : "Haz clic o arrastra la imagen de portada aquí"}
                     </span>
-                    <span className="text-[10px] text-zinc-400 block mt-0.5">
+                    <span className="text-[10px] text-[#94A3B8] block mt-0.5">
                       Foto de barra, flyer de la noche o banner horizontal (JPG, PNG, WebP)
                     </span>
                   </div>
-                  <span className="px-3 py-1 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] font-bold shadow-md shadow-cyan-600/30">
+                  <span className="px-3 py-1 rounded-xl bg-gradient-to-r from-[#06B6D4] to-[#0284C7] hover:from-[#0891B2] hover:to-[#0369A1] text-white text-[11px] font-bold shadow-md shadow-cyan-600/30">
                     Elegir portada desde el equipo
                   </span>
                 </div>
@@ -672,7 +672,7 @@ export default function BrandingSettingsPage() {
                 <button
                   type="button"
                   onClick={() => setShowManualUrl((prev) => ({ ...prev, banner: !prev.banner }))}
-                  className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1 cursor-pointer transition-colors"
+                  className="text-[10px] text-[#64748B] hover:text-[#94A3B8] flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <LinkIcon className="w-3 h-3" />
                   <span>{showManualUrl.banner ? "Ocultar opción de enlace URL" : "O pegar enlace web externo"}</span>
@@ -683,7 +683,7 @@ export default function BrandingSettingsPage() {
                     placeholder="https://ejemplo.com/banner.jpg"
                     value={formData.bannerUrl || ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, bannerUrl: e.target.value }))}
-                    className="mt-1.5 w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500"
+                    className="mt-1.5 w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#06B6D4]"
                   />
                 )}
               </div>
@@ -691,15 +691,15 @@ export default function BrandingSettingsPage() {
           </div>
 
           {/* Textos y Marquesina */}
-          <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-4">
+          <div className="p-5 rounded-2xl bg-[#111F38] border border-[#263858] space-y-4 shadow-lg shadow-black/20">
             <div className="flex items-center gap-2">
-              <Radio className="w-4 h-4 text-cyan-400" />
-              <h2 className="text-sm font-bold text-white">Textos de Bienvenida & Marquesina TV</h2>
+              <Radio className="w-4 h-4 text-[#06B6D4]" />
+              <h2 className="text-sm font-black text-[#F8FAFC]">Textos de Bienvenida & Marquesina TV</h2>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                <label className="text-[11px] font-bold text-[#F8FAFC] block mb-1">
                   Título de Bienvenida en Móvil
                 </label>
                 <input
@@ -709,12 +709,12 @@ export default function BrandingSettingsPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, welcomeTitle: e.target.value }))
                   }
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                <label className="text-[11px] font-bold text-[#F8FAFC] block mb-1">
                   Cinta de Anuncios y Promociones (Marquesina TV & Móvil)
                 </label>
                 <input
@@ -724,9 +724,9 @@ export default function BrandingSettingsPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, marqueeText: e.target.value }))
                   }
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
                 />
-                <span className="text-[10px] text-zinc-500 mt-1 block">
+                <span className="text-[10px] text-[#64748B] mt-1 block">
                   Se proyectará animada en la parte superior de la Smart TV y en el móvil de los clientes.
                 </span>
               </div>
@@ -734,36 +734,36 @@ export default function BrandingSettingsPage() {
           </div>
 
           {/* Promoción Activa de Barra & Ofertas Flash */}
-          <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-4">
+          <div className="p-5 rounded-2xl bg-[#111F38] border border-[#263858] space-y-4 shadow-lg shadow-black/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Flame className="w-4 h-4 text-amber-400" />
-                <h2 className="text-sm font-bold text-white">Promoción Activa de Barra & Ofertas (Flash Deals)</h2>
+                <h2 className="text-sm font-black text-[#F8FAFC]">Promoción Activa de Barra & Ofertas (Flash Deals)</h2>
               </div>
-              <span className="text-[10px] text-amber-400 bg-amber-950/60 border border-amber-800/60 px-2 py-0.5 rounded-full font-bold">
+              <span className="text-[10px] text-amber-300 bg-amber-950/60 border border-amber-700/60 px-2 py-0.5 rounded-full font-bold">
                 TV & Móvil
               </span>
             </div>
 
-            <p className="text-[11px] text-zinc-400">
+            <p className="text-[11px] text-[#94A3B8]">
               Personaliza la promoción de barra que se muestra a los comensales en su celular y en la barra superior de la Smart TV.
             </p>
 
             {/* Toggle de Activación */}
-            <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+            <div className="p-3.5 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                   formData.activePromo?.enabled !== false
                     ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                    : "bg-zinc-800 text-zinc-500"
+                    : "bg-[#111F38] text-[#64748B]"
                 }`}>
                   <Zap className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-xs font-bold text-white block">
+                  <span className="text-xs font-bold text-[#F8FAFC] block">
                     Mostrar Promoción Activa al Público
                   </span>
-                  <span className="text-[10px] text-zinc-400">
+                  <span className="text-[10px] text-[#94A3B8]">
                     Visible en la barra superior de la Smart TV y en el móvil de cada mesa.
                   </span>
                 </div>
@@ -776,21 +776,21 @@ export default function BrandingSettingsPage() {
                   onChange={(e) => updateActivePromo({ enabled: e.target.checked })}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500" />
+                <div className="w-11 h-6 bg-[#111F38] border border-[#263858] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500" />
               </label>
             </div>
 
             {formData.activePromo?.enabled !== false && (
               <div className="space-y-4 pt-2 animate-fadeIn">
                 {/* Selector de Modo: Personalizada vs Automática */}
-                <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-zinc-950 border border-zinc-800">
+                <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#0D1930] border border-[#263858]">
                   <button
                     type="button"
                     onClick={() => updateActivePromo({ enabled: true, mode: "CUSTOM" })}
                     className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       formData.activePromo?.mode !== "AUTO"
                         ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
-                        : "text-zinc-400 hover:text-zinc-200"
+                        : "text-[#94A3B8] hover:text-[#F8FAFC]"
                     }`}
                   >
                     ✨ Personalizada (Tu propia promo)
@@ -801,8 +801,8 @@ export default function BrandingSettingsPage() {
                     onClick={() => updateActivePromo({ enabled: true, mode: "AUTO" })}
                     className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       formData.activePromo?.mode === "AUTO"
-                        ? "bg-purple-600/20 text-purple-300 border border-purple-500/40 shadow-sm"
-                        : "text-zinc-400 hover:text-zinc-200"
+                        ? "bg-[#8B5CF6]/20 text-[#A78BFA] border border-[#8B5CF6]/40 shadow-sm"
+                        : "text-[#94A3B8] hover:text-[#F8FAFC]"
                     }`}
                   >
                     🤖 Automática (Modo Demo Dinámico)
@@ -810,11 +810,11 @@ export default function BrandingSettingsPage() {
                 </div>
 
                 {formData.activePromo?.mode === "AUTO" ? (
-                  <div className="p-3.5 rounded-xl bg-purple-950/20 border border-purple-800/40 text-xs text-zinc-300 space-y-1.5">
-                    <div className="font-bold text-purple-300 flex items-center gap-1.5">
+                  <div className="p-3.5 rounded-xl bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-xs text-[#94A3B8] space-y-1.5">
+                    <div className="font-bold text-[#A78BFA] flex items-center gap-1.5">
                       <span>⚡ Modo Demo Dinámico Activado</span>
                     </div>
-                    <p className="text-[11px] text-zinc-400">
+                    <p className="text-[11px] text-[#94A3B8]">
                       El sistema rota automáticamente entre ofertas sugeridas según la energía del local:
                       Calentamiento de pista (2x1 Cerveza), Happy Hour relámpago, Trago de autor y Brindis colectivo cumbre.
                     </p>
@@ -823,7 +823,7 @@ export default function BrandingSettingsPage() {
                   <div className="space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                        <label className="text-[11px] font-bold text-[#94A3B8] block mb-1">
                           Insignia / Etiqueta
                         </label>
                         <input
@@ -831,12 +831,12 @@ export default function BrandingSettingsPage() {
                           placeholder="PROMO ACTIVA"
                           value={formData.activePromo?.badgeText || ""}
                           onChange={(e) => updateActivePromo({ badgeText: e.target.value })}
-                          className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 font-bold uppercase"
+                          className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-amber-500 font-bold uppercase"
                         />
                       </div>
 
                       <div className="sm:col-span-2">
-                        <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                        <label className="text-[11px] font-bold text-[#94A3B8] block mb-1">
                           Título de la Promoción
                         </label>
                         <input
@@ -844,14 +844,14 @@ export default function BrandingSettingsPage() {
                           placeholder="🍸 2x1 en Cócteles Clásicos & Gin"
                           value={formData.activePromo?.title || ""}
                           onChange={(e) => updateActivePromo({ title: e.target.value })}
-                          className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 font-medium"
+                          className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-amber-500 font-medium"
                         />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                        <label className="text-[11px] font-bold text-[#94A3B8] block mb-1">
                           Descuento o Beneficio Principal
                         </label>
                         <input
@@ -859,12 +859,12 @@ export default function BrandingSettingsPage() {
                           placeholder="2x1 hasta las 00:00 hs • 25% OFF"
                           value={formData.activePromo?.discount || ""}
                           onChange={(e) => updateActivePromo({ discount: e.target.value })}
-                          className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                          className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-amber-500"
                         />
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                        <label className="text-[11px] font-bold text-[#94A3B8] block mb-1">
                           Botón de Acción
                         </label>
                         <input
@@ -872,13 +872,13 @@ export default function BrandingSettingsPage() {
                           placeholder="Pedir en Barra"
                           value={formData.activePromo?.callToAction || ""}
                           onChange={(e) => updateActivePromo({ callToAction: e.target.value })}
-                          className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 font-bold"
+                          className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-amber-500 font-bold"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                      <label className="text-[11px] font-bold text-[#94A3B8] block mb-1">
                         Instrucciones para el Cliente (Subtítulo)
                       </label>
                       <input
@@ -886,7 +886,7 @@ export default function BrandingSettingsPage() {
                         placeholder="Muestra esta pantalla al barman para canjear tu beneficio"
                         value={formData.activePromo?.subtitle || ""}
                         onChange={(e) => updateActivePromo({ subtitle: e.target.value })}
-                        className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                        className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -896,15 +896,15 @@ export default function BrandingSettingsPage() {
           </div>
 
           {/* Wi-Fi y Redes Sociales */}
-          <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-4">
+          <div className="p-5 rounded-2xl bg-[#111F38] border border-[#263858] space-y-4 shadow-lg shadow-black/20">
             <div className="flex items-center gap-2">
               <Wifi className="w-4 h-4 text-emerald-400" />
-              <h2 className="text-sm font-bold text-white">Wi-Fi de Mesa & Redes Sociales</h2>
+              <h2 className="text-sm font-black text-[#F8FAFC]">Wi-Fi de Mesa & Redes Sociales</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                <label className="text-[11px] font-bold text-[#94A3B8] block mb-1">
                   Nombre de Red Wi-Fi (SSID)
                 </label>
                 <input
@@ -914,12 +914,12 @@ export default function BrandingSettingsPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, wifiSsid: e.target.value }))
                   }
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                <label className="text-[11px] font-bold text-[#94A3B8] block mb-1">
                   Contraseña de Wi-Fi
                 </label>
                 <input
@@ -929,12 +929,12 @@ export default function BrandingSettingsPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, wifiPassword: e.target.value }))
                   }
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                <label className="text-[11px] font-bold text-[#94A3B8] block mb-1">
                   Usuario de Instagram
                 </label>
                 <input
@@ -944,12 +944,12 @@ export default function BrandingSettingsPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, instagramHandle: e.target.value }))
                   }
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                <label className="text-[11px] font-bold text-[#94A3B8] block mb-1">
                   WhatsApp para Reservas / Contacto
                 </label>
                 <input
@@ -959,7 +959,7 @@ export default function BrandingSettingsPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, whatsappNumber: e.target.value }))
                   }
-                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-[#0D1930] border border-[#263858] rounded-xl text-xs text-[#F8FAFC] placeholder-[#64748B] focus:outline-none focus:border-[#8B5CF6]"
                 />
               </div>
             </div>
@@ -971,41 +971,41 @@ export default function BrandingSettingsPage() {
           <div className="sticky top-6 space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-cyan-400" />
-                <h2 className="text-sm font-bold text-white">Vista Previa en Tiempo Real</h2>
+                <Eye className="w-4 h-4 text-[#06B6D4]" />
+                <h2 className="text-sm font-black text-[#F8FAFC]">Vista Previa en Tiempo Real</h2>
               </div>
-              <span className="text-[10px] font-mono text-zinc-500">Live Simulator</span>
+              <span className="text-[10px] font-mono text-[#64748B] uppercase tracking-wider">Live Simulator</span>
             </div>
 
             {/* Simulación Pantalla TV */}
-            <div className="rounded-2xl bg-black border-2 border-zinc-800 p-4 shadow-2xl relative overflow-hidden">
-              <div className="flex items-center justify-between pb-2 border-b border-zinc-800 text-[10px] font-bold text-zinc-400">
+            <div className="rounded-2xl bg-[#080F1F] border-2 border-[#263858] p-4 shadow-2xl relative overflow-hidden">
+              <div className="flex items-center justify-between pb-2 border-b border-[#263858] text-[10px] font-bold text-[#94A3B8]">
                 <div className="flex items-center gap-1.5">
-                  <Tv className="w-3.5 h-3.5 text-purple-400" />
-                  <span>SMART TV (1080p / 4K)</span>
+                  <Tv className="w-3.5 h-3.5 text-[#8B5CF6]" />
+                  <span className="font-mono">SMART TV (1080p / 4K)</span>
                 </div>
-                <span className="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 text-[9px]">
+                <span className="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 text-[9px] font-black">
                   EN VIVO
                 </span>
               </div>
 
               {/* Marquesina TV en Preview */}
               {formData.marqueeText && (
-                <div className="my-2 py-1 px-2 rounded bg-purple-950/60 border border-purple-800/60 text-[9px] font-bold text-purple-200 truncate animate-pulse text-center">
+                <div className="my-2 py-1 px-2 rounded bg-[#8B5CF6]/15 border border-[#8B5CF6]/30 text-[9px] font-bold text-[#A78BFA] truncate animate-pulse text-center">
                   ✨ {formData.marqueeText}
                 </div>
               )}
 
               {/* Promo Activa TV en Preview */}
               {formData.activePromo?.enabled !== false && (
-                <div className="my-2 py-1 px-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-400 text-zinc-950 font-bold text-[9px] flex items-center justify-between shadow-md">
+                <div className="my-2 py-1 px-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-bold text-[9px] flex items-center justify-between shadow-md">
                   <div className="flex items-center gap-1.5 truncate">
-                    <span className="px-1.5 py-0.2 rounded-full bg-zinc-950 text-amber-400 text-[8px] font-black uppercase">
+                    <span className="px-1.5 py-0.2 rounded-full bg-slate-950 text-amber-400 text-[8px] font-black uppercase">
                       {formData.activePromo?.badgeText || "PROMO ACTIVA"}
                     </span>
                     <span className="truncate">⚡ {formData.activePromo?.title || "Happy Hour en Barra"}</span>
                   </div>
-                  <span className="font-semibold text-zinc-900 text-[9px] shrink-0 truncate ml-2">
+                  <span className="font-bold text-slate-900 text-[9px] shrink-0 truncate ml-2">
                     {formData.activePromo?.discount}
                   </span>
                 </div>
@@ -1014,7 +1014,7 @@ export default function BrandingSettingsPage() {
               {/* Header TV en Preview */}
               <div className="flex items-center gap-3 my-3">
                 {formData.logoUrl ? (
-                  <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 p-1 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-[#0D1930] border border-[#263858] p-1 flex items-center justify-center shrink-0">
                     <img
                       src={formData.logoUrl}
                       alt="Logo"
@@ -1023,51 +1023,51 @@ export default function BrandingSettingsPage() {
                   </div>
                 ) : (
                   <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-md"
                     style={{ backgroundColor: formData.primaryColor }}
                   >
                     <Disc3 className="w-5 h-5 animate-spin" />
                   </div>
                 )}
                 <div>
-                  <div className="text-xs font-black text-white">
+                  <div className="text-xs font-black text-[#F8FAFC]">
                     {formData.welcomeTitle || "RETRO BAR & KARAOKE"}
                   </div>
-                  <div className="text-[10px] text-zinc-400">Viernes de Karaoke Pop</div>
+                  <div className="text-[10px] text-[#94A3B8]">Viernes de Karaoke Pop</div>
                 </div>
               </div>
 
               {/* Now Playing Mockup */}
-              <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-[#111F38] border border-[#263858] flex items-center gap-3 shadow-inner">
                 <div
                   className="w-12 h-12 rounded-full border-2 flex items-center justify-center text-white shrink-0"
                   style={{
                     borderColor: formData.primaryColor,
-                    backgroundColor: "#000",
+                    backgroundColor: "#080F1F",
                   }}
                 >
                   <Disc3 className="w-6 h-6 animate-spin [animation-duration:4s]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-black text-white truncate">Bohemian Rhapsody</div>
+                  <div className="text-xs font-black text-[#F8FAFC] truncate">Bohemian Rhapsody</div>
                   <div
                     className="text-[10px] font-bold truncate"
                     style={{ color: formData.primaryColor }}
                   >
                     Queen
                   </div>
-                  <div className="text-[9px] text-zinc-400 mt-0.5">Mesa 4 &bull; Carlos M.</div>
+                  <div className="text-[9px] text-[#64748B] mt-0.5">Mesa 4 &bull; Carlos M.</div>
                 </div>
               </div>
             </div>
 
             {/* Simulación Móvil del Cliente */}
-            <div className="max-w-[320px] mx-auto rounded-3xl bg-zinc-950 border-4 border-zinc-800 p-4 shadow-2xl relative">
-              <div className="w-24 h-3 rounded-full bg-zinc-850 mx-auto mb-3" />
+            <div className="max-w-[320px] mx-auto rounded-3xl bg-[#080F1F] border-4 border-[#263858] p-4 shadow-2xl relative">
+              <div className="w-24 h-3 rounded-full bg-[#111F38] border border-[#263858] mx-auto mb-3" />
 
               {/* Banner de Portada en Preview si existe */}
               {formData.bannerUrl && (
-                <div className="mb-3 rounded-xl overflow-hidden h-20 w-full border border-zinc-800 relative bg-zinc-900">
+                <div className="mb-3 rounded-xl overflow-hidden h-20 w-full border border-[#263858] relative bg-[#0D1930]">
                   <img
                     src={formData.bannerUrl}
                     alt="Portada"
@@ -1077,13 +1077,13 @@ export default function BrandingSettingsPage() {
               )}
 
               {/* Header Móvil */}
-              <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <div className="flex items-center justify-between pb-3 border-b border-[#263858]">
                 <div className="flex items-center gap-2">
                   {formData.logoUrl ? (
                     <img
                       src={formData.logoUrl}
                       alt="Logo"
-                      className="w-6 h-6 rounded object-contain bg-zinc-900"
+                      className="w-6 h-6 rounded object-contain bg-[#0D1930]"
                     />
                   ) : (
                     <div
@@ -1093,7 +1093,7 @@ export default function BrandingSettingsPage() {
                       VB
                     </div>
                   )}
-                  <span className="text-[11px] font-bold text-white truncate max-w-[120px]">
+                  <span className="text-[11px] font-bold text-[#F8FAFC] truncate max-w-[120px]">
                     {formData.welcomeTitle || "Retro Bar"}
                   </span>
                 </div>
@@ -1110,43 +1110,43 @@ export default function BrandingSettingsPage() {
 
               {/* Wi-Fi Móvil en Preview */}
               {formData.wifiSsid && (
-                <div className="my-2.5 p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-[10px] flex items-center justify-between">
+                <div className="my-2.5 p-2 rounded-xl bg-[#0D1930] border border-[#263858] text-[10px] flex items-center justify-between">
                   <div className="flex items-center gap-1.5 truncate">
-                    <Wifi className="w-3 h-3 text-cyan-400 shrink-0" />
-                    <span className="text-zinc-300 truncate">
-                      Wi-Fi: <strong className="text-white">{formData.wifiSsid}</strong>
+                    <Wifi className="w-3 h-3 text-[#06B6D4] shrink-0" />
+                    <span className="text-[#94A3B8] truncate">
+                      Wi-Fi: <strong className="text-[#F8FAFC]">{formData.wifiSsid}</strong>
                     </span>
                   </div>
-                  <span className="text-[9px] font-mono text-zinc-500">Clave lista</span>
+                  <span className="text-[9px] font-mono text-[#64748B]">Clave lista</span>
                 </div>
               )}
 
               {/* Promo Activa Móvil en Preview */}
               {formData.activePromo?.enabled !== false && (
-                <div className="my-2.5 p-2 rounded-xl bg-gradient-to-r from-amber-950/80 via-zinc-950 to-purple-950/80 border border-amber-500/60 flex items-center justify-between gap-1.5 shadow-md">
+                <div className="my-2.5 p-2 rounded-xl bg-gradient-to-r from-amber-950/80 via-[#0D1930] to-purple-950/80 border border-amber-500/50 flex items-center justify-between gap-1.5 shadow-md">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1">
                       <span className="text-[8px] font-black uppercase px-1 rounded bg-black/60 text-amber-300">
                         {formData.activePromo?.badgeText || "PROMO ACTIVA"}
                       </span>
-                      <span className="text-[10px] font-black text-white truncate">
+                      <span className="text-[10px] font-black text-[#F8FAFC] truncate">
                         {formData.activePromo?.title || "Happy Hour"}
                       </span>
                     </div>
-                    <p className="text-[9px] text-zinc-300 font-bold truncate">
+                    <p className="text-[9px] text-[#94A3B8] font-bold truncate">
                       {formData.activePromo?.discount}
                     </p>
                   </div>
-                  <span className="px-1.5 py-0.5 rounded bg-white text-black font-black text-[8px] uppercase shrink-0 shadow-sm">
+                  <span className="px-1.5 py-0.5 rounded bg-white text-slate-950 font-black text-[8px] uppercase shrink-0 shadow-sm">
                     {formData.activePromo?.callToAction || "Pedir"}
                   </span>
                 </div>
               )}
 
               {/* Botón de Pedido Móvil con Color Primario */}
-              <div className="my-3 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
-                <div className="text-[10px] font-bold text-white">Catálogo de Canciones</div>
-                <div className="h-6 rounded-lg bg-zinc-800/80 text-[10px] text-zinc-400 px-2 flex items-center">
+              <div className="my-3 p-3 rounded-xl bg-[#0D1930] border border-[#263858] space-y-2">
+                <div className="text-[10px] font-bold text-[#F8FAFC]">Catálogo de Canciones</div>
+                <div className="h-6 rounded-lg bg-[#111F38] border border-[#263858] text-[10px] text-[#64748B] px-2 flex items-center">
                   🔍 Buscar artista o canción...
                 </div>
                 <button
@@ -1160,8 +1160,8 @@ export default function BrandingSettingsPage() {
 
               {/* Redes Sociales en Preview */}
               {formData.instagramHandle && (
-                <div className="pt-2 border-t border-zinc-800/60 text-center text-[10px] text-zinc-400 font-medium">
-                  📸 Síguenos: <span className="text-purple-300 font-bold">{formData.instagramHandle}</span>
+                <div className="pt-2 border-t border-[#263858] text-center text-[10px] text-[#94A3B8] font-medium">
+                  📸 Síguenos: <span className="text-[#A78BFA] font-bold">{formData.instagramHandle}</span>
                 </div>
               )}
             </div>
