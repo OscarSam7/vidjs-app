@@ -230,7 +230,7 @@ export default function DjSoundboard({ mode = "DJ" }: DjSoundboardProps) {
   const currentPads = activeTab === "KARAOKE" ? karaokePads : djPads;
 
   return (
-    <div className="py-2 px-2.5 sm:px-3 rounded-xl bg-[#0D1930] border border-[#263858] w-full max-w-full overflow-hidden shadow-sm">
+    <div className="py-2 px-2.5 sm:px-3 rounded-xl bg-zinc-950/90 border border-zinc-800/80 w-full max-w-full overflow-hidden shadow-sm">
       {/* Barra de cabecera ultra compacta */}
       <div className="flex items-center justify-between gap-2 text-left">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -243,25 +243,25 @@ export default function DjSoundboard({ mode = "DJ" }: DjSoundboardProps) {
           >
             <Volume2 className="w-3 h-3" />
           </div>
-          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[#F8FAFC] truncate">
+          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-zinc-300 truncate">
             {activeTab === "KARAOKE"
               ? "🎤 KJ Stage FX (10 Pads)"
               : "🎧 DJ Launchpad FX (10 Pads)"}
           </span>
-          <span className="text-[9px] font-mono text-[#64748B] hidden lg:inline">
+          <span className="text-[9px] font-mono text-zinc-500 hidden lg:inline">
             • 0ms Web Audio
           </span>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
           {/* Selector de modo DJ vs Karaoke */}
-          <div className="flex items-center p-0.5 rounded-md bg-[#080F1F] border border-[#263858] text-[10px] font-bold">
+          <div className="flex items-center p-0.5 rounded-md bg-zinc-900 border border-zinc-800 text-[10px] font-bold">
             <button
               onClick={() => setActiveTab("DJ")}
               className={`px-1.5 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
                 activeTab === "DJ"
                   ? "bg-purple-600 text-white shadow-sm"
-                  : "text-[#94A3B8] hover:text-[#F8FAFC]"
+                  : "text-zinc-400 hover:text-white"
               }`}
               title="Cambiar a Launchpad DJ"
             >
@@ -273,7 +273,7 @@ export default function DjSoundboard({ mode = "DJ" }: DjSoundboardProps) {
               className={`px-1.5 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
                 activeTab === "KARAOKE"
                   ? "bg-cyan-600 text-white shadow-sm"
-                  : "text-[#94A3B8] hover:text-[#F8FAFC]"
+                  : "text-zinc-400 hover:text-white"
               }`}
               title="Cambiar a Soundboard Karaoke"
             >
@@ -285,7 +285,7 @@ export default function DjSoundboard({ mode = "DJ" }: DjSoundboardProps) {
           {/* Botón para colapsar/expandir sin desplazar la pantalla */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1 rounded-md text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1A2E56] transition-colors cursor-pointer"
+            className="p-1 rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
             title={isCollapsed ? "Expandir pads de efectos" : "Minimizar pads de efectos"}
           >
             {isCollapsed ? (
@@ -308,7 +308,7 @@ export default function DjSoundboard({ mode = "DJ" }: DjSoundboardProps) {
                 onClick={() => triggerSound(pad.id, pad.action)}
                 className={`h-11 sm:h-12 py-1 px-1 rounded-lg border bg-gradient-to-b transition-all duration-150 flex flex-col items-center justify-center gap-0.5 cursor-pointer select-none group relative overflow-hidden shrink-0 ${
                   pad.color
-                } ${isActive ? pad.borderActive : "hover:border-[#3B527E] hover:brightness-110 active:scale-95"}`}
+                } ${isActive ? pad.borderActive : "hover:border-zinc-500 hover:brightness-110 active:scale-95"}`}
               >
                 {isActive && (
                   <div className="absolute inset-0 bg-white/20 animate-pulse pointer-events-none" />
@@ -320,7 +320,7 @@ export default function DjSoundboard({ mode = "DJ" }: DjSoundboardProps) {
                   <div className="text-[10px] sm:text-[11px] font-black tracking-tight text-white truncate leading-tight">
                     {pad.name}
                   </div>
-                  <div className="text-[8px] font-mono text-[#94A3B8] font-bold uppercase truncate leading-none">
+                  <div className="text-[8px] font-mono text-zinc-400 font-bold uppercase truncate leading-none">
                     {pad.label}
                   </div>
                 </div>

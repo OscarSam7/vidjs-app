@@ -1017,18 +1017,18 @@ export default function ContestDashboardPage() {
   const currentPerformance = contest?.currentPerformance;
 
   return (
-    <div className="min-h-screen bg-[#080F1F] text-[#F8FAFC] p-4 sm:p-6 lg:p-8 space-y-6 animate-fadeIn">
+    <div className="min-h-screen bg-zinc-950 text-white p-4 sm:p-6 lg:p-8 space-y-6">
       {/* ============================================================ */}
       {/* 1. TOP HEADER DEL CAMPEONATO & SELECTOR                      */}
       {/* ============================================================ */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#111F38] border border-[#263858] p-5 rounded-3xl shadow-2xl backdrop-blur-md">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-zinc-900/80 border border-zinc-800 p-5 rounded-3xl shadow-2xl backdrop-blur-md">
         <div className="flex items-center gap-3.5">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center text-slate-950 shadow-xl shadow-amber-500/20">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center text-zinc-950 shadow-xl shadow-amber-500/20">
             <Trophy className="w-8 h-8" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-[#F8FAFC] tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
                 {contest?.name || "Concurso de Karaoke Pro"}
               </h1>
               {contest && (
@@ -1037,8 +1037,8 @@ export default function ContestDashboardPage() {
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#94A3B8] font-medium">
-              Gestión multidía, jurados móviles, votación en vivo, pantalla gigante y actas oficiales VIDJSPRO.
+            <p className="text-xs text-zinc-400 font-medium">
+              Gestión multidía, jurados móviles, votación en vivo, pantalla gigante y actas oficiales.
             </p>
           </div>
         </div>
@@ -1049,7 +1049,7 @@ export default function ContestDashboardPage() {
             <select
               value={selectedContestId || ""}
               onChange={(e) => setSelectedContestId(e.target.value)}
-              className="bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs font-bold px-3 py-2.5 rounded-xl outline-none focus:border-[#8B5CF6]"
+              className="bg-zinc-950 border border-zinc-700 text-white text-xs font-bold px-3 py-2.5 rounded-xl outline-none"
             >
               {contests.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -1062,7 +1062,7 @@ export default function ContestDashboardPage() {
           {/* Botón Nuevo Concurso */}
           <button
             onClick={() => setShowNewContestModal(true)}
-            className="px-4 py-2.5 rounded-xl bg-[#0D1930] hover:bg-[#1E293B] border border-[#263858] text-[#F8FAFC] text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md"
+            className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md"
           >
             <Plus className="w-4 h-4 text-amber-400" />
             <span>Nuevo Certamen</span>
@@ -1073,7 +1073,7 @@ export default function ContestDashboardPage() {
             <Link
               href={`/display/${contest.code}/contest`}
               target="_blank"
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] hover:from-[#7C3AED] hover:to-[#4F46E5] text-white text-xs font-black flex items-center gap-2 shadow-lg shadow-violet-600/30 transition-all cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black flex items-center gap-2 shadow-lg shadow-purple-900/30 transition-all cursor-pointer"
             >
               <Tv className="w-4 h-4" />
               <span>Pantalla TV Show</span>
@@ -1088,10 +1088,10 @@ export default function ContestDashboardPage() {
         <div
           className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-2.5 shadow-xl transition-all ${
             feedbackMsg.type === "success"
-              ? "bg-emerald-950/90 border border-emerald-500/80 text-emerald-200"
+              ? "bg-emerald-950/90 border border-emerald-500 text-emerald-200"
               : feedbackMsg.type === "error"
-              ? "bg-red-950/90 border border-red-500/80 text-red-200"
-              : "bg-blue-950/90 border border-blue-500/80 text-blue-200"
+              ? "bg-red-950/90 border border-red-500 text-red-200"
+              : "bg-blue-950/90 border border-blue-500 text-blue-200"
           }`}
         >
           {feedbackMsg.type === "success" ? (
@@ -1106,7 +1106,7 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {/* 2. PESTAÑAS DE NAVEGACIÓN                                    */}
       {/* ============================================================ */}
-      <div className="flex items-center gap-2 border-b border-[#263858] pb-3 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-zinc-800 pb-3 overflow-x-auto">
         {[
           { id: "stage", label: "Control de Escenario en Vivo", icon: Flame },
           { id: "tableVotes", label: `Votos de Mesas (${globalTableVotes?.totalVotes || 0})`, icon: QrCode },
@@ -1125,8 +1125,8 @@ export default function ContestDashboardPage() {
               onClick={() => setActiveTab(tab.id as any)}
               className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
                 isActive
-                  ? "bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-lg shadow-amber-500/20 scale-[1.02]"
-                  : "bg-[#0D1930] hover:bg-[#111F38] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858]"
+                  ? "bg-amber-400 text-zinc-950 shadow-lg shadow-amber-500/20 scale-[1.02]"
+                  : "bg-zinc-900/60 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800"
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -1142,11 +1142,11 @@ export default function ContestDashboardPage() {
       {activeTab === "stage" && (
         <div className="space-y-6">
           {/* Selector de Gala Activa */}
-          <div className="flex items-center justify-between flex-wrap gap-3 bg-[#111F38] border border-[#263858] p-4 rounded-2xl shadow-md">
+          <div className="flex items-center justify-between flex-wrap gap-3 bg-zinc-900/60 border border-zinc-800 p-4 rounded-2xl">
             <div className="flex items-center gap-2.5">
               <Calendar className="w-5 h-5 text-amber-400" />
-              <span className="text-xs font-bold text-[#94A3B8]">Gala / Fecha en Curso:</span>
-              <span className="text-xs font-black text-amber-400 px-3 py-1 rounded-xl bg-[#0D1930] border border-[#263858]">
+              <span className="text-xs font-bold text-zinc-300">Gala / Fecha en Curso:</span>
+              <span className="text-xs font-black text-amber-400 px-3 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
                 {activeStage?.title || "Sin fecha activa"}
               </span>
             </div>
@@ -1154,7 +1154,7 @@ export default function ContestDashboardPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowNewParticipantModal(true)}
-                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>+ Inscribir Cantante a Esta Gala</span>
@@ -1164,7 +1164,7 @@ export default function ContestDashboardPage() {
 
           {/* TARJETA HERO: CANTANTE ACTUALMENTE EN ESCENARIO */}
           {currentPerformance ? (
-            <div className="bg-gradient-to-r from-[#111F38] via-[#1E293B] to-[#111F38] border-2 border-amber-500/60 p-6 rounded-3xl shadow-2xl space-y-6">
+            <div className="bg-gradient-to-r from-zinc-900 via-amber-950/20 to-zinc-900 border-2 border-amber-500/60 p-6 rounded-3xl shadow-2xl space-y-6">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping" />
@@ -1178,7 +1178,7 @@ export default function ContestDashboardPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   {currentPerformance.participant.tableLabel && (
-                    <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#0D1930] text-[#94A3B8] border border-[#263858]">
+                    <span className="text-xs font-bold px-3 py-1 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700">
                       {currentPerformance.participant.tableLabel}
                     </span>
                   )}
@@ -1189,7 +1189,7 @@ export default function ContestDashboardPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-5">
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-[#8B5CF6] to-pink-500 flex items-center justify-center text-white font-black text-3xl shadow-2xl shrink-0 overflow-hidden">
+                <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white font-black text-3xl shadow-2xl shrink-0 overflow-hidden">
                   {currentPerformance.participant.photoUrl ? (
                     <img
                       src={currentPerformance.participant.photoUrl}
@@ -1202,7 +1202,7 @@ export default function ContestDashboardPage() {
                 </div>
 
                 <div className="space-y-1.5 text-center sm:text-left flex-1 min-w-0">
-                  <h3 className="text-2xl sm:text-3xl font-black text-[#F8FAFC] truncate">
+                  <h3 className="text-2xl sm:text-3xl font-black text-white truncate">
                     {currentPerformance.participant.stageName || currentPerformance.participant.name}
                   </h3>
                   <div className="flex items-center justify-center sm:justify-start gap-2 text-sm text-amber-300 font-bold">
@@ -1211,9 +1211,9 @@ export default function ContestDashboardPage() {
                       "{currentPerformance.songTitle}" &bull; {currentPerformance.artistName}
                     </span>
                   </div>
-                  <p className="text-xs text-[#94A3B8]">
+                  <p className="text-xs text-zinc-400">
                     Votos de jurados recibidos:{" "}
-                    <strong className="text-[#F8FAFC]">
+                    <strong className="text-white">
                       {currentPerformance.judgeScores?.length || 0} de {contest?.judges.length || 0}
                     </strong>
                   </p>
@@ -1222,16 +1222,16 @@ export default function ContestDashboardPage() {
                 {/* BOTÓN RÁPIDO CARGAR EN CABINA DJ */}
                 <button
                   onClick={() => handleSendToDjBooth(currentPerformance)}
-                  className="px-5 py-3 rounded-2xl bg-[#0D1930] hover:bg-[#1E293B] border border-[#263858] text-[#A78BFA] hover:text-white text-xs font-black flex items-center gap-2 shadow-lg transition-all cursor-pointer whitespace-nowrap"
+                  className="px-5 py-3 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-purple-300 hover:text-purple-200 text-xs font-black flex items-center gap-2 shadow-lg transition-all cursor-pointer whitespace-nowrap"
                   title="Carga la canción automáticamente en la consola de DJ o Karaoke"
                 >
-                  <Disc3 className="w-4 h-4 text-[#8B5CF6] animate-spin [animation-duration:4s]" />
+                  <Disc3 className="w-4 h-4 text-purple-400 animate-spin [animation-duration:4s]" />
                   <span>Cargar en Bandeja DJ</span>
                 </button>
               </div>
 
               {/* BOTONERA DE CONTROL DE LA GALA */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-[#263858]">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-zinc-800/80">
                 {/* 1. Abrir Votación */}
                 <button
                   onClick={() => handlePerformanceAction(currentPerformance.id, "OPEN_VOTING")}
@@ -1256,7 +1256,7 @@ export default function ContestDashboardPage() {
                 <button
                   onClick={() => handlePerformanceAction(currentPerformance.id, "REVEAL_SCORES")}
                   disabled={actionLoading}
-                  className="py-3 px-4 rounded-xl bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
+                  className="py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>Revelar en TV</span>
@@ -1266,7 +1266,7 @@ export default function ContestDashboardPage() {
                 <button
                   onClick={() => handlePerformanceAction(currentPerformance.id, "TRIGGER_GOLDEN_BUZZER")}
                   disabled={actionLoading}
-                  className="py-3 px-4 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-yellow-500/30 cursor-pointer"
+                  className="py-3 px-4 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-yellow-500/30 cursor-pointer"
                 >
                   <Crown className="w-4 h-4" />
                   <span>Golden Buzzer</span>
@@ -1275,7 +1275,7 @@ export default function ContestDashboardPage() {
 
               {/* Monitor de Votación de Jurados en Tiempo Real */}
               <div className="space-y-2 pt-2">
-                <span className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-wider block">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
                   Estado de la Mesa de Jurados:
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1286,21 +1286,21 @@ export default function ContestDashboardPage() {
                         key={j.id}
                         className={`p-3 rounded-2xl border flex items-center justify-between ${
                           score
-                            ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-200"
-                            : "bg-[#0D1930] border-[#263858] text-[#94A3B8]"
+                            ? "bg-emerald-950/40 border-emerald-500/50 text-emerald-200"
+                            : "bg-zinc-950/60 border-zinc-800 text-zinc-500"
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
                           <div
                             className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
-                              score ? "bg-emerald-500 text-slate-950" : "bg-[#111F38] text-[#94A3B8]"
+                              score ? "bg-emerald-500 text-zinc-950" : "bg-zinc-800 text-zinc-400"
                             }`}
                           >
                             {j.name.charAt(0)}
                           </div>
                           <div>
-                            <span className="text-xs font-bold text-[#F8FAFC] block">{j.name}</span>
-                            <span className="text-[10px] text-[#94A3B8]">{j.title}</span>
+                            <span className="text-xs font-bold text-white block">{j.name}</span>
+                            <span className="text-[10px] text-zinc-400">{j.title}</span>
                           </div>
                         </div>
 
@@ -1322,10 +1322,10 @@ export default function ContestDashboardPage() {
               </div>
 
               {/* Monitor de Votación de Mesas y Clientes en Tiempo Real */}
-              <div className="space-y-3 pt-4 border-t border-[#263858]">
+              <div className="space-y-3 pt-4 border-t border-zinc-800/80">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-wider block">
+                    <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
                       🗳️ Votación de Mesas en Vivo ({publicVotesAudit?.totalVotes ?? currentPerformance.publicVotes?.length ?? 0} celulares):
                     </span>
                     <span className="text-xs font-mono font-bold text-amber-400 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30">
@@ -1336,13 +1336,13 @@ export default function ContestDashboardPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setShowPublicVotesModal(true)}
-                      className="px-3 py-1.5 rounded-xl bg-[#0D1930] hover:bg-[#1E293B] border border-[#263858] text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                      className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                     >
                       <span>🔍 Auditar Votos de Mesas</span>
                     </button>
                     <button
                       onClick={() => setActiveTab("tableVotes")}
-                      className="px-3 py-1.5 rounded-xl bg-[#0D1930] hover:bg-[#1E293B] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                     >
                       <QrCode className="w-3.5 h-3.5 text-amber-400" />
                       <span>Ver Resumen de Mesas</span>
@@ -1355,13 +1355,13 @@ export default function ContestDashboardPage() {
                     {publicVotesAudit.votesByTable.map((t) => (
                       <div
                         key={t.tableLabel}
-                        className="p-3 rounded-2xl bg-[#0D1930] border border-[#263858] flex items-center justify-between"
+                        className="p-3 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between"
                       >
                         <div className="truncate">
-                          <span className="text-xs font-bold text-[#F8FAFC] block truncate">
+                          <span className="text-xs font-bold text-white block truncate">
                             {t.tableLabel}
                           </span>
-                          <span className="text-[10px] text-[#94A3B8]">
+                          <span className="text-[10px] text-zinc-400">
                             {t.votersCount} {t.votersCount === 1 ? "voto" : "votos"}
                           </span>
                         </div>
@@ -1380,27 +1380,27 @@ export default function ContestDashboardPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-3.5 rounded-2xl bg-[#0D1930]/40 border border-[#263858]/60 text-center text-xs text-[#94A3B8] flex items-center justify-center gap-2">
-                    <QrCode className="w-4 h-4 text-[#64748B]" />
+                  <div className="p-3.5 rounded-2xl bg-zinc-950/40 border border-zinc-800/60 text-center text-xs text-zinc-500 flex items-center justify-center gap-2">
+                    <QrCode className="w-4 h-4 text-zinc-600" />
                     <span>Esperando votos del público de las mesas para esta presentación...</span>
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            <div className="p-8 rounded-3xl bg-[#111F38] border border-[#263858] text-center space-y-3 shadow-lg">
+            <div className="p-8 rounded-3xl bg-zinc-900/60 border border-zinc-800 text-center space-y-3">
               <Mic className="w-10 h-10 mx-auto text-amber-400/60" />
-              <h3 className="text-base font-bold text-[#F8FAFC]">No hay ningún cantante en escenario actualmente</h3>
-              <p className="text-xs text-[#94A3B8] max-w-md mx-auto">
+              <h3 className="text-base font-bold text-white">No hay ningún cantante en escenario actualmente</h3>
+              <p className="text-xs text-zinc-400 max-w-md mx-auto">
                 Selecciona a un cantante de la lista de actuaciones a continuación y haz clic en "Llamar al Escenario".
               </p>
             </div>
           )}
 
           {/* LISTA DE ACTUACIONES DE LA GALA */}
-          <div className="bg-[#111F38] border border-[#263858] p-5 rounded-3xl space-y-4 shadow-xl">
+          <div className="bg-zinc-900/60 border border-zinc-800 p-5 rounded-3xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black text-[#F8FAFC] uppercase tracking-wider flex items-center gap-2">
+              <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
                 <Users className="w-4 h-4 text-amber-400" />
                 <span>Orden de Actuaciones de la Gala ({activePerformances.length})</span>
               </h3>
@@ -1414,20 +1414,20 @@ export default function ContestDashboardPage() {
                     className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
                       perf.status === "ON_STAGE" || perf.status === "VOTING_OPEN"
                         ? "bg-amber-950/30 border-amber-500/60 shadow-lg"
-                        : "bg-[#0D1930] border-[#263858] hover:border-slate-500"
+                        : "bg-zinc-950/70 border-zinc-800 hover:border-zinc-700"
                     }`}
                   >
                     <div className="flex items-center gap-3.5">
-                      <span className="w-8 h-8 rounded-xl bg-[#111F38] border border-[#263858] text-[#F8FAFC] font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                      <span className="w-8 h-8 rounded-xl bg-zinc-800 text-zinc-300 font-mono font-bold text-xs flex items-center justify-center shrink-0">
                         #{index + 1}
                       </span>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-black text-[#F8FAFC]">
+                          <h4 className="text-sm font-black text-white">
                             {perf.participant.stageName || perf.participant.name}
                           </h4>
                           {perf.participant.tableLabel && (
-                            <span className="text-[10px] px-2 py-0.2 rounded-full bg-[#111F38] text-[#94A3B8] border border-[#263858]">
+                            <span className="text-[10px] px-2 py-0.2 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
                               {perf.participant.tableLabel}
                             </span>
                           )}
@@ -1445,7 +1445,7 @@ export default function ContestDashboardPage() {
 
                     <div className="flex items-center gap-2 self-end sm:self-auto">
                       {perf.totalScore > 0 && (
-                        <span className="text-xs font-mono font-black text-yellow-300 px-3 py-1 rounded-xl bg-[#080F1F] border border-[#263858]">
+                        <span className="text-xs font-mono font-black text-yellow-300 px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-700">
                           {perf.totalScore} pts
                         </span>
                       )}
@@ -1453,7 +1453,7 @@ export default function ContestDashboardPage() {
                       <button
                         onClick={() => handlePerformanceAction(perf.id, "CALL_TO_STAGE")}
                         disabled={actionLoading || perf.status === "ON_STAGE"}
-                        className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                        className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                       >
                         <Mic className="w-3.5 h-3.5" />
                         <span>Llamar al Escenario</span>
@@ -1461,7 +1461,7 @@ export default function ContestDashboardPage() {
 
                       <button
                         onClick={() => handleSendToDjBooth(perf)}
-                        className="p-2 rounded-xl bg-[#0D1930] hover:bg-[#1E293B] text-[#A78BFA] border border-[#263858] transition-colors cursor-pointer"
+                        className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-purple-300 border border-zinc-700 transition-colors cursor-pointer"
                         title="Cargar pista en consola DJ"
                       >
                         <Disc3 className="w-4 h-4" />
@@ -1471,7 +1471,7 @@ export default function ContestDashboardPage() {
                 ))}
               </div>
             ) : (
-              <div className="p-6 text-center text-[#94A3B8] text-xs">
+              <div className="p-6 text-center text-zinc-500 text-xs">
                 No hay cantantes programados para esta gala. Usa el botón "+ Inscribir Cantante" para comenzar.
               </div>
             )}
@@ -1485,14 +1485,14 @@ export default function ContestDashboardPage() {
       {activeTab === "tableVotes" && (
         <div className="space-y-6">
           {/* Cabecera y Resumen */}
-          <div className="bg-[#111F38] border border-[#263858] p-6 rounded-3xl space-y-4 shadow-xl">
+          <div className="bg-zinc-900/60 border border-zinc-800 p-6 rounded-3xl space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
-                <h3 className="text-base font-black text-[#F8FAFC] uppercase tracking-wider flex items-center gap-2">
+                <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
                   <QrCode className="w-5 h-5 text-amber-400" />
                   <span>Auditoría de Votos de Mesas y Clientes</span>
                 </h3>
-                <p className="text-xs text-[#94A3B8]">
+                <p className="text-xs text-zinc-400">
                   Control en tiempo real de calificaciones emitidas por los comensales presentes con validación estricta de código QR
                 </p>
               </div>
@@ -1500,7 +1500,7 @@ export default function ContestDashboardPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => selectedContestId && fetchGlobalTableVotes(selectedContestId)}
-                  className="px-3.5 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1E293B] border border-[#263858] text-[#F8FAFC] text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Actualizar Votos</span>
@@ -1510,38 +1510,38 @@ export default function ContestDashboardPage() {
 
             {/* Tarjetas Métricas Rápidas */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-              <div className="p-4 rounded-2xl bg-[#0D1930] border border-[#263858]">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] block">
+              <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
                   Total Votos de Mesas
                 </span>
-                <span className="text-2xl font-black text-[#F8FAFC] mt-1 block">
+                <span className="text-2xl font-black text-white mt-1 block">
                   {globalTableVotes?.totalVotes || 0}
                 </span>
-                <span className="text-[10px] text-[#64748B]">Emitidos desde celulares</span>
+                <span className="text-[10px] text-zinc-500">Emitidos desde celulares</span>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#0D1930] border border-[#263858]">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] block">
+              <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
                   Promedio de Estrellas
                 </span>
                 <span className="text-2xl font-black text-amber-400 mt-1 block flex items-center gap-1">
                   ⭐ {globalTableVotes?.avgStars || 0}
                 </span>
-                <span className="text-[10px] text-[#64748B]">De un máximo de 5.0</span>
+                <span className="text-[10px] text-zinc-500">De un máximo de 5.0</span>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#0D1930] border border-[#263858]">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] block">
+              <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
                   Mesas Participantes
                 </span>
-                <span className="text-2xl font-black text-[#F8FAFC] mt-1 block">
+                <span className="text-2xl font-black text-white mt-1 block">
                   {globalTableVotes?.byTable?.length || 0}
                 </span>
-                <span className="text-[10px] text-[#64748B]">Mesas con votos válidos</span>
+                <span className="text-[10px] text-zinc-500">Mesas con votos válidos</span>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#0D1930] border border-[#263858]">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] block">
+              <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
                   Seguridad y Presencia
                 </span>
                 <span className="text-sm font-black text-emerald-400 mt-1 block flex items-center gap-1.5">
@@ -1556,27 +1556,27 @@ export default function ContestDashboardPage() {
           {/* ============================================================ */}
           {/* GESTIÓN DE CONSUMO MÍNIMO Y SÚPER VOTOS (X2) POR MESA       */}
           {/* ============================================================ */}
-          <div className="bg-[#111F38] border border-amber-500/30 p-6 rounded-3xl space-y-5 shadow-xl">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#263858] pb-4">
+          <div className="bg-zinc-900/80 border border-amber-500/30 p-6 rounded-3xl space-y-5 shadow-xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
               <div>
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-amber-400" />
-                  <h3 className="text-base font-black text-[#F8FAFC] uppercase tracking-wider">
+                  <h3 className="text-base font-black text-white uppercase tracking-wider">
                     Gestión de Consumo Mínimo & Súper Votos por Mesa
                   </h3>
                   <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-xs font-black border border-amber-500/40">
                     Control de Mozos / Barra
                   </span>
                 </div>
-                <p className="text-xs text-[#94A3B8] mt-1 leading-relaxed">
+                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
                   Garantiza que solo las mesas con consumo confirmado puedan votar. Activa el <strong>Súper Voto</strong> (peso doble x2) a mesas destacadas.
                 </p>
               </div>
 
               {/* Interruptor de Política de Consumo */}
-              <div className="flex items-center gap-3 bg-[#0D1930] p-2.5 rounded-2xl border border-[#263858] shrink-0">
+              <div className="flex items-center gap-3 bg-zinc-950 p-2.5 rounded-2xl border border-zinc-800 shrink-0">
                 <div className="text-right">
-                  <span className="text-[10px] uppercase font-bold text-[#94A3B8] block">Exigir Consumo:</span>
+                  <span className="text-[10px] uppercase font-bold text-zinc-400 block">Exigir Consumo:</span>
                   <span
                     className={`text-xs font-black ${
                       contest?.requireConsumption !== false ? "text-amber-400" : "text-emerald-400"
@@ -1590,8 +1590,8 @@ export default function ContestDashboardPage() {
                   onClick={handleToggleRequireConsumption}
                   className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                     contest?.requireConsumption !== false
-                      ? "bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 hover:from-amber-400 hover:to-yellow-300 shadow-md shadow-amber-500/30"
-                      : "bg-[#111F38] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858]"
+                      ? "bg-amber-500 text-black hover:bg-amber-400 shadow-md shadow-amber-500/30"
+                      : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
                   }`}
                 >
                   {contest?.requireConsumption !== false ? "Desactivar" : "Activar Exigencia"}
@@ -1600,8 +1600,8 @@ export default function ContestDashboardPage() {
             </div>
 
             {/* Barra de Validación Rápida por Mozo o Barra */}
-            <div className="bg-[#0D1930] p-4 rounded-2xl border border-[#263858] space-y-3">
-              <span className="text-[11px] font-black uppercase tracking-wider text-[#F8FAFC] block">
+            <div className="bg-zinc-950/70 p-4 rounded-2xl border border-zinc-800 space-y-3">
+              <span className="text-[11px] font-black uppercase tracking-wider text-zinc-300 block">
                 ⚡ Validación Rápida de Mesa
               </span>
               <div className="flex flex-col sm:flex-row items-center gap-2.5">
@@ -1610,14 +1610,14 @@ export default function ContestDashboardPage() {
                   placeholder="Ej: Mesa 7, VIP 2, Barra 1..."
                   value={quickTableInput}
                   onChange={(e) => setQuickTableInput(e.target.value)}
-                  className="w-full sm:w-64 p-2.5 rounded-xl bg-[#111F38] border border-[#263858] text-[#F8FAFC] text-xs font-bold outline-none placeholder:text-[#64748B] focus:border-amber-400"
+                  className="w-full sm:w-64 p-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs font-bold outline-none placeholder:text-zinc-600 focus:border-amber-400"
                 />
                 <input
                   type="text"
                   placeholder="Nota u observaciones (opcional)"
                   value={quickNotesInput}
                   onChange={(e) => setQuickNotesInput(e.target.value)}
-                  className="w-full sm:flex-1 p-2.5 rounded-xl bg-[#111F38] border border-[#263858] text-[#F8FAFC] text-xs outline-none placeholder:text-[#64748B] focus:border-amber-400"
+                  className="w-full sm:flex-1 p-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs outline-none placeholder:text-zinc-600 focus:border-amber-400"
                 />
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <button
@@ -1647,7 +1647,7 @@ export default function ContestDashboardPage() {
                       setQuickTableInput("");
                       setQuickNotesInput("");
                     }}
-                    className="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shadow-amber-500/30"
+                    className="flex-1 sm:flex-none px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shadow-amber-500/30"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>🌟 Súper Voto (x2)</span>
@@ -1702,8 +1702,8 @@ export default function ContestDashboardPage() {
                         onClick={() => setTableStatusFilter("ALL")}
                         className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                           tableStatusFilter === "ALL"
-                            ? "bg-[#8B5CF6] text-white shadow-sm"
-                            : "bg-[#0D1930] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858]"
+                            ? "bg-zinc-800 text-white border border-zinc-600"
+                            : "bg-zinc-950 text-zinc-400 hover:text-white"
                         }`}
                       >
                         Todas ({tablesList.length})
@@ -1714,7 +1714,7 @@ export default function ContestDashboardPage() {
                         className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
                           tableStatusFilter === "VERIFIED"
                             ? "bg-emerald-950/80 text-emerald-300 border border-emerald-500/50"
-                            : "bg-[#0D1930] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858]"
+                            : "bg-zinc-950 text-zinc-400 hover:text-white"
                         }`}
                       >
                         <span className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -1726,7 +1726,7 @@ export default function ContestDashboardPage() {
                         className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
                           tableStatusFilter === "SUPER_VOTE"
                             ? "bg-amber-950/80 text-amber-300 border border-amber-500/50"
-                            : "bg-[#0D1930] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858]"
+                            : "bg-zinc-950 text-zinc-400 hover:text-white"
                         }`}
                       >
                         <Sparkles className="w-3 h-3 text-yellow-400" />
@@ -1737,8 +1737,8 @@ export default function ContestDashboardPage() {
                         onClick={() => setTableStatusFilter("PENDING")}
                         className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
                           tableStatusFilter === "PENDING"
-                            ? "bg-[#111F38] text-[#F8FAFC] border border-[#263858]"
-                            : "bg-[#0D1930] text-[#94A3B8] hover:text-[#F8FAFC] border border-[#263858]"
+                            ? "bg-zinc-800 text-zinc-300 border border-zinc-600"
+                            : "bg-zinc-950 text-zinc-400 hover:text-white"
                         }`}
                       >
                         <span className="w-2 h-2 rounded-full bg-amber-500" />
@@ -1749,7 +1749,7 @@ export default function ContestDashboardPage() {
                     <button
                       type="button"
                       onClick={() => contest && fetchTableConsumptions(contest.id)}
-                      className="text-xs font-bold text-[#94A3B8] hover:text-amber-400 flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-bold text-zinc-400 hover:text-amber-400 flex items-center gap-1 cursor-pointer"
                     >
                       <RefreshCw className="w-3 h-3" />
                       <span>Actualizar lista</span>
@@ -1763,19 +1763,19 @@ export default function ContestDashboardPage() {
                           key={tbl.tableLabel}
                           className={`p-3.5 rounded-2xl border transition-all space-y-3 ${
                             tbl.status === "SUPER_VOTE"
-                              ? "bg-gradient-to-br from-amber-950/50 via-[#111F38] to-[#0D1930] border-amber-500/60 shadow-lg shadow-amber-950/30"
+                              ? "bg-gradient-to-br from-amber-950/50 via-zinc-900 to-zinc-950 border-amber-500/60 shadow-lg shadow-amber-950/30"
                               : tbl.status === "VERIFIED"
-                              ? "bg-[#0D1930] border-emerald-500/40"
-                              : "bg-[#0D1930] border-[#263858]"
+                              ? "bg-zinc-950/90 border-emerald-500/40"
+                              : "bg-zinc-950/60 border-zinc-800"
                           }`}
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <span className="text-sm font-black text-[#F8FAFC] block">
+                              <span className="text-sm font-black text-white block">
                                 {tbl.tableLabel}
                               </span>
                               {tbl.notes && (
-                                <span className="text-[10px] text-[#94A3B8] italic block">
+                                <span className="text-[10px] text-zinc-400 italic block">
                                   {tbl.notes}
                                 </span>
                               )}
@@ -1800,7 +1800,7 @@ export default function ContestDashboardPage() {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between text-[11px] text-[#94A3B8] border-t border-[#263858] pt-2 font-mono">
+                          <div className="flex items-center justify-between text-[11px] text-zinc-400 border-t border-zinc-900 pt-2 font-mono">
                             <span>Votos emitidos: {tbl.totalVotes}</span>
                             <span>Promedio: ⭐ {tbl.avgStars}</span>
                           </div>
@@ -1813,7 +1813,7 @@ export default function ContestDashboardPage() {
                               className={`py-1.5 px-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
                                 tbl.status === "VERIFIED"
                                   ? "bg-emerald-600 text-white font-black"
-                                  : "bg-[#111F38] hover:bg-emerald-950/60 text-emerald-400 border border-[#263858] hover:border-emerald-500/40"
+                                  : "bg-zinc-900 hover:bg-emerald-950/60 text-emerald-400 border border-zinc-800 hover:border-emerald-500/40"
                               }`}
                               title="Validar consumo normal (1.0x)"
                             >
@@ -1827,7 +1827,7 @@ export default function ContestDashboardPage() {
                               className={`py-1.5 px-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
                                 tbl.status === "SUPER_VOTE"
                                   ? "bg-amber-400 text-black font-black"
-                                  : "bg-[#111F38] hover:bg-amber-950/60 text-amber-400 border border-[#263858] hover:border-amber-500/40"
+                                  : "bg-zinc-900 hover:bg-amber-950/60 text-amber-400 border border-zinc-800 hover:border-amber-500/40"
                               }`}
                               title="Asignar beneficio de Súper Voto doble (2.0x)"
                             >
@@ -1840,8 +1840,8 @@ export default function ContestDashboardPage() {
                               onClick={() => handleSetTableStatus(tbl.tableLabel, "PENDING")}
                               className={`py-1.5 px-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
                                 tbl.status === "PENDING"
-                                  ? "bg-[#111F38] text-[#94A3B8] font-bold border border-[#263858]"
-                                  : "bg-[#111F38] hover:bg-red-950/40 text-[#94A3B8] hover:text-red-400 border border-[#263858]"
+                                  ? "bg-zinc-800 text-zinc-400 font-bold"
+                                  : "bg-zinc-900 hover:bg-red-950/40 text-zinc-400 hover:text-red-400 border border-zinc-800"
                               }`}
                               title="Restablecer o bloquear hasta nuevo consumo"
                             >
@@ -1853,7 +1853,7 @@ export default function ContestDashboardPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="p-6 text-center text-xs text-[#94A3B8] bg-[#0D1930]/40 rounded-2xl border border-[#263858]/60">
+                    <div className="p-6 text-center text-xs text-zinc-500 bg-zinc-950/40 rounded-2xl border border-zinc-800/60">
                       No hay mesas registradas en este filtro. Usa el formulario de validación rápida arriba para ingresar cualquier mesa.
                     </div>
                   )}
@@ -1864,7 +1864,7 @@ export default function ContestDashboardPage() {
 
           {/* Actuación actual en escenario y sus votos */}
           {currentPerformance && (
-            <div className="bg-gradient-to-r from-amber-950/20 via-[#111F38] to-[#111F38] border border-amber-500/40 p-5 rounded-3xl space-y-4 shadow-xl">
+            <div className="bg-gradient-to-r from-amber-950/20 via-zinc-900 to-zinc-900 border border-amber-500/40 p-5 rounded-3xl space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
@@ -1874,15 +1874,15 @@ export default function ContestDashboardPage() {
                 </div>
                 <button
                   onClick={() => setShowPublicVotesModal(true)}
-                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   <span>🔍 Ver Todos los Votos Detallados</span>
                 </button>
               </div>
 
-              <div className="flex items-center justify-between flex-wrap gap-3 p-4 rounded-2xl bg-[#0D1930] border border-[#263858]">
+              <div className="flex items-center justify-between flex-wrap gap-3 p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800">
                 <div>
-                  <h4 className="text-lg font-black text-[#F8FAFC]">
+                  <h4 className="text-lg font-black text-white">
                     {currentPerformance.participant.stageName || currentPerformance.participant.name}
                   </h4>
                   <p className="text-xs text-amber-300 font-bold">
@@ -1891,13 +1891,13 @@ export default function ContestDashboardPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <span className="text-[10px] text-[#94A3B8] block">Votos Recibidos</span>
-                    <span className="text-base font-black text-[#F8FAFC] font-mono">
+                    <span className="text-[10px] text-zinc-400 block">Votos Recibidos</span>
+                    <span className="text-base font-black text-white font-mono">
                       {publicVotesAudit?.totalVotes || currentPerformance.publicVotes?.length || 0}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-[#94A3B8] block">Promedio Estrellas</span>
+                    <span className="text-[10px] text-zinc-400 block">Promedio Estrellas</span>
                     <span className="text-base font-black text-amber-400 font-mono">
                       ⭐ {publicVotesAudit?.avgStars || currentPerformance.publicScore || 0} / 5
                     </span>
@@ -1910,11 +1910,11 @@ export default function ContestDashboardPage() {
                   {publicVotesAudit.votesByTable.map((t) => (
                     <div
                       key={t.tableLabel}
-                      className="p-3.5 rounded-2xl bg-[#0D1930] border border-[#263858] flex items-center justify-between"
+                      className="p-3.5 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between"
                     >
                       <div>
-                        <span className="text-xs font-bold text-[#F8FAFC] block">{t.tableLabel}</span>
-                        <span className="text-[10px] text-[#94A3B8]">
+                        <span className="text-xs font-bold text-white block">{t.tableLabel}</span>
+                        <span className="text-[10px] text-zinc-400">
                           {t.votersCount} {t.votersCount === 1 ? "comensal" : "comensales"}
                         </span>
                       </div>
@@ -1932,7 +1932,7 @@ export default function ContestDashboardPage() {
                   ))}
                 </div>
               ) : (
-                <div className="p-4 text-center text-xs text-[#94A3B8] bg-[#0D1930]/40 rounded-2xl border border-[#263858]/60">
+                <div className="p-4 text-center text-xs text-zinc-500 bg-zinc-950/40 rounded-2xl border border-zinc-800/60">
                   Esperando las calificaciones de las mesas para este tema...
                 </div>
               )}
@@ -1940,17 +1940,17 @@ export default function ContestDashboardPage() {
           )}
 
           {/* Tabla Consolidada de Todas las Mesas */}
-          <div className="bg-[#111F38] border border-[#263858] p-5 rounded-3xl space-y-4 shadow-xl">
-            <h4 className="text-sm font-black text-[#F8FAFC] uppercase tracking-wider flex items-center gap-2">
+          <div className="bg-zinc-900/60 border border-zinc-800 p-5 rounded-3xl space-y-4">
+            <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
               <Users className="w-4 h-4 text-amber-400" />
               <span>Participación Acumulada por Mesa</span>
             </h4>
 
             {globalTableVotes?.byTable && globalTableVotes.byTable.length > 0 ? (
-              <div className="rounded-2xl bg-[#0D1930] border border-[#263858] overflow-x-auto">
+              <div className="rounded-2xl bg-zinc-950 border border-zinc-800 overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-[#263858] text-[#94A3B8] font-mono uppercase text-[10px]">
+                    <tr className="border-b border-zinc-800 text-zinc-400 font-mono uppercase text-[10px]">
                       <th className="py-3 px-4">Posición / Mesa</th>
                       <th className="py-3 px-4 text-center">Votos Emitidos</th>
                       <th className="py-3 px-4 text-center">Promedio Calificación</th>
@@ -1958,11 +1958,11 @@ export default function ContestDashboardPage() {
                       <th className="py-3 px-4 text-right">Validación</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#263858] font-medium">
+                  <tbody className="divide-y divide-zinc-800/60 font-medium">
                     {globalTableVotes.byTable.map((t, idx) => (
-                      <tr key={t.tableLabel} className="hover:bg-[#111F38]/60 transition-colors">
-                        <td className="py-3.5 px-4 font-bold text-[#F8FAFC] flex items-center gap-2.5">
-                          <span className="w-6 h-6 rounded-full bg-[#111F38] border border-[#263858] flex items-center justify-center font-mono text-xs text-amber-400 font-black">
+                      <tr key={t.tableLabel} className="hover:bg-zinc-900/50">
+                        <td className="py-3.5 px-4 font-bold text-white flex items-center gap-2.5">
+                          <span className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center font-mono text-xs text-amber-400 font-black">
                             {idx + 1}
                           </span>
                           <span className="text-sm">{t.tableLabel}</span>
@@ -1972,7 +1972,7 @@ export default function ContestDashboardPage() {
                             </span>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 text-center font-mono text-[#F8FAFC]">
+                        <td className="py-3.5 px-4 text-center font-mono text-zinc-200">
                           {t.totalVotes} {t.totalVotes === 1 ? "voto" : "votos"}
                         </td>
                         <td className="py-3.5 px-4 text-center font-mono font-bold text-amber-400">
@@ -1993,7 +1993,7 @@ export default function ContestDashboardPage() {
                 </table>
               </div>
             ) : (
-              <div className="p-8 text-center text-xs text-[#94A3B8] bg-[#0D1930]/40 rounded-2xl border border-[#263858]/60">
+              <div className="p-8 text-center text-xs text-zinc-500 bg-zinc-950/40 rounded-2xl border border-zinc-800/60">
                 Aún no hay votos registrados de mesas en este concurso.
               </div>
             )}
@@ -2005,19 +2005,19 @@ export default function ContestDashboardPage() {
       {/* PESTAÑA 2: LISTA DE PARTICIPANTES INSCRITOS                  */}
       {/* ============================================================ */}
       {activeTab === "participants" && contest && (
-        <div className="bg-[#111F38] border border-[#263858] rounded-2xl p-6 space-y-4 shadow-xl">
+        <div className="bg-zinc-900/70 border border-zinc-800 rounded-3xl p-6 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <h3 className="text-base font-black text-[#F8FAFC] uppercase tracking-wider">
+              <h3 className="text-base font-black text-white uppercase tracking-wider">
                 Participantes Registrados en el Certamen ({contest.participants.length})
               </h3>
-              <p className="text-xs text-[#94A3B8]">
+              <p className="text-xs text-zinc-400">
                 Puntuaciones acumulativas a través de todas las fechas y galas
               </p>
             </div>
             <button
               onClick={() => setShowNewParticipantModal(true)}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/20 transition-all"
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md"
             >
               <Plus className="w-4 h-4" />
               <span>Inscribir Nuevo Cantante</span>
@@ -2028,10 +2028,10 @@ export default function ContestDashboardPage() {
             {contest.participants.map((p, idx) => (
               <div
                 key={p.id}
-                className="p-4 rounded-xl bg-[#0D1930] border border-[#263858] space-y-3 hover:border-violet-500/40 transition-all shadow-md"
+                className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3 hover:border-zinc-700 transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-violet-600 to-cyan-500 flex items-center justify-center text-white font-black text-lg overflow-hidden shrink-0 shadow-inner">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white font-black text-lg overflow-hidden shrink-0">
                     {p.photoUrl ? (
                       <img src={p.photoUrl} alt={p.name} className="w-full h-full object-cover" />
                     ) : (
@@ -2039,38 +2039,38 @@ export default function ContestDashboardPage() {
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h4 className="text-sm font-black text-[#F8FAFC] truncate">
+                    <h4 className="text-sm font-black text-white truncate">
                       {p.stageName || p.name}
                     </h4>
                     {p.stageName && (
-                      <p className="text-[11px] text-[#94A3B8] truncate">{p.name}</p>
+                      <p className="text-[11px] text-zinc-400 truncate">{p.name}</p>
                     )}
                     {p.tableLabel && (
                       <span className="text-[10px] text-amber-400 font-bold">{p.tableLabel}</span>
                     )}
                   </div>
                   <div className="text-right">
-                    <span className="text-base font-black font-mono text-amber-400">
+                    <span className="text-base font-black font-mono text-yellow-300">
                       {p.totalPoints} pts
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs pt-1 border-t border-[#263858]/80">
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-zinc-800/80">
                   <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                       p.status === "QUALIFIED"
-                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                        ? "bg-emerald-500/20 text-emerald-300"
                         : p.status === "ELIMINATED"
-                        ? "bg-rose-500/10 text-rose-400 border-rose-500/30"
+                        ? "bg-red-500/20 text-red-300"
                         : p.status === "WINNER"
-                        ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
-                        : "bg-[#111F38] text-[#94A3B8] border-[#263858]"
+                        ? "bg-yellow-500/20 text-yellow-300"
+                        : "bg-zinc-800 text-zinc-400"
                     }`}
                   >
                     {p.status}
                   </span>
-                  <span className="text-[11px] text-[#64748B]">Ranking: #{idx + 1}</span>
+                  <span className="text-[11px] text-zinc-500">Ranking: #{idx + 1}</span>
                 </div>
               </div>
             ))}
@@ -2082,13 +2082,13 @@ export default function ContestDashboardPage() {
       {/* PESTAÑA 3: GESTIÓN DE GALAS MULTIDÍA                         */}
       {/* ============================================================ */}
       {activeTab === "stages" && contest && (
-        <div className="bg-[#111F38] border border-[#263858] rounded-2xl p-6 space-y-4 shadow-xl">
+        <div className="bg-zinc-900/70 border border-zinc-800 rounded-3xl p-6 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <h3 className="text-base font-black text-[#F8FAFC] uppercase tracking-wider">
+              <h3 className="text-base font-black text-white uppercase tracking-wider">
                 Fechas y Rondas del Concurso Multidía
               </h3>
-              <p className="text-xs text-[#94A3B8]">
+              <p className="text-xs text-zinc-400">
                 Organiza galas por días o semanas (Audiciones, Clasificatorias, Semifinal, Gran Final)
               </p>
             </div>
@@ -2103,7 +2103,7 @@ export default function ContestDashboardPage() {
                 });
                 setShowNewStageModal(true);
               }}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/20 transition-transform active:scale-95"
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md transition-transform active:scale-95"
             >
               <Plus className="w-4 h-4" />
               <span>+ Nueva Fecha / Gala</span>
@@ -2115,27 +2115,27 @@ export default function ContestDashboardPage() {
               contest.stages.map((st, i) => (
                 <div
                   key={st.id}
-                  className={`p-4 sm:p-5 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all ${
+                  className={`p-4 sm:p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all ${
                     st.id === contest.activeStageId
-                      ? "bg-[#0D1930] border-2 border-amber-500/70 shadow-lg shadow-amber-500/10"
-                      : "bg-[#0D1930] border-[#263858] hover:border-violet-500/40"
+                      ? "bg-amber-950/30 border-amber-500/60 shadow-lg shadow-amber-950/20"
+                      : "bg-zinc-950 border-zinc-800 hover:border-zinc-700"
                   }`}
                 >
                   <div className="flex items-start sm:items-center gap-3.5">
                     <span
-                      className={`w-10 h-10 rounded-xl font-mono font-black text-sm flex items-center justify-center shrink-0 ${
+                      className={`w-10 h-10 rounded-2xl font-mono font-black text-sm flex items-center justify-center shrink-0 ${
                         st.id === contest.activeStageId
-                          ? "bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md shadow-amber-500/30"
-                          : "bg-[#111F38] text-amber-400 border border-[#263858]"
+                          ? "bg-amber-500 text-zinc-950 shadow-md shadow-amber-500/30"
+                          : "bg-zinc-800 text-amber-400"
                       }`}
                     >
                       G{i + 1}
                     </span>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-sm sm:text-base font-black text-[#F8FAFC]">{st.title}</h4>
+                        <h4 className="text-sm sm:text-base font-black text-white">{st.title}</h4>
                         {st.id === contest.activeStageId && (
-                          <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-sm animate-pulse">
+                          <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-zinc-950 text-[10px] font-black uppercase tracking-wider shadow-sm animate-pulse">
                             Gala Activa en Vivo
                           </span>
                         )}
@@ -2144,8 +2144,8 @@ export default function ContestDashboardPage() {
                             st.status === "LIVE"
                               ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                               : st.status === "COMPLETED"
-                              ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/30"
-                              : "bg-[#111F38] text-[#94A3B8] border-[#263858]"
+                              ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
+                              : "bg-zinc-800 text-zinc-400 border-zinc-700"
                           }`}
                         >
                           {st.status === "LIVE"
@@ -2155,7 +2155,7 @@ export default function ContestDashboardPage() {
                             : "⏳ Programada"}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-[#94A3B8] flex-wrap">
+                      <div className="flex items-center gap-3 text-xs text-zinc-400 flex-wrap">
                         <span className="flex items-center gap-1 font-medium">
                           <Award className="w-3.5 h-3.5 text-amber-400" />
                           {st.stageType === "AUDITIONS"
@@ -2167,8 +2167,8 @@ export default function ContestDashboardPage() {
                             : "Gran Final"}
                         </span>
                         {st.date && (
-                          <span className="flex items-center gap-1 font-mono text-[#F8FAFC]">
-                            <Calendar className="w-3.5 h-3.5 text-[#94A3B8]" />
+                          <span className="flex items-center gap-1 font-mono text-zinc-300">
+                            <Calendar className="w-3.5 h-3.5 text-zinc-400" />
                             {new Date(st.date).toLocaleDateString("es-ES", {
                               weekday: "short",
                               day: "numeric",
@@ -2177,13 +2177,13 @@ export default function ContestDashboardPage() {
                             })}
                           </span>
                         )}
-                        <span className="flex items-center gap-1 font-mono text-[#94A3B8]">
-                          <Mic className="w-3.5 h-3.5 text-[#64748B]" />
+                        <span className="flex items-center gap-1 font-mono text-zinc-400">
+                          <Mic className="w-3.5 h-3.5 text-zinc-500" />
                           {st.performances?.length || 0} actuaciones
                         </span>
                       </div>
                       {st.notes && (
-                        <p className="text-xs text-[#94A3B8] italic bg-[#111F38] px-2.5 py-1 rounded-lg border border-[#263858] inline-block mt-1">
+                        <p className="text-xs text-zinc-400 italic bg-zinc-900/60 px-2.5 py-1 rounded-lg border border-zinc-800/80 inline-block mt-1">
                           {st.notes}
                         </p>
                       )}
@@ -2202,7 +2202,7 @@ export default function ContestDashboardPage() {
                           fetchContestDetail(contest.id);
                           showFeedback("success", `Gala "${st.title}" fijada como activa.`);
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-[#111F38] hover:bg-[#1a2e50] border border-[#263858] text-xs font-bold text-[#F8FAFC] transition-colors cursor-pointer flex items-center gap-1.5"
+                        className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-200 transition-colors cursor-pointer flex items-center gap-1.5"
                       >
                         <Play className="w-3.5 h-3.5 text-amber-400" />
                         <span>Activar Esta Gala</span>
@@ -2216,14 +2216,14 @@ export default function ContestDashboardPage() {
                     <button
                       onClick={() => handleOpenEditStage(st)}
                       title="Editar Gala / Fecha"
-                      className="p-2 rounded-xl bg-[#111F38] hover:bg-[#1a2e50] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer"
+                      className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors cursor-pointer"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteStage(st)}
                       title="Eliminar Gala"
-                      className="p-2 rounded-xl bg-[#111F38] hover:bg-rose-950/60 border border-[#263858] text-[#94A3B8] hover:text-rose-400 transition-colors cursor-pointer"
+                      className="p-2 rounded-xl bg-zinc-800 hover:bg-red-950/80 text-zinc-400 hover:text-red-400 transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -2231,15 +2231,15 @@ export default function ContestDashboardPage() {
                 </div>
               ))
             ) : (
-              <div className="p-8 text-center bg-[#0D1930] rounded-xl border border-[#263858] space-y-3">
-                <Calendar className="w-10 h-10 text-[#64748B] mx-auto" />
-                <p className="text-sm font-bold text-[#F8FAFC]">No hay galas registradas</p>
-                <p className="text-xs text-[#94A3B8] max-w-sm mx-auto">
+              <div className="p-8 text-center bg-zinc-950 rounded-2xl border border-zinc-800 space-y-3">
+                <Calendar className="w-10 h-10 text-zinc-600 mx-auto" />
+                <p className="text-sm font-bold text-zinc-300">No hay galas registradas</p>
+                <p className="text-xs text-zinc-500 max-w-sm mx-auto">
                   Crea la primera fecha o gala para comenzar a programar las actuaciones y clasificaciones del certamen.
                 </p>
                 <button
                   onClick={() => setShowNewStageModal(true)}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 shadow-lg shadow-amber-500/20"
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold cursor-pointer inline-flex items-center gap-1.5 shadow-md"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Crear Primera Gala</span>
@@ -2254,19 +2254,19 @@ export default function ContestDashboardPage() {
       {/* PESTAÑA 4: CRITERIOS EDITABLES                               */}
       {/* ============================================================ */}
       {activeTab === "criteria" && contest && (
-        <div className="bg-[#111F38] border border-[#263858] rounded-2xl p-6 space-y-4 shadow-xl">
+        <div className="bg-zinc-900/70 border border-zinc-800 rounded-3xl p-6 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <h3 className="text-base font-black text-[#F8FAFC] uppercase tracking-wider">
+              <h3 className="text-base font-black text-white uppercase tracking-wider">
                 Criterios de Evaluación Editables
               </h3>
-              <p className="text-xs text-[#94A3B8]">
+              <p className="text-xs text-zinc-400">
                 Estos criterios aparecen en los celulares de los jurados y se proyectan en la pantalla grande
               </p>
             </div>
             <button
               onClick={() => setShowNewCriteriaModal(true)}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/20"
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md"
             >
               <Plus className="w-4 h-4" />
               <span>+ Nuevo Criterio</span>
@@ -2278,17 +2278,17 @@ export default function ContestDashboardPage() {
               {contest.criteria.map((c) => (
                 <div
                   key={c.id}
-                  className="p-5 rounded-xl bg-[#0D1930] border border-[#263858] space-y-3 shadow-lg hover:border-violet-500/40 transition-all flex flex-col justify-between"
+                  className="p-5 rounded-3xl bg-zinc-950 border border-zinc-800 space-y-3 shadow-xl hover:border-zinc-700 transition-all flex flex-col justify-between"
                 >
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h4 className="text-sm font-black text-[#F8FAFC]">{c.name}</h4>
+                        <h4 className="text-sm font-black text-white">{c.name}</h4>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-xs font-mono font-bold text-amber-400 px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
                             Max: {c.maxScore} pts
                           </span>
-                          <span className="text-[11px] font-mono text-[#94A3B8]">
+                          <span className="text-[11px] font-mono text-zinc-400">
                             Ponderación: x{c.weight}
                           </span>
                         </div>
@@ -2299,7 +2299,7 @@ export default function ContestDashboardPage() {
                         <button
                           type="button"
                           onClick={() => handleOpenEditCriteria(c)}
-                          className="p-2 rounded-xl bg-[#111F38] hover:bg-[#1a2e50] text-[#94A3B8] hover:text-amber-400 border border-[#263858] transition-colors cursor-pointer"
+                          className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-amber-400 border border-zinc-800 transition-colors cursor-pointer"
                           title="Editar criterio"
                         >
                           <Pencil className="w-3.5 h-3.5" />
@@ -2307,7 +2307,7 @@ export default function ContestDashboardPage() {
                         <button
                           type="button"
                           onClick={() => handleDeleteCriteria(c)}
-                          className="p-2 rounded-xl bg-[#111F38] hover:bg-rose-950/60 text-[#94A3B8] hover:text-rose-400 border border-[#263858] transition-colors cursor-pointer"
+                          className="p-2 rounded-xl bg-zinc-900 hover:bg-red-950/60 text-zinc-400 hover:text-red-400 border border-zinc-800 transition-colors cursor-pointer"
                           title="Eliminar criterio"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -2316,26 +2316,26 @@ export default function ContestDashboardPage() {
                     </div>
 
                     {c.description ? (
-                      <p className="text-xs text-[#94A3B8] leading-relaxed bg-[#111F38] p-3 rounded-xl border border-[#263858]">
+                      <p className="text-xs text-zinc-400 leading-relaxed bg-zinc-900/60 p-3 rounded-2xl border border-zinc-800/80">
                         {c.description}
                       </p>
                     ) : (
-                      <p className="text-xs text-[#64748B] italic">Sin descripción complementaria</p>
+                      <p className="text-xs text-zinc-600 italic">Sin descripción complementaria</p>
                     )}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="p-8 rounded-xl bg-[#0D1930] border border-[#263858] text-center space-y-3">
+            <div className="p-8 rounded-3xl bg-zinc-950/60 border border-zinc-800 text-center space-y-3">
               <Sliders className="w-10 h-10 mx-auto text-amber-400/60" />
-              <h4 className="text-sm font-bold text-[#F8FAFC]">No hay criterios de evaluación configurados</h4>
-              <p className="text-xs text-[#94A3B8] max-w-sm mx-auto">
+              <h4 className="text-sm font-bold text-white">No hay criterios de evaluación configurados</h4>
+              <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                 Define criterios como afinación, ritmo, carisma o dificultad vocal para que los jurados emitan sus notas.
               </p>
               <button
                 onClick={() => setShowNewCriteriaModal(true)}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-amber-500/20"
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Agregar Primer Criterio</span>
@@ -2349,19 +2349,19 @@ export default function ContestDashboardPage() {
       {/* PESTAÑA 5: MESA DE JURADOS                                   */}
       {/* ============================================================ */}
       {activeTab === "judges" && contest && (
-        <div className="bg-[#111F38] border border-[#263858] rounded-2xl p-6 space-y-4 shadow-xl">
+        <div className="bg-zinc-900/70 border border-zinc-800 rounded-3xl p-6 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <h3 className="text-base font-black text-[#F8FAFC] uppercase tracking-wider">
+              <h3 className="text-base font-black text-white uppercase tracking-wider">
                 Mesa Oficial de Jurados ({contest.judges.length})
               </h3>
-              <p className="text-xs text-[#94A3B8]">
+              <p className="text-xs text-zinc-400">
                 Cada jurado puede calificar desde su propio smartphone o tablet usando su PIN de acceso
               </p>
             </div>
             <button
               onClick={() => setShowNewJudgeModal(true)}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/20"
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-md"
             >
               <Plus className="w-4 h-4" />
               <span>+ Agregar Jurado</span>
@@ -2378,17 +2378,17 @@ export default function ContestDashboardPage() {
                 return (
                   <div
                     key={j.id}
-                    className="p-5 rounded-xl bg-[#0D1930] border border-[#263858] space-y-4 shadow-lg hover:border-violet-500/40 transition-all flex flex-col justify-between"
+                    className="p-5 rounded-3xl bg-zinc-950 border border-zinc-800 space-y-4 shadow-xl hover:border-zinc-700 transition-all flex flex-col justify-between"
                   >
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-slate-950 font-black text-lg shadow-md shrink-0">
+                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-zinc-950 font-black text-lg shadow-md shrink-0">
                             {j.name.charAt(0)}
                           </div>
                           <div className="min-w-0">
-                            <h4 className="text-sm font-black text-[#F8FAFC] truncate">{j.name}</h4>
-                            <span className="text-[11px] text-[#94A3B8] block truncate">
+                            <h4 className="text-sm font-black text-white truncate">{j.name}</h4>
+                            <span className="text-[11px] text-zinc-400 block truncate">
                               {j.title || "Jurado Oficial"}
                             </span>
                           </div>
@@ -2399,7 +2399,7 @@ export default function ContestDashboardPage() {
                           <button
                             type="button"
                             onClick={() => handleOpenEditJudge(j)}
-                            className="p-2 rounded-xl bg-[#111F38] hover:bg-[#1a2e50] text-[#94A3B8] hover:text-amber-400 border border-[#263858] transition-colors cursor-pointer"
+                            className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-amber-400 border border-zinc-800 transition-colors cursor-pointer"
                             title="Editar jurado"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -2407,7 +2407,7 @@ export default function ContestDashboardPage() {
                           <button
                             type="button"
                             onClick={() => handleDeleteJudge(j)}
-                            className="p-2 rounded-xl bg-[#111F38] hover:bg-rose-950/60 text-[#94A3B8] hover:text-rose-400 border border-[#263858] transition-colors cursor-pointer"
+                            className="p-2 rounded-xl bg-zinc-900 hover:bg-red-950/60 text-zinc-400 hover:text-red-400 border border-zinc-800 transition-colors cursor-pointer"
                             title="Eliminar jurado"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -2415,28 +2415,28 @@ export default function ContestDashboardPage() {
                         </div>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-[#111F38] border border-[#263858] flex items-center justify-between">
-                        <span className="text-xs text-[#94A3B8] font-medium">PIN de Acceso Móvil:</span>
-                        <span className="text-lg font-mono font-black text-amber-300 tracking-widest px-2.5 py-0.5 rounded-lg bg-[#0D1930] border border-[#263858]">
+                      <div className="p-3 rounded-2xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between">
+                        <span className="text-xs text-zinc-400 font-medium">PIN de Acceso Móvil:</span>
+                        <span className="text-lg font-mono font-black text-amber-300 tracking-widest px-2.5 py-0.5 rounded-lg bg-zinc-950 border border-zinc-700">
                           {j.accessPin}
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between text-[11px] text-[#94A3B8] px-1">
+                      <div className="flex items-center justify-between text-[11px] text-zinc-400 px-1">
                         <span>Golden Buzzer:</span>
-                        <span className={`font-bold ${j.canGoldenBuzzer ? "text-amber-400" : "text-[#64748B]"}`}>
+                        <span className={`font-bold ${j.canGoldenBuzzer ? "text-yellow-400" : "text-zinc-600"}`}>
                           {j.canGoldenBuzzer ? "👑 Habilitado" : "❌ Deshabilitado"}
                         </span>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#263858]/80">
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-900">
                       <button
                         onClick={() => {
                           navigator.clipboard.writeText(accessUrl);
                           showFeedback("success", `¡Enlace copiado para ${j.name}!`);
                         }}
-                        className="py-2.5 px-3 rounded-xl bg-[#111F38] hover:bg-[#1a2e50] border border-[#263858] text-xs font-bold text-[#F8FAFC] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className="py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <Copy className="w-3.5 h-3.5" />
                         <span>Copiar Link</span>
@@ -2450,7 +2450,7 @@ export default function ContestDashboardPage() {
                             pin: j.accessPin,
                           })
                         }
-                        className="py-2.5 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-black flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className="py-2.5 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-black flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <QrCode className="w-3.5 h-3.5" />
                         <span>Mostrar QR</span>
@@ -2461,15 +2461,15 @@ export default function ContestDashboardPage() {
               })}
             </div>
           ) : (
-            <div className="p-8 rounded-xl bg-[#0D1930] border border-[#263858] text-center space-y-3">
+            <div className="p-8 rounded-3xl bg-zinc-950/60 border border-zinc-800 text-center space-y-3">
               <Award className="w-10 h-10 mx-auto text-amber-400/60" />
-              <h4 className="text-sm font-bold text-[#F8FAFC]">No hay jurados registrados</h4>
-              <p className="text-xs text-[#94A3B8] max-w-sm mx-auto">
+              <h4 className="text-sm font-bold text-white">No hay jurados registrados</h4>
+              <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                 Agrega jurados oficiales para que califiquen a los participantes desde sus propios celulares o tablets.
               </p>
               <button
                 onClick={() => setShowNewJudgeModal(true)}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-amber-500/20"
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Agregar Primer Jurado</span>
@@ -2485,25 +2485,25 @@ export default function ContestDashboardPage() {
       {activeTab === "reports" && reportData && (
         <div className="space-y-6">
           {/* Barra de Acciones y Filtros (no imprimible) */}
-          <div className="no-print bg-[#111F38] border border-[#263858] rounded-2xl p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="no-print bg-zinc-900/80 border border-zinc-800 rounded-3xl p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-amber-400" />
-                <h3 className="text-base font-black text-[#F8FAFC] uppercase tracking-wider">
+                <h3 className="text-base font-black text-white uppercase tracking-wider">
                   Acta Notarial & Informes Especiales
                 </h3>
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-300 font-mono text-xs font-bold border border-amber-500/30">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-xs font-bold border border-amber-500/40">
                   Formato Oficial A4
                 </span>
               </div>
-              <p className="text-xs text-[#94A3B8] mt-0.5">
+              <p className="text-xs text-zinc-400 mt-0.5">
                 Certificación oficial con firmas de jurados, podio, desglose y mención de auspiciadores.
               </p>
             </div>
 
             <div className="flex items-center gap-2.5 flex-wrap">
               {/* Selector de Gala o Consolidado */}
-              <div className="flex items-center gap-1.5 bg-[#0D1930] px-3 py-1.5 rounded-xl border border-[#263858]">
+              <div className="flex items-center gap-1.5 bg-zinc-950 px-3 py-1.5 rounded-xl border border-zinc-800">
                 <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
                 <select
                   value={selectedReportStageId}
@@ -2512,11 +2512,11 @@ export default function ContestDashboardPage() {
                     setSelectedReportStageId(stageId);
                     if (contest) fetchReports(contest.id, stageId);
                   }}
-                  className="bg-transparent text-[#F8FAFC] text-xs font-bold outline-none cursor-pointer pr-2"
+                  className="bg-transparent text-white text-xs font-bold outline-none cursor-pointer pr-2"
                 >
-                  <option value="ALL" className="bg-[#0D1930] text-[#F8FAFC]">🌐 Consolidado General (Todas las Fechas)</option>
+                  <option value="ALL">🌐 Consolidado General (Todas las Fechas)</option>
                   {contest?.stages.map((st) => (
-                    <option key={st.id} value={st.id} className="bg-[#0D1930] text-[#F8FAFC]">
+                    <option key={st.id} value={st.id}>
                       📅 {st.title} ({st.stageType})
                     </option>
                   ))}
@@ -2526,7 +2526,7 @@ export default function ContestDashboardPage() {
               {/* Botón para configurar Marca y Auspiciadores */}
               <button
                 onClick={handleOpenBrandingModal}
-                className="px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 title="Configurar Logo, Auspiciadores, Organizadores y Premios"
               >
                 <Sliders className="w-4 h-4" />
@@ -2536,7 +2536,7 @@ export default function ContestDashboardPage() {
               {/* Botón Copiar Resumen */}
               <button
                 onClick={handleCopyReportSummary}
-                className="px-3.5 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1a2e50] border border-[#263858] text-[#F8FAFC] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 title="Copiar podio y resumen formateado para redes o WhatsApp"
               >
                 <Copy className="w-4 h-4" />
@@ -2546,7 +2546,7 @@ export default function ContestDashboardPage() {
               {/* Botón Imprimir Acta Notarial Oficial */}
               <button
                 onClick={() => window.print()}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-transform active:scale-95 cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-transform active:scale-95 cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
                 <span>Imprimir Acta Oficial</span>
@@ -2559,10 +2559,10 @@ export default function ContestDashboardPage() {
           {/* ========================================================== */}
           <div
             id="official-acta"
-            className="acta-document bg-[#0D1930] border-4 border-double border-amber-500/40 rounded-3xl p-6 sm:p-10 space-y-8 shadow-2xl relative text-[#F8FAFC]"
+            className="acta-document bg-zinc-950 border-4 border-double border-amber-500/40 rounded-3xl p-6 sm:p-10 space-y-8 shadow-2xl relative text-zinc-100"
           >
             {/* 1. Membrete de Honor & Escudo Notarial */}
-            <div className="border-b-2 border-[#263858] pb-6 space-y-4">
+            <div className="border-b-2 border-zinc-800 pb-6 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 {/* Logo oficial o Escudo */}
                 <div className="flex items-center gap-4">
@@ -2570,10 +2570,10 @@ export default function ContestDashboardPage() {
                     <img
                       src={reportData.contest.logoUrl}
                       alt="Logo Oficial"
-                      className="w-20 h-20 object-contain rounded-2xl border border-amber-500/40 bg-[#111F38] p-1.5 shadow-xl shrink-0"
+                      className="w-20 h-20 object-contain rounded-2xl border border-amber-500/40 bg-zinc-900/80 p-1.5 shadow-xl shrink-0"
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center text-slate-950 shadow-xl shadow-amber-500/20 shrink-0">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center text-zinc-950 shadow-xl shadow-amber-500/20 shrink-0">
                       <Trophy className="w-9 h-9" />
                     </div>
                   )}
@@ -2581,17 +2581,17 @@ export default function ContestDashboardPage() {
                     <span className="text-[10px] font-mono font-black tracking-[0.2em] uppercase text-amber-400">
                       REPÚBLICA DEL KARAOKE &bull; SISTEMA NOTARIAL VIDJS PRO
                     </span>
-                    <h1 className="text-xl sm:text-2xl font-black text-[#F8FAFC] tracking-tight uppercase">
+                    <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight uppercase">
                       Acta Oficial de Calificaciones y Premiación
                     </h1>
-                    <p className="text-sm font-bold text-amber-300">
+                    <p className="text-sm font-bold text-amber-200">
                       {reportData.contest.name}
                     </p>
                   </div>
                 </div>
 
                 {/* Sello Notarial Digital con QR */}
-                <div className="flex items-center gap-3 bg-[#111F38] border border-[#263858] p-2.5 rounded-2xl self-start sm:self-auto shrink-0">
+                <div className="flex items-center gap-3 bg-zinc-900/80 border border-zinc-800 p-2.5 rounded-2xl self-start sm:self-auto shrink-0">
                   <div className="bg-white p-1 rounded-lg">
                     <img
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(
@@ -2605,10 +2605,10 @@ export default function ContestDashboardPage() {
                     <span className="text-[9px] uppercase font-black text-emerald-400 block">
                       ✓ ACTA CERTIFICADA
                     </span>
-                    <span className="text-[10px] text-[#F8FAFC] block font-bold">
+                    <span className="text-[10px] text-zinc-300 block font-bold">
                       FOLIO #{reportData.contest.code}
                     </span>
-                    <span className="text-[9px] text-[#94A3B8] block">
+                    <span className="text-[9px] text-zinc-500 block">
                       Validez electrónica Vidjs
                     </span>
                   </div>
@@ -2616,14 +2616,14 @@ export default function ContestDashboardPage() {
               </div>
 
               {/* Fila de Metadatos de Fe Pública */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-[#263858] text-xs">
-                <div className="bg-[#111F38] p-2.5 rounded-xl border border-[#263858]">
-                  <span className="text-[10px] uppercase font-mono text-[#94A3B8] block">Sede / Establecimiento</span>
-                  <strong className="text-[#F8FAFC]">{reportData.contest.tenantName}</strong>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-zinc-900 text-xs">
+                <div className="bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800/80">
+                  <span className="text-[10px] uppercase font-mono text-zinc-500 block">Sede / Establecimiento</span>
+                  <strong className="text-zinc-200">{reportData.contest.tenantName}</strong>
                 </div>
-                <div className="bg-[#111F38] p-2.5 rounded-xl border border-[#263858]">
-                  <span className="text-[10px] uppercase font-mono text-[#94A3B8] block">Fecha y Hora de Emisión</span>
-                  <strong className="text-[#F8FAFC] font-mono text-[11px]">
+                <div className="bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800/80">
+                  <span className="text-[10px] uppercase font-mono text-zinc-500 block">Fecha y Hora de Emisión</span>
+                  <strong className="text-zinc-200 font-mono text-[11px]">
                     {new Date().toLocaleDateString("es-ES", {
                       day: "2-digit",
                       month: "short",
@@ -2632,15 +2632,15 @@ export default function ContestDashboardPage() {
                     {new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
                   </strong>
                 </div>
-                <div className="bg-[#111F38] p-2.5 rounded-xl border border-[#263858]">
-                  <span className="text-[10px] uppercase font-mono text-[#94A3B8] block">Etapa Evaluada</span>
+                <div className="bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800/80">
+                  <span className="text-[10px] uppercase font-mono text-zinc-500 block">Etapa Evaluada</span>
                   <strong className="text-amber-300">
                     {reportData.activeStage ? reportData.activeStage.title : "Gran Final & Consolidado General"}
                   </strong>
                 </div>
-                <div className="bg-[#111F38] p-2.5 rounded-xl border border-[#263858]">
-                  <span className="text-[10px] uppercase font-mono text-[#94A3B8] block">Ponderación Notarial</span>
-                  <strong className="text-[#F8FAFC] font-mono text-[11px]">
+                <div className="bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800/80">
+                  <span className="text-[10px] uppercase font-mono text-zinc-500 block">Ponderación Notarial</span>
+                  <strong className="text-zinc-200 font-mono text-[11px]">
                     {100 - reportData.contest.publicVoteWeight}% Jueces / {reportData.contest.publicVoteWeight}% Mesas
                   </strong>
                 </div>
@@ -2649,7 +2649,7 @@ export default function ContestDashboardPage() {
 
             {/* 2. Franja Oficial de Auspiciadores & Colaboradores */}
             {((reportData.contest.parsedSponsors && reportData.contest.parsedSponsors.length > 0) || reportData.contest.sponsors) && (
-              <div className="bg-[#111F38] border border-amber-500/30 p-4 sm:p-5 rounded-2xl space-y-2.5">
+              <div className="bg-zinc-900/70 border border-amber-500/30 p-4 sm:p-5 rounded-2xl space-y-2.5">
                 <div className="flex items-center gap-2">
                   <Award className="w-4 h-4 text-amber-400 shrink-0" />
                   <span className="text-xs font-mono font-black text-amber-300 uppercase tracking-widest">
@@ -2661,23 +2661,23 @@ export default function ContestDashboardPage() {
                     reportData.contest.parsedSponsors.map((sp: any, sIdx: number) => (
                       <div
                         key={sIdx}
-                        className="px-3.5 py-1.5 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center gap-2 shadow-sm"
+                        className="px-3.5 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center gap-2 shadow-sm"
                       >
                         {sp.logoUrl ? (
                           <img src={sp.logoUrl} alt={sp.name} className="w-5 h-5 object-contain rounded" />
                         ) : (
                           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                         )}
-                        <span className="text-xs font-bold text-[#F8FAFC]">{sp.name}</span>
+                        <span className="text-xs font-bold text-white">{sp.name}</span>
                         {sp.category && (
-                          <span className="text-[10px] font-mono text-[#94A3B8] bg-[#111F38] px-2 py-0.5 rounded-md border border-[#263858]">
+                          <span className="text-[10px] font-mono text-zinc-400 bg-zinc-800/80 px-2 py-0.5 rounded-md">
                             {sp.category}
                           </span>
                         )}
                       </div>
                     ))
                   ) : (
-                    <p className="text-xs text-[#94A3B8] whitespace-pre-line font-medium">
+                    <p className="text-xs text-zinc-300 whitespace-pre-line font-medium">
                       {reportData.contest.sponsors}
                     </p>
                   )}
@@ -2688,33 +2688,33 @@ export default function ContestDashboardPage() {
             {/* 3. Premios y Comité Organizador (si existen) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {reportData.contest.prizes && (
-                <div className="p-4 rounded-2xl bg-[#111F38] border border-[#263858] space-y-1.5">
+                <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-1.5">
                   <span className="text-[10px] font-mono font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Trophy className="w-3.5 h-3.5" />
                     <span>Premios Oficiales en Disputa</span>
                   </span>
-                  <p className="text-xs text-[#94A3B8] whitespace-pre-line leading-relaxed font-medium">
+                  <p className="text-xs text-zinc-300 whitespace-pre-line leading-relaxed font-medium">
                     {reportData.contest.prizes}
                   </p>
                 </div>
               )}
               {((reportData.contest.parsedOrganizers && reportData.contest.parsedOrganizers.length > 0) || reportData.contest.organizers) && (
-                <div className="p-4 rounded-2xl bg-[#111F38] border border-[#263858] space-y-1.5">
-                  <span className="text-[10px] font-mono font-black text-[#94A3B8] uppercase tracking-wider flex items-center gap-1.5">
+                <div className="p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 space-y-1.5">
+                  <span className="text-[10px] font-mono font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Users className="w-3.5 h-3.5" />
                     <span>Comité Organizador & Producción</span>
                   </span>
                   {reportData.contest.parsedOrganizers && reportData.contest.parsedOrganizers.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       {reportData.contest.parsedOrganizers.map((org: any, oIdx: number) => (
-                        <div key={oIdx} className="text-[#94A3B8]">
-                          <span className="text-[#64748B] font-mono text-[10px] block">{org.role}</span>
-                          <strong className="text-[#F8FAFC]">{org.name}</strong>
+                        <div key={oIdx} className="text-zinc-300">
+                          <span className="text-zinc-500 font-mono text-[10px] block">{org.role}</span>
+                          <strong className="text-white">{org.name}</strong>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-[#94A3B8] whitespace-pre-line font-medium">
+                    <p className="text-xs text-zinc-300 whitespace-pre-line font-medium">
                       {reportData.contest.organizers}
                     </p>
                   )}
@@ -2724,9 +2724,9 @@ export default function ContestDashboardPage() {
 
             {/* 4. Cuadro de Honor (Podio Oficial de Ganadores) */}
             <div className="space-y-3 avoid-break">
-              <div className="flex items-center gap-2 border-b border-[#263858] pb-2">
+              <div className="flex items-center gap-2 border-b border-zinc-800 pb-2">
                 <Crown className="w-5 h-5 text-amber-400" />
-                <h3 className="text-sm font-black text-[#F8FAFC] uppercase tracking-wider">
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">
                   Cuadro de Honor y Podio de Campeones
                 </h3>
               </div>
@@ -2735,16 +2735,16 @@ export default function ContestDashboardPage() {
                 {reportData.leaderboard.slice(0, 3).map((winner: any, i: number) => {
                   const border =
                     i === 0
-                      ? "border-amber-400 bg-amber-500/10 shadow-amber-500/10"
+                      ? "border-amber-400 bg-amber-950/20 shadow-amber-500/10"
                       : i === 1
-                      ? "border-slate-400 bg-[#111F38]"
-                      : "border-amber-700 bg-[#111F38]";
+                      ? "border-slate-300 bg-zinc-900/60"
+                      : "border-amber-700 bg-zinc-900/60";
                   const badgeBg =
                     i === 0
-                      ? "bg-amber-500 text-slate-950 font-black"
+                      ? "bg-amber-500 text-zinc-950"
                       : i === 1
-                      ? "bg-slate-300 text-slate-950 font-bold"
-                      : "bg-amber-700 text-white font-bold";
+                      ? "bg-slate-300 text-zinc-950"
+                      : "bg-amber-700 text-white";
 
                   return (
                     <div
@@ -2752,7 +2752,7 @@ export default function ContestDashboardPage() {
                       className={`p-5 rounded-2xl border-2 ${border} space-y-2 shadow-xl relative overflow-hidden`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] uppercase font-mono ${badgeBg}`}>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase font-mono ${badgeBg}`}>
                           {i === 0 ? "🥇 Gran Campeón" : i === 1 ? "🥈 2do Lugar" : "🥉 3er Lugar"}
                         </span>
                         <span className="text-xs font-mono font-bold text-amber-400">
@@ -2760,15 +2760,15 @@ export default function ContestDashboardPage() {
                         </span>
                       </div>
                       <div>
-                        <h4 className="text-base font-black text-[#F8FAFC]">{winner.stageName}</h4>
+                        <h4 className="text-base font-black text-white">{winner.stageName}</h4>
                         {winner.name !== winner.stageName && (
-                          <p className="text-[11px] text-[#94A3B8] font-medium">Nombre: {winner.name}</p>
+                          <p className="text-[11px] text-zinc-400 font-medium">Nombre: {winner.name}</p>
                         )}
-                        <p className="text-xs text-[#94A3B8] italic mt-0.5">
+                        <p className="text-xs text-zinc-300 italic mt-0.5">
                           "{winner.songTitle}" - {winner.artistName}
                         </p>
                       </div>
-                      <div className="pt-1.5 border-t border-[#263858] flex items-center justify-between text-[11px] text-[#94A3B8] font-mono">
+                      <div className="pt-1.5 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400 font-mono">
                         <span>Mesa: {winner.tableLabel}</span>
                         <span>Jueces: {winner.judgeScore} &bull; Público: {winner.publicScore}</span>
                       </div>
@@ -2780,22 +2780,22 @@ export default function ContestDashboardPage() {
 
             {/* 5. Planilla General de Puntuaciones y Clasificación Oficial */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between flex-wrap gap-2 border-b border-[#263858] pb-2">
+              <div className="flex items-center justify-between flex-wrap gap-2 border-b border-zinc-800 pb-2">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-amber-400" />
-                  <h3 className="text-sm font-black text-[#F8FAFC] uppercase tracking-wider">
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">
                     Planilla General de Calificaciones y Dictamen Oficial
                   </h3>
                 </div>
-                <span className="text-xs font-mono text-[#94A3B8]">
+                <span className="text-xs font-mono text-zinc-400">
                   Total de Actuaciones Registradas: {reportData.leaderboard.length}
                 </span>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-[#263858]">
+              <div className="overflow-x-auto rounded-2xl border border-zinc-800">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="bg-[#111F38] border-b border-[#263858] text-[#94A3B8] font-mono uppercase text-[10px]">
+                    <tr className="bg-zinc-900 border-b border-zinc-800 text-zinc-400 font-mono uppercase text-[10px]">
                       <th className="py-3 px-3.5">Puesto</th>
                       <th className="py-3 px-3.5">Participante</th>
                       <th className="py-3 px-3.5">Canción & Artista</th>
@@ -2806,31 +2806,31 @@ export default function ContestDashboardPage() {
                       <th className="py-3 px-3.5 text-center">Dictamen Notarial</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#263858]/60 font-medium">
+                  <tbody className="divide-y divide-zinc-800/60 font-medium">
                     {reportData.leaderboard.map((row: any) => (
-                      <tr key={row.rank} className="hover:bg-[#111F38]/50 transition-colors">
+                      <tr key={row.rank} className="hover:bg-zinc-900/40">
                         <td className="py-3 px-3.5 font-mono font-bold text-amber-400">
                           {row.rank === 1 ? "🥇 1°" : row.rank === 2 ? "🥈 2°" : row.rank === 3 ? "🥉 3°" : `${row.rank}°`}
                         </td>
-                        <td className="py-3 px-3.5 font-bold text-[#F8FAFC]">
+                        <td className="py-3 px-3.5 font-bold text-white">
                           <div>
                             <span>{row.stageName}</span>
                             {row.name !== row.stageName && (
-                              <span className="text-[11px] text-[#94A3B8] font-normal ml-1">({row.name})</span>
+                              <span className="text-[11px] text-zinc-400 font-normal ml-1">({row.name})</span>
                             )}
                           </div>
                         </td>
-                        <td className="py-3 px-3.5 text-[#94A3B8]">
-                          "{row.songTitle}" <span className="text-[#64748B] font-normal">&bull; {row.artistName}</span>
+                        <td className="py-3 px-3.5 text-zinc-300">
+                          "{row.songTitle}" <span className="text-zinc-500 font-normal">&bull; {row.artistName}</span>
                         </td>
-                        <td className="py-3 px-3.5 font-mono text-[#94A3B8] text-[11px]">{row.tableLabel}</td>
-                        <td className="py-3 px-3.5 text-right font-mono text-[#F8FAFC] font-bold">
+                        <td className="py-3 px-3.5 font-mono text-zinc-400 text-[11px]">{row.tableLabel}</td>
+                        <td className="py-3 px-3.5 text-right font-mono text-zinc-200 font-bold">
                           {row.judgeScore}
                         </td>
-                        <td className="py-3 px-3.5 text-right font-mono text-[#94A3B8]">
+                        <td className="py-3 px-3.5 text-right font-mono text-zinc-400">
                           {row.publicScore}
                           {row.publicVotesCount > 0 && (
-                            <span className="text-[10px] text-[#64748B] ml-1">({row.publicVotesCount}v)</span>
+                            <span className="text-[10px] text-zinc-500 ml-1">({row.publicVotesCount}v)</span>
                           )}
                         </td>
                         <td className="py-3 px-3.5 text-right font-mono font-black text-amber-300 text-sm">
@@ -2846,7 +2846,7 @@ export default function ContestDashboardPage() {
                               🥈 Sub-Campeón
                             </span>
                           ) : row.rank === 3 ? (
-                            <span className="px-2.5 py-0.5 rounded-full bg-amber-700/20 text-amber-400 border border-amber-700/40 text-[10px] font-bold uppercase">
+                            <span className="px-2.5 py-0.5 rounded-full bg-amber-700/20 text-amber-500 border border-amber-700/40 text-[10px] font-bold uppercase">
                               🥉 3er Puesto
                             </span>
                           ) : row.rank <= 6 ? (
@@ -2854,7 +2854,7 @@ export default function ContestDashboardPage() {
                               Clasificado Destacado
                             </span>
                           ) : (
-                            <span className="px-2.5 py-0.5 rounded-full bg-[#111F38] text-[#94A3B8] border border-[#263858] text-[10px]">
+                            <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-[10px]">
                               Mención de Honor
                             </span>
                           )}
@@ -2869,10 +2869,10 @@ export default function ContestDashboardPage() {
             {/* 6. Tabla de Auditoría y Votación Popular por Mesa */}
             {reportData?.stats?.tableStats && reportData.stats.tableStats.length > 0 && (
               <div className="space-y-3 avoid-break">
-                <div className="flex items-center justify-between flex-wrap gap-2 border-b border-[#263858] pb-2">
+                <div className="flex items-center justify-between flex-wrap gap-2 border-b border-zinc-800 pb-2">
                   <div className="flex items-center gap-2">
                     <QrCode className="w-4 h-4 text-amber-400" />
-                    <h3 className="text-sm font-black text-[#F8FAFC] uppercase tracking-wider">
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider">
                       Auditoría Notarial de Votación Popular por Mesas
                     </h3>
                   </div>
@@ -2882,10 +2882,10 @@ export default function ContestDashboardPage() {
                   </span>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-[#263858]">
+                <div className="overflow-x-auto rounded-2xl border border-zinc-800">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="bg-[#111F38] border-b border-[#263858] text-[#94A3B8] font-mono uppercase text-[10px]">
+                      <tr className="bg-zinc-900 border-b border-zinc-800 text-zinc-400 font-mono uppercase text-[10px]">
                         <th className="py-2.5 px-3">Mesa / Ubicación</th>
                         <th className="py-2.5 px-3 text-center">Votos Emitidos</th>
                         <th className="py-2.5 px-3 text-center">Calificación Promedio</th>
@@ -2893,11 +2893,11 @@ export default function ContestDashboardPage() {
                         <th className="py-2.5 px-3 text-right">Validación</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#263858]/60 font-medium">
+                    <tbody className="divide-y divide-zinc-800/60 font-medium">
                       {reportData.stats.tableStats.map((table: any, idx: number) => (
-                        <tr key={table.tableLabel} className="hover:bg-[#111F38]/50 transition-colors">
-                          <td className="py-2.5 px-3 font-bold text-[#F8FAFC] flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-full bg-[#111F38] border border-[#263858] flex items-center justify-center font-mono text-[10px] text-amber-400">
+                        <tr key={table.tableLabel} className="hover:bg-zinc-900/40">
+                          <td className="py-2.5 px-3 font-bold text-white flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center font-mono text-[10px] text-amber-400">
                               {idx + 1}
                             </span>
                             <span>{table.tableLabel}</span>
@@ -2907,13 +2907,13 @@ export default function ContestDashboardPage() {
                               </span>
                             )}
                           </td>
-                          <td className="py-2.5 px-3 text-center font-mono text-[#F8FAFC]">
+                          <td className="py-2.5 px-3 text-center font-mono text-zinc-200">
                             {table.totalVotes} votos
                           </td>
                           <td className="py-2.5 px-3 text-center font-mono font-bold text-amber-400">
                             ⭐ {table.avgStars} / 5.0
                           </td>
-                          <td className="py-2.5 px-3 text-center font-mono text-cyan-400">
+                          <td className="py-2.5 px-3 text-center font-mono text-pink-400">
                             +{table.cheerCount}
                           </td>
                           <td className="py-2.5 px-3 text-right font-mono text-emerald-400 text-[11px]">
@@ -2928,12 +2928,12 @@ export default function ContestDashboardPage() {
             )}
 
             {/* 7. Bloque Solemne de Firmas y Rúbricas */}
-            <div className="pt-6 border-t-2 border-[#263858] space-y-4 avoid-break">
+            <div className="pt-6 border-t-2 border-zinc-800 space-y-4 avoid-break">
               <div className="text-center space-y-1">
-                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#94A3B8]">
+                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-400">
                   CERTIFICACIÓN SOLEMNE Y FE PÚBLICA
                 </span>
-                <p className="text-xs text-[#94A3B8] italic max-w-2xl mx-auto">
+                <p className="text-xs text-zinc-300 italic max-w-2xl mx-auto">
                   "Los suscritos miembros del Jurado Calificador Oficial y la Dirección General del evento certifican bajo fe de juramento que las evaluaciones y calificaciones expuestas en esta acta son el resultado inalterable de las actuaciones artísticas presenciadas en vivo y la votación auditada del público comensal presente en sala."
                 </p>
               </div>
@@ -2942,12 +2942,12 @@ export default function ContestDashboardPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 pt-6">
                 {reportData.judges.map((judge: any) => (
                   <div key={judge.id} className="text-center space-y-2">
-                    <div className="border-b-2 border-dashed border-[#263858] h-14 flex items-end justify-center pb-1">
-                      <span className="text-[11px] font-serif italic text-[#64748B]">Rúbrica Oficial</span>
+                    <div className="border-b-2 border-dashed border-zinc-600 h-14 flex items-end justify-center pb-1">
+                      <span className="text-[11px] font-serif italic text-zinc-500">Rúbrica Oficial</span>
                     </div>
                     <div>
-                      <strong className="text-xs font-bold text-[#F8FAFC] block">{judge.name}</strong>
-                      <span className="text-[10px] text-[#94A3B8] block font-medium">
+                      <strong className="text-xs font-bold text-white block">{judge.name}</strong>
+                      <span className="text-[10px] text-zinc-400 block font-medium">
                         {judge.title || "Jurado Calificador Oficial"}
                       </span>
                     </div>
@@ -2956,14 +2956,14 @@ export default function ContestDashboardPage() {
 
                 {/* Firma del DJ Anfitrión / Dirección Técnica */}
                 <div className="text-center space-y-2">
-                  <div className="border-b-2 border-dashed border-[#263858] h-14 flex items-end justify-center pb-1">
-                    <span className="text-[11px] font-serif italic text-[#64748B]">Rúbrica Técnica</span>
+                  <div className="border-b-2 border-dashed border-zinc-600 h-14 flex items-end justify-center pb-1">
+                    <span className="text-[11px] font-serif italic text-zinc-500">Rúbrica Técnica</span>
                   </div>
                   <div>
-                    <strong className="text-xs font-bold text-[#F8FAFC] block">
+                    <strong className="text-xs font-bold text-white block">
                       {reportData.contest.parsedOrganizers?.find((o: any) => o.role.toLowerCase().includes("dj"))?.name || "DJ Anfitrión & Sonido"}
                     </strong>
-                    <span className="text-[10px] text-[#94A3B8] block font-medium">
+                    <span className="text-[10px] text-zinc-400 block font-medium">
                       Dirección Técnica & Cabina Vidjs
                     </span>
                   </div>
@@ -2971,14 +2971,14 @@ export default function ContestDashboardPage() {
 
                 {/* Firma de la Gerencia / Establecimiento */}
                 <div className="text-center space-y-2">
-                  <div className="border-b-2 border-dashed border-[#263858] h-14 flex items-end justify-center pb-1">
-                    <span className="text-[11px] font-serif italic text-[#64748B]">Sello & Conforme</span>
+                  <div className="border-b-2 border-dashed border-zinc-600 h-14 flex items-end justify-center pb-1">
+                    <span className="text-[11px] font-serif italic text-zinc-500">Sello & Conforme</span>
                   </div>
                   <div>
-                    <strong className="text-xs font-bold text-[#F8FAFC] block">
+                    <strong className="text-xs font-bold text-white block">
                       Gerencia / Dirección Sede
                     </strong>
-                    <span className="text-[10px] text-[#94A3B8] block font-medium">
+                    <span className="text-[10px] text-zinc-400 block font-medium">
                       {reportData.contest.tenantName}
                     </span>
                   </div>
@@ -2987,7 +2987,7 @@ export default function ContestDashboardPage() {
             </div>
 
             {/* 8. Pie de Página Institucional */}
-            <div className="border-t border-[#263858] pt-4 flex flex-col sm:flex-row items-center justify-between text-[11px] text-[#64748B] gap-2">
+            <div className="border-t border-zinc-900 pt-4 flex flex-col sm:flex-row items-center justify-between text-[11px] text-zinc-500 gap-2">
               <span>
                 Documento generado por Vidjs Karaoke Professional &bull; Certificación Criptográfica #
                 {reportData.contest.code}
@@ -3004,13 +3004,13 @@ export default function ContestDashboardPage() {
       {/* PESTAÑA 7: GENERADOR DE DIPLOMAS                             */}
       {/* ============================================================ */}
       {activeTab === "diplomas" && reportData && (
-        <div className="bg-[#111F38] border border-[#263858] rounded-2xl p-6 space-y-6 shadow-xl">
+        <div className="bg-zinc-900/70 border border-zinc-800 rounded-3xl p-6 space-y-6">
           <div>
-            <h3 className="text-base font-black text-[#F8FAFC] uppercase tracking-wider flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-amber-400" />
+            <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-yellow-400" />
               <span>Certificados y Diplomas de Premiación</span>
             </h3>
-            <p className="text-xs text-[#94A3B8]">
+            <p className="text-xs text-zinc-400">
               Genera diplomas de gala con membrete listos para imprimir o entregar en papel a los ganadores
             </p>
           </div>
@@ -3018,15 +3018,15 @@ export default function ContestDashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {reportData.leaderboard.slice(0, 3).map((winner: any, i: number) => {
               const title = i === 0 ? "1ER PUESTO &bull; CAMPEÓN" : i === 1 ? "2DO PUESTO" : "3ER PUESTO";
-              const border = i === 0 ? "border-amber-400" : i === 1 ? "border-slate-300" : "border-amber-600";
-              const text = i === 0 ? "text-amber-400" : i === 1 ? "text-slate-300" : "text-amber-500";
+              const border = i === 0 ? "border-yellow-400" : i === 1 ? "border-slate-300" : "border-amber-600";
+              const text = i === 0 ? "text-yellow-400" : i === 1 ? "text-slate-300" : "text-amber-500";
 
               return (
                 <div
                   key={winner.rank}
-                  className={`p-6 rounded-2xl bg-[#0D1930] border-2 ${border} text-center space-y-4 shadow-xl relative overflow-hidden`}
+                  className={`p-6 rounded-3xl bg-zinc-950 border-2 ${border} text-center space-y-4 shadow-2xl relative overflow-hidden`}
                 >
-                  <div className="w-14 h-14 mx-auto rounded-full bg-[#111F38] border border-[#263858] flex items-center justify-center text-2xl shadow-inner">
+                  <div className="w-14 h-14 mx-auto rounded-full bg-zinc-900 flex items-center justify-center text-2xl shadow-inner">
                     {i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}
                   </div>
 
@@ -3034,8 +3034,8 @@ export default function ContestDashboardPage() {
                     <span className={`text-[10px] font-mono font-black tracking-widest uppercase ${text}`}>
                       {title}
                     </span>
-                    <h4 className="text-lg font-black text-[#F8FAFC]">{winner.stageName}</h4>
-                    <p className="text-xs text-[#94A3B8] italic">
+                    <h4 className="text-lg font-black text-white">{winner.stageName}</h4>
+                    <p className="text-xs text-zinc-400 italic">
                       "{winner.songTitle}" - {winner.artistName}
                     </p>
                     <p className="text-xs font-mono font-black text-amber-300 pt-1">
@@ -3045,7 +3045,7 @@ export default function ContestDashboardPage() {
 
                   <button
                     onClick={() => window.print()}
-                    className="w-full py-2.5 rounded-xl bg-[#111F38] hover:bg-[#1a2e50] border border-[#263858] text-[#F8FAFC] text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-colors"
+                    className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-colors"
                   >
                     <Printer className="w-3.5 h-3.5" />
                     <span>Imprimir Diploma</span>
@@ -3062,15 +3062,15 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {showNewContestModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-[#111F38] border border-[#263858] rounded-2xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black text-[#F8FAFC] flex items-center gap-2">
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-amber-400" />
                 <span>Crear Nuevo Campeonato de Karaoke</span>
               </h3>
               <button
                 onClick={() => setShowNewContestModal(false)}
-                className="text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer"
+                className="text-zinc-500 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3078,59 +3078,59 @@ export default function ContestDashboardPage() {
 
             <form onSubmit={handleCreateContest} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Nombre del Certamen</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre del Certamen</label>
                 <input
                   type="text"
                   required
                   value={newContestForm.name}
                   onChange={(e) => setNewContestForm({ ...newContestForm, name: e.target.value })}
-                  className="w-full p-3 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs font-bold outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30"
+                  className="w-full p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-bold outline-none focus:border-amber-400"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Descripción / Reglamento Breve</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Descripción / Reglamento Breve</label>
                 <textarea
                   rows={2}
                   value={newContestForm.description}
                   onChange={(e) => setNewContestForm({ ...newContestForm, description: e.target.value })}
-                  className="w-full p-3 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 resize-none"
+                  className="w-full p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Modo de Puntuación</label>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Modo de Puntuación</label>
                   <select
                     value={newContestForm.scoringMode}
                     onChange={(e) => setNewContestForm({ ...newContestForm, scoringMode: e.target.value })}
-                    className="w-full p-3 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs font-bold outline-none focus:border-amber-400 cursor-pointer"
+                    className="w-full p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-bold outline-none"
                   >
-                    <option value="AVERAGE" className="bg-[#0D1930] text-[#F8FAFC]">Promedio Simple</option>
-                    <option value="OLYMPIC" className="bg-[#0D1930] text-[#F8FAFC]">Olímpico (Descarta max y min)</option>
-                    <option value="SUM" className="bg-[#0D1930] text-[#F8FAFC]">Suma Total de Puntos</option>
+                    <option value="AVERAGE">Promedio Simple</option>
+                    <option value="OLYMPIC">Olímpico (Descarta max y min)</option>
+                    <option value="SUM">Suma Total de Puntos</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Voto del Público (%)</label>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Voto del Público (%)</label>
                   <input
                     type="number"
                     min={0}
                     max={50}
                     value={newContestForm.publicVoteWeight}
                     onChange={(e) => setNewContestForm({ ...newContestForm, publicVoteWeight: Number(e.target.value) })}
-                    className="w-full p-3 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs font-bold outline-none focus:border-amber-400"
+                    className="w-full p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-bold outline-none"
                   />
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
+              <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-[#F8FAFC] block">
+                  <span className="text-xs font-bold text-white block">
                     Exigir Consumo Mínimo de Mesas
                   </span>
-                  <span className="text-[10px] text-[#94A3B8] block">
+                  <span className="text-[10px] text-zinc-400 block">
                     Solo los comensales de mesas validadas por mozo podrán votar
                   </span>
                 </div>
@@ -3148,14 +3148,14 @@ export default function ContestDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowNewContestModal(false)}
-                  className="px-4 py-2.5 rounded-xl bg-[#0D1930] hover:bg-[#1a2e50] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] text-xs font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-lg shadow-amber-500/25"
                 >
                   {actionLoading ? "Creando..." : "Crear Concurso"}
                 </button>
@@ -3170,73 +3170,73 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {showNewParticipantModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-[#111F38] border border-[#263858] rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-black text-[#F8FAFC] flex items-center gap-2">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Mic className="w-5 h-5 text-amber-400" />
                 <span>Inscribir Cantante en el Concurso</span>
               </h3>
-              <button onClick={() => setShowNewParticipantModal(false)} className="text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer">
+              <button onClick={() => setShowNewParticipantModal(false)} className="text-zinc-500 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleRegisterParticipant} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Nombre Completo *</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre Completo *</label>
                 <input
                   type="text"
                   required
                   placeholder="Ej: Laura Méndez"
                   value={newParticipantForm.name}
                   onChange={(e) => setNewParticipantForm({ ...newParticipantForm, name: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Nombre Artístico (Opcional)</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre Artístico (Opcional)</label>
                 <input
                   type="text"
                   placeholder="Ej: Laurita Rock"
                   value={newParticipantForm.stageName}
                   onChange={(e) => setNewParticipantForm({ ...newParticipantForm, stageName: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Canción a Cantar *</label>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Canción a Cantar *</label>
                   <input
                     type="text"
                     required
                     placeholder="Ej: De Música Ligera"
                     value={newParticipantForm.initialSongTitle}
                     onChange={(e) => setNewParticipantForm({ ...newParticipantForm, initialSongTitle: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400"
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Artista Original</label>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Artista Original</label>
                   <input
                     type="text"
                     placeholder="Ej: Soda Stereo"
                     value={newParticipantForm.initialArtistName}
                     onChange={(e) => setNewParticipantForm({ ...newParticipantForm, initialArtistName: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400"
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Mesa / Ubicación en el Local</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Mesa / Ubicación en el Local</label>
                 <input
                   type="text"
                   placeholder="Ej: Mesa 14 VIP"
                   value={newParticipantForm.tableLabel}
                   onChange={(e) => setNewParticipantForm({ ...newParticipantForm, tableLabel: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none"
                 />
               </div>
 
@@ -3244,14 +3244,14 @@ export default function ContestDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowNewParticipantModal(false)}
-                  className="px-4 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1a2e50] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] text-xs font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md"
                 >
                   {actionLoading ? "Inscribiendo..." : "Inscribir"}
                 </button>
@@ -3266,16 +3266,16 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {showNewJudgeModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-[#111F38] border border-[#263858] rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-black text-[#F8FAFC] flex items-center gap-2">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Award className="w-5 h-5 text-amber-400" />
                 <span>Agregar Nuevo Jurado Oficial</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setShowNewJudgeModal(false)}
-                className="text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer"
+                className="text-zinc-500 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3283,30 +3283,30 @@ export default function ContestDashboardPage() {
 
             <form onSubmit={handleCreateJudge} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Nombre Completo *</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre Completo *</label>
                 <input
                   type="text"
                   required
                   placeholder="Ej: Marcelo Polino / Lucía Méndez"
                   value={newJudgeForm.name}
                   onChange={(e) => setNewJudgeForm({ ...newJudgeForm, name: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 font-bold"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Cargo / Especialidad (Opcional)</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Cargo / Especialidad (Opcional)</label>
                 <input
                   type="text"
                   placeholder="Ej: Vocal Coach / Productor Musical / Músico Invitado"
                   value={newJudgeForm.title}
                   onChange={(e) => setNewJudgeForm({ ...newJudgeForm, title: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
                   PIN de Acceso Móvil (4 dígitos)
                 </label>
                 <input
@@ -3316,17 +3316,17 @@ export default function ContestDashboardPage() {
                   placeholder="Dejar vacío para generar PIN aleatorio"
                   value={newJudgeForm.accessPin}
                   onChange={(e) => setNewJudgeForm({ ...newJudgeForm, accessPin: e.target.value.replace(/\D/g, "") })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-amber-400 text-xs font-mono font-bold outline-none focus:border-amber-400"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 text-xs font-mono font-bold outline-none focus:border-amber-400"
                 />
-                <span className="text-[10px] text-[#94A3B8] mt-0.5 block">
+                <span className="text-[10px] text-zinc-500 mt-0.5 block">
                   Si lo dejas vacío, el sistema le asignará un PIN de 4 dígitos automáticamente.
                 </span>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
+              <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-[#F8FAFC] block">Botón Dorado (Golden Buzzer)</span>
-                  <span className="text-[10px] text-[#94A3B8]">Permite clasificar directo a un cantante a la gran final</span>
+                  <span className="text-xs font-bold text-white block">Botón Dorado (Golden Buzzer)</span>
+                  <span className="text-[10px] text-zinc-400">Permite clasificar directo a un cantante a la gran final</span>
                 </div>
                 <input
                   type="checkbox"
@@ -3340,14 +3340,14 @@ export default function ContestDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowNewJudgeModal(false)}
-                  className="px-4 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1a2e50] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] text-xs font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {actionLoading ? "Guardando..." : "Agregar Jurado"}
                 </button>
@@ -3362,16 +3362,16 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {editingJudge && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-[#111F38] border border-[#263858] rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-black text-[#F8FAFC] flex items-center gap-2">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Pencil className="w-5 h-5 text-amber-400" />
                 <span>Editar Jurado Oficial</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setEditingJudge(null)}
-                className="text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer"
+                className="text-zinc-500 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3379,29 +3379,29 @@ export default function ContestDashboardPage() {
 
             <form onSubmit={handleUpdateJudge} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Nombre Completo *</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre Completo *</label>
                 <input
                   type="text"
                   required
                   value={editJudgeForm.name}
                   onChange={(e) => setEditJudgeForm({ ...editJudgeForm, name: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 font-bold"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Cargo / Especialidad</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Cargo / Especialidad</label>
                 <input
                   type="text"
                   value={editJudgeForm.title}
                   onChange={(e) => setEditJudgeForm({ ...editJudgeForm, title: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-[#F8FAFC]">PIN de Acceso Móvil (4 dígitos) *</label>
+                  <label className="text-xs font-bold text-zinc-300">PIN de Acceso Móvil (4 dígitos) *</label>
                   <button
                     type="button"
                     onClick={() => {
@@ -3420,14 +3420,14 @@ export default function ContestDashboardPage() {
                   pattern="\d{4}"
                   value={editJudgeForm.accessPin}
                   onChange={(e) => setEditJudgeForm({ ...editJudgeForm, accessPin: e.target.value.replace(/\D/g, "") })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-amber-400 text-sm font-mono font-black outline-none focus:border-amber-400 tracking-widest text-center"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 text-sm font-mono font-black outline-none focus:border-amber-400 tracking-widest text-center"
                 />
               </div>
 
-              <div className="p-3 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
+              <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-[#F8FAFC] block">Botón Dorado (Golden Buzzer)</span>
-                  <span className="text-[10px] text-[#94A3B8]">Permite dar pase dorado directo a la final</span>
+                  <span className="text-xs font-bold text-white block">Botón Dorado (Golden Buzzer)</span>
+                  <span className="text-[10px] text-zinc-400">Permite dar pase dorado directo a la final</span>
                 </div>
                 <input
                   type="checkbox"
@@ -3441,14 +3441,14 @@ export default function ContestDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setEditingJudge(null)}
-                  className="px-4 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1a2e50] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] text-xs font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {actionLoading ? "Guardando..." : "Guardar Cambios"}
                 </button>
@@ -3463,16 +3463,16 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {showNewCriteriaModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-[#111F38] border border-[#263858] rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-black text-[#F8FAFC] flex items-center gap-2">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Sliders className="w-5 h-5 text-amber-400" />
                 <span>Nuevo Criterio de Evaluación</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setShowNewCriteriaModal(false)}
-                className="text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer"
+                className="text-zinc-500 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3480,31 +3480,31 @@ export default function ContestDashboardPage() {
 
             <form onSubmit={handleCreateCriteria} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Nombre del Criterio *</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre del Criterio *</label>
                 <input
                   type="text"
                   required
                   placeholder="Ej: Afinación y Entonación / Carisma / Ritmo"
                   value={newCriteriaForm.name}
                   onChange={(e) => setNewCriteriaForm({ ...newCriteriaForm, name: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 font-bold"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Descripción / Pauta para Jurados</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Descripción / Pauta para Jurados</label>
                 <textarea
                   rows={2}
                   placeholder="Ej: Precisión en las notas, control tonal y afinación a lo largo de la canción."
                   value={newCriteriaForm.description}
                   onChange={(e) => setNewCriteriaForm({ ...newCriteriaForm, description: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 resize-none"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Puntaje Máximo *</label>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Puntaje Máximo *</label>
                   <input
                     type="number"
                     min={1}
@@ -3512,13 +3512,13 @@ export default function ContestDashboardPage() {
                     required
                     value={newCriteriaForm.maxScore}
                     onChange={(e) => setNewCriteriaForm({ ...newCriteriaForm, maxScore: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-amber-400 font-mono font-bold text-xs outline-none focus:border-amber-400"
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 font-mono font-bold text-xs outline-none focus:border-amber-400"
                   />
-                  <span className="text-[10px] text-[#94A3B8] mt-0.5 block">Escala habitual: 10</span>
+                  <span className="text-[10px] text-zinc-500 mt-0.5 block">Escala habitual: 10</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Ponderación / Peso</label>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Ponderación / Peso</label>
                   <input
                     type="number"
                     min={0.1}
@@ -3527,9 +3527,9 @@ export default function ContestDashboardPage() {
                     required
                     value={newCriteriaForm.weight}
                     onChange={(e) => setNewCriteriaForm({ ...newCriteriaForm, weight: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-amber-400 font-mono font-bold text-xs outline-none focus:border-amber-400"
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 font-mono font-bold text-xs outline-none focus:border-amber-400"
                   />
-                  <span className="text-[10px] text-[#94A3B8] mt-0.5 block">Multiplicador (1.0)</span>
+                  <span className="text-[10px] text-zinc-500 mt-0.5 block">Multiplicador (1.0)</span>
                 </div>
               </div>
 
@@ -3537,14 +3537,14 @@ export default function ContestDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowNewCriteriaModal(false)}
-                  className="px-4 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1a2e50] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] text-xs font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {actionLoading ? "Guardando..." : "Crear Criterio"}
                 </button>
@@ -3559,16 +3559,16 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {editingCriteria && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-[#111F38] border border-[#263858] rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-black text-[#F8FAFC] flex items-center gap-2">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Pencil className="w-5 h-5 text-amber-400" />
                 <span>Editar Criterio de Evaluación</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setEditingCriteria(null)}
-                className="text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer"
+                className="text-zinc-500 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3576,29 +3576,29 @@ export default function ContestDashboardPage() {
 
             <form onSubmit={handleUpdateCriteria} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Nombre del Criterio *</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre del Criterio *</label>
                 <input
                   type="text"
                   required
                   value={editCriteriaForm.name}
                   onChange={(e) => setEditCriteriaForm({ ...editCriteriaForm, name: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 font-bold"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Descripción / Pauta</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Descripción / Pauta</label>
                 <textarea
                   rows={2}
                   value={editCriteriaForm.description}
                   onChange={(e) => setEditCriteriaForm({ ...editCriteriaForm, description: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 resize-none"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Puntaje Máximo *</label>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Puntaje Máximo *</label>
                   <input
                     type="number"
                     min={1}
@@ -3606,12 +3606,12 @@ export default function ContestDashboardPage() {
                     required
                     value={editCriteriaForm.maxScore}
                     onChange={(e) => setEditCriteriaForm({ ...editCriteriaForm, maxScore: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-amber-400 font-mono font-bold text-xs outline-none focus:border-amber-400"
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 font-mono font-bold text-xs outline-none focus:border-amber-400"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Ponderación / Peso</label>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Ponderación / Peso</label>
                   <input
                     type="number"
                     min={0.1}
@@ -3620,7 +3620,7 @@ export default function ContestDashboardPage() {
                     required
                     value={editCriteriaForm.weight}
                     onChange={(e) => setEditCriteriaForm({ ...editCriteriaForm, weight: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-amber-400 font-mono font-bold text-xs outline-none focus:border-amber-400"
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 font-mono font-bold text-xs outline-none focus:border-amber-400"
                   />
                 </div>
               </div>
@@ -3629,14 +3629,14 @@ export default function ContestDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setEditingCriteria(null)}
-                  className="px-4 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1a2e50] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] text-xs font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {actionLoading ? "Guardando..." : "Guardar Cambios"}
                 </button>
@@ -3651,16 +3651,16 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {showNewStageModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-[#111F38] border border-[#263858] rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-black text-[#F8FAFC] flex items-center gap-2">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-amber-400" />
                 <span>Nueva Fecha / Gala</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setShowNewStageModal(false)}
-                className="text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer"
+                className="text-zinc-500 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3668,58 +3668,58 @@ export default function ContestDashboardPage() {
 
             <form onSubmit={handleCreateStage} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Título de la Gala *</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Título de la Gala *</label>
                 <input
                   type="text"
                   required
                   placeholder="Ej: Clasificatorias Día 1 / Semifinal / Gran Final"
                   value={newStageForm.title}
                   onChange={(e) => setNewStageForm({ ...newStageForm, title: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 font-bold"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Tipo de Ronda *</label>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Tipo de Ronda *</label>
                   <select
                     value={newStageForm.stageType}
                     onChange={(e) => setNewStageForm({ ...newStageForm, stageType: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 cursor-pointer"
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
                   >
-                    <option value="AUDITIONS" className="bg-[#0D1930] text-[#F8FAFC]">Audiciones / Filtro</option>
-                    <option value="QUALIFIERS" className="bg-[#0D1930] text-[#F8FAFC]">Clasificatorias</option>
-                    <option value="SEMIFINALS" className="bg-[#0D1930] text-[#F8FAFC]">Semifinal</option>
-                    <option value="FINALS" className="bg-[#0D1930] text-[#F8FAFC]">Gran Final</option>
+                    <option value="AUDITIONS">Audiciones / Filtro</option>
+                    <option value="QUALIFIERS">Clasificatorias</option>
+                    <option value="SEMIFINALS">Semifinal</option>
+                    <option value="FINALS">Gran Final</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Fecha Programada</label>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Fecha Programada</label>
                   <input
                     type="date"
                     value={newStageForm.date}
                     onChange={(e) => setNewStageForm({ ...newStageForm, date: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-amber-400 font-mono text-xs outline-none focus:border-amber-400"
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 font-mono text-xs outline-none focus:border-amber-400"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Notas / Descripción (Opcional)</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Notas / Descripción (Opcional)</label>
                 <textarea
                   rows={2}
                   placeholder="Ej: Clasifican los 3 mejores puntajes de la noche para la Gran Final."
                   value={newStageForm.notes}
                   onChange={(e) => setNewStageForm({ ...newStageForm, notes: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 resize-none"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
                 />
               </div>
 
-              <div className="p-3 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
+              <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
                 <div>
-                  <span className="block text-xs font-bold text-[#F8FAFC]">Activar Inmediatamente</span>
-                  <span className="text-[11px] text-[#94A3B8]">Fijar como la gala activa para la cabina y votaciones en vivo</span>
+                  <span className="block text-xs font-bold text-white">Activar Inmediatamente</span>
+                  <span className="text-[11px] text-zinc-400">Fijar como la gala activa para la cabina y votaciones en vivo</span>
                 </div>
                 <input
                   type="checkbox"
@@ -3733,14 +3733,14 @@ export default function ContestDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowNewStageModal(false)}
-                  className="px-4 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1a2e50] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] text-xs font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {actionLoading ? "Guardando..." : "Crear Gala"}
                 </button>
@@ -3755,16 +3755,16 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {editingStage && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-[#111F38] border border-[#263858] rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-black text-[#F8FAFC] flex items-center gap-2">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Pencil className="w-5 h-5 text-amber-400" />
                 <span>Editar Fecha / Gala</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setEditingStage(null)}
-                className="text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer"
+                className="text-zinc-500 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3772,69 +3772,69 @@ export default function ContestDashboardPage() {
 
             <form onSubmit={handleUpdateStage} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Título de la Gala *</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Título de la Gala *</label>
                 <input
                   type="text"
                   required
                   value={editStageForm.title}
                   onChange={(e) => setEditStageForm({ ...editStageForm, title: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 font-bold"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Tipo de Ronda</label>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Tipo de Ronda</label>
                   <select
                     value={editStageForm.stageType}
                     onChange={(e) => setEditStageForm({ ...editStageForm, stageType: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 cursor-pointer"
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
                   >
-                    <option value="AUDITIONS" className="bg-[#0D1930] text-[#F8FAFC]">Audiciones / Filtro</option>
-                    <option value="QUALIFIERS" className="bg-[#0D1930] text-[#F8FAFC]">Clasificatorias</option>
-                    <option value="SEMIFINALS" className="bg-[#0D1930] text-[#F8FAFC]">Semifinal</option>
-                    <option value="FINALS" className="bg-[#0D1930] text-[#F8FAFC]">Gran Final</option>
+                    <option value="AUDITIONS">Audiciones / Filtro</option>
+                    <option value="QUALIFIERS">Clasificatorias</option>
+                    <option value="SEMIFINALS">Semifinal</option>
+                    <option value="FINALS">Gran Final</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Estado de la Gala</label>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Estado de la Gala</label>
                   <select
                     value={editStageForm.status}
                     onChange={(e) => setEditStageForm({ ...editStageForm, status: e.target.value as any })}
-                    className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 cursor-pointer"
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
                   >
-                    <option value="SCHEDULED" className="bg-[#0D1930] text-[#F8FAFC]">Programada</option>
-                    <option value="LIVE" className="bg-[#0D1930] text-[#F8FAFC]">En Vivo / Activa</option>
-                    <option value="COMPLETED" className="bg-[#0D1930] text-[#F8FAFC]">Concluida</option>
+                    <option value="SCHEDULED">Programada</option>
+                    <option value="LIVE">En Vivo / Activa</option>
+                    <option value="COMPLETED">Concluida</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Fecha Programada</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Fecha Programada</label>
                 <input
                   type="date"
                   value={editStageForm.date}
                   onChange={(e) => setEditStageForm({ ...editStageForm, date: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-amber-400 font-mono text-xs outline-none focus:border-amber-400"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 font-mono text-xs outline-none focus:border-amber-400"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">Notas / Instrucciones</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Notas / Instrucciones</label>
                 <textarea
                   rows={2}
                   value={editStageForm.notes}
                   onChange={(e) => setEditStageForm({ ...editStageForm, notes: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 resize-none"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
                 />
               </div>
 
-              <div className="p-3 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between">
+              <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
                 <div>
-                  <span className="block text-xs font-bold text-[#F8FAFC]">Marcar como Gala Activa</span>
-                  <span className="text-[11px] text-[#94A3B8]">Los puntajes y actuaciones se sincronizarán con esta gala</span>
+                  <span className="block text-xs font-bold text-white">Marcar como Gala Activa</span>
+                  <span className="text-[11px] text-zinc-400">Los puntajes y actuaciones se sincronizarán con esta gala</span>
                 </div>
                 <input
                   type="checkbox"
@@ -3848,14 +3848,14 @@ export default function ContestDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setEditingStage(null)}
-                  className="px-4 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1a2e50] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] text-xs font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {actionLoading ? "Guardando..." : "Guardar Cambios"}
                 </button>
@@ -3870,15 +3870,15 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {showQrModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-[#111F38] border border-[#263858] rounded-2xl p-6 shadow-2xl text-center space-y-4">
+          <div className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl text-center space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black text-[#F8FAFC]">{showQrModal.title}</h3>
-              <button onClick={() => setShowQrModal(null)} className="text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer">
+              <h3 className="text-sm font-black text-white">{showQrModal.title}</h3>
+              <button onClick={() => setShowQrModal(null)} className="text-zinc-500 hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="bg-white p-4 rounded-xl mx-auto inline-block shadow-2xl">
+            <div className="bg-white p-4 rounded-2xl mx-auto inline-block shadow-2xl">
               {/* QR Renderizado a través de API nativa SVG */}
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
@@ -3890,13 +3890,13 @@ export default function ContestDashboardPage() {
             </div>
 
             {showQrModal.pin && (
-              <div className="p-2.5 rounded-xl bg-[#0D1930] border border-[#263858]">
-                <span className="text-xs text-[#94A3B8]">PIN de Acceso: </span>
+              <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800">
+                <span className="text-xs text-zinc-400">PIN de Acceso: </span>
                 <strong className="text-amber-400 font-mono text-base">{showQrModal.pin}</strong>
               </div>
             )}
 
-            <p className="text-[11px] text-[#94A3B8]">
+            <p className="text-[11px] text-zinc-400">
               Escanea con la cámara del celular para abrir el panel de votación al instante sin contraseña.
             </p>
 
@@ -3905,7 +3905,7 @@ export default function ContestDashboardPage() {
                 navigator.clipboard.writeText(showQrModal.url);
                 showFeedback("success", "Enlace copiado al portapapeles");
               }}
-              className="w-full py-2.5 rounded-xl bg-[#0D1930] hover:bg-[#1a2e50] border border-[#263858] text-[#F8FAFC] text-xs font-bold cursor-pointer transition-colors"
+              className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold cursor-pointer"
             >
               Copiar Enlace Directo
             </button>
@@ -3918,34 +3918,34 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {showPublicVotesModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl bg-[#111F38] border border-[#263858] rounded-2xl p-6 shadow-2xl space-y-5 max-h-[85vh] flex flex-col">
+          <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-black text-[#F8FAFC] uppercase tracking-wider flex items-center gap-2">
+                <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
                   <QrCode className="w-5 h-5 text-amber-400" />
                   <span>Auditoría de Votos de Mesas en Vivo</span>
                 </h3>
-                <p className="text-xs text-[#94A3B8]">
+                <p className="text-xs text-zinc-400">
                   {currentPerformance?.participant.stageName || currentPerformance?.participant.name || "Actuación en Escenario"} &bull; "{currentPerformance?.songTitle}"
                 </p>
               </div>
               <button
                 onClick={() => setShowPublicVotesModal(false)}
-                className="text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer"
+                className="text-zinc-500 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex items-center justify-between flex-wrap gap-2 p-3.5 rounded-xl bg-[#0D1930] border border-[#263858]">
+            <div className="flex items-center justify-between flex-wrap gap-2 p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800">
               <div>
-                <span className="text-xs text-[#94A3B8]">Total Votos Emitidos:</span>
-                <span className="text-sm font-black text-[#F8FAFC] ml-2 font-mono">
+                <span className="text-xs text-zinc-400">Total Votos Emitidos:</span>
+                <span className="text-sm font-black text-white ml-2 font-mono">
                   {publicVotesAudit?.totalVotes || 0}
                 </span>
               </div>
               <div>
-                <span className="text-xs text-[#94A3B8]">Promedio de Estrellas:</span>
+                <span className="text-xs text-zinc-400">Promedio de Estrellas:</span>
                 <span className="text-sm font-black text-amber-400 ml-2 font-mono">
                   ⭐ {publicVotesAudit?.avgStars || 0} / 5.0
                 </span>
@@ -3961,10 +3961,10 @@ export default function ContestDashboardPage() {
                 publicVotesAudit.votes.map((v) => (
                   <div
                     key={v.id}
-                    className="p-3.5 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center justify-between text-xs"
+                    className="p-3.5 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between text-xs"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="px-3 py-1.5 rounded-xl bg-[#111F38] border border-[#263858] font-black text-[#F8FAFC]">
+                      <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-700 font-black text-zinc-200">
                         {v.tableLabel}
                       </div>
                       <div>
@@ -3972,45 +3972,45 @@ export default function ContestDashboardPage() {
                           {Array.from({ length: v.stars }).map((_, i) => (
                             <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                           ))}
-                          <span className="font-mono font-bold ml-1 text-[#F8FAFC]">({v.stars} / 5)</span>
+                          <span className="font-mono font-bold ml-1 text-zinc-300">({v.stars} / 5)</span>
                         </div>
-                        <span className="text-[10px] text-[#94A3B8] font-mono">
+                        <span className="text-[10px] text-zinc-500 font-mono">
                           Dispositivo: {v.voterId}
                         </span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] text-[#94A3B8] block font-mono">
+                      <span className="text-[10px] text-zinc-400 block font-mono">
                         {new Date(v.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                       </span>
                       {v.cheerCount > 0 && (
-                        <span className="text-[10px] font-bold text-cyan-400">+{v.cheerCount} ánimos</span>
+                        <span className="text-[10px] font-bold text-pink-400">+{v.cheerCount} ánimos</span>
                       )}
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="p-8 text-center text-[#94A3B8] text-xs">
+                <div className="p-8 text-center text-zinc-500 text-xs">
                   Aún no se han recibido votos del público para esta actuación.
                 </div>
               )}
             </div>
 
-            <div className="pt-2 border-t border-[#263858] flex justify-between items-center">
+            <div className="pt-2 border-t border-zinc-800 flex justify-between items-center">
               <button
                 onClick={() => {
                   if (selectedContestId && currentPerformance?.id) {
                     fetchPerformancePublicVotes(selectedContestId, currentPerformance.id);
                   }
                 }}
-                className="px-4 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1a2e50] border border-[#263858] text-[#F8FAFC] text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Refrescar Votos</span>
               </button>
               <button
                 onClick={() => setShowPublicVotesModal(false)}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs cursor-pointer shadow-lg shadow-amber-500/20 transition-all"
+                className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs cursor-pointer shadow-md"
               >
                 Cerrar
               </button>
@@ -4024,15 +4024,15 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {showBrandingModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl bg-[#111F38] border border-[#263858] rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-[#263858] pb-3">
+          <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2.5">
                 <Sliders className="w-5 h-5 text-amber-400" />
                 <div>
-                  <h3 className="text-base font-black text-[#F8FAFC]">
+                  <h3 className="text-base font-black text-white">
                     Configuración de Marca, Logo y Auspiciadores
                   </h3>
-                  <p className="text-xs text-[#94A3B8]">
+                  <p className="text-xs text-zinc-400">
                     Personaliza logotipos, patrocinadores, premios y directores del certamen
                   </p>
                 </div>
@@ -4040,7 +4040,7 @@ export default function ContestDashboardPage() {
               <button
                 type="button"
                 onClick={() => setShowBrandingModal(false)}
-                className="text-[#94A3B8] hover:text-[#F8FAFC] transition-colors cursor-pointer"
+                className="text-zinc-500 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -4050,7 +4050,7 @@ export default function ContestDashboardPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Logo URL */}
                 <div>
-                  <label className="block text-xs font-bold text-[#F8FAFC] mb-1">
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">
                     URL del Logo Oficial del Certamen o Local
                   </label>
                   <input
@@ -4058,24 +4058,24 @@ export default function ContestDashboardPage() {
                     placeholder="https://ejemplo.com/logo-certamen.png"
                     value={brandingForm.logoUrl}
                     onChange={(e) => setBrandingForm({ ...brandingForm, logoUrl: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 font-mono"
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono"
                   />
-                  <span className="text-[10px] text-[#94A3B8] mt-1 block">
+                  <span className="text-[10px] text-zinc-500 mt-1 block">
                     Membrete en el acta notarial, diplomas y pantalla gigante.
                   </span>
                 </div>
 
                 {/* Previsualización del Logo */}
-                <div className="flex items-center gap-3 p-3 bg-[#0D1930] rounded-xl border border-[#263858]">
-                  <div className="w-16 h-16 rounded-xl bg-[#111F38] border border-[#263858] flex items-center justify-center overflow-hidden shrink-0">
+                <div className="flex items-center gap-3 p-3 bg-zinc-950 rounded-xl border border-zinc-800">
+                  <div className="w-16 h-16 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
                     {brandingForm.logoUrl ? (
                       <img src={brandingForm.logoUrl} alt="Preview" className="w-full h-full object-contain p-1" />
                     ) : (
-                      <Trophy className="w-7 h-7 text-[#64748B]" />
+                      <Trophy className="w-7 h-7 text-zinc-600" />
                     )}
                   </div>
-                  <div className="text-xs text-[#94A3B8]">
-                    <strong className="text-[#F8FAFC] block">Previsualización</strong>
+                  <div className="text-xs text-zinc-400">
+                    <strong className="text-white block">Previsualización</strong>
                     <span className="text-[11px]">
                       {brandingForm.logoUrl ? "Logo asignado correctamente" : "Sin logo (se usará el escudo oficial Vidjs)"}
                     </span>
@@ -4085,7 +4085,7 @@ export default function ContestDashboardPage() {
 
               {/* Imagen de Portada / Banner */}
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
                   URL de Imagen de Portada o Banner de Gala (Opcional)
                 </label>
                 <input
@@ -4093,13 +4093,13 @@ export default function ContestDashboardPage() {
                   placeholder="https://ejemplo.com/banner-gala.jpg"
                   value={brandingForm.coverUrl}
                   onChange={(e) => setBrandingForm({ ...brandingForm, coverUrl: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 font-mono"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono"
                 />
               </div>
 
               {/* Auspiciadores, Patrocinadores y Colaboradores */}
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
                   Auspiciadores, Patrocinadores & Marcas Colaboradoras
                 </label>
                 <textarea
@@ -4107,16 +4107,16 @@ export default function ContestDashboardPage() {
                   placeholder={`Ejemplo (uno por línea):\nCerveza Corona | Patrocinador Oficial | https://ejemplo.com/logo-corona.png\nAudio Pro Master | Auspicio Técnico de Sonido\nRestaurante El Gaucho | Premio Especial Cena VIP`}
                   value={brandingForm.sponsors}
                   onChange={(e) => setBrandingForm({ ...brandingForm, sponsors: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 resize-none font-mono"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none font-mono"
                 />
-                <span className="text-[10px] text-[#94A3B8] mt-1 block">
+                <span className="text-[10px] text-zinc-500 mt-1 block">
                   Formato recomendado: <code>Nombre de Marca | Categoría | LogoUrl</code> o un nombre de empresa por renglón.
                 </span>
               </div>
 
               {/* Comité Organizador & Directores */}
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
                   Comité Organizador, Directores & DJ Anfitrión
                 </label>
                 <textarea
@@ -4124,13 +4124,13 @@ export default function ContestDashboardPage() {
                   placeholder={`Director del Certamen: Oscar Sam\nDJ Anfitrión / Sonido: DJ Sam\nProductora General: Vidjs Live`}
                   value={brandingForm.organizers}
                   onChange={(e) => setBrandingForm({ ...brandingForm, organizers: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 resize-none font-mono"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none font-mono"
                 />
               </div>
 
               {/* Premios en Disputa */}
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
                   Premios Oficiales del Certamen
                 </label>
                 <textarea
@@ -4138,13 +4138,13 @@ export default function ContestDashboardPage() {
                   placeholder={`🥇 1er Lugar: Trofeo de Oro + $500.000 + Grabación de Single\n🥈 2do Lugar: Trofeo de Plata + $200.000\n🥉 3er Lugar: Medalla de Bronce + Cena VIP`}
                   value={brandingForm.prizes}
                   onChange={(e) => setBrandingForm({ ...brandingForm, prizes: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 resize-none"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
                 />
               </div>
 
               {/* Reglamento / Notas */}
               <div>
-                <label className="block text-xs font-bold text-[#F8FAFC] mb-1">
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
                   Reglamento o Mensaje Institucional de Clausura (Opcional)
                 </label>
                 <textarea
@@ -4152,22 +4152,22 @@ export default function ContestDashboardPage() {
                   placeholder="Ej: Certamen regido bajo normas internacionales de entonación y carisma escénico."
                   value={brandingForm.rules}
                   onChange={(e) => setBrandingForm({ ...brandingForm, rules: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] text-xs outline-none focus:border-amber-400 resize-none"
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
                 />
               </div>
 
-              <div className="pt-3 border-t border-[#263858] flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-zinc-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowBrandingModal(false)}
-                  className="px-4 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1a2e50] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] text-xs font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {actionLoading ? "Guardando..." : "Guardar Configuración"}
                 </button>

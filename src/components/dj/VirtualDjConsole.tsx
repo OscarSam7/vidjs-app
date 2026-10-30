@@ -153,16 +153,16 @@ const VuMeterBar = memo(function VuMeterBar({
   const activeCount = Math.min(segments, Math.round(Math.max(peak, rms) * segments));
 
   return (
-    <div className="flex flex-col-reverse gap-0.5 h-20 w-2.5 bg-[#080F1F] p-0.5 rounded border border-[#263858] shadow-inner">
+    <div className="flex flex-col-reverse gap-0.5 h-20 w-2.5 bg-zinc-950 p-0.5 rounded border border-zinc-800 shadow-inner">
       {Array.from({ length: segments }).map((_, idx) => {
         const isActive = idx < activeCount;
-        let colorClass = "bg-[#0D1930]";
+        let colorClass = "bg-zinc-800/40";
         if (isActive) {
           if (idx >= 8) colorClass = "bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.9)]";
           else if (idx >= 6) colorClass = "bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.8)]";
-          else if (channelColor === "cyan") colorClass = "bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.8)]";
-          else if (channelColor === "emerald") colorClass = "bg-emerald-400 shadow-[0_0_6px_rgba(34,197,94,0.8)]";
-          else colorClass = "bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.8)]";
+          else if (channelColor === "cyan") colorClass = "bg-cyan-400 shadow-[0_0_4px_rgba(34,211,238,0.7)]";
+          else if (channelColor === "emerald") colorClass = "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.7)]";
+          else colorClass = "bg-purple-500 shadow-[0_0_4px_rgba(168,85,247,0.7)]";
         }
         return <div key={idx} className={`w-full flex-1 rounded-[1px] ${colorClass} transition-all duration-75`} />;
       })}
@@ -273,7 +273,7 @@ const DeckPlayer = memo(
             </div>
           ) : (
             /* Visualizador de Alta Fidelidad Nativo Web Audio API */
-            <div className="w-full h-full flex flex-col items-center justify-center p-3 bg-gradient-to-br from-[#080F1F] via-[#111F38] to-[#080F1F] relative overflow-hidden select-none">
+            <div className="w-full h-full flex flex-col items-center justify-center p-3 bg-gradient-to-br from-zinc-950 via-zinc-900 to-black relative overflow-hidden select-none">
               {/* Anillos giratorios de vinilo digital */}
               <div className="absolute inset-0 opacity-20 flex items-center justify-center pointer-events-none">
                 <div
@@ -300,7 +300,7 @@ const DeckPlayer = memo(
                     <Zap className="w-2.5 h-2.5" />
                     WEB AUDIO API 44.1kHz
                   </span>
-                  <span className="px-1.5 py-0.5 rounded bg-[#0D1930] text-emerald-400 text-[9px] font-mono font-bold border border-[#263858]">
+                  <span className="px-1.5 py-0.5 rounded bg-zinc-800/80 text-emerald-400 text-[9px] font-mono font-bold border border-zinc-700">
                     0 LATENCIA
                   </span>
                 </div>
@@ -336,18 +336,33 @@ const DeckPlayer = memo(
         {hasActiveTrack && (
           <div className="absolute top-1.5 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
             <span
-              className={`px-2 py-0.5 rounded bg-[#080F1F]/90 ${textColor} text-[9px] font-mono font-bold border ${borderColor} backdrop-blur-xs`}
+              className={`px-2 py-0.5 rounded bg-black/80 ${textColor} text-[9px] font-mono font-bold border ${borderColor} backdrop-blur-xs`}
             >
               {chLabel} &bull; VOL: {effectiveVol}%
             </span>
             <div className="flex items-center gap-1.5 pointer-events-auto">
+              {Boolean(videoId) && onClearVideo && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClearVideo();
+                  }}
+                  className="px-1.5 py-0.5 rounded bg-black/85 hover:bg-rose-950 text-rose-300 hover:text-white border border-rose-500/50 hover:border-rose-400 text-[9px] font-bold flex items-center gap-1 cursor-pointer shadow-sm transition-colors"
+                  title={`Borrar solamente el video de la Bandeja ${deckId} (sin afectar audio ni la otra bandeja)`}
+                >
+                  <VideoOff className="w-2.5 h-2.5 text-rose-400" />
+                  <span>Borrar Video</span>
+                </button>
+              )}
               <span
                 className={`px-2 py-0.5 rounded text-[9px] font-bold backdrop-blur-xs ${
                   isPlaying
                     ? isA
                       ? "bg-emerald-950/80 text-emerald-400 border border-emerald-500/40"
                       : "bg-cyan-950/80 text-cyan-400 border border-cyan-500/40"
-                    : "bg-[#0D1930] text-[#94A3B8] border border-[#263858]"
+                    : "bg-zinc-900/80 text-zinc-400 border border-zinc-700"
                 }`}
               >
                 {isPlaying ? "▶ PLAYING" : "⏸ PAUSED"}
@@ -359,7 +374,7 @@ const DeckPlayer = memo(
         {/* Overlay cuando está vacía o cargando */}
         {!hasActiveTrack && (
           <div
-            className={`absolute inset-0 z-10 flex flex-col items-center justify-center p-3 ${spinnerColor} bg-[#080F1F]/95 space-y-1 text-center`}
+            className={`absolute inset-0 z-10 flex flex-col items-center justify-center p-3 ${spinnerColor} bg-zinc-950/90 space-y-1 text-center`}
           >
             {isLoading ? (
               <>
@@ -3460,7 +3475,7 @@ export default function VirtualDjConsole({
       {/* ========================================================================= */}
       {/* 0. CABINA MASTER AUDIO STATUS & QUICK GAIN BAR                            */}
       {/* ========================================================================= */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-[#111F38] border border-[#263858] shadow-lg">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-zinc-950 border border-zinc-800 shadow-lg">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Headphones className="w-5 h-5 text-purple-400 animate-pulse" />
@@ -3500,7 +3515,7 @@ export default function VirtualDjConsole({
             className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer shadow-md ${
               isLibraryOpen
                 ? "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/40 ring-2 ring-amber-300"
-                : "bg-[#0D1930] hover:bg-[#1A2E56] text-amber-300 hover:text-amber-200 border border-amber-500/40"
+                : "bg-zinc-900 hover:bg-zinc-800 text-amber-300 hover:text-amber-200 border border-amber-500/40"
             }`}
             title="Abrir/Cerrar Biblioteca Musical sin detener la música en vivo (Atajo de teclado: B)"
           >
@@ -3512,7 +3527,7 @@ export default function VirtualDjConsole({
           </button>
 
           {isLibraryOpen && (
-            <div className="hidden sm:flex items-center bg-[#0D1930] border border-[#263858] rounded-xl p-0.5 text-[11px] font-bold">
+            <div className="hidden sm:flex items-center bg-zinc-900 border border-zinc-700 rounded-xl p-0.5 text-[11px] font-bold">
               <button
                 type="button"
                 onClick={() => setLibraryViewMode("drawer")}
@@ -3545,7 +3560,7 @@ export default function VirtualDjConsole({
 
         <div className="flex items-center gap-4 text-xs font-mono">
           <div className="flex items-center gap-2">
-            <span className="text-zinc-400 text-[11px] font-bold">MASTER:</span>
+            <span className="text-zinc-500 text-[11px] font-bold">MASTER:</span>
             <input
               type="range"
               min={0}
@@ -3555,7 +3570,7 @@ export default function VirtualDjConsole({
                 setMasterVolume(Number(e.target.value));
                 if (isMasterMuted) setIsMasterMuted(false);
               }}
-              className="w-24 accent-purple-500 cursor-pointer h-1.5 bg-[#0D1930] rounded"
+              className="w-24 accent-purple-500 cursor-pointer h-1.5 bg-zinc-800 rounded"
             />
             <span className="text-zinc-300 font-bold">{masterVolume}%</span>
           </div>
@@ -3574,9 +3589,9 @@ export default function VirtualDjConsole({
       {/* ========================================================================= */}
       {/* 1. DUAL BEAT-WAVEFORM & PHASE METER (BPM & BEAT MATCHING GRID)            */}
       {/* ========================================================================= */}
-      <div className="p-3.5 rounded-2xl bg-[#111F38] border border-[#263858] shadow-2xl relative overflow-hidden">
+      <div className="p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800 shadow-2xl relative overflow-hidden">
         {/* Barra superior de métricas de fase */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pb-2 mb-2 border-b border-[#263858] text-xs font-mono text-center">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pb-2 mb-2 border-b border-zinc-900 text-xs font-mono text-center">
           <div className="flex items-center justify-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse" />
             <span className="font-bold text-purple-300">DECK A:</span>
@@ -3593,7 +3608,7 @@ export default function VirtualDjConsole({
                   className={`w-3 h-3 rounded-full flex items-center justify-center text-[9px] font-black transition-all ${
                     beatPhase === beat
                       ? "bg-amber-400 text-black scale-125 shadow-[0_0_10px_rgba(251,191,36,0.8)]"
-                      : "bg-[#0D1930] text-zinc-400 border border-[#263858]/60"
+                      : "bg-zinc-800 text-zinc-500"
                   }`}
                 >
                   {beat}
@@ -3605,7 +3620,7 @@ export default function VirtualDjConsole({
               className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all ${
                 isBeatMatched
                   ? "bg-emerald-950 text-emerald-300 border-emerald-600 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
-                  : "bg-[#0D1930] text-zinc-400 border border-[#263858]"
+                  : "bg-zinc-900 text-zinc-400 border-zinc-800"
               }`}
             >
               {isBeatMatched ? "⚡ BEAT MATCHED" : "OUT OF SYNC"}
@@ -3637,7 +3652,7 @@ export default function VirtualDjConsole({
               }
               onPlaybackControl?.("SEEK", "A", { ...getDeckSyncDetails("A"), currentTime: targetSec });
             }}
-            className="h-12 bg-gradient-to-r from-purple-950/40 via-purple-900/20 to-[#0D1930] rounded-xl border border-purple-900/60 relative overflow-hidden flex items-center px-2 cursor-pointer hover:border-purple-500/70 transition-all select-none"
+            className="h-12 bg-gradient-to-r from-purple-950/40 via-purple-900/30 to-zinc-950 rounded-xl border border-purple-900/50 relative overflow-hidden flex items-center px-2 cursor-pointer hover:border-purple-500/70 transition-all select-none"
             title="Click para saltar a esta posición en la pista (Seek)"
           >
             {/* Playhead vertical */}
@@ -3692,7 +3707,7 @@ export default function VirtualDjConsole({
               }
               onPlaybackControl?.("SEEK", "B", { ...getDeckSyncDetails("B"), currentTime: targetSec });
             }}
-            className="h-12 bg-gradient-to-r from-cyan-950/40 via-cyan-900/20 to-[#0D1930] rounded-xl border border-cyan-900/60 relative overflow-hidden flex items-center px-2 cursor-pointer hover:border-cyan-500/70 transition-all select-none"
+            className="h-12 bg-gradient-to-r from-cyan-950/40 via-cyan-900/30 to-zinc-950 rounded-xl border border-cyan-900/50 relative overflow-hidden flex items-center px-2 cursor-pointer hover:border-cyan-500/70 transition-all select-none"
             title="Click para saltar a esta posición en la pista (Seek)"
           >
             {/* Playhead vertical */}
@@ -3741,7 +3756,7 @@ export default function VirtualDjConsole({
         {/* ========================================== */}
         {/* DECK A (Canal 1 - Violeta / Púrpura)       */}
         {/* ========================================== */}
-        <div id="deck-a" className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#111F38] via-[#0D1930] to-purple-950/30 border-2 border-purple-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative w-full max-w-full overflow-hidden scroll-mt-24 transition-all duration-300">
+        <div id="deck-a" className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-purple-950/30 border-2 border-purple-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative w-full max-w-full overflow-hidden scroll-mt-24 transition-all duration-300">
           {/* Header de Deck A */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -3797,6 +3812,19 @@ export default function VirtualDjConsole({
                       <span>{isPlayingA ? "⭐ Guardar en Biblioteca" : "Guardar en Biblioteca"}</span>
                     </>
                   )}
+                </button>
+              )}
+
+              {/* Opción para Borrar solamente el video de Deck A */}
+              {videoIdA && (
+                <button
+                  type="button"
+                  onClick={handleClearVideoOnlyA}
+                  className="px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all cursor-pointer select-none bg-rose-950/40 hover:bg-rose-900/60 border-rose-800/60 hover:border-rose-600 text-rose-300 shadow-sm"
+                  title="Borrar solamente el video de la Bandeja A (Deck B y audio del sistema intactos)"
+                >
+                  <VideoOff className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Borrar Video</span>
                 </button>
               )}
 
@@ -4357,7 +4385,7 @@ export default function VirtualDjConsole({
         </div>
 
           {/* Performance Pads: Hot Cues & Auto Loop */}
-          <div className="space-y-2 pt-2 border-t border-[#263858]">
+          <div className="space-y-2 pt-2 border-t border-zinc-800/80">
             <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400">
               <span>HOT CUES</span>
               <div className="flex gap-1.5">
@@ -4365,7 +4393,7 @@ export default function VirtualDjConsole({
                   <button
                     key={c}
                     onClick={() => handleHotCue("A", c)}
-                    className="w-7 h-6 rounded bg-[#0D1930] hover:bg-purple-600 hover:text-white text-purple-300 font-black border border-[#263858] text-[10px] transition-colors cursor-pointer"
+                    className="w-7 h-6 rounded bg-zinc-900 hover:bg-purple-600 hover:text-white text-purple-300 font-black border border-zinc-800 text-[10px] transition-colors cursor-pointer"
                     title={`Saltar a Hot Cue ${c}`}
                   >
                     {c}
@@ -4384,7 +4412,7 @@ export default function VirtualDjConsole({
                     className={`px-1.5 h-6 rounded font-black border text-[9px] transition-colors cursor-pointer ${
                       activeLoopA === beats
                         ? "bg-amber-400 text-black border-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
-                        : "bg-[#0D1930] hover:bg-[#1A2E56] text-zinc-400 border border-[#263858]"
+                        : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border-zinc-800"
                     }`}
                   >
                     {beats}B
@@ -4395,7 +4423,7 @@ export default function VirtualDjConsole({
           </div>
 
           {/* Channel Strip: EQ 3-Band, Gain & Fader */}
-          <div className="p-2.5 rounded-xl bg-[#080F1F]/60 border border-[#263858] space-y-2">
+          <div className="p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-2">
             <div className="flex items-center justify-between gap-2 text-center text-[10px] font-bold text-zinc-400">
               <div className="flex-1">
                 <span>HI</span>
@@ -4405,7 +4433,7 @@ export default function VirtualDjConsole({
                   max={50}
                   value={eqHiA}
                   onChange={(e) => setEqHiA(Number(e.target.value))}
-                  className="w-full accent-purple-400 h-1 bg-[#0D1930] rounded"
+                  className="w-full accent-purple-400 h-1 bg-zinc-800 rounded"
                 />
               </div>
               <div className="flex-1">
@@ -4416,7 +4444,7 @@ export default function VirtualDjConsole({
                   max={50}
                   value={eqMidA}
                   onChange={(e) => setEqMidA(Number(e.target.value))}
-                  className="w-full accent-purple-400 h-1 bg-[#0D1930] rounded"
+                  className="w-full accent-purple-400 h-1 bg-zinc-800 rounded"
                 />
               </div>
               <div className="flex-1">
@@ -4428,7 +4456,7 @@ export default function VirtualDjConsole({
                   value={bassKillA ? -50 : eqLowA}
                   onChange={(e) => setEqLowA(Number(e.target.value))}
                   disabled={bassKillA}
-                  className="w-full accent-purple-400 h-1 bg-[#0D1930] rounded"
+                  className="w-full accent-purple-400 h-1 bg-zinc-800 rounded"
                 />
               </div>
               <button
@@ -4436,7 +4464,7 @@ export default function VirtualDjConsole({
                 className={`px-2 py-1 rounded text-[9px] font-black border transition-all cursor-pointer ${
                   bassKillA
                     ? "bg-red-600 text-white border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
-                    : "bg-[#0D1930] text-zinc-400 border border-[#263858] hover:text-white"
+                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
                 }`}
                 title="Kill Bass / Matar Graves en Deck A"
               >
@@ -4446,11 +4474,11 @@ export default function VirtualDjConsole({
           </div>
 
           {/* Controles de Transporte: PLAY, CUE, SYNC */}
-          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#263858]">
+          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800">
             <button
               onClick={() => handleCue("A")}
               disabled={!trackA}
-              className="py-2.5 rounded-xl bg-[#0D1930] hover:bg-[#1A2E56] border border-[#263858] text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40"
+              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40"
             >
               CUE
             </button>
@@ -4463,7 +4491,7 @@ export default function VirtualDjConsole({
                   ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-purple-600/30"
                   : trackA
                   ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/40 ring-1 ring-emerald-400/50 animate-pulse"
-                  : "bg-[#0D1930] hover:bg-[#1A2E56] text-zinc-400 border border-[#263858]"
+                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400"
               }`}
             >
               {isPlayingA ? (
@@ -4478,7 +4506,7 @@ export default function VirtualDjConsole({
             <button
               onClick={handleSyncDeckA}
               disabled={!trackA || !trackB}
-              className="py-2.5 rounded-xl bg-[#0D1930] hover:bg-emerald-950 border border-[#263858] hover:border-emerald-600 text-emerald-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40"
+              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-emerald-950 border border-zinc-700 hover:border-emerald-600 text-emerald-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40"
               title="Sincronizar BPM de Deck A con Deck B"
             >
               SYNC
@@ -4489,8 +4517,8 @@ export default function VirtualDjConsole({
         {/* ========================================== */}
         {/* MIXER CENTRAL & MOTOR DE ENGANCHE          */}
         {/* ========================================== */}
-        <div className="p-4 rounded-2xl bg-[#111F38] border border-[#263858] flex flex-col justify-between items-center text-center space-y-4 w-full max-w-full overflow-hidden">
-          <div className="w-full pb-2 border-b border-[#263858]">
+        <div className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col justify-between items-center text-center space-y-4 w-full max-w-full overflow-hidden">
+          <div className="w-full pb-2 border-b border-zinc-900">
             <span className="text-[10px] uppercase font-black tracking-widest text-zinc-400 flex items-center justify-center gap-1">
               <Sliders className="w-3.5 h-3.5 text-purple-400" />
               <span>MEZCLA & ENGANCHE</span>
@@ -4501,7 +4529,7 @@ export default function VirtualDjConsole({
           <div className="flex items-center justify-center gap-3 w-full my-1">
             <div className="flex flex-col items-center gap-0.5">
               <span className="text-[8px] font-bold text-purple-400">CH 1</span>
-              <div className="flex flex-col gap-0.5 h-16 w-3 bg-[#0D1930] p-0.5 rounded border border-[#263858]/60">
+              <div className="flex flex-col gap-0.5 h-16 w-3 bg-zinc-900 p-0.5 rounded">
                 {[5, 4, 3, 2, 1].map((lvl) => (
                   <div
                     key={lvl}
@@ -4512,7 +4540,7 @@ export default function VirtualDjConsole({
                           : lvl > 2
                           ? "bg-amber-400 opacity-90"
                           : "bg-emerald-400 opacity-90"
-                        : "bg-[#080F1F] opacity-30"
+                        : "bg-zinc-800 opacity-30"
                     }`}
                   />
                 ))}
@@ -4523,7 +4551,7 @@ export default function VirtualDjConsole({
               {/* Botón Swap Bass */}
               <button
                 onClick={handleSwapBass}
-                className="px-2 py-1 rounded bg-[#0D1930] hover:bg-[#1A2E56] border border-[#263858] text-[9px] font-black text-amber-300 transition-colors cursor-pointer"
+                className="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-[9px] font-black text-amber-300 transition-colors cursor-pointer"
                 title="Intercambiar bajo entre canales"
               >
                 SWAP BASS
@@ -4532,7 +4560,7 @@ export default function VirtualDjConsole({
 
             <div className="flex flex-col items-center gap-0.5">
               <span className="text-[8px] font-bold text-cyan-400">CH 2</span>
-              <div className="flex flex-col gap-0.5 h-16 w-3 bg-[#0D1930] p-0.5 rounded border border-[#263858]/60">
+              <div className="flex flex-col gap-0.5 h-16 w-3 bg-zinc-900 p-0.5 rounded">
                 {[5, 4, 3, 2, 1].map((lvl) => (
                   <div
                     key={lvl}
@@ -4543,7 +4571,7 @@ export default function VirtualDjConsole({
                           : lvl > 2
                           ? "bg-amber-400 opacity-90"
                           : "bg-emerald-400 opacity-90"
-                        : "bg-[#080F1F] opacity-30"
+                        : "bg-zinc-800 opacity-30"
                     }`}
                   />
                 ))}
@@ -4554,14 +4582,14 @@ export default function VirtualDjConsole({
           {/* ⚡ BOTÓN PRINCIPAL: AUTO-ENGANCHE AUTOMIX BIDIRECCIONAL */}
           <div className="w-full space-y-2">
             {/* Selector de Dirección de Enganche */}
-            <div className="flex items-center justify-center gap-1 p-1 rounded-xl bg-[#0D1930] border border-[#263858]">
+            <div className="flex items-center justify-center gap-1 p-1 rounded-xl bg-zinc-950 border border-zinc-800">
               <button
                 type="button"
                 onClick={() => setEngancheDirection("A_TO_B")}
                 className={`flex-1 py-1 px-1.5 rounded-lg text-[9px] font-black tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
                   engancheDirection === "A_TO_B"
                     ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/30"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    : "text-zinc-500 hover:text-zinc-300"
                 }`}
                 title="Enganchar de Bandeja A hacia Bandeja B"
               >
@@ -4575,7 +4603,7 @@ export default function VirtualDjConsole({
                 className={`flex-1 py-1 px-1.5 rounded-lg text-[9px] font-black tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
                   engancheDirection === "B_TO_A"
                     ? "bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-md shadow-cyan-600/30"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    : "text-zinc-500 hover:text-zinc-300"
                 }`}
                 title="Enganchar de Bandeja B hacia Bandeja A"
               >
@@ -4585,7 +4613,7 @@ export default function VirtualDjConsole({
               </button>
             </div>
 
-            <div className="flex items-center justify-between text-[9px] font-bold text-zinc-400">
+            <div className="flex items-center justify-between text-[9px] font-bold text-zinc-500">
               <span>Compases:</span>
               <div className="flex gap-1">
                 {[4, 8, 16].map((beats) => (
@@ -4597,7 +4625,7 @@ export default function VirtualDjConsole({
                         ? engancheDirection === "A_TO_B"
                           ? "bg-purple-600 text-white"
                           : "bg-cyan-600 text-white"
-                        : "bg-[#0D1930] text-zinc-400 hover:text-white border border-[#263858]/60"
+                        : "bg-zinc-900 text-zinc-400 hover:text-white"
                     }`}
                   >
                     {beats}B
@@ -4638,7 +4666,7 @@ export default function VirtualDjConsole({
             <button
               onClick={handleInstantDropCut}
               disabled={engancheDirection === "A_TO_B" ? !trackB : !trackA}
-              className="w-full py-1.5 bg-[#0D1930] hover:bg-[#1A2E56] border border-[#263858] text-zinc-300 hover:text-white text-[10px] font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+              className="w-full py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-[10px] font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-40"
               title={
                 engancheDirection === "A_TO_B"
                   ? "Corte instantáneo al golpe hacia Deck B"
@@ -4650,7 +4678,7 @@ export default function VirtualDjConsole({
           </div>
 
           {/* VÚMETROS ESTÉREO LED DE CABINA (CH 1 / MASTER / CH 2) */}
-          <div className="w-full py-2 px-3 rounded-xl bg-[#080F1F] border border-[#263858] flex items-center justify-around shadow-inner">
+          <div className="w-full py-2 px-3 rounded-xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-around shadow-inner">
             <div className="flex flex-col items-center gap-1">
               <span className="text-[8px] font-mono text-purple-400 font-bold">CH 1</span>
               <VuMeterBar peak={vuLevelsA.peak} rms={vuLevelsA.rms} channelColor="purple" />
@@ -4669,7 +4697,7 @@ export default function VirtualDjConsole({
           <div className={`w-full space-y-2.5 pt-3 border-t transition-all rounded-2xl p-3 sm:p-3.5 ${
             isCrossfaderActive
               ? "bg-purple-950/20 border-purple-500/60 shadow-[0_0_20px_rgba(168,85,247,0.18)]"
-              : "bg-[#0D1930] border-[#263858]"
+              : "bg-zinc-950/60 border-zinc-800/80"
           }`}>
             {/* Header del Crossfader: Justificado, Título e Indicador de Seguridad */}
             <div className="flex items-center justify-between w-full">
@@ -4697,7 +4725,7 @@ export default function VirtualDjConsole({
                 className={`px-2.5 py-1 rounded-full text-[9px] font-bold border transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap select-none shadow-sm ${
                   isCrossfaderActive
                     ? "bg-emerald-500/15 border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/25 shadow-[0_0_10px_rgba(16,185,129,0.2)] animate-pulse"
-                    : "bg-[#0D1930] hover:bg-[#1A2E56] border-[#263858] text-zinc-400 hover:text-white"
+                    : "bg-zinc-900 hover:bg-zinc-800 border-zinc-700/80 text-zinc-400 hover:text-white"
                 }`}
                 title={isCrossfaderActive ? "Crossfader activo (toca para bloquear)" : "1er toque: Toca para activar crossfader"}
               >
@@ -4718,7 +4746,7 @@ export default function VirtualDjConsole({
             {/* Pista física del Crossfader (Hardware Realistic DJ Look) */}
             <div className="relative py-1 touch-pan-y w-full">
               {/* Recessed Track Container */}
-              <div className="relative h-11 bg-[#080F1F] rounded-xl border border-[#263858] p-1 flex items-center shadow-inner overflow-hidden">
+              <div className="relative h-11 bg-zinc-900/90 rounded-xl border border-zinc-800 p-1 flex items-center shadow-inner overflow-hidden">
                 {/* Marcas de graduación de fondo (-100, -50, 0, +50, +100) */}
                 <div className="absolute inset-x-3 inset-y-0 flex items-center justify-between pointer-events-none opacity-40 z-0">
                   <span className="text-[7px] font-mono text-purple-400 font-bold">A</span>
@@ -4751,10 +4779,10 @@ export default function VirtualDjConsole({
                 {!isCrossfaderActive && (
                   <div
                     onClick={handleActivateCrossfader}
-                    className="absolute inset-0 z-20 cursor-pointer flex items-center justify-center rounded-xl bg-[#080F1F]/80 border border-dashed border-purple-500/40 hover:border-purple-400 transition-all backdrop-blur-[1px] group touch-pan-y select-none"
+                    className="absolute inset-0 z-20 cursor-pointer flex items-center justify-center rounded-xl bg-zinc-950/75 border border-dashed border-purple-500/40 hover:border-purple-400 transition-all backdrop-blur-[1px] group touch-pan-y select-none"
                     title="Primer toque: Toca para activar el crossfader"
                   >
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0D1930] border border-purple-500/40 text-purple-200 text-[9.5px] font-bold shadow-lg group-hover:scale-105 group-hover:border-purple-400 transition-all whitespace-nowrap">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-900/95 border border-purple-500/40 text-purple-200 text-[9.5px] font-bold shadow-lg group-hover:scale-105 group-hover:border-purple-400 transition-all whitespace-nowrap">
                       <Lock className="w-3 h-3 text-purple-400 shrink-0" />
                       <span>1er toque: Toca para activar</span>
                     </div>
@@ -4786,7 +4814,7 @@ export default function VirtualDjConsole({
                           ? "bg-purple-950/80 border border-purple-500/50 text-purple-300"
                           : crossfaderValue === 100
                           ? "bg-cyan-950/80 border border-cyan-500/50 text-cyan-300"
-                          : "bg-[#0D1930] border border-[#263858] text-zinc-400"
+                          : "bg-zinc-900 border border-zinc-800 text-zinc-400"
                       }`}
                     >
                       {crossfaderValue === 0
@@ -4822,7 +4850,7 @@ export default function VirtualDjConsole({
                 className={`py-2 px-1 rounded-xl text-[10px] font-mono font-bold transition-all whitespace-nowrap flex items-center justify-center gap-1 cursor-pointer shadow-sm ${
                   crossfaderValue === -100
                     ? "bg-purple-600 text-white shadow-purple-600/30 font-black"
-                    : "bg-[#0D1930] hover:bg-[#1A2E56] text-zinc-300 hover:text-purple-300 border border-[#263858]"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-purple-300 border border-zinc-800"
                 }`}
                 title="Llevar crossfader a Deck A (100%)"
               >
@@ -4838,8 +4866,8 @@ export default function VirtualDjConsole({
                     : resetCrossfaderArmed
                     ? "bg-amber-400 text-black font-black animate-pulse shadow-[0_0_12px_rgba(251,191,36,0.7)] scale-105"
                     : crossfaderValue === 0
-                    ? "bg-[#0D1930] text-zinc-200 border border-[#263858]"
-                    : "bg-[#0D1930] hover:bg-[#1A2E56] text-zinc-200 hover:text-white border border-[#263858]"
+                    ? "bg-zinc-800 text-zinc-200 border border-zinc-700"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-800"
                 }`}
                 title="Resetear Crossfader al Centro (50/50) en 2 toques"
               >
@@ -4865,7 +4893,7 @@ export default function VirtualDjConsole({
                 className={`py-2 px-1 rounded-xl text-[10px] font-mono font-bold transition-all whitespace-nowrap flex items-center justify-center gap-1 cursor-pointer shadow-sm ${
                   crossfaderValue === 100
                     ? "bg-cyan-600 text-white shadow-cyan-600/30 font-black"
-                    : "bg-[#0D1930] hover:bg-[#1A2E56] text-zinc-300 hover:text-cyan-300 border border-[#263858]"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-cyan-300 border border-zinc-800"
                 }`}
                 title="Llevar crossfader a Deck B (100%)"
               >
@@ -4878,7 +4906,7 @@ export default function VirtualDjConsole({
         {/* ========================================== */}
         {/* DECK B (Canal 2 - Cian Eléctrico)          */}
         {/* ========================================== */}
-        <div id="deck-b" className="p-4 sm:p-5 rounded-2xl bg-gradient-to-bl from-[#111F38] via-[#0D1930] to-cyan-950/30 border-2 border-cyan-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative w-full max-w-full overflow-hidden scroll-mt-24 transition-all duration-300">
+        <div id="deck-b" className="p-4 sm:p-5 rounded-2xl bg-gradient-to-bl from-zinc-950 via-zinc-900 to-cyan-950/30 border-2 border-cyan-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative w-full max-w-full overflow-hidden scroll-mt-24 transition-all duration-300">
           {/* Header de Deck B con Selector de Pista */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -4934,6 +4962,19 @@ export default function VirtualDjConsole({
                       <span>{isPlayingB ? "⭐ Guardar en Biblioteca" : "Guardar en Biblioteca"}</span>
                     </>
                   )}
+                </button>
+              )}
+
+              {/* Opción para Borrar solamente el video de Deck B */}
+              {videoIdB && (
+                <button
+                  type="button"
+                  onClick={handleClearVideoOnlyB}
+                  className="px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all cursor-pointer select-none bg-rose-950/40 hover:bg-rose-900/60 border-rose-800/60 hover:border-rose-600 text-rose-300 shadow-sm"
+                  title="Borrar solamente el video de la Bandeja B (Deck A y audio del sistema intactos)"
+                >
+                  <VideoOff className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Borrar Video</span>
                 </button>
               )}
 
@@ -5523,7 +5564,7 @@ export default function VirtualDjConsole({
                     className={`px-1.5 h-6 rounded font-black border text-[9px] transition-colors cursor-pointer ${
                       activeLoopB === beats
                         ? "bg-amber-400 text-black border-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
-                        : "bg-[#0D1930] hover:bg-[#1A2E56] text-zinc-400 border border-[#263858]"
+                        : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border-zinc-800"
                     }`}
                   >
                     {beats}B
@@ -5534,7 +5575,7 @@ export default function VirtualDjConsole({
           </div>
 
           {/* Channel Strip: EQ 3-Band, Gain & Fader */}
-          <div className="p-2.5 rounded-xl bg-[#080F1F]/60 border border-[#263858] space-y-2">
+          <div className="p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-2">
             <div className="flex items-center justify-between gap-2 text-center text-[10px] font-bold text-zinc-400">
               <div className="flex-1">
                 <span>HI</span>
@@ -5544,7 +5585,7 @@ export default function VirtualDjConsole({
                   max={50}
                   value={eqHiB}
                   onChange={(e) => setEqHiB(Number(e.target.value))}
-                  className="w-full accent-cyan-400 h-1 bg-[#0D1930] rounded"
+                  className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
                 />
               </div>
               <div className="flex-1">
@@ -5555,7 +5596,7 @@ export default function VirtualDjConsole({
                   max={50}
                   value={eqMidB}
                   onChange={(e) => setEqMidB(Number(e.target.value))}
-                  className="w-full accent-cyan-400 h-1 bg-[#0D1930] rounded"
+                  className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
                 />
               </div>
               <div className="flex-1">
@@ -5567,7 +5608,7 @@ export default function VirtualDjConsole({
                   value={bassKillB ? -50 : eqLowB}
                   onChange={(e) => setEqLowB(Number(e.target.value))}
                   disabled={bassKillB}
-                  className="w-full accent-cyan-400 h-1 bg-[#0D1930] rounded"
+                  className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
                 />
               </div>
               <button
@@ -5575,7 +5616,7 @@ export default function VirtualDjConsole({
                 className={`px-2 py-1 rounded text-[9px] font-black border transition-all cursor-pointer ${
                   bassKillB
                     ? "bg-red-600 text-white border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
-                    : "bg-[#0D1930] text-zinc-400 border border-[#263858] hover:text-white"
+                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
                 }`}
                 title="Kill Bass / Matar Graves en Deck B"
               >
@@ -5585,11 +5626,11 @@ export default function VirtualDjConsole({
           </div>
 
           {/* Controles de Transporte: PLAY, CUE, SYNC */}
-          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#263858]">
+          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800">
             <button
               onClick={() => handleCue("B")}
               disabled={!trackB}
-              className="py-2.5 rounded-xl bg-[#0D1930] hover:bg-[#1A2E56] border border-[#263858] text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40"
+              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40"
             >
               CUE
             </button>
@@ -5602,7 +5643,7 @@ export default function VirtualDjConsole({
                   ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-cyan-600/30"
                   : trackB
                   ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/40 ring-1 ring-emerald-400/50 animate-pulse"
-                  : "bg-[#0D1930] hover:bg-[#1A2E56] text-zinc-400 border border-[#263858]"
+                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400"
               }`}
             >
               {isPlayingB ? (
@@ -5620,7 +5661,7 @@ export default function VirtualDjConsole({
               className={`py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95 border disabled:opacity-40 ${
                 isSyncedB
                   ? "bg-emerald-600 text-white border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.5)]"
-                  : "bg-[#0D1930] hover:bg-emerald-950 border-[#263858] hover:border-emerald-600 text-emerald-400"
+                  : "bg-zinc-900 hover:bg-emerald-950 border-zinc-700 hover:border-emerald-600 text-emerald-400"
               }`}
               title="Sincronizar BPM de Deck B con Deck A"
             >
@@ -5634,8 +5675,8 @@ export default function VirtualDjConsole({
       {/* 4. PANEL SPLIT-SCREEN: BIBLIOTECA MUSICAL EN VIVO (ESTILO VIRTUALDJ)      */}
       {/* ========================================================================= */}
       {isLibraryOpen && libraryViewMode === "split" && (
-        <section id="dj-library-section" className="rounded-3xl border border-amber-500/40 bg-[#111F38]/95 backdrop-blur-md p-4 sm:p-5 shadow-2xl transition-all animate-in fade-in duration-200 scroll-mt-24">
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-3 border-b border-[#263858]">
+        <section id="dj-library-section" className="rounded-3xl border border-amber-500/40 bg-zinc-950/95 backdrop-blur-md p-4 sm:p-5 shadow-2xl transition-all animate-in fade-in duration-200 scroll-mt-24">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-3 border-b border-zinc-800">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
                 <ListMusic className="w-5 h-5" />
@@ -5660,7 +5701,7 @@ export default function VirtualDjConsole({
               <button
                 type="button"
                 onClick={() => setLibraryViewMode("drawer")}
-                className="px-3 py-1.5 rounded-xl bg-[#0D1930] hover:bg-[#1A2E56] text-zinc-300 hover:text-white border border-[#263858] text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                 title="Cambiar a pantalla completa flotante"
               >
                 <Maximize2 className="w-3.5 h-3.5 text-purple-400" />
@@ -5669,7 +5710,7 @@ export default function VirtualDjConsole({
               <button
                 type="button"
                 onClick={() => setIsLibraryOpen(false)}
-                className="px-3 py-1.5 rounded-xl bg-[#0D1930] hover:bg-red-950/50 text-zinc-400 hover:text-red-300 border border-[#263858] text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-red-950/50 text-zinc-400 hover:text-red-300 border border-zinc-750 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                 title="Cerrar biblioteca (Atajo: Esc o B)"
               >
                 <X className="w-4 h-4 text-red-400" />
@@ -5734,9 +5775,9 @@ export default function VirtualDjConsole({
           className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col p-2 sm:p-4 animate-in fade-in duration-200"
         >
           {/* LIVE MINI-DJ HUD BAR (Mantén el control visual total mientras buscas pistas) */}
-          <div className="rounded-2xl bg-[#111F38]/95 border border-[#263858] shadow-2xl p-3 mb-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="rounded-2xl bg-zinc-950/95 border border-zinc-800 shadow-2xl p-3 mb-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
             {/* DECK A MINI MONITOR */}
-            <div className="flex items-center gap-2 sm:gap-3 bg-[#0D1930] border border-purple-900/40 rounded-xl px-3 py-1.5 flex-1 min-w-[200px]">
+            <div className="flex items-center gap-2 sm:gap-3 bg-zinc-900/90 border border-purple-900/40 rounded-xl px-3 py-1.5 flex-1 min-w-[200px]">
               <div className="flex items-center gap-1.5 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
                 <span className="text-[11px] font-black text-purple-400 uppercase tracking-wider">
@@ -5748,7 +5789,7 @@ export default function VirtualDjConsole({
                       ? currentOnAirDeck === "A"
                         ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-black"
                         : "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                      : "bg-[#080F1F] text-zinc-400"
+                      : "bg-zinc-800 text-zinc-400"
                   }`}
                 >
                   {isPlayingA ? (currentOnAirDeck === "A" ? "▶ AL AIRE" : "▶ EN MEZCLA") : "⏸ PAUSA"}
@@ -5772,7 +5813,7 @@ export default function VirtualDjConsole({
 
             {/* CENTRO: MASTER STATUS & MODE SWITCH */}
             <div className="flex items-center gap-2 shrink-0">
-              <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#0D1930] border border-[#263858] text-[10px] font-mono text-zinc-300">
+              <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-300">
                 <Headphones className="w-3.5 h-3.5 text-amber-400" />
                 <span>CROSSFADER:</span>
                 <strong className="text-amber-400">
@@ -5783,7 +5824,7 @@ export default function VirtualDjConsole({
               <button
                 type="button"
                 onClick={() => setLibraryViewMode("split")}
-                className="px-2.5 py-1.5 rounded-xl bg-[#0D1930] hover:bg-[#1A2E56] text-zinc-300 hover:text-white border border-[#263858] text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                 title="Cambiar a modo Split-Screen bajo las bandejas"
               >
                 <Columns className="w-3.5 h-3.5 text-cyan-400" />
@@ -5802,7 +5843,7 @@ export default function VirtualDjConsole({
             </div>
 
             {/* DECK B MINI MONITOR */}
-            <div className="flex items-center gap-2 sm:gap-3 bg-[#0D1930] border border-cyan-900/40 rounded-xl px-3 py-1.5 flex-1 min-w-[200px]">
+            <div className="flex items-center gap-2 sm:gap-3 bg-zinc-900/90 border border-cyan-900/40 rounded-xl px-3 py-1.5 flex-1 min-w-[200px]">
               <div className="flex items-center gap-1.5 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
                 <span className="text-[11px] font-black text-cyan-400 uppercase tracking-wider">
@@ -5814,7 +5855,7 @@ export default function VirtualDjConsole({
                       ? currentOnAirDeck === "B"
                         ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-black"
                         : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                      : "bg-[#080F1F] text-zinc-400"
+                      : "bg-zinc-800 text-zinc-400"
                   }`}
                 >
                   {isPlayingB ? (currentOnAirDeck === "B" ? "▶ AL AIRE" : "▶ EN MEZCLA") : "⏸ PAUSA"}
@@ -5838,7 +5879,7 @@ export default function VirtualDjConsole({
           </div>
 
           {/* CUERPO PRINCIPAL DE LA BIBLIOTECA */}
-          <div className="flex-1 overflow-y-auto rounded-2xl bg-[#080F1F]/90 border border-[#263858] p-3 sm:p-4 shadow-inner">
+          <div className="flex-1 overflow-y-auto rounded-2xl bg-zinc-950/80 border border-zinc-800/80 p-3 sm:p-4 shadow-inner">
             <MusicLibraryView
               isEmbedded={true}
               onLoadDeckA={handleLoadSongFromLibraryA}

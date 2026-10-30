@@ -130,13 +130,13 @@ export default function KaraokeContestOverlay({
       {/* 1. TOP BAR: BANNER DEL CAMPEONATO                            */}
       {/* ============================================================ */}
       <header className="flex items-center justify-between pointer-events-auto">
-        <div className="flex items-center gap-3 bg-[#111F38]/90 border border-amber-500/40 rounded-2xl px-5 py-2.5 backdrop-blur-md shadow-2xl">
+        <div className="flex items-center gap-3 bg-zinc-950/90 border border-amber-500/40 rounded-2xl px-5 py-2.5 backdrop-blur-md shadow-2xl">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-zinc-950 font-black shadow-lg shadow-amber-500/30">
             <Trophy className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-sm sm:text-base font-black tracking-wide text-[#F8FAFC] uppercase">
+              <h1 className="text-sm sm:text-base font-black tracking-wide text-white uppercase">
                 {contestName}
               </h1>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40">
@@ -144,16 +144,16 @@ export default function KaraokeContestOverlay({
               </span>
             </div>
             <p className="text-xs text-amber-400 font-medium">
-              {stageTitle} &bull; Código: <span className="font-mono font-bold text-[#F8FAFC]">{contestCode}</span>
+              {stageTitle} &bull; Código: <span className="font-mono font-bold">{contestCode}</span>
             </p>
           </div>
         </div>
 
         {/* QR Flotante para Votación del Público desde las mesas */}
         {qrScanUrl && performance && (
-          <div className="hidden lg:flex items-center gap-3 bg-[#111F38]/90 border border-[#263858] rounded-2xl px-4 py-2 backdrop-blur-md shadow-2xl">
+          <div className="hidden lg:flex items-center gap-3 bg-zinc-950/90 border border-zinc-800 rounded-2xl px-4 py-2 backdrop-blur-md shadow-2xl">
             <div className="text-right">
-              <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
                 ¡VOTA DESDE TU MESA!
               </span>
               <span className="text-xs font-black text-amber-300">
@@ -189,7 +189,7 @@ export default function KaraokeContestOverlay({
             ))}
           </div>
 
-          <div className="relative space-y-4 max-w-2xl bg-[#111F38]/95 border-4 border-yellow-400 rounded-3xl p-8 shadow-[0_0_80px_rgba(251,191,36,0.6)]">
+          <div className="relative space-y-4 max-w-2xl bg-zinc-950/90 border-4 border-yellow-400 rounded-3xl p-8 shadow-[0_0_80px_rgba(251,191,36,0.6)]">
             <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-amber-400 via-yellow-300 to-amber-500 flex items-center justify-center text-zinc-950 shadow-2xl shadow-yellow-500 animate-pulse">
               <Sparkles className="w-14 h-14" />
             </div>
@@ -198,7 +198,7 @@ export default function KaraokeContestOverlay({
               <h2 className="text-4xl sm:text-6xl font-black tracking-tight bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent uppercase animate-pulse">
                 ¡GOLDEN BUZZER!
               </h2>
-              <h3 className="text-2xl sm:text-3xl font-black text-[#F8FAFC]">
+              <h3 className="text-2xl sm:text-3xl font-black text-white">
                 {performance.participant.stageName || performance.participant.name}
               </h3>
               <p className="text-base text-amber-200 font-bold">
@@ -220,17 +220,17 @@ export default function KaraokeContestOverlay({
       {/* 3. MODAL DE PODIO / TABLA DE POSICIONES (LEADERBOARD)        */}
       {/* ============================================================ */}
       {showLeaderboard && (
-        <div className="absolute inset-0 z-40 bg-[#080F1F]/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 sm:p-12 animate-in fade-in duration-300 pointer-events-auto">
+        <div className="absolute inset-0 z-40 bg-zinc-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 sm:p-12 animate-in fade-in duration-300 pointer-events-auto">
           <div className="w-full max-w-4xl space-y-6">
             <div className="text-center space-y-2">
               <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-black uppercase tracking-widest">
                 <Trophy className="w-4 h-4" />
                 <span>TABLA OFICIAL DE POSICIONES</span>
               </div>
-              <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-[#F8FAFC] uppercase">
+              <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-white uppercase">
                 Clasificación del Campeonato
               </h2>
-              <p className="text-sm text-[#94A3B8] font-medium">
+              <p className="text-sm text-zinc-400 font-medium">
                 {stageTitle} &bull; Vidjs Karaoke Championship
               </p>
             </div>
@@ -240,14 +240,14 @@ export default function KaraokeContestOverlay({
               {/* 2do PUESTO (Plata) */}
               <div className="flex flex-col items-center">
                 {leaderboard[1] ? (
-                  <div className="w-full bg-[#111F38]/90 border-2 border-slate-400 rounded-3xl p-4 text-center shadow-xl space-y-2">
+                  <div className="w-full bg-zinc-900/90 border-2 border-slate-400 rounded-3xl p-4 text-center shadow-xl space-y-2">
                     <div className="w-12 h-12 mx-auto rounded-full bg-slate-300 text-zinc-950 font-black flex items-center justify-center text-lg shadow-md">
                       <Medal className="w-6 h-6 text-slate-700" />
                     </div>
                     <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest block">
                       2° LUGAR
                     </span>
-                    <h4 className="text-sm sm:text-base font-black text-[#F8FAFC] truncate">
+                    <h4 className="text-sm sm:text-base font-black text-white truncate">
                       {leaderboard[1].stageName}
                     </h4>
                     <div className="text-xl sm:text-2xl font-mono font-black text-slate-200">
@@ -255,7 +255,7 @@ export default function KaraokeContestOverlay({
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full h-32 rounded-3xl border border-dashed border-[#263858] flex items-center justify-center text-[#64748B] text-xs">
+                  <div className="w-full h-32 rounded-3xl border border-dashed border-zinc-800 flex items-center justify-center text-zinc-600 text-xs">
                     Vacante
                   </div>
                 )}
@@ -264,14 +264,14 @@ export default function KaraokeContestOverlay({
               {/* 1er PUESTO (Oro - Centro Elevado) */}
               <div className="flex flex-col items-center">
                 {leaderboard[0] ? (
-                  <div className="w-full bg-gradient-to-b from-amber-950/70 via-[#111F38] to-[#0D1930] border-2 border-yellow-400 rounded-3xl p-5 text-center shadow-2xl shadow-yellow-500/20 space-y-2.5 scale-105">
+                  <div className="w-full bg-gradient-to-b from-amber-950/70 via-zinc-900 to-zinc-900 border-2 border-yellow-400 rounded-3xl p-5 text-center shadow-2xl shadow-yellow-500/20 space-y-2.5 scale-105">
                     <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-yellow-400 to-amber-300 text-zinc-950 font-black flex items-center justify-center text-2xl shadow-lg shadow-yellow-500/40 animate-pulse">
                       <Crown className="w-8 h-8 text-amber-950" />
                     </div>
                     <span className="text-xs font-mono font-black text-yellow-400 uppercase tracking-widest block">
                       1° LUGAR &bull; LÍDER
                     </span>
-                    <h4 className="text-base sm:text-lg font-black text-[#F8FAFC] truncate">
+                    <h4 className="text-base sm:text-lg font-black text-white truncate">
                       {leaderboard[0].stageName}
                     </h4>
                     <div className="text-2xl sm:text-3xl font-mono font-black text-yellow-300">
@@ -279,7 +279,7 @@ export default function KaraokeContestOverlay({
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full h-40 rounded-3xl border border-dashed border-[#263858] flex items-center justify-center text-[#64748B] text-xs">
+                  <div className="w-full h-40 rounded-3xl border border-dashed border-zinc-800 flex items-center justify-center text-zinc-600 text-xs">
                     Vacante
                   </div>
                 )}
@@ -288,14 +288,14 @@ export default function KaraokeContestOverlay({
               {/* 3er PUESTO (Bronce) */}
               <div className="flex flex-col items-center">
                 {leaderboard[2] ? (
-                  <div className="w-full bg-[#111F38]/90 border-2 border-amber-700/60 rounded-3xl p-4 text-center shadow-xl space-y-2">
+                  <div className="w-full bg-zinc-900/90 border-2 border-amber-700/60 rounded-3xl p-4 text-center shadow-xl space-y-2">
                     <div className="w-12 h-12 mx-auto rounded-full bg-amber-700 text-amber-100 font-black flex items-center justify-center text-lg shadow-md">
                       <Medal className="w-6 h-6 text-amber-200" />
                     </div>
                     <span className="text-[10px] font-mono font-bold text-amber-500 uppercase tracking-widest block">
                       3° LUGAR
                     </span>
-                    <h4 className="text-sm sm:text-base font-black text-[#F8FAFC] truncate">
+                    <h4 className="text-sm sm:text-base font-black text-white truncate">
                       {leaderboard[2].stageName}
                     </h4>
                     <div className="text-xl sm:text-2xl font-mono font-black text-amber-400">
@@ -303,7 +303,7 @@ export default function KaraokeContestOverlay({
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full h-28 rounded-3xl border border-dashed border-[#263858] flex items-center justify-center text-[#64748B] text-xs">
+                  <div className="w-full h-28 rounded-3xl border border-dashed border-zinc-800 flex items-center justify-center text-zinc-600 text-xs">
                     Vacante
                   </div>
                 )}
@@ -312,17 +312,17 @@ export default function KaraokeContestOverlay({
 
             {/* TABLA DEL RESTO DE PARTICIPANTES (Puestos 4 en adelante) */}
             {leaderboard.length > 3 && (
-              <div className="max-h-48 overflow-y-auto rounded-2xl bg-[#0D1930] border border-[#263858] divide-y divide-[#263858]">
+              <div className="max-h-48 overflow-y-auto rounded-2xl bg-zinc-900/60 border border-zinc-800 divide-y divide-zinc-800/80">
                 {leaderboard.slice(3).map((item) => (
                   <div
                     key={item.rank}
                     className="flex items-center justify-between px-4 py-2.5 text-xs font-medium"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="w-6 text-[#64748B] font-mono font-bold">{item.rank}°</span>
-                      <span className="text-[#F8FAFC] font-bold">{item.stageName}</span>
-                      <span className="text-[#94A3B8] text-[11px] truncate max-w-[150px]">
-                        &ldquo;{item.songTitle}&rdquo;
+                      <span className="w-6 text-zinc-500 font-mono font-bold">{item.rank}°</span>
+                      <span className="text-white font-bold">{item.stageName}</span>
+                      <span className="text-zinc-500 text-[11px] truncate max-w-[150px]">
+                        "{item.songTitle}"
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -348,16 +348,16 @@ export default function KaraokeContestOverlay({
         <footer className="space-y-4 pointer-events-auto">
           {/* A. REVELACIÓN DEL VEREDICTO DE JURADOS (Estilo The Voice) */}
           {performance.status === "REVEALED" && performance.judgeScores && performance.judgeScores.length > 0 && (
-            <div className="bg-[#111F38]/95 border-2 border-amber-500/60 rounded-3xl p-5 backdrop-blur-xl shadow-2xl space-y-4 animate-in slide-in-from-bottom duration-500">
+            <div className="bg-zinc-950/95 border-2 border-amber-500/60 rounded-3xl p-5 backdrop-blur-xl shadow-2xl space-y-4 animate-in slide-in-from-bottom duration-500">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Award className="w-5 h-5 text-amber-400" />
-                  <h3 className="text-sm sm:text-base font-black text-[#F8FAFC] uppercase tracking-wider">
+                  <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">
                     Veredicto Oficial del Jurado
                   </h3>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#94A3B8] font-medium">Calificación Total:</span>
+                  <span className="text-xs text-zinc-400 font-medium">Calificación Total:</span>
                   <span className="text-2xl font-black font-mono text-yellow-300 px-3 py-0.5 rounded-xl bg-amber-950/80 border border-amber-500/50 shadow-inner">
                     {performance.totalScore} PTS
                   </span>
@@ -373,14 +373,14 @@ export default function KaraokeContestOverlay({
                       key={js.judge.id}
                       className={`p-3.5 rounded-2xl border transition-all duration-500 ${
                         isRevealed
-                          ? "bg-[#0D1930] border-amber-500/50 shadow-lg scale-100 opacity-100"
-                          : "bg-[#080F1F]/60 border-[#263858] scale-95 opacity-40"
+                          ? "bg-zinc-900 border-amber-500/50 shadow-lg scale-100 opacity-100"
+                          : "bg-zinc-950/60 border-zinc-800 scale-95 opacity-40"
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <h4 className="text-xs font-black text-[#F8FAFC]">{js.judge.name}</h4>
-                          <span className="text-[10px] text-[#94A3B8] truncate block">
+                          <h4 className="text-xs font-black text-white">{js.judge.name}</h4>
+                          <span className="text-[10px] text-zinc-400 truncate block">
                             {js.judge.title || "Jurado"}
                           </span>
                         </div>
@@ -390,7 +390,7 @@ export default function KaraokeContestOverlay({
                               {js.totalScore}
                             </span>
                           ) : (
-                            <span className="text-xl font-mono font-bold text-[#64748B] animate-pulse">
+                            <span className="text-xl font-mono font-bold text-zinc-600 animate-pulse">
                               ?
                             </span>
                           )}
@@ -398,8 +398,8 @@ export default function KaraokeContestOverlay({
                       </div>
 
                       {isRevealed && js.feedbackNotes && (
-                        <p className="text-[10px] text-amber-200/90 italic pt-2 border-t border-[#263858] mt-2 truncate">
-                          &ldquo;{js.feedbackNotes}&rdquo;
+                        <p className="text-[10px] text-amber-200/90 italic pt-2 border-t border-zinc-800/80 mt-2 truncate">
+                          "{js.feedbackNotes}"
                         </p>
                       )}
                     </div>
@@ -412,7 +412,7 @@ export default function KaraokeContestOverlay({
           {/* B. TARJETA PRINCIPAL DEL CANTANTE Y CRITERIOS VISIBLES */}
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-4 items-stretch">
             {/* Tarjeta del Participante */}
-            <div className="bg-[#111F38]/90 border border-[#263858] rounded-3xl p-5 backdrop-blur-md shadow-2xl flex items-center gap-4">
+            <div className="bg-zinc-950/90 border border-zinc-800 rounded-3xl p-5 backdrop-blur-md shadow-2xl flex items-center gap-4">
               <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white font-black text-3xl shadow-xl shadow-purple-900/40 shrink-0 overflow-hidden">
                 {performance.participant.photoUrl ? (
                   <img
@@ -433,20 +433,20 @@ export default function KaraokeContestOverlay({
                       : "EN ESCENARIO"}
                   </span>
                   {performance.participant.tableLabel && (
-                    <span className="text-[10px] font-bold text-[#94A3B8]">
+                    <span className="text-[10px] font-bold text-zinc-400">
                       {performance.participant.tableLabel}
                     </span>
                   )}
                 </div>
 
-                <h3 className="text-xl sm:text-2xl font-black text-[#F8FAFC] truncate">
+                <h3 className="text-xl sm:text-2xl font-black text-white truncate">
                   {performance.participant.stageName || performance.participant.name}
                 </h3>
 
                 <div className="flex items-center gap-1.5 text-xs text-amber-300 font-semibold truncate">
                   <Mic className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span className="truncate">
-                    &ldquo;{performance.songTitle}&rdquo; &bull; {performance.artistName}
+                    "{performance.songTitle}" &bull; {performance.artistName}
                   </span>
                 </div>
               </div>
@@ -454,9 +454,9 @@ export default function KaraokeContestOverlay({
 
             {/* Criterios de Evaluación Visibles en Pantalla para el Público */}
             {criteria.length > 0 && (
-              <div className="bg-[#111F38]/90 border border-[#263858] rounded-3xl p-4 backdrop-blur-md shadow-2xl flex flex-col justify-between">
+              <div className="bg-zinc-950/90 border border-zinc-800 rounded-3xl p-4 backdrop-blur-md shadow-2xl flex flex-col justify-between">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-widest flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
                     <Sparkles className="w-3 h-3 text-amber-400" />
                     <span>Criterios Evaluados por el Jurado</span>
                   </span>
@@ -469,12 +469,12 @@ export default function KaraokeContestOverlay({
                   {criteria.slice(0, 6).map((c, i) => (
                     <div
                       key={c.id}
-                      className="px-2.5 py-1.5 rounded-xl bg-[#0D1930] border border-[#263858] flex items-center gap-2"
+                      className="px-2.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center gap-2"
                     >
                       <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-400 text-[9px] font-bold flex items-center justify-center shrink-0">
                         {i + 1}
                       </span>
-                      <span className="text-[11px] font-bold text-[#F8FAFC] truncate">
+                      <span className="text-[11px] font-bold text-zinc-200 truncate">
                         {c.name}
                       </span>
                     </div>

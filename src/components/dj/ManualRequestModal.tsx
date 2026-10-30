@@ -178,9 +178,9 @@ export default function ManualRequestModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="w-full max-w-lg bg-[#111F38] border border-[#263858] rounded-3xl p-6 shadow-2xl space-y-5 relative max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-lg bg-zinc-950 border border-purple-500/30 rounded-3xl p-6 shadow-2xl space-y-5 relative max-h-[90vh] overflow-y-auto">
         {/* Encabezado */}
-        <div className="flex items-center justify-between border-b border-[#263858] pb-3">
+        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
           <div className="flex items-center gap-2.5">
             <div
               className={`p-2 rounded-xl ${
@@ -192,19 +192,19 @@ export default function ManualRequestModal({
               {isKaraokeMode ? <Mic className="w-5 h-5" /> : <PlusCircle className="w-5 h-5" />}
             </div>
             <div>
-              <h3 className="text-base font-black text-[#F8FAFC]">
+              <h3 className="text-base font-black text-white">
                 {isKaraokeMode
                   ? "➕ Cargar Cantante / Turno Manual"
                   : "➕ Cargar Pedido Manual (Fuera de App)"}
               </h3>
-              <p className="text-xs text-[#94A3B8]">
-                Para pedidos en barra, de palabra o fuera del código QR
+              <p className="text-xs text-zinc-400">
+                Para pedidos pedidos en barra, de palabra o fuera del código QR
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-[#94A3B8] hover:text-[#F8FAFC] p-1 cursor-pointer rounded-lg transition-colors"
+            className="text-zinc-500 hover:text-white p-1 cursor-pointer rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -218,7 +218,7 @@ export default function ManualRequestModal({
 
         {/* Buscador Rápido de Catálogo */}
         <div className="space-y-1.5">
-          <label className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-wider flex items-center gap-1.5">
+          <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
             <Search className="w-3 h-3 text-purple-400" />
             <span>Buscar tema en el catálogo (Opcional):</span>
           </label>
@@ -228,10 +228,10 @@ export default function ManualRequestModal({
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Escribe título o artista para autocompletar..."
-              className="w-full px-3.5 py-2.5 rounded-xl bg-[#080F1F] border border-[#263858] text-[#F8FAFC] text-xs placeholder:text-[#64748B] focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs placeholder:text-zinc-500 focus:outline-none focus:border-purple-500 transition-colors"
             />
             {searching && (
-              <span className="absolute right-3 top-2.5 text-[10px] text-[#64748B] animate-pulse">
+              <span className="absolute right-3 top-2.5 text-[10px] text-zinc-500 animate-pulse">
                 Buscando...
               </span>
             )}
@@ -239,10 +239,10 @@ export default function ManualRequestModal({
 
           {/* Resultados flotantes (Catálogo + YouTube) */}
           {(searchResults.length > 0 || youtubeResults.length > 0) && (
-            <div className="p-2 rounded-xl bg-[#0D1930] border border-[#263858] space-y-2 max-h-56 overflow-y-auto">
+            <div className="p-2 rounded-xl bg-zinc-900 border border-zinc-700 space-y-2 max-h-56 overflow-y-auto">
               {searchResults.length > 0 && (
                 <div className="space-y-1">
-                  <span className="text-[10px] font-mono text-[#94A3B8] font-bold block px-2 py-0.5">
+                  <span className="text-[10px] font-mono text-zinc-400 font-bold block px-2 py-0.5">
                     Catálogo Local ({searchResults.length}):
                   </span>
                   {searchResults.map((song) => (
@@ -250,18 +250,18 @@ export default function ManualRequestModal({
                       key={song.id}
                       type="button"
                       onClick={() => handleSelectCatalogSong(song)}
-                      className="w-full text-left p-2 rounded-lg hover:bg-[#1A2E56] hover:border-purple-500/40 border border-transparent transition-all flex items-center justify-between cursor-pointer group"
+                      className="w-full text-left p-2 rounded-lg hover:bg-purple-950/60 hover:border-purple-600/40 border border-transparent transition-all flex items-center justify-between cursor-pointer group"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-bold text-[#F8FAFC] group-hover:text-purple-300 truncate">
+                        <div className="text-xs font-bold text-white group-hover:text-purple-300 truncate">
                           {song.title}
                         </div>
-                        <div className="text-[10px] text-[#94A3B8] truncate">
+                        <div className="text-[10px] text-zinc-400 truncate">
                           {song.artist?.name || "Varios artistas"}
                         </div>
                       </div>
                       {song.key && (
-                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#080F1F] text-amber-300 border border-[#263858] ml-2 shrink-0">
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-950 text-amber-300 border border-zinc-800 ml-2 shrink-0">
                           Key: {song.key}
                         </span>
                       )}
@@ -271,7 +271,7 @@ export default function ManualRequestModal({
               )}
 
               {youtubeResults.length > 0 && (
-                <div className="space-y-1 pt-1 border-t border-[#263858]">
+                <div className="space-y-1 pt-1 border-t border-zinc-800">
                   <span className="text-[10px] font-mono text-cyan-400 font-bold block px-2 py-0.5 flex items-center gap-1.5">
                     <span>🎬 Sugerencias de YouTube ({youtubeResults.length}):</span>
                   </span>
@@ -280,13 +280,13 @@ export default function ManualRequestModal({
                       key={yt.id}
                       type="button"
                       onClick={() => handleSelectYouTubeSong(yt)}
-                      className="w-full text-left p-2 rounded-lg hover:bg-[#1A2E56] hover:border-cyan-500/40 border border-transparent transition-all flex items-center justify-between cursor-pointer group"
+                      className="w-full text-left p-2 rounded-lg hover:bg-cyan-950/40 hover:border-cyan-500/40 border border-transparent transition-all flex items-center justify-between cursor-pointer group"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-bold text-[#F8FAFC] group-hover:text-cyan-300 truncate">
+                        <div className="text-xs font-bold text-white group-hover:text-cyan-300 truncate">
                           {yt.parsedTitle || yt.title}
                         </div>
-                        <div className="text-[10px] text-[#94A3B8] truncate">
+                        <div className="text-[10px] text-zinc-400 truncate">
                           {yt.parsedArtist || yt.channelTitle}
                         </div>
                       </div>
@@ -306,7 +306,7 @@ export default function ManualRequestModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Título de la canción */}
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#F8FAFC] flex items-center gap-1">
+              <label className="text-xs font-bold text-zinc-300 flex items-center gap-1">
                 <Music className="w-3.5 h-3.5 text-cyan-400" />
                 <span>Título de la Canción *</span>
               </label>
@@ -316,13 +316,13 @@ export default function ManualRequestModal({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ej. Sweet Child O' Mine"
-                className="w-full px-3 py-2 rounded-xl bg-[#080F1F] border border-[#263858] text-[#F8FAFC] text-xs focus:outline-none focus:border-cyan-500 transition-colors"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs focus:outline-none focus:border-cyan-500 transition-colors"
               />
             </div>
 
             {/* Artista */}
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#F8FAFC] flex items-center gap-1">
+              <label className="text-xs font-bold text-zinc-300 flex items-center gap-1">
                 <User className="w-3.5 h-3.5 text-purple-400" />
                 <span>Artista / Banda *</span>
               </label>
@@ -332,7 +332,7 @@ export default function ManualRequestModal({
                 value={artist}
                 onChange={(e) => setArtist(e.target.value)}
                 placeholder="Ej. Guns N' Roses"
-                className="w-full px-3 py-2 rounded-xl bg-[#080F1F] border border-[#263858] text-[#F8FAFC] text-xs focus:outline-none focus:border-purple-500 transition-colors"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs focus:outline-none focus:border-purple-500 transition-colors"
               />
             </div>
           </div>
@@ -340,11 +340,11 @@ export default function ManualRequestModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Mesa Solicitante */}
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#F8FAFC]">Mesa Asignada:</label>
+              <label className="text-xs font-bold text-zinc-300">Mesa Asignada:</label>
               <select
                 value={tableId}
                 onChange={(e) => setTableId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-[#080F1F] border border-[#263858] text-[#F8FAFC] text-xs focus:outline-none focus:border-purple-500 transition-colors"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs focus:outline-none focus:border-purple-500 transition-colors"
               >
                 <option value="">🍸 Cabina DJ / Barra (Sin mesa fija)</option>
                 {tables.map((t) => (
@@ -357,7 +357,7 @@ export default function ManualRequestModal({
 
             {/* Nombre del Cantante / Comensal */}
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#F8FAFC]">
+              <label className="text-xs font-bold text-zinc-300">
                 {isKaraokeMode ? "Nombre del Cantante (Opcional):" : "Nombre del Solicitante:"}
               </label>
               <input
@@ -365,14 +365,14 @@ export default function ManualRequestModal({
                 value={guestName}
                 onChange={(e) => setGuestName(e.target.value)}
                 placeholder="Ej. Marcos / Cumpleañera"
-                className="w-full px-3 py-2 rounded-xl bg-[#080F1F] border border-[#263858] text-[#F8FAFC] text-xs focus:outline-none focus:border-purple-500 transition-colors"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs focus:outline-none focus:border-purple-500 transition-colors"
               />
             </div>
           </div>
 
           {/* Dedicatoria o Notas */}
           <div className="space-y-1">
-            <label className="text-xs font-bold text-[#F8FAFC]">
+            <label className="text-xs font-bold text-zinc-300">
               Dedicatoria o Nota de Cabina (Opcional):
             </label>
             <input
@@ -380,18 +380,18 @@ export default function ManualRequestModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Ej. Vino a pedir a cabina / Cumpleaños de Sofía"
-              className="w-full px-3 py-2 rounded-xl bg-[#080F1F] border border-[#263858] text-[#F8FAFC] text-xs focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs focus:outline-none focus:border-purple-500 transition-colors"
             />
           </div>
 
           {/* Destino y Prioridad */}
-          <div className="p-3 rounded-2xl bg-[#0D1930] border border-[#263858] space-y-2.5">
-            <span className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-wider block">
+          <div className="p-3 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-2.5">
+            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
               Destino en la Cabina:
             </span>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 text-xs">
-              <label className="flex items-center gap-2 cursor-pointer text-[#F8FAFC] font-medium">
+              <label className="flex items-center gap-2 cursor-pointer text-white font-medium">
                 <input
                   type="radio"
                   name="destination"
@@ -406,7 +406,7 @@ export default function ManualRequestModal({
                 </span>
               </label>
 
-              <label className="flex items-center gap-2 cursor-pointer text-[#94A3B8] hover:text-[#F8FAFC] font-medium">
+              <label className="flex items-center gap-2 cursor-pointer text-zinc-400 hover:text-white font-medium">
                 <input
                   type="radio"
                   name="destination"
@@ -418,7 +418,7 @@ export default function ManualRequestModal({
               </label>
             </div>
 
-            <div className="pt-2 border-t border-[#263858] flex items-center justify-between">
+            <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer text-amber-300 text-xs font-bold">
                 <input
                   type="checkbox"
@@ -431,16 +431,16 @@ export default function ManualRequestModal({
                   <span>⭐ Prioridad VIP Fast-Pass</span>
                 </span>
               </label>
-              <span className="text-[10px] text-[#64748B] font-mono">Visible en pantalla TV</span>
+              <span className="text-[10px] text-zinc-500 font-mono">Visible en pantalla TV</span>
             </div>
           </div>
 
           {/* Botones de acción */}
-          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#263858]">
+          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-zinc-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-[#0D1930] hover:bg-[#1A2E56] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] text-xs font-bold transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-bold transition-colors cursor-pointer"
             >
               Cancelar
             </button>

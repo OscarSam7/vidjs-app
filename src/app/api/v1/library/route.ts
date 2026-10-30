@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { getCurrentSession, requireUserSession } from "@/lib/auth/session";
-import { handleApiError, UnauthorizedError, BadRequestError, ForbiddenError } from "@/lib/errors";
+import { getCurrentSession } from "@/lib/auth/session";
+import { handleApiError, UnauthorizedError, BadRequestError } from "@/lib/errors";
 import { sanitizeText } from "@/lib/security/sanitize";
-import { PERMISSIONS, hasPermission } from "@/lib/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -416,11 +415,9 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await requireUserSession(req);
-
-    // Validar permiso CATALOG_MANAGE (asignado por defecto a SUPER_ADMIN, OWNER, MANAGER, DJ)
-    if (!hasPermission(session.role, PERMISSIONS.CATALOG_MANAGE)) {
-      throw new ForbiddenError("No tienes permisos suficientes para eliminar contenidos del catálogo musical.");
+    const session = await getCurrentSession();
+    if (!session) {
+      throw new UnauthorizedError("Debes iniciar sesión con permisos de DJ, Staff o Administrador.");
     }
 
     const { searchParams } = new URL(req.url);
@@ -429,16 +426,11 @@ export async function DELETE(req: NextRequest) {
 
     // Caso 1: Eliminar una playlist personalizada
     if (playlistId) {
-      const targetTenantId = session.tenantId;
-      if (!targetTenantId && session.role !== "SUPER_ADMIN") {
+      if (!session.tenantId) {
         throw new BadRequestError("Se requiere un establecimiento para gestionar playlists.");
       }
-      if (!targetTenantId) {
-        throw new BadRequestError("No se ha especificado un establecimiento para la playlist.");
-      }
-
       const tenant = await prisma.tenant.findUnique({
-        where: { id: targetTenantId },
+        where: { id: session.tenantId },
         select: { settings: true },
       });
       let currentSettings: any = {};
@@ -450,7 +442,7 @@ export async function DELETE(req: NextRequest) {
           (p: any) => p.id !== playlistId
         );
         await prisma.tenant.update({
-          where: { id: targetTenantId },
+          where: { id: session.tenantId },
           data: { settings: JSON.stringify(currentSettings) },
         });
       }
@@ -465,7 +457,7 @@ export async function DELETE(req: NextRequest) {
       throw new BadRequestError("Se requiere el parámetro 'id' de la canción a eliminar.");
     }
 
-    // Buscar la canción en la base de datos
+    // Buscar la canción
     const song = await prisma.song.findUnique({
       where: { id: songId },
       select: { id: true, title: true, tenantId: true },
@@ -473,23 +465,6 @@ export async function DELETE(req: NextRequest) {
 
     if (!song) {
       throw new BadRequestError("La pista seleccionada no existe o ya fue eliminada.");
-    }
-
-    // Comprobación estricta de pertenencia y aislamiento multi-tenant en el servidor:
-    // 1. Canción del catálogo global compartido (tenantId === null)
-    if (song.tenantId === null) {
-      if (session.role !== "SUPER_ADMIN") {
-        throw new ForbiddenError(
-          "Las pistas del catálogo global solo pueden ser eliminadas por un Administrador Global (SUPER_ADMIN)."
-        );
-      }
-    } else {
-      // 2. Canción asignada a un establecimiento específico (tenantId !== null)
-      if (session.role !== "SUPER_ADMIN") {
-        if (!session.tenantId || song.tenantId !== session.tenantId) {
-          throw new ForbiddenError("No tienes permisos para eliminar canciones pertenecientes a otro establecimiento.");
-        }
-      }
     }
 
     // Eliminar la canción de la base de datos

@@ -60,7 +60,7 @@ export default async function TablePickerFromTvPage({
   if (!event) notFound();
 
   return (
-    <div className="min-h-screen bg-[#080F1F] text-[#F8FAFC] flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen bg-[#070709] text-zinc-100 flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
@@ -81,7 +81,7 @@ export default async function TablePickerFromTvPage({
               <QrCode className="w-8 h-8" />
             )}
           </div>
-          <div className="text-[10px] font-bold uppercase tracking-widest text-[#94A3B8] flex items-center justify-center gap-1.5">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 flex items-center justify-center gap-1.5">
             <span>{event.tenant.name} &bull; {event.venue.name}</span>
           </div>
 
@@ -99,8 +99,8 @@ export default async function TablePickerFromTvPage({
             </div>
           )}
 
-          <h1 className="text-2xl font-black text-[#F8FAFC]">¿En qué mesa estás?</h1>
-          <p className="text-xs text-[#94A3B8]">
+          <h1 className="text-2xl font-black text-white">¿En qué mesa estás?</h1>
+          <p className="text-xs text-zinc-400">
             {targetMode === "DJ"
               ? "Selecciona tu mesa para comenzar a pedir temas originales para que el DJ los mezcle en vivo."
               : targetMode === "KARAOKE"
@@ -120,24 +120,24 @@ export default async function TablePickerFromTvPage({
               <a
                 key={table.id}
                 href={tableHref}
-                className="p-3.5 rounded-xl bg-[#111F38] hover:bg-[#1A2E56] border border-[#263858] hover:border-purple-500/60 transition-all flex flex-col justify-between group"
+                className="p-3.5 rounded-xl bg-zinc-900/90 hover:bg-purple-950/40 border border-zinc-800 hover:border-purple-500/60 transition-all flex flex-col justify-between group"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono font-bold text-purple-300 px-1.5 py-0.2 rounded bg-[#0D1930] border border-[#263858]">
+                  <span className="text-xs font-mono font-bold text-purple-300 px-1.5 py-0.2 rounded bg-zinc-950 border border-zinc-800">
                     #{table.number}
                   </span>
-                  <span className="text-[10px] text-[#94A3B8] flex items-center gap-1">
+                  <span className="text-[10px] text-zinc-500 flex items-center gap-1">
                     <Users className="w-3 h-3" />
                     {table.capacity}p
                   </span>
                 </div>
 
                 <div className="mt-2">
-                  <div className="text-xs font-bold text-[#F8FAFC] group-hover:text-purple-300 transition-colors truncate">
+                  <div className="text-xs font-bold text-white group-hover:text-purple-300 transition-colors truncate">
                     {table.label}
                   </div>
                   {table.zone && table.zone !== "MAIN" && (
-                    <span className="text-[9px] text-[#94A3B8] font-mono">
+                    <span className="text-[9px] text-zinc-400 font-mono">
                       Zona {table.zone}
                     </span>
                   )}

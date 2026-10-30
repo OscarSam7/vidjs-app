@@ -44,18 +44,12 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // 3. Continuar con cabeceras de respuesta seguras compatibles con la plataforma
+  // 3. Continuar con cabeceras de respuesta seguras
   const response = NextResponse.next();
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "SAMEORIGIN");
   response.headers.set("X-XSS-Protection", "1; mode=block");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.headers.set("X-DNS-Prefetch-Control", "on");
-
-  // Strict-Transport-Security solo en producción para no afectar desarrollo HTTP local
-  if (process.env.NODE_ENV === "production") {
-    response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-  }
 
   return response;
 }

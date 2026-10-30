@@ -96,43 +96,43 @@ export default function TvDisplayConnectModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-fadeIn">
-      <div className="w-full max-w-2xl bg-[#111F38] border border-[#263858] rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.15)] flex flex-col max-h-[92vh]">
+      <div className="w-full max-w-2xl bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.15)] flex flex-col max-h-[92vh]">
         {/* Modal Header */}
-        <div className="p-4 sm:p-5 border-b border-[#263858] flex items-center justify-between bg-[#0D1930]">
+        <div className="p-4 sm:p-5 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/60">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-cyan-600/20 border border-cyan-500/40 text-cyan-400">
               <Tv className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-[#F8FAFC]">
+                <h2 className="text-base sm:text-lg font-black text-white">
                   Conectar Pantalla TV & Multipantalla
                 </h2>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 font-bold">
                   {eventCode}
                 </span>
               </div>
-              <p className="text-xs text-[#94A3B8]">
+              <p className="text-xs text-zinc-400">
                 Informa a los clientes en vivo: estado del karaoke, próximos turnos, QR de pedidos, fotos y aplausos.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1A2E56] transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="grid grid-cols-3 border-b border-[#263858] bg-[#080F1F] text-xs font-bold">
+        <div className="grid grid-cols-3 border-b border-zinc-800 bg-zinc-900/40 text-xs font-bold">
           <button
             onClick={() => setActiveTab("mobile")}
             className={`py-3 px-2 transition-all flex items-center justify-center gap-1.5 cursor-pointer border-b-2 ${
               activeTab === "mobile"
                 ? "border-cyan-400 text-cyan-300 bg-cyan-950/20"
-                : "border-transparent text-[#94A3B8] hover:text-[#F8FAFC]"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
@@ -144,7 +144,7 @@ export default function TvDisplayConnectModal({
             className={`py-3 px-2 transition-all flex items-center justify-center gap-1.5 cursor-pointer border-b-2 ${
               activeTab === "pc-multi"
                 ? "border-cyan-400 text-cyan-300 bg-cyan-950/20"
-                : "border-transparent text-[#94A3B8] hover:text-[#F8FAFC]"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
             }`}
           >
             <Monitor className="w-3.5 h-3.5" />
@@ -156,7 +156,7 @@ export default function TvDisplayConnectModal({
             className={`py-3 px-2 transition-all flex items-center justify-center gap-1.5 cursor-pointer border-b-2 ${
               activeTab === "stage"
                 ? "border-cyan-400 text-cyan-300 bg-cyan-950/20"
-                : "border-transparent text-[#94A3B8] hover:text-[#F8FAFC]"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
             }`}
           >
             <Mic className="w-3.5 h-3.5" />
@@ -472,8 +472,8 @@ export default function TvDisplayConnectModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-3.5 sm:p-4 border-t border-[#263858] bg-[#0D1930] flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[11px] text-[#94A3B8]">
+        <div className="p-3.5 sm:p-4 border-t border-zinc-800 bg-zinc-900/40 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[11px] text-zinc-400">
             <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
             <span>Sincronización en vivo SSE (0 ms de retardo)</span>
           </div>
@@ -481,7 +481,7 @@ export default function TvDisplayConnectModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-[#1A2E56] hover:bg-[#263858] text-[#F8FAFC] text-xs font-bold transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold transition-colors cursor-pointer"
           >
             Entendido
           </button>

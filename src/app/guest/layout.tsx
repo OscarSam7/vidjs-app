@@ -18,8 +18,8 @@ export default function GuestLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#080F1F] text-[#F8FAFC] flex flex-col items-center overflow-x-hidden w-full">
-      <div className="w-full max-w-lg min-h-screen flex flex-col bg-[#080F1F] shadow-2xl border-x border-[#263858] overflow-x-hidden">
+    <div className="min-h-screen bg-[#070709] text-zinc-100 flex flex-col items-center overflow-x-hidden w-full">
+      <div className="w-full max-w-lg min-h-screen flex flex-col bg-zinc-950 shadow-2xl border-x border-zinc-800/50 overflow-x-hidden">
         {children}
       </div>
     </div>

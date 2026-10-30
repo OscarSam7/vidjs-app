@@ -111,16 +111,16 @@ export default function DjBridgeModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-[#111F38] border border-purple-500/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl bg-zinc-950 border border-purple-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-[#263858] flex items-center justify-between bg-[#0D1930]">
+        <div className="px-6 py-5 border-b border-zinc-800/80 flex items-center justify-between bg-zinc-900/60">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-purple-600/20 border border-purple-500/30 text-purple-400">
               <Laptop className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black text-[#F8FAFC] tracking-tight">
+                <h2 className="text-lg font-black text-white tracking-tight">
                   DJ Bridge Desktop Sync
                 </h2>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 text-[10px] font-bold flex items-center gap-1">
@@ -128,14 +128,14 @@ export default function DjBridgeModal({
                   V1.0 PRO
                 </span>
               </div>
-              <p className="text-xs text-[#94A3B8]">
+              <p className="text-xs text-zinc-400">
                 Conecta tu software de DJ profesional con la cola de Vidjs en tiempo real
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1A2E56] transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -144,14 +144,14 @@ export default function DjBridgeModal({
         {/* Content */}
         <div className="p-6 space-y-5 overflow-y-auto">
           {loading ? (
-            <div className="py-12 text-center text-[#94A3B8] space-y-2">
-              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-purple-400" />
+            <div className="py-12 text-center text-zinc-500 space-y-2">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-purple-500" />
               <p className="text-xs">Cargando credenciales de enlace...</p>
             </div>
           ) : bridgeData ? (
             <>
               {/* Credentials Card */}
-              <div className="p-4 rounded-2xl bg-[#0D1930] border border-[#263858] space-y-3.5">
+              <div className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-3.5">
                 <div>
                   <label className="text-[11px] font-bold uppercase tracking-wider text-purple-400 block mb-1">
                     URL de Playlist M3U8 Dinámica (VirtualDJ / Rekordbox)
@@ -161,7 +161,7 @@ export default function DjBridgeModal({
                       type="text"
                       readOnly
                       value={bridgeData.playlistM3uUrl}
-                      className="flex-1 bg-[#080F1F] border border-[#263858] rounded-xl px-3 py-2 text-xs font-mono text-[#F8FAFC] select-all"
+                      className="flex-1 bg-black/70 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono text-zinc-300 select-all"
                     />
                     <button
                       onClick={() =>
@@ -184,7 +184,7 @@ export default function DjBridgeModal({
                     <a
                       href={bridgeData.playlistM3uUrl}
                       download={`vidjs-${eventCode?.toLowerCase() || "live"}.m3u8`}
-                      className="p-2 rounded-xl bg-[#1A2E56] hover:bg-[#263858] border border-[#263858] text-[#F8FAFC] text-xs font-bold flex items-center cursor-pointer transition-colors shrink-0"
+                      className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center cursor-pointer transition-colors shrink-0"
                       title="Descargar archivo M3U8"
                     >
                       <Download className="w-4 h-4" />
@@ -192,9 +192,9 @@ export default function DjBridgeModal({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-[#263858]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-zinc-800/60">
                   <div>
-                    <label className="text-[10px] font-bold uppercase text-[#94A3B8] block mb-1">
+                    <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1">
                       Bridge Auth Token
                     </label>
                     <div className="flex items-center gap-1.5">
@@ -202,11 +202,11 @@ export default function DjBridgeModal({
                         type="text"
                         readOnly
                         value={bridgeData.token}
-                        className="w-full bg-[#080F1F] border border-[#263858] rounded-lg px-2.5 py-1.5 text-xs font-mono text-cyan-300"
+                        className="w-full bg-black/60 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-mono text-cyan-300"
                       />
                       <button
                         onClick={() => copyToClipboard(bridgeData.token, "token")}
-                        className="p-1.5 rounded-lg bg-[#1A2E56] hover:bg-[#263858] text-[#F8FAFC] cursor-pointer"
+                        className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 cursor-pointer"
                       >
                         {copiedField === "token" ? (
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -218,7 +218,7 @@ export default function DjBridgeModal({
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold uppercase text-[#94A3B8] block mb-1">
+                    <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1">
                       Webhook de Sincronización
                     </label>
                     <div className="flex items-center gap-1.5">
@@ -226,13 +226,13 @@ export default function DjBridgeModal({
                         type="text"
                         readOnly
                         value={bridgeData.syncWebhookUrl}
-                        className="w-full bg-[#080F1F] border border-[#263858] rounded-lg px-2.5 py-1.5 text-xs font-mono text-[#94A3B8] truncate"
+                        className="w-full bg-black/60 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs font-mono text-zinc-400 truncate"
                       />
                       <button
                         onClick={() =>
                           copyToClipboard(bridgeData.syncWebhookUrl, "webhook")
                         }
-                        className="p-1.5 rounded-lg bg-[#1A2E56] hover:bg-[#263858] text-[#F8FAFC] cursor-pointer"
+                        className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 cursor-pointer"
                       >
                         {copiedField === "webhook" ? (
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -247,13 +247,13 @@ export default function DjBridgeModal({
 
               {/* Guía de Integración por Software */}
               <div className="space-y-3">
-                <div className="flex border-b border-[#263858] text-xs font-bold">
+                <div className="flex border-b border-zinc-800 text-xs font-bold">
                   <button
                     onClick={() => setActiveTab("virtualdj")}
                     className={`pb-2 px-3 border-b-2 transition-colors cursor-pointer ${
                       activeTab === "virtualdj"
                         ? "border-purple-500 text-purple-300"
-                        : "border-transparent text-[#94A3B8] hover:text-[#F8FAFC]"
+                        : "border-transparent text-zinc-500 hover:text-zinc-300"
                     }`}
                   >
                     VirtualDJ
@@ -263,7 +263,7 @@ export default function DjBridgeModal({
                     className={`pb-2 px-3 border-b-2 transition-colors cursor-pointer ${
                       activeTab === "rekordbox"
                         ? "border-purple-500 text-purple-300"
-                        : "border-transparent text-[#94A3B8] hover:text-[#F8FAFC]"
+                        : "border-transparent text-zinc-500 hover:text-zinc-300"
                     }`}
                   >
                     Pioneer Rekordbox / Serato
@@ -273,27 +273,27 @@ export default function DjBridgeModal({
                     className={`pb-2 px-3 border-b-2 transition-colors cursor-pointer ${
                       activeTab === "webhook"
                         ? "border-purple-500 text-purple-300"
-                        : "border-transparent text-[#94A3B8] hover:text-[#F8FAFC]"
+                        : "border-transparent text-zinc-500 hover:text-zinc-300"
                     }`}
                   >
                     Webhook Automático (OBS / Scripts)
                   </button>
                 </div>
 
-                <div className="p-4 rounded-xl bg-[#080F1F] border border-[#263858] text-xs text-[#94A3B8] leading-relaxed">
+                <div className="p-4 rounded-xl bg-black/40 border border-zinc-800/80 text-xs text-zinc-300 leading-relaxed">
                   {activeTab === "virtualdj" && (
                     <div className="space-y-2">
-                      <p className="font-semibold text-[#F8FAFC]">
+                      <p className="font-semibold text-white">
                         Conectar con VirtualDJ 2024 / 2025:
                       </p>
-                      <ol className="list-decimal list-inside space-y-1 text-[#94A3B8] text-[11px]">
+                      <ol className="list-decimal list-inside space-y-1 text-zinc-400 text-[11px]">
                         <li>
                           En VirtualDJ, ve al panel izquierdo de{" "}
-                          <strong className="text-[#F8FAFC]">Listas de reproducción (Playlists)</strong>.
+                          <strong className="text-zinc-200">Listas de reproducción (Playlists)</strong>.
                         </li>
                         <li>
                           Haz clic derecho &rarr;{" "}
-                          <strong className="text-[#F8FAFC]">Añadir lista en línea (M3U URL)</strong>.
+                          <strong className="text-zinc-200">Añadir lista en línea (M3U URL)</strong>.
                         </li>
                         <li>
                           Pega la URL M3U8 copiada arriba. La lista se actualizará en tiempo real
@@ -305,13 +305,13 @@ export default function DjBridgeModal({
 
                   {activeTab === "rekordbox" && (
                     <div className="space-y-2">
-                      <p className="font-semibold text-[#F8FAFC]">
+                      <p className="font-semibold text-white">
                         Conectar con Rekordbox o Serato DJ:
                       </p>
-                      <ol className="list-decimal list-inside space-y-1 text-[#94A3B8] text-[11px]">
+                      <ol className="list-decimal list-inside space-y-1 text-zinc-400 text-[11px]">
                         <li>
                           Haz clic en el botón de descarga para guardar el archivo{" "}
-                          <code className="px-1 py-0.5 rounded bg-[#0D1930] text-cyan-300 border border-[#263858]">
+                          <code className="px-1 py-0.5 rounded bg-zinc-900 text-cyan-300">
                             vidjs-{eventCode?.toLowerCase()}.m3u8
                           </code>
                           .
@@ -329,10 +329,10 @@ export default function DjBridgeModal({
 
                   {activeTab === "webhook" && (
                     <div className="space-y-2 font-mono text-[11px]">
-                      <p className="font-sans font-semibold text-[#F8FAFC]">
+                      <p className="font-sans font-semibold text-white">
                         Notificar tema actual mediante POST:
                       </p>
-                      <pre className="p-2.5 rounded-lg bg-[#0D1930] border border-[#263858] text-purple-300 overflow-x-auto text-[10px]">
+                      <pre className="p-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-purple-300 overflow-x-auto text-[10px]">
 {`curl -X POST "${bridgeData.syncWebhookUrl}" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -348,16 +348,16 @@ export default function DjBridgeModal({
               </div>
             </>
           ) : (
-            <p className="text-xs text-rose-400">No se pudo cargar la configuración del puente.</p>
+            <p className="text-xs text-red-400">No se pudo cargar la configuración del puente.</p>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-[#263858] bg-[#0D1930] flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-zinc-800/80 bg-zinc-900/60 flex items-center justify-between">
           <button
             onClick={handleSimulateSync}
             disabled={testSyncLoading || !bridgeData}
-            className="px-3.5 py-2 rounded-xl bg-[#1A2E56] hover:bg-[#263858] border border-[#263858] text-[#F8FAFC] text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors disabled:opacity-50"
+            className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors disabled:opacity-50"
           >
             {testSyncLoading ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin text-purple-400" />
@@ -373,7 +373,7 @@ export default function DjBridgeModal({
 
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-colors cursor-pointer shadow-lg shadow-purple-600/20"
+            className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-colors cursor-pointer"
           >
             Listo
           </button>

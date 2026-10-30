@@ -946,7 +946,7 @@ export default function PublicDisplayScreenPage({
   return (
     <div
       data-display="tv"
-      className="tv-screen dark h-[100dvh] max-h-[100dvh] w-screen bg-[#080F1F] text-[#F8FAFC] flex flex-col justify-between p-2 sm:p-4 lg:p-6 relative overflow-hidden select-none"
+      className="tv-screen dark h-[100dvh] max-h-[100dvh] w-screen bg-[#040406] text-zinc-100 flex flex-col justify-between p-2 sm:p-4 lg:p-6 relative overflow-hidden select-none"
     >
       {/* Luces de fondo y resplandor estilo discoteca */}
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none" />
@@ -955,7 +955,7 @@ export default function PublicDisplayScreenPage({
       {/* Toast Notificación de Reset de Pantalla */}
       {resetSuccessMessage && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 animate-fadeIn pointer-events-none">
-          <div className="px-5 py-2.5 rounded-2xl bg-[#111F38]/95 border-2 border-emerald-500/80 text-emerald-300 text-xs sm:text-sm font-bold shadow-2xl flex items-center gap-2.5 backdrop-blur-md">
+          <div className="px-5 py-2.5 rounded-2xl bg-zinc-950/95 border-2 border-emerald-500/80 text-emerald-300 text-xs sm:text-sm font-bold shadow-2xl flex items-center gap-2.5 backdrop-blur-md">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
             <span>{resetSuccessMessage}</span>
           </div>
@@ -963,10 +963,10 @@ export default function PublicDisplayScreenPage({
       )}
 
       {/* 1. Encabezado Superior (Logo del Local y Código) */}
-      <header className="flex items-center justify-between z-10 border-b border-[#263858] pb-2 sm:pb-3 shrink-0">
+      <header className="flex items-center justify-between z-10 border-b border-zinc-800/60 pb-2 sm:pb-3 shrink-0">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           {data.branding?.logoUrl || data.event.logoUrl ? (
-            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-[#0D1930] border border-[#263858] p-0.5 sm:p-1 flex items-center justify-center overflow-hidden shadow-xl shrink-0">
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-zinc-900 border border-zinc-700/80 p-0.5 sm:p-1 flex items-center justify-center overflow-hidden shadow-xl shrink-0">
               <img
                 src={data.branding?.logoUrl || data.event.logoUrl || ""}
                 alt={data.event.tenantName}
@@ -980,19 +980,19 @@ export default function PublicDisplayScreenPage({
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <span className="text-sm sm:text-xl font-black text-[#F8FAFC] tracking-wider truncate max-w-[120px] sm:max-w-none">
+              <span className="text-sm sm:text-xl font-black text-white tracking-wider truncate max-w-[120px] sm:max-w-none">
                 {data.branding?.welcomeTitle || data.event.tenantName.toUpperCase()}
               </span>
-              <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-[#0D1930] text-purple-300 border border-purple-500/40 text-[10px] sm:text-[11px] font-bold font-mono">
+              <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800 text-[10px] sm:text-[11px] font-bold font-mono">
                 {data.event.venueName}
               </span>
               {isKaraoke && (
-                <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 text-[10px] sm:text-[11px] font-bold font-mono animate-pulse">
+                <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-[10px] sm:text-[11px] font-bold font-mono animate-pulse">
                   🎤 MODO KARAOKE
                 </span>
               )}
             </div>
-            <p className="text-[11px] sm:text-xs text-[#94A3B8] font-medium truncate">
+            <p className="text-[11px] sm:text-xs text-zinc-400 font-medium truncate">
               {data.event.name}
             </p>
           </div>
@@ -1000,11 +1000,11 @@ export default function PublicDisplayScreenPage({
 
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {data.branding?.instagramHandle && (
-            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-purple-950/80 to-pink-950/80 border border-purple-500/40 text-purple-200 text-xs font-bold">
+            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-purple-950/80 to-pink-950/80 border border-purple-700/60 text-purple-200 text-xs font-bold">
               <span>📸 {data.branding.instagramHandle}</span>
             </div>
           )}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#0D1930] border border-[#263858]">
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800">
             <span
               className={`w-2 h-2 rounded-full ${
                 isRealtime
@@ -1017,7 +1017,7 @@ export default function PublicDisplayScreenPage({
             </span>
           </div>
 
-          <div className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-[#0D1930] border border-purple-500/40 text-purple-200 font-mono text-[11px] sm:text-xs font-extrabold tracking-wider">
+          <div className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-purple-900/40 border border-purple-600/50 text-purple-200 font-mono text-[11px] sm:text-xs font-extrabold tracking-wider">
             <span className="hidden sm:inline">CÓDIGO: </span>{data.event.code}
           </div>
 
@@ -1045,7 +1045,7 @@ export default function PublicDisplayScreenPage({
 
           <button
             onClick={toggleFullscreen}
-            className="p-1.5 sm:p-2 rounded-xl bg-[#0D1930] hover:bg-[#1A2E56] border border-[#263858] text-[#94A3B8] hover:text-[#F8FAFC] transition-colors flex items-center justify-center cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white transition-colors flex items-center justify-center cursor-pointer"
             title={isFullscreen ? "Salir de pantalla completa" : "Pantalla Completa (F11)"}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
@@ -1055,7 +1055,7 @@ export default function PublicDisplayScreenPage({
 
       {/* Marquesina de Anuncios y Promociones */}
       {data.branding?.marqueeText && (
-        <div className="z-10 -mx-2 sm:-mx-4 lg:-mx-6 my-0.5 sm:my-1 bg-gradient-to-r from-purple-950/80 via-[#111F38] to-purple-950/80 border-y border-purple-500/30 py-0.5 sm:py-1 overflow-hidden shadow-xl shrink-0">
+        <div className="z-10 -mx-2 sm:-mx-4 lg:-mx-6 my-0.5 sm:my-1 bg-gradient-to-r from-purple-950/90 via-zinc-950 to-purple-950/90 border-y border-purple-500/30 py-0.5 sm:py-1 overflow-hidden shadow-xl shrink-0">
           <div className="flex animate-pulse whitespace-nowrap justify-center gap-6 font-bold text-[11px] sm:text-xs text-purple-200 tracking-wider px-3 sm:px-4">
             <span>✨ {data.branding.marqueeText}</span>
           </div>
@@ -1075,13 +1075,13 @@ export default function PublicDisplayScreenPage({
       )}
 
       {/* 📱 Selector de Pestañas para Vista Móvil / App */}
-      <div className="lg:hidden flex items-center justify-center p-1 bg-[#0D1930] border border-[#263858] rounded-2xl shrink-0 my-1 gap-1 z-20 shadow-lg">
+      <div className="lg:hidden flex items-center justify-center p-1 bg-zinc-900/90 border border-zinc-800 rounded-2xl shrink-0 my-1 gap-1 z-20 shadow-lg">
         <button
           onClick={() => setMobileTab("player")}
           className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
             mobileTab === "player"
               ? "bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-md shadow-purple-950/50"
-              : "text-[#94A3B8] hover:text-[#F8FAFC]"
+              : "text-zinc-400 hover:text-white"
           }`}
         >
           <Tv className="w-3.5 h-3.5" />
@@ -1092,7 +1092,7 @@ export default function PublicDisplayScreenPage({
           className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
             mobileTab === "queue"
               ? "bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-md shadow-purple-950/50"
-              : "text-[#94A3B8] hover:text-[#F8FAFC]"
+              : "text-zinc-400 hover:text-white"
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
@@ -1103,7 +1103,7 @@ export default function PublicDisplayScreenPage({
           className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
             mobileTab === "qr"
               ? "bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-md shadow-purple-950/50"
-              : "text-[#94A3B8] hover:text-[#F8FAFC]"
+              : "text-zinc-400 hover:text-white"
           }`}
         >
           <QrCode className="w-3.5 h-3.5" />
@@ -1117,25 +1117,25 @@ export default function PublicDisplayScreenPage({
         <aside
           className={`${
             mobileTab === "queue" ? "flex flex-1" : "hidden"
-          } lg:flex lg:col-span-3 xl:col-span-3 h-full min-h-0 flex-col rounded-3xl bg-[#111F38]/90 border border-[#263858] p-3 sm:p-4 shadow-2xl backdrop-blur-md overflow-hidden`}
+          } lg:flex lg:col-span-3 xl:col-span-3 h-full min-h-0 flex-col rounded-3xl bg-zinc-950/85 border border-purple-500/30 p-3 sm:p-4 shadow-2xl backdrop-blur-md overflow-hidden`}
         >
           {/* Encabezado de la Cola */}
-          <div className="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-[#263858] shrink-0">
+          <div className="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-zinc-800/80 shrink-0">
             <div className="flex items-center gap-2">
               <div className="p-1.5 sm:p-2 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30">
                 <Clock className="w-4 h-4 text-purple-400 animate-pulse" />
               </div>
               <div>
-                <h2 className="text-xs sm:text-sm font-black text-[#F8FAFC] tracking-wider uppercase">
+                <h2 className="text-xs sm:text-sm font-black text-white tracking-wider uppercase">
                   {isKaraoke ? "Cola Karaoke" : "Próximos Temas"}
                 </h2>
-                <span className="text-[10px] text-[#94A3B8] font-mono">
+                <span className="text-[10px] text-zinc-400 font-mono">
                   {data.upcomingQueue.length} {data.upcomingQueue.length === 1 ? "en espera" : "en espera"}
                 </span>
               </div>
             </div>
             {data.policy?.queuePaused && (
-              <span className="px-2 py-0.5 rounded-full bg-rose-950/90 text-rose-300 border border-rose-800 text-[9px] font-black uppercase animate-pulse">
+              <span className="px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 text-[9px] font-black uppercase animate-pulse">
                 Pausa
               </span>
             )}
@@ -1144,14 +1144,14 @@ export default function PublicDisplayScreenPage({
           {/* Lista de Canciones en Espera */}
           <div className="flex-1 min-h-0 overflow-y-auto space-y-2 py-2 pr-1 custom-scrollbar">
             {data.upcomingQueue.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center p-4 space-y-2 text-[#64748B]">
-                <div className="p-3 rounded-2xl bg-[#0D1930] border border-[#263858]">
-                  <Music className="w-8 h-8 text-[#64748B] animate-bounce" />
+              <div className="h-full flex flex-col items-center justify-center text-center p-4 space-y-2 text-zinc-500">
+                <div className="p-3 rounded-2xl bg-zinc-900/60 border border-zinc-800">
+                  <Music className="w-8 h-8 text-zinc-600 animate-bounce" />
                 </div>
-                <p className="text-xs font-bold text-[#F8FAFC]">
+                <p className="text-xs font-bold text-zinc-300">
                   {isKaraoke ? "¡La cola está libre!" : "¡Sin temas en cola!"}
                 </p>
-                <p className="text-[11px] text-[#94A3B8] max-w-[180px]">
+                <p className="text-[11px] text-zinc-500 max-w-[180px]">
                   Sé el primero en pedir escaneando el código QR
                 </p>
               </div>
@@ -1164,9 +1164,9 @@ export default function PublicDisplayScreenPage({
                     className={`p-2.5 rounded-2xl border transition-all ${
                       isNext
                         ? isKaraoke
-                          ? "bg-gradient-to-r from-cyan-950/90 via-[#0D1930] to-[#0D1930] border-cyan-500/70 shadow-[0_0_20px_rgba(6,182,212,0.3)] animate-pulse"
-                          : "bg-gradient-to-r from-purple-950/90 via-[#0D1930] to-[#0D1930] border-purple-500/70 shadow-[0_0_20px_rgba(168,85,247,0.3)]"
-                        : "bg-[#0D1930] border-[#263858] hover:border-purple-500/30"
+                          ? "bg-gradient-to-r from-cyan-950/90 via-zinc-900/90 to-zinc-900 border-cyan-500/70 shadow-[0_0_20px_rgba(6,182,212,0.3)] animate-pulse"
+                          : "bg-gradient-to-r from-purple-950/90 via-zinc-900/90 to-zinc-900 border-purple-500/70 shadow-[0_0_20px_rgba(168,85,247,0.3)]"
+                        : "bg-zinc-900/70 border-zinc-800/80 hover:border-zinc-700"
                     }`}
                   >
                     <div className="flex items-start gap-2.5">
@@ -1176,7 +1176,7 @@ export default function PublicDisplayScreenPage({
                             ? isKaraoke
                               ? "bg-cyan-400 text-black shadow-md shadow-cyan-400/50"
                               : "bg-purple-500 text-white shadow-md shadow-purple-500/50"
-                            : "bg-[#080F1F] text-[#94A3B8] border border-[#263858]"
+                            : "bg-zinc-800 text-zinc-300"
                         }`}
                       >
                         #{item.order}
@@ -1184,17 +1184,17 @@ export default function PublicDisplayScreenPage({
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1">
-                          <div className="font-bold text-[#F8FAFC] text-xs sm:text-sm truncate">
+                          <div className="font-bold text-white text-xs sm:text-sm truncate">
                             {item.title}
                           </div>
                           {item.isFastPass && (
-                            <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/50 shrink-0">
+                            <span className="text-[8px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/50 shrink-0">
                               ⭐ VIP
                             </span>
                           )}
                         </div>
 
-                        <div className="text-[11px] text-[#94A3B8] truncate mt-0.5">
+                        <div className="text-[11px] text-zinc-400 truncate mt-0.5">
                           {item.artist}
                         </div>
 
@@ -1205,7 +1205,7 @@ export default function PublicDisplayScreenPage({
                                 ? isKaraoke
                                   ? "bg-cyan-950 text-cyan-300 border-cyan-800"
                                   : "bg-purple-950 text-purple-300 border-purple-800"
-                                : "bg-[#080F1F] text-[#94A3B8] border border-[#263858]"
+                                : "bg-black/60 text-zinc-400 border-zinc-800"
                             }`}
                           >
                             {item.table}
@@ -1225,10 +1225,10 @@ export default function PublicDisplayScreenPage({
           </div>
 
           {/* Pie de la Columna Izquierda */}
-          <div className="pt-2 border-t border-[#263858] text-center shrink-0">
+          <div className="pt-2 border-t border-zinc-800/80 text-center shrink-0">
             <button
               onClick={() => setMobileTab("qr")}
-              className="w-full text-[10px] font-semibold text-[#94A3B8] hover:text-[#F8FAFC] flex items-center justify-center gap-1 cursor-pointer transition-colors"
+              className="w-full text-[10px] font-semibold text-zinc-400 hover:text-white flex items-center justify-center gap-1 cursor-pointer transition-colors"
             >
               <Sparkles className="w-3 h-3 text-purple-400" />
               <span>Pide el tuyo con el QR 👉</span>
@@ -1250,17 +1250,17 @@ export default function PublicDisplayScreenPage({
                   <Swords className="w-4 h-4" />
                   <span>¡BATALLA MUSICAL EN VIVO!</span>
                 </div>
-                <h2 className="text-2xl sm:text-3xl xl:text-4xl font-black text-[#F8FAFC] tracking-tight">
+                <h2 className="text-2xl sm:text-3xl xl:text-4xl font-black text-white tracking-tight">
                   ¿QUÉ CANCIÓN DEBE SONAR AHORA?
                 </h2>
-                <p className="text-xs text-[#94A3B8]">
+                <p className="text-xs text-zinc-400">
                   Apunta la cámara de tu celular al QR de la derecha o de tu mesa y vota en vivo
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-11 gap-3 sm:gap-4 items-center">
                 {/* TRACK A */}
-                <div className="md:col-span-5 p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-[#111F38] via-[#0D1930] to-amber-950/40 border-2 border-amber-500/80 shadow-2xl shadow-amber-500/10 space-y-3 text-center md:text-left">
+                <div className="md:col-span-5 p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-zinc-900 via-zinc-900 to-amber-950/40 border-2 border-amber-500 shadow-2xl shadow-amber-500/20 space-y-3 text-center md:text-left">
                   <div className="flex items-center justify-between">
                     <span className="px-3 py-1 rounded-xl bg-amber-500 text-black text-xs font-black uppercase">
                       OPCIÓN A
@@ -1272,7 +1272,7 @@ export default function PublicDisplayScreenPage({
                     )}
                   </div>
                   <div>
-                    <h3 className="text-xl sm:text-2xl font-black text-[#F8FAFC] truncate">
+                    <h3 className="text-xl sm:text-2xl font-black text-white truncate">
                       {activeDuel.optionA.title}
                     </h3>
                     <p className="text-sm sm:text-base font-bold text-amber-300 truncate mt-0.5">
@@ -1290,7 +1290,7 @@ export default function PublicDisplayScreenPage({
                         %
                       </span>
                     </div>
-                    <div className="w-full h-3 bg-[#080F1F] rounded-full overflow-hidden border border-[#263858]">
+                    <div className="w-full h-3 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
                       <div
                         className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all duration-500"
                         style={{
@@ -1310,11 +1310,11 @@ export default function PublicDisplayScreenPage({
                   <div className="w-11 h-11 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black flex items-center justify-center text-xs shadow-xl animate-pulse">
                     VS
                   </div>
-                  <span className="text-[9px] font-mono text-[#64748B] mt-1">EN VIVO</span>
+                  <span className="text-[9px] font-mono text-zinc-500 mt-1">EN VIVO</span>
                 </div>
 
                 {/* TRACK B */}
-                <div className="md:col-span-5 p-4 sm:p-5 rounded-3xl bg-gradient-to-bl from-[#111F38] via-[#0D1930] to-orange-950/40 border-2 border-orange-500/80 shadow-2xl shadow-orange-500/10 space-y-3 text-center md:text-right">
+                <div className="md:col-span-5 p-4 sm:p-5 rounded-3xl bg-gradient-to-bl from-zinc-900 via-zinc-900 to-orange-950/40 border-2 border-orange-500 shadow-2xl shadow-orange-500/20 space-y-3 text-center md:text-right">
                   <div className="flex items-center justify-between md:flex-row-reverse">
                     <span className="px-3 py-1 rounded-xl bg-orange-500 text-black text-xs font-black uppercase">
                       OPCIÓN B
@@ -1326,7 +1326,7 @@ export default function PublicDisplayScreenPage({
                     )}
                   </div>
                   <div>
-                    <h3 className="text-xl sm:text-2xl font-black text-[#F8FAFC] truncate">
+                    <h3 className="text-xl sm:text-2xl font-black text-white truncate">
                       {activeDuel.optionB.title}
                     </h3>
                     <p className="text-sm sm:text-base font-bold text-orange-300 truncate mt-0.5">
@@ -1344,7 +1344,7 @@ export default function PublicDisplayScreenPage({
                         %
                       </span>
                     </div>
-                    <div className="w-full h-3 bg-[#080F1F] rounded-full overflow-hidden border border-[#263858]">
+                    <div className="w-full h-3 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800">
                       <div
                         className="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-500 ml-auto"
                         style={{
@@ -1396,7 +1396,7 @@ export default function PublicDisplayScreenPage({
                     <button
                       onClick={handleClearVideoOnly}
                       disabled={isResetting}
-                      className="text-[11px] text-rose-300 hover:text-white px-2.5 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-700/60 transition-colors cursor-pointer flex items-center gap-1.5 active:scale-95"
+                      className="text-[11px] text-rose-300 hover:text-white px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-800 border border-rose-700/60 transition-colors cursor-pointer flex items-center gap-1.5 active:scale-95"
                       title="Borrar solamente el video de la pantalla (manteniendo el audio intacto)"
                     >
                       <VideoOff className="w-3 h-3 text-rose-400" />
@@ -1405,7 +1405,7 @@ export default function PublicDisplayScreenPage({
 
                     <button
                       onClick={() => setIsKaraokeVideoEnabled(false)}
-                      className="text-[11px] text-[#94A3B8] hover:text-[#F8FAFC] px-2.5 py-1 rounded-lg bg-[#0D1930] hover:bg-[#111F38] border border-[#263858] transition-colors cursor-pointer flex items-center gap-1.5"
+                      className="text-[11px] text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 transition-colors cursor-pointer flex items-center gap-1.5"
                       title="Cambiar a visualizador clásico con vinilo"
                     >
                       <Disc3 className="w-3.5 h-3.5 text-purple-400" />
@@ -1431,7 +1431,7 @@ export default function PublicDisplayScreenPage({
                       {/* HUD Flotante si la consola de DJ pausó el video */}
                       {isTvPaused && (
                         <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center pointer-events-none animate-fadeIn z-20">
-                          <div className="px-5 py-3 rounded-2xl bg-[#0D1930]/95 border-2 border-cyan-500/60 text-cyan-300 flex items-center gap-3 shadow-2xl shadow-cyan-950/80">
+                          <div className="px-5 py-3 rounded-2xl bg-zinc-950/90 border-2 border-cyan-500/60 text-cyan-300 flex items-center gap-3 shadow-2xl shadow-cyan-950/80">
                             <span className="w-3 h-3 rounded-full bg-cyan-400 animate-ping" />
                             <span className="text-sm font-black tracking-widest uppercase">
                               ⏸ PAUSADO DESDE CONSOLA
@@ -1455,7 +1455,7 @@ export default function PublicDisplayScreenPage({
                       {/* HUD Flotante si la consola de DJ pausó el video */}
                       {isTvPaused && (
                         <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center pointer-events-none animate-fadeIn z-20">
-                          <div className="px-5 py-3 rounded-2xl bg-[#0D1930]/95 border-2 border-cyan-500/60 text-cyan-300 flex items-center gap-3 shadow-2xl shadow-cyan-950/80">
+                          <div className="px-5 py-3 rounded-2xl bg-zinc-950/90 border-2 border-cyan-500/60 text-cyan-300 flex items-center gap-3 shadow-2xl shadow-cyan-950/80">
                             <span className="w-3 h-3 rounded-full bg-cyan-400 animate-ping" />
                             <span className="text-sm font-black tracking-widest uppercase">
                               ⏸ PAUSADO DESDE CONSOLA
@@ -1465,12 +1465,12 @@ export default function PublicDisplayScreenPage({
                       )}
                     </>
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center space-y-3 bg-[#080F1F] text-cyan-400 p-6 text-center">
+                    <div className="w-full h-full flex flex-col items-center justify-center space-y-3 bg-zinc-950 text-cyan-400 p-6 text-center">
                       <Disc3 className="w-12 h-12 animate-spin text-cyan-400" />
                       <span className="text-xs sm:text-sm font-black tracking-widest uppercase text-cyan-300">
                         Sincronizando pista de Karaoke en YouTube...
                       </span>
-                      <span className="text-[11px] text-[#94A3B8] font-mono">
+                      <span className="text-[11px] text-zinc-500 font-mono">
                         {track.song.title} &bull; {track.song.artist}
                       </span>
                     </div>
@@ -1478,7 +1478,7 @@ export default function PublicDisplayScreenPage({
 
                   {/* Dedicatoria Flotante si existe */}
                   {track.notes && (
-                    <div className="absolute bottom-3 left-3 right-3 sm:left-4 sm:right-4 bg-[#0D1930]/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-cyan-500/40 text-cyan-200 text-xs sm:text-sm font-medium italic shadow-2xl pointer-events-none flex items-center gap-2">
+                    <div className="absolute bottom-3 left-3 right-3 sm:left-4 sm:right-4 bg-zinc-950/85 backdrop-blur-md px-4 py-2 rounded-2xl border border-cyan-500/40 text-cyan-200 text-xs sm:text-sm font-medium italic shadow-2xl pointer-events-none flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
                       <span className="truncate">&ldquo;{track.notes}&rdquo;</span>
                     </div>
@@ -1486,13 +1486,13 @@ export default function PublicDisplayScreenPage({
                 </div>
 
                 {/* Subbarra con información del tema */}
-                <div className="w-full flex items-center justify-between px-2 text-[11px] text-[#94A3B8] shrink-0">
+                <div className="w-full flex items-center justify-between px-2 text-[11px] text-zinc-400 shrink-0">
                   <div className="flex items-center gap-2 truncate">
-                    <span className="font-black text-[#F8FAFC] text-xs sm:text-sm truncate">{track.song.title}</span>
+                    <span className="font-black text-white text-xs sm:text-sm truncate">{track.song.title}</span>
                     <span>&bull;</span>
                     <span className="text-cyan-300 font-bold truncate">{track.song.artist}</span>
                   </div>
-                  <span className="text-[10px] font-mono text-[#64748B] shrink-0">
+                  <span className="text-[10px] font-mono text-zinc-500 shrink-0">
                     {isDirectVideo ? "🎬 Video MP4 Local" : "🎤 Pista Sincronizada"}
                   </span>
                 </div>
@@ -1558,12 +1558,12 @@ export default function PublicDisplayScreenPage({
                 {/* Vinilo Giratorio Proporcional */}
                 <div className="relative my-auto shrink-0">
                   <div
-                    className="w-40 h-40 sm:w-48 sm:h-48 xl:w-56 xl:h-56 rounded-full bg-[#080F1F] border-6 sm:border-8 border-[#111F38] shadow-2xl flex items-center justify-center animate-spin [animation-duration:5s] transition-all"
+                    className="w-40 h-40 sm:w-48 sm:h-48 xl:w-56 xl:h-56 rounded-full bg-black border-6 sm:border-8 border-zinc-900 shadow-2xl flex items-center justify-center animate-spin [animation-duration:5s] transition-all"
                     style={{ animationPlayState: isTvPaused ? "paused" : "running" }}
                   >
                     {/* Surcos del Vinilo */}
-                    <div className="w-32 h-32 sm:w-40 sm:h-40 xl:w-46 xl:h-46 rounded-full border border-[#263858] flex items-center justify-center">
-                      <div className="w-24 h-24 sm:w-30 sm:h-30 xl:w-34 xl:h-34 rounded-full border border-[#1b2b46] flex items-center justify-center">
+                    <div className="w-32 h-32 sm:w-40 sm:h-40 xl:w-46 xl:h-46 rounded-full border border-zinc-800 flex items-center justify-center">
+                      <div className="w-24 h-24 sm:w-30 sm:h-30 xl:w-34 xl:h-34 rounded-full border border-zinc-850 flex items-center justify-center">
                         <div className="w-16 h-16 sm:w-20 sm:h-20 xl:w-22 xl:h-22 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 border-2 sm:border-4 border-white flex flex-col items-center justify-center text-center p-1 shadow-inner">
                           <Disc3 className={`w-5 h-5 text-white ${!isTvPaused ? "animate-pulse" : ""}`} />
                           <span className="text-[7px] font-black text-white mt-0.5">VIDJEIS</span>
@@ -1593,7 +1593,7 @@ export default function PublicDisplayScreenPage({
 
                 {/* Título & Artista */}
                 <div className="space-y-0.5 max-w-lg w-full shrink-0">
-                  <h1 className="text-2xl sm:text-3xl xl:text-4xl font-black text-[#F8FAFC] tracking-tight leading-tight truncate">
+                  <h1 className="text-2xl sm:text-3xl xl:text-4xl font-black text-white tracking-tight leading-tight truncate">
                     {track.song.title}
                   </h1>
                   <p className="text-lg sm:text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 truncate">
@@ -1605,19 +1605,19 @@ export default function PublicDisplayScreenPage({
                 <div
                   className={`p-2.5 sm:p-3 rounded-2xl border shadow-xl space-y-1 text-center max-w-md w-full shrink-0 ${
                     track.isFastPass
-                      ? "bg-gradient-to-r from-amber-950/60 via-[#0D1930] to-[#0D1930] border-amber-500/50"
+                      ? "bg-gradient-to-r from-amber-950/60 via-zinc-900/90 to-zinc-900/80 border-amber-500/50"
                       : isCelebration
-                      ? "bg-gradient-to-r from-pink-950/70 via-purple-950/80 to-[#0D1930] border-pink-500/60"
-                      : "bg-gradient-to-r from-purple-950/60 via-[#0D1930] to-[#0D1930] border-purple-500/40"
+                      ? "bg-gradient-to-r from-pink-950/70 via-purple-950/80 to-zinc-900 border-pink-500/60"
+                      : "bg-gradient-to-r from-purple-950/60 via-zinc-900/90 to-zinc-900/80 border-purple-500/40"
                   }`}
                 >
                   <div className="flex items-center justify-center gap-2 text-xs text-purple-300 font-bold uppercase tracking-wider">
                     <Sparkles className="w-3.5 h-3.5 text-purple-400" />
                     <span>Pedido por: {track.table.label}</span>
-                    {track.guestName && <span className="text-[#F8FAFC]">({track.guestName})</span>}
+                    {track.guestName && <span className="text-white">({track.guestName})</span>}
                   </div>
                   {track.notes && (
-                    <p className="text-xs sm:text-sm text-[#F8FAFC] font-medium italic line-clamp-2">
+                    <p className="text-xs sm:text-sm text-white font-medium italic line-clamp-2">
                       &ldquo;{track.notes}&rdquo;
                     </p>
                   )}
@@ -1641,7 +1641,7 @@ export default function PublicDisplayScreenPage({
 
                 {/* Barra de Progreso */}
                 <div className="space-y-1 w-full max-w-md shrink-0">
-                  <div className="w-full h-2 bg-[#080F1F] rounded-full overflow-hidden border border-[#263858]">
+                  <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
                     <div
                       className={`h-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 transition-all duration-1000 ${
                         isTvPaused ? "opacity-60" : "opacity-100"
@@ -1649,7 +1649,7 @@ export default function PublicDisplayScreenPage({
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>
-                  <div className="flex justify-between text-[11px] font-mono text-[#94A3B8]">
+                  <div className="flex justify-between text-[11px] font-mono text-zinc-400">
                     <span className={isTvPaused ? "text-amber-400 font-bold" : ""}>
                       {formatTime(elapsedSeconds)} {isTvPaused && "(Pausa)"}
                     </span>
@@ -1666,38 +1666,38 @@ export default function PublicDisplayScreenPage({
               </div>
 
               <div className="space-y-2">
-                <span className="px-3.5 py-1 rounded-full bg-purple-950/80 text-purple-300 border border-purple-800/80 text-xs font-black uppercase tracking-wider">
+                <span className="px-3.5 py-1 rounded-full bg-purple-950 text-purple-300 border border-purple-800 text-xs font-black uppercase tracking-wider">
                   {isKaraoke ? "🎤 Escenario Karaoke Listo" : "🎧 Pista DJ Abierta"}
                 </span>
-                <h1 className="text-3xl sm:text-4xl xl:text-5xl font-black text-[#F8FAFC] tracking-tight leading-tight">
+                <h1 className="text-3xl sm:text-4xl xl:text-5xl font-black text-white tracking-tight leading-tight">
                   ¡LA PISTA ESTÁ ABIERTA!
                 </h1>
-                <p className="text-sm sm:text-base text-[#94A3B8] max-w-md mx-auto">
+                <p className="text-sm sm:text-base text-zinc-300 max-w-md mx-auto">
                   Sé el primero en pedir tu canción favorita para cantar o bailar en{" "}
                   <span className="text-purple-300 font-bold">{data.event.tenantName}</span>
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#0D1930] border border-[#263858] text-xs text-[#94A3B8] space-y-2 max-w-md mx-auto shadow-xl">
-                <div className="font-bold text-[#F8FAFC] flex items-center justify-center gap-2">
+              <div className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 text-xs text-zinc-300 space-y-2 max-w-md mx-auto shadow-xl">
+                <div className="font-bold text-white flex items-center justify-center gap-2">
                   <Sparkles className="w-4 h-4 text-yellow-400" />
                   <span>Pide música desde tu mesa con tu celular</span>
                 </div>
-                <p className="text-[11px] text-[#94A3B8]">
+                <p className="text-[11px] text-zinc-400">
                   Apunta la cámara al código QR de la derecha para elegir tus temas favoritos al instante.
                 </p>
                 {/* Atajos rápidos en versión móvil */}
                 <div className="lg:hidden pt-1 flex items-center justify-center gap-2">
                   <button
                     onClick={() => setMobileTab("qr")}
-                    className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-600 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-purple-900/40 active:scale-95 transition-all"
+                    className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-purple-900/40 active:scale-95 transition-all"
                   >
                     <QrCode className="w-3.5 h-3.5" />
                     <span>Ver QR para Pedir</span>
                   </button>
                   <button
                     onClick={() => setMobileTab("queue")}
-                    className="px-3 py-1.5 rounded-xl bg-[#111F38] hover:bg-[#1c2e4e] text-[#F8FAFC] font-bold text-xs flex items-center gap-1.5 border border-[#263858] active:scale-95 transition-all"
+                    className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs flex items-center gap-1.5 border border-zinc-700 active:scale-95 transition-all"
                   >
                     <Clock className="w-3.5 h-3.5" />
                     <span>Ver Cola ({data.upcomingQueue?.length ?? 0})</span>
@@ -1711,18 +1711,18 @@ export default function PublicDisplayScreenPage({
           {approvedPhotos.length > 0 && (
             <div
               key={approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.id || currentPhotoIdx}
-              className="hidden 2xl:block absolute bottom-2 right-2 z-20 w-44 bg-[#111F38]/95 border-2 border-pink-500/40 rounded-2xl p-2 shadow-2xl shadow-pink-500/20 rotate-1 hover:rotate-0 transition-all animate-fadeIn"
+              className="hidden 2xl:block absolute bottom-2 right-2 z-20 w-44 bg-zinc-950/95 border-2 border-pink-500/40 rounded-2xl p-2 shadow-2xl shadow-pink-500/20 rotate-1 hover:rotate-0 transition-all animate-fadeIn"
             >
               <div className="flex items-center justify-between text-[9px] font-bold text-pink-400 uppercase mb-1">
                 <span className="flex items-center gap-1">
                   <Camera className="w-3 h-3" />
                   <span>Social Lounge</span>
                 </span>
-                <span className="font-mono text-[#94A3B8]">
+                <span className="font-mono text-zinc-400">
                   {approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.table.label}
                 </span>
               </div>
-              <div className="aspect-square rounded-xl overflow-hidden bg-[#080F1F] border border-[#263858] relative">
+              <div className="aspect-square rounded-xl overflow-hidden bg-black border border-zinc-800 relative">
                 {photoFitMode === "BLUR_FILL" ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1750,7 +1750,7 @@ export default function PublicDisplayScreenPage({
               </div>
               <div className="mt-1 text-center">
                 {approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.caption && (
-                  <p className="text-[10px] text-[#F8FAFC] italic line-clamp-1">
+                  <p className="text-[10px] text-white italic line-clamp-1">
                     &ldquo;{approvedPhotos[currentPhotoIdx % approvedPhotos.length]?.caption}&rdquo;
                   </p>
                 )}
@@ -1766,7 +1766,7 @@ export default function PublicDisplayScreenPage({
         <aside
           className={`${
             mobileTab === "qr" ? "flex flex-1" : "hidden"
-          } lg:flex lg:col-span-3 xl:col-span-3 h-full min-h-0 flex-col items-center justify-between rounded-3xl bg-[#111F38]/90 border border-[#263858] p-3 sm:p-4 xl:p-5 shadow-2xl backdrop-blur-md overflow-hidden text-center`}
+          } lg:flex lg:col-span-3 xl:col-span-3 h-full min-h-0 flex-col items-center justify-between rounded-3xl bg-zinc-950/85 border border-purple-500/30 p-3 sm:p-4 xl:p-5 shadow-2xl backdrop-blur-md overflow-hidden text-center`}
         >
           {/* Encabezado del QR */}
           <div className="space-y-1 w-full shrink-0">
@@ -1774,10 +1774,10 @@ export default function PublicDisplayScreenPage({
               <QrCode className="w-3.5 h-3.5 text-purple-400" />
               <span>Pide desde tu Mesa</span>
             </div>
-            <h3 className="text-sm sm:text-base xl:text-lg font-black text-[#F8FAFC] tracking-tight leading-tight">
+            <h3 className="text-sm sm:text-base xl:text-lg font-black text-white tracking-tight leading-tight">
               {isKaraoke ? "¡CANTA TU TEMA!" : "¿QUÉ QUIERES ESCUCHAR?"}
             </h3>
-            <p className="text-[11px] text-[#94A3B8]">
+            <p className="text-[11px] text-zinc-400">
               Apunta la cámara de tu celular
             </p>
           </div>
@@ -1792,7 +1792,7 @@ export default function PublicDisplayScreenPage({
                 className="w-44 h-44 sm:w-52 sm:h-52 lg:w-48 lg:h-48 xl:w-60 xl:h-60 2xl:w-72 2xl:h-72 object-contain"
               />
             </div>
-            <div className="mt-2 px-3 py-1 rounded-xl bg-[#0D1930] border border-[#263858] text-[#F8FAFC] font-mono text-xs font-black tracking-widest shadow-md">
+            <div className="mt-2 px-3 py-1 rounded-xl bg-purple-950/90 border border-purple-600/60 text-purple-200 font-mono text-xs font-black tracking-widest shadow-md">
               CÓDIGO: {data.event.code}
             </div>
 
@@ -1802,7 +1802,7 @@ export default function PublicDisplayScreenPage({
                 href={data.qr.scanUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="lg:hidden mt-2 px-3 py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-[#F8FAFC] border border-purple-500/40 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all w-full max-w-[240px]"
+                className="lg:hidden mt-2 px-3 py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all w-full max-w-[240px]"
               >
                 <QrCode className="w-3.5 h-3.5 text-purple-400" />
                 <span>Pedir directamente aquí</span>
@@ -1811,34 +1811,34 @@ export default function PublicDisplayScreenPage({
           </div>
 
           {/* Guía en 3 Pasos y Wi-Fi */}
-          <div className="w-full space-y-2 pt-2 border-t border-[#263858] shrink-0">
+          <div className="w-full space-y-2 pt-2 border-t border-zinc-800/80 shrink-0">
             <div className="grid grid-cols-3 gap-1 text-center">
-              <div className="p-1.5 rounded-xl bg-[#0D1930] border border-[#263858]">
+              <div className="p-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800">
                 <span className="text-[10px] font-black text-purple-400 block">1. CÁMARA</span>
-                <span className="text-[9px] text-[#94A3B8] block leading-tight">Abre tu app</span>
+                <span className="text-[9px] text-zinc-400 block leading-tight">Abre tu app</span>
               </div>
-              <div className="p-1.5 rounded-xl bg-[#0D1930] border border-[#263858]">
+              <div className="p-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800">
                 <span className="text-[10px] font-black text-cyan-400 block">2. ESCANEA</span>
-                <span className="text-[9px] text-[#94A3B8] block leading-tight">Apunta al QR</span>
+                <span className="text-[9px] text-zinc-400 block leading-tight">Apunta al QR</span>
               </div>
-              <div className="p-1.5 rounded-xl bg-[#0D1930] border border-[#263858]">
+              <div className="p-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800">
                 <span className="text-[10px] font-black text-amber-400 block">3. PIDE</span>
-                <span className="text-[9px] text-[#94A3B8] block leading-tight">Elige tu tema</span>
+                <span className="text-[9px] text-zinc-400 block leading-tight">Elige tu tema</span>
               </div>
             </div>
 
             {data.branding?.wifiSsid && (
-              <div className="flex items-center justify-center gap-1.5 text-[10px] text-[#94A3B8] bg-[#0D1930] py-1 px-2 rounded-xl border border-[#263858]">
+              <div className="flex items-center justify-center gap-1.5 text-[10px] text-zinc-300 bg-zinc-900/90 py-1 px-2 rounded-xl border border-zinc-800">
                 <Wifi className="w-3 h-3 text-cyan-400 shrink-0" />
-                <span className="text-[#94A3B8]">Wi-Fi:</span>
-                <span className="font-bold text-[#F8FAFC] truncate max-w-[90px]">{data.branding.wifiSsid}</span>
+                <span className="text-zinc-400">Wi-Fi:</span>
+                <span className="font-bold text-white truncate max-w-[90px]">{data.branding.wifiSsid}</span>
                 {data.branding.wifiPassword && (
                   <span className="font-mono text-cyan-300 truncate max-w-[80px]">({data.branding.wifiPassword})</span>
                 )}
               </div>
             )}
 
-            <span className="text-[10px] font-semibold text-[#64748B] block">
+            <span className="text-[10px] font-semibold text-zinc-500 block">
               ⚡ Catálogo digital sin descargas
             </span>
           </div>
@@ -1859,7 +1859,7 @@ export default function PublicDisplayScreenPage({
               {rx.reaction}
             </span>
             {rx.tableLabel && (
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#080F1F]/90 text-[#F8FAFC] border border-[#263858] mt-1 whitespace-nowrap shadow-lg">
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-black/80 text-zinc-200 border border-white/20 mt-1 whitespace-nowrap shadow-lg">
                 {rx.tableLabel}
               </span>
             )}
@@ -1870,14 +1870,14 @@ export default function PublicDisplayScreenPage({
       {/* ⭐ Spotlight de Foto Destacada en Pantalla Gigante (12s) */}
       {featuredPhoto && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fadeIn">
-          <div className="max-w-2xl w-full bg-gradient-to-b from-[#111F38] via-[#0D1930] to-[#080F1F] border-4 border-amber-500 rounded-3xl p-6 sm:p-8 space-y-6 shadow-[0_0_70px_rgba(245,158,11,0.5)] text-center relative overflow-hidden">
+          <div className="max-w-2xl w-full bg-gradient-to-b from-amber-950/90 via-zinc-950 to-zinc-950 border-4 border-amber-500 rounded-3xl p-6 sm:p-8 space-y-6 shadow-[0_0_70px_rgba(245,158,11,0.5)] text-center relative overflow-hidden">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 text-xs sm:text-sm font-black tracking-widest uppercase animate-bounce">
               <Sparkles className="w-4 h-4 text-amber-400" />
               <span>⭐ MOMENTO DESTACADO DE LA NOCHE ⭐</span>
               <Sparkles className="w-4 h-4 text-amber-400" />
             </div>
 
-            <div className="aspect-square max-h-[55vh] mx-auto rounded-2xl overflow-hidden bg-[#080F1F] border-2 border-amber-500/40 shadow-2xl relative">
+            <div className="aspect-square max-h-[55vh] mx-auto rounded-2xl overflow-hidden bg-black border-2 border-amber-500/40 shadow-2xl relative">
               {photoFitMode === "BLUR_FILL" ? (
                 <>
                   {/* Fondo ambiental difuminado para no tener bordes vacíos en TV */}
@@ -1904,14 +1904,14 @@ export default function PublicDisplayScreenPage({
                   className={`w-full h-full ${photoFitMode === "CONTAIN" ? "object-contain" : "object-cover"}`}
                 />
               )}
-              <div className="absolute top-3 left-3 z-20 px-3 py-1 rounded-xl bg-[#080F1F]/80 backdrop-blur-md text-amber-300 border border-amber-500/50 text-xs font-mono font-bold">
+              <div className="absolute top-3 left-3 z-20 px-3 py-1 rounded-xl bg-black/80 backdrop-blur-md text-amber-300 border border-amber-500/50 text-xs font-mono font-bold">
                 {featuredPhoto.photo.table.label}
               </div>
             </div>
 
             <div className="space-y-2">
               {featuredPhoto.photo.caption && (
-                <p className="text-xl sm:text-2xl font-black text-[#F8FAFC] italic drop-shadow-md">
+                <p className="text-xl sm:text-2xl font-black text-white italic drop-shadow-md">
                   &ldquo;{featuredPhoto.photo.caption}&rdquo;
                 </p>
               )}
@@ -1926,22 +1926,22 @@ export default function PublicDisplayScreenPage({
       {/* 👏 Aplausómetro Gigante en Pantalla */}
       {applause && applause.active && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fadeIn">
-          <div className="max-w-2xl w-full bg-[#111F38] border-4 border-amber-500 rounded-3xl p-8 space-y-6 shadow-[0_0_70px_rgba(245,158,11,0.4)] text-center relative overflow-hidden">
+          <div className="max-w-2xl w-full bg-zinc-950 border-4 border-amber-500 rounded-3xl p-8 space-y-6 shadow-[0_0_70px_rgba(245,158,11,0.4)] text-center relative overflow-hidden">
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/50 text-xs sm:text-sm font-black tracking-widest uppercase animate-bounce">
                 <span>👏 APLAUSÓMETRO EN VIVO</span>
               </div>
-              <h2 className="text-3xl sm:text-5xl font-black text-[#F8FAFC] tracking-tight">
+              <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
                 ¡CALIFIQUEN A: {applause.targetTableLabel}!
               </h2>
-              <p className="text-sm sm:text-base text-[#94A3B8] font-medium">
+              <p className="text-sm sm:text-base text-zinc-300 font-medium">
                 ¡Toca repetidamente el botón de aplausos en tu celular para subir la barra!
               </p>
             </div>
 
             {/* Barra Medidora Gigante */}
             <div className="space-y-2">
-              <div className="w-full h-12 sm:h-16 bg-[#080F1F] rounded-2xl overflow-hidden border-2 border-[#263858] p-1.5 relative">
+              <div className="w-full h-12 sm:h-16 bg-zinc-900 rounded-2xl overflow-hidden border-2 border-zinc-800 p-1.5 relative">
                 <div
                   className="h-full rounded-xl bg-gradient-to-r from-yellow-500 via-amber-500 to-red-500 transition-all duration-300 shadow-[0_0_20px_rgba(245,158,11,0.6)]"
                   style={{ width: `${applause.score}%` }}
@@ -1963,7 +1963,7 @@ export default function PublicDisplayScreenPage({
       {/* 🎤 Banner de Llamado a Cantante al Escenario (Karaoke Stage Call) */}
       {singerCall && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fadeIn">
-          <div className="max-w-2xl w-full bg-gradient-to-b from-[#111F38] via-[#0D1930] to-[#080F1F] border-4 border-cyan-400 rounded-3xl p-8 space-y-6 shadow-[0_0_80px_rgba(6,182,212,0.5)] text-center relative overflow-hidden">
+          <div className="max-w-2xl w-full bg-gradient-to-b from-cyan-950/95 via-zinc-950 to-zinc-950 border-4 border-cyan-400 rounded-3xl p-8 space-y-6 shadow-[0_0_80px_rgba(6,182,212,0.5)] text-center relative overflow-hidden">
             <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400 text-sm font-black tracking-widest uppercase animate-bounce">
               <Mic className="w-5 h-5 text-cyan-400" />
               <span>🎤 ¡ATENCIÓN: AL ESCENARIO A CANTAR! 🎤</span>
@@ -1971,7 +1971,7 @@ export default function PublicDisplayScreenPage({
             </div>
 
             <div className="space-y-3">
-              <div className="text-4xl sm:text-6xl font-black text-[#F8FAFC] tracking-tight drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]">
+              <div className="text-4xl sm:text-6xl font-black text-white tracking-tight drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]">
                 {singerCall.singerName ? singerCall.singerName : singerCall.tableLabel}
               </div>
               {singerCall.singerName && (
@@ -1982,15 +1982,15 @@ export default function PublicDisplayScreenPage({
             </div>
 
             {singerCall.songTitle && (
-              <div className="p-5 rounded-2xl bg-[#0D1930] border border-cyan-500/40 shadow-inner space-y-1">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-[#94A3B8] font-bold">
+              <div className="p-5 rounded-2xl bg-zinc-900/90 border border-cyan-500/40 shadow-inner space-y-1">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold">
                   Tema a Interpretar:
                 </span>
                 <h3 className="text-2xl sm:text-3xl font-black text-amber-300">
                   {singerCall.songTitle}
                 </h3>
                 {singerCall.artist && (
-                  <p className="text-base text-[#94A3B8] font-semibold">{singerCall.artist}</p>
+                  <p className="text-base text-zinc-300 font-semibold">{singerCall.artist}</p>
                 )}
               </div>
             )}
@@ -2007,18 +2007,18 @@ export default function PublicDisplayScreenPage({
       {/* 🎰 Ruleta de la Suerte de Mesas */}
       {roulette && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fadeIn">
-          <div className="max-w-xl w-full bg-gradient-to-b from-[#111F38] via-[#0D1930] to-[#080F1F] border-4 border-emerald-500 rounded-3xl p-8 space-y-6 shadow-[0_0_70px_rgba(16,185,129,0.5)] text-center relative overflow-hidden">
+          <div className="max-w-xl w-full bg-gradient-to-b from-emerald-950/90 via-zinc-950 to-zinc-950 border-4 border-emerald-500 rounded-3xl p-8 space-y-6 shadow-[0_0_70px_rgba(16,185,129,0.5)] text-center relative overflow-hidden">
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 text-xs sm:text-sm font-black tracking-widest uppercase animate-bounce">
                 <span>🎰 RULETA DE LA SUERTE</span>
               </div>
-              <h2 className="text-3xl sm:text-4xl font-black text-[#F8FAFC]">
+              <h2 className="text-3xl sm:text-4xl font-black text-white">
                 {roulette.spinning ? "¡SORTEANDO ENTRE LAS MESAS...!" : "🎉 ¡TENEMOS MESA GANADORA! 🎉"}
               </h2>
             </div>
 
             {/* Display de la Ruleta */}
-            <div className="p-8 rounded-2xl bg-[#080F1F] border-2 border-emerald-500/50 shadow-inner flex flex-col items-center justify-center min-h-[160px]">
+            <div className="p-8 rounded-2xl bg-zinc-900 border-2 border-emerald-500/50 shadow-inner flex flex-col items-center justify-center min-h-[160px]">
               <span
                 className={`text-4xl sm:text-6xl font-black tracking-wider transition-all duration-100 ${
                   roulette.spinning
@@ -2032,8 +2032,8 @@ export default function PublicDisplayScreenPage({
               </span>
             </div>
 
-            <div className="p-4 rounded-xl bg-[#080F1F] border border-emerald-500/30">
-              <p className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider">Premio:</p>
+            <div className="p-4 rounded-xl bg-black/60 border border-emerald-500/30">
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Premio:</p>
               <p className="text-base sm:text-lg font-black text-emerald-300 mt-0.5">
                 {roulette.prize}
               </p>
@@ -2044,14 +2044,14 @@ export default function PublicDisplayScreenPage({
 
       {/* 🏆 Concurso Oficial de Karaoke en Pantalla Gigante TV */}
       {(contestPerformance || showContestLeaderboard) && (
-        <div className="fixed inset-0 z-50 bg-[#080F1F]/95 backdrop-blur-md overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md overflow-y-auto">
           <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
             <button
               onClick={() => {
                 setContestPerformance(null);
                 setShowContestLeaderboard(false);
               }}
-              className="px-3 py-1.5 rounded-xl bg-[#111F38] hover:bg-[#1b2c4c] text-[#F8FAFC] border border-[#263858] text-xs font-bold transition-all cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-bold transition-all cursor-pointer"
             >
               Ocultar Concurso
             </button>
