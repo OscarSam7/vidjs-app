@@ -49,6 +49,7 @@ import {
 import { calculateCrossfaderGains, djSoundEffects, webDjEngine, AudioLevels } from "@/lib/audio/dj-audio-engine";
 import { MusicLibraryView, Song as LibSong } from "@/components/library/MusicLibraryView";
 import { SaveToLibraryModal, SaveToLibraryData } from "@/components/library/SaveToLibraryModal";
+import { extractYoutubeVideoId } from "@/lib/youtube/search";
 
 interface SongRequestData {
   id: string;
@@ -1159,12 +1160,7 @@ export default function VirtualDjConsole({
 
   // Extraer video ID de notas o URL de YouTube
   const extractYoutubeId = (str: string | null | undefined): string | null => {
-    if (!str) return null;
-    const clean = str.trim();
-    if (/^[a-zA-Z0-9_-]{11}$/.test(clean)) return clean;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = clean.match(regExp);
-    return match && match[2].length === 11 ? match[2] : null;
+    return extractYoutubeVideoId(str);
   };
 
   // Clave representativa única de un track para evitar resoluciones y recargas no deseadas
@@ -2675,32 +2671,68 @@ export default function VirtualDjConsole({
     // Carga directa si es URL o ID de YouTube
     const directId = extractYoutubeId(trimmed);
     if (directId) {
-      loadTrackIntoDeckA(
-        {
-          id: `yt-${directId}`,
-          status: "MANUAL",
-          customTitle: "Video de YouTube",
-          customArtist: "Enlace Directo",
-          notes: `https://www.youtube.com/watch?v=${directId}`,
-          createdAt: new Date().toISOString(),
-          table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
-          guestSession: null,
-          song: {
-            id: `yt-${directId}`,
-            title: "Video de YouTube",
-            durationSeconds: 210,
-            genre: "YouTube",
-            bpm: 124,
-            key: "8A / Am",
-            artist: { name: "Enlace Directo" },
-          },
-          youtubeVideoId: directId,
-        },
-        directId
-      );
-      setIsSelectorOpenA(false);
-      setSearchQueryA("");
-      setSearchResultsA([]);
+      setIsSearchingA(true);
+      fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(directId)}&isKaraoke=false`)
+        .then((r) => r.json())
+        .then((data) => {
+          const first = data.data?.results?.[0];
+          const title = first?.parsedTitle || first?.title || "Video de YouTube";
+          const artist = first?.parsedArtist || first?.channelTitle || "Enlace Directo";
+          loadTrackIntoDeckA(
+            {
+              id: `yt-${directId}`,
+              status: "MANUAL",
+              customTitle: title,
+              customArtist: artist,
+              notes: `https://www.youtube.com/watch?v=${directId}`,
+              createdAt: new Date().toISOString(),
+              table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
+              guestSession: null,
+              song: {
+                id: `yt-${directId}`,
+                title,
+                durationSeconds: 210,
+                genre: "YouTube",
+                bpm: 124,
+                key: "8A / Am",
+                artist: { name: artist },
+              },
+              youtubeVideoId: directId,
+            },
+            directId
+          );
+        })
+        .catch(() => {
+          loadTrackIntoDeckA(
+            {
+              id: `yt-${directId}`,
+              status: "MANUAL",
+              customTitle: "Video de YouTube",
+              customArtist: "Enlace Directo",
+              notes: `https://www.youtube.com/watch?v=${directId}`,
+              createdAt: new Date().toISOString(),
+              table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
+              guestSession: null,
+              song: {
+                id: `yt-${directId}`,
+                title: "Video de YouTube",
+                durationSeconds: 210,
+                genre: "YouTube",
+                bpm: 124,
+                key: "8A / Am",
+                artist: { name: "Enlace Directo" },
+              },
+              youtubeVideoId: directId,
+            },
+            directId
+          );
+        })
+        .finally(() => {
+          setIsSearchingA(false);
+          setIsSelectorOpenA(false);
+          setSearchQueryA("");
+          setSearchResultsA([]);
+        });
       return;
     }
 
@@ -2725,33 +2757,70 @@ export default function VirtualDjConsole({
 
     const directId = extractYoutubeId(trimmed);
     if (directId) {
-      loadTrackIntoDeckB(
-        {
-          id: `yt-${directId}`,
-          status: "MANUAL",
-          customTitle: "Video de YouTube",
-          customArtist: "Enlace Directo",
-          notes: `https://www.youtube.com/watch?v=${directId}`,
-          createdAt: new Date().toISOString(),
-          table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
-          guestSession: null,
-          song: {
-            id: `yt-${directId}`,
-            title: "Video de YouTube",
-            durationSeconds: 210,
-            genre: "YouTube",
-            bpm: 124,
-            key: "8A / Am",
-            artist: { name: "Enlace Directo" },
-          },
-          youtubeVideoId: directId,
-        },
-        null,
-        directId
-      );
-      setIsSelectorOpenB(false);
-      setSearchQueryB("");
-      setSearchResultsB([]);
+      setIsSearchingB(true);
+      fetch(`/api/v1/karaoke/search?q=${encodeURIComponent(directId)}&isKaraoke=false`)
+        .then((r) => r.json())
+        .then((data) => {
+          const first = data.data?.results?.[0];
+          const title = first?.parsedTitle || first?.title || "Video de YouTube";
+          const artist = first?.parsedArtist || first?.channelTitle || "Enlace Directo";
+          loadTrackIntoDeckB(
+            {
+              id: `yt-${directId}`,
+              status: "MANUAL",
+              customTitle: title,
+              customArtist: artist,
+              notes: `https://www.youtube.com/watch?v=${directId}`,
+              createdAt: new Date().toISOString(),
+              table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
+              guestSession: null,
+              song: {
+                id: `yt-${directId}`,
+                title,
+                durationSeconds: 210,
+                genre: "YouTube",
+                bpm: 124,
+                key: "8A / Am",
+                artist: { name: artist },
+              },
+              youtubeVideoId: directId,
+            },
+            null,
+            directId
+          );
+        })
+        .catch(() => {
+          loadTrackIntoDeckB(
+            {
+              id: `yt-${directId}`,
+              status: "MANUAL",
+              customTitle: "Video de YouTube",
+              customArtist: "Enlace Directo",
+              notes: `https://www.youtube.com/watch?v=${directId}`,
+              createdAt: new Date().toISOString(),
+              table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
+              guestSession: null,
+              song: {
+                id: `yt-${directId}`,
+                title: "Video de YouTube",
+                durationSeconds: 210,
+                genre: "YouTube",
+                bpm: 124,
+                key: "8A / Am",
+                artist: { name: "Enlace Directo" },
+              },
+              youtubeVideoId: directId,
+            },
+            null,
+            directId
+          );
+        })
+        .finally(() => {
+          setIsSearchingB(false);
+          setIsSelectorOpenB(false);
+          setSearchQueryB("");
+          setSearchResultsB([]);
+        });
       return;
     }
 
