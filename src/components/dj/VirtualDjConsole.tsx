@@ -171,42 +171,50 @@ const VuMeterBar = memo(function VuMeterBar({
   );
 });
 
-// Iframe estático para YouTube:
-// Solo se monta si hay un videoId real asignado a la bandeja y la bandeja no está vacía ni expulsada.
-// Jamás se cargan videos de prueba ni IDs por defecto (elimina por completo voces o audios en inglés con bandejas vacías).
+// Iframe estático y persistente para YouTube (Arquitectura Opción 1: Aislamiento Total sin desmontaje de DOM):
+// Una vez que una bandeja carga un video por primera vez, el elemento <iframe> NUNCA se retira del DOM.
+// Al expulsar / borrar la pista, el iframe se silencia, pausa, rebobina y se oculta (opacity-0, -z-10) detrás del HUD vacío.
+// Esto elimina por completo el defecto de Chromium donde la destrucción del nodo iframe reiniciaba el audio-pipeline de la otra bandeja.
 const StableIframe = memo(
   function StableIframe({ deckId, videoId, isEjected, iframeRef }: StableIframeProps) {
+    const hasMountedEverRef = useRef(false);
     const staticSrcRef = useRef<string>("");
-    const prevVideoIdRef = useRef(videoId);
-    if (prevVideoIdRef.current !== videoId) {
-      prevVideoIdRef.current = videoId;
-      staticSrcRef.current = "";
+    const prevVideoIdRef = useRef<string | null>(null);
+
+    // Si hay un video real asignado y la bandeja no está expulsada, registrar que ya montó
+    if (videoId && !isEjected) {
+      hasMountedEverRef.current = true;
+      if (prevVideoIdRef.current !== videoId) {
+        prevVideoIdRef.current = videoId;
+        const originParam =
+          typeof window !== "undefined" && window.location.origin
+            ? `&origin=${encodeURIComponent(window.location.origin)}`
+            : "";
+        staticSrcRef.current = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&playsinline=1&controls=0&modestbranding=1&rel=0&widgetid=${
+          deckId === "A" ? 1 : 2
+        }${originParam}`;
+      }
     }
 
-    // Si la bandeja está vacía o expulsada, NO montar ningún iframe
-    if (!videoId || isEjected) {
-      staticSrcRef.current = "";
+    // En arranque en frío (pantalla recién iniciada antes de cargar cualquier canción), no montar todavía
+    if (!hasMountedEverRef.current) {
       return null;
     }
 
-    if (!staticSrcRef.current) {
-      const originParam =
-        typeof window !== "undefined" && window.location.origin
-          ? `&origin=${encodeURIComponent(window.location.origin)}`
-          : "";
-      staticSrcRef.current = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&playsinline=1&controls=0&modestbranding=1&rel=0&widgetid=${
-        deckId === "A" ? 1 : 2
-      }${originParam}`;
-    }
+    // Si la bandeja está vacía, expulsada o en modo nativo, ocultar visualmente pero mantener el nodo vivo en el DOM
+    const isHidden = !videoId || isEjected;
 
     return (
       <iframe
-        key={`deck-${deckId}-iframe-${videoId}`}
         ref={iframeRef}
         id={`deck-${deckId.toLowerCase()}-iframe`}
         src={staticSrcRef.current}
         title={`Deck ${deckId} Audio Player`}
-        className="w-full h-full border-0 pointer-events-auto transition-opacity duration-200 opacity-100 relative z-0"
+        className={`w-full h-full border-0 transition-opacity duration-200 ${
+          isHidden
+            ? "opacity-0 pointer-events-none -z-10 absolute inset-0"
+            : "opacity-100 pointer-events-auto relative z-0"
+        }`}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       />
     );
@@ -327,18 +335,16 @@ const DeckPlayer = memo(
               </div>
             </div>
           )
-        ) : (
-          /* Iframe aislado de YouTube: Solo se monta si hay una pista activa en la bandeja */
-          Boolean(videoId) && !isEjected ? (
-            <StableIframe
-              key={`stable-iframe-${deckId}-${videoId}`}
-              deckId={deckId}
-              videoId={videoId}
-              isEjected={isEjected}
-              iframeRef={iframeRef}
-            />
-          ) : null
-        )}
+        ) : null}
+
+        {/* Iframe aislado y persistente de YouTube (Opción 1): Permanece montado en el DOM para evitar que Chromium resetee la otra bandeja */}
+        <StableIframe
+          key={`stable-iframe-${deckId}`}
+          deckId={deckId}
+          videoId={videoId}
+          isEjected={isEjected || deckMode === "native"}
+          iframeRef={iframeRef}
+        />
 
         {/* Overlay HUD cuando hay pista activa */}
         {hasActiveTrack && (
@@ -1936,10 +1942,10 @@ export default function VirtualDjConsole({
         if (isClearingDeckRef.current) return;
         webDjEngine.unlock();
         startSilentAudioAnchor();
-        if (isPlayingARef.current && iframeRefA.current) {
+        if (isPlayingARef.current && iframeRefA.current && !isEjectedARef.current) {
           sendPlayerCommand(iframeRefA.current, "playVideo");
         }
-        if (isPlayingBRef.current && iframeRefB.current) {
+        if (isPlayingBRef.current && iframeRefB.current && !isEjectedBRef.current) {
           sendPlayerCommand(iframeRefB.current, "playVideo");
         }
         try {
@@ -1953,7 +1959,7 @@ export default function VirtualDjConsole({
         if (isPlayingARef.current && isPlayingBRef.current) {
           return;
         }
-        if (isPlayingARef.current && !isPlayingBRef.current) {
+        if (isPlayingARef.current && !isPlayingBRef.current && !isEjectedARef.current) {
           if (deckModeARef.current === "native" && audioRefA.current) {
             audioRefA.current.pause();
           } else if (iframeRefA.current) {
@@ -1961,7 +1967,7 @@ export default function VirtualDjConsole({
           }
           isPlayingARef.current = false;
           setIsPlayingA(false);
-        } else if (isPlayingBRef.current && !isPlayingARef.current) {
+        } else if (isPlayingBRef.current && !isPlayingARef.current && !isEjectedBRef.current) {
           if (deckModeBRef.current === "native" && audioRefB.current) {
             audioRefB.current.pause();
           } else if (iframeRefB.current) {
@@ -2346,6 +2352,15 @@ export default function VirtualDjConsole({
 
     searchRequestIdA.current++;
     isPlayingARef.current = false;
+
+    // Silenciar, pausar y rebobinar el iframe persistente sin destruir su nodo en el DOM
+    if (iframeRefA.current) {
+      sendPlayerCommand(iframeRefA.current, "pauseVideo");
+      sendPlayerCommand(iframeRefA.current, "mute");
+      sendPlayerCommand(iframeRefA.current, "setVolume", [0]);
+      sendPlayerCommand(iframeRefA.current, "seekTo", [0, true]);
+    }
+
     if (deckModeA === "native" && audioRefA.current) {
       audioRefA.current.pause();
       audioRefA.current.currentTime = 0;
@@ -2353,7 +2368,7 @@ export default function VirtualDjConsole({
       setLocalAudioUrlA(null);
       setLocalAudioNameA(null);
     }
-    // Desmontar el iframe limpia el DOM limpiamente sin emitir eventos postMessage de fin de video a YouTube API
+    // El iframe permanece vivo en el DOM (Opción 1), oculto tras el HUD de bandeja vacía
     prevTrackAKeyRef.current = null;
     activeVideoIdARef.current = null;
     activeTrackReqIdARef.current = null;
@@ -2387,6 +2402,15 @@ export default function VirtualDjConsole({
 
     searchRequestIdB.current++;
     isPlayingBRef.current = false;
+
+    // Silenciar, pausar y rebobinar el iframe persistente sin destruir su nodo en el DOM
+    if (iframeRefB.current) {
+      sendPlayerCommand(iframeRefB.current, "pauseVideo");
+      sendPlayerCommand(iframeRefB.current, "mute");
+      sendPlayerCommand(iframeRefB.current, "setVolume", [0]);
+      sendPlayerCommand(iframeRefB.current, "seekTo", [0, true]);
+    }
+
     if (deckModeB === "native" && audioRefB.current) {
       audioRefB.current.pause();
       audioRefB.current.currentTime = 0;
@@ -2394,7 +2418,7 @@ export default function VirtualDjConsole({
       setLocalAudioUrlB(null);
       setLocalAudioNameB(null);
     }
-    // Desmontar el iframe limpia el DOM limpiamente sin emitir eventos postMessage de fin de video a YouTube API
+    // El iframe permanece vivo en el DOM (Opción 1), oculto tras el HUD de bandeja vacía
     prevTrackBKeyRef.current = null;
     activeVideoIdBRef.current = null;
     activeTrackReqIdBRef.current = null;
