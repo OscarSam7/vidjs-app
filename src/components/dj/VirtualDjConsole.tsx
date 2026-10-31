@@ -516,6 +516,19 @@ export default function VirtualDjConsole({
     playbackSecondsBRef.current = playbackSecondsB;
   }, [playbackSecondsB]);
 
+  const videoIdARef = useRef(videoIdA);
+  const videoIdBRef = useRef(videoIdB);
+  const isEjectedARef = useRef(isEjectedA);
+  const isEjectedBRef = useRef(isEjectedB);
+  const deckModeARef = useRef(deckModeA);
+  const deckModeBRef = useRef(deckModeB);
+  videoIdARef.current = videoIdA;
+  videoIdBRef.current = videoIdB;
+  isEjectedARef.current = isEjectedA;
+  isEjectedBRef.current = isEjectedB;
+  deckModeARef.current = deckModeA;
+  deckModeBRef.current = deckModeB;
+
   // Vúmetros estéreo en tiempo real
   const [vuLevelsA, setVuLevelsA] = useState<AudioLevels>({ peak: 0, rms: 0 });
   const [vuLevelsB, setVuLevelsB] = useState<AudioLevels>({ peak: 0, rms: 0 });
@@ -1136,6 +1149,11 @@ export default function VirtualDjConsole({
         )
       );
 
+  const effectiveVolARef = useRef(effectiveVolA);
+  const effectiveVolBRef = useRef(effectiveVolB);
+  effectiveVolARef.current = effectiveVolA;
+  effectiveVolBRef.current = effectiveVolB;
+
   // Enviar comando a iframe de YouTube por postMessage
   const sendPlayerCommand = (
     iframe: HTMLIFrameElement | null,
@@ -1319,30 +1337,30 @@ export default function VirtualDjConsole({
         startSilentAudioAnchor();
 
         // 2. Anular el auto-pausado forzado por YouTube embebido en segundo plano solo si hay pista activa
-        if (isPlayingA && iframeRefA.current && videoIdA && !isEjectedA) {
+        if (isPlayingARef.current && iframeRefA.current && videoIdARef.current && !isEjectedARef.current) {
           setTimeout(() => {
-            if (iframeRefA.current && videoIdA && !isEjectedA) {
+            if (iframeRefA.current && videoIdARef.current && !isEjectedARef.current) {
               sendPlayerCommand(iframeRefA.current, "unMute");
               sendPlayerCommand(iframeRefA.current, "playVideo");
             }
           }, 150);
           setTimeout(() => {
-            if (iframeRefA.current && videoIdA && !isEjectedA) {
+            if (iframeRefA.current && videoIdARef.current && !isEjectedARef.current) {
               sendPlayerCommand(iframeRefA.current, "unMute");
               sendPlayerCommand(iframeRefA.current, "playVideo");
             }
           }, 500);
         }
 
-        if (isPlayingB && iframeRefB.current && videoIdB && !isEjectedB) {
+        if (isPlayingBRef.current && iframeRefB.current && videoIdBRef.current && !isEjectedBRef.current) {
           setTimeout(() => {
-            if (iframeRefB.current && videoIdB && !isEjectedB) {
+            if (iframeRefB.current && videoIdBRef.current && !isEjectedBRef.current) {
               sendPlayerCommand(iframeRefB.current, "unMute");
               sendPlayerCommand(iframeRefB.current, "playVideo");
             }
           }, 150);
           setTimeout(() => {
-            if (iframeRefB.current && videoIdB && !isEjectedB) {
+            if (iframeRefB.current && videoIdBRef.current && !isEjectedBRef.current) {
               sendPlayerCommand(iframeRefB.current, "unMute");
               sendPlayerCommand(iframeRefB.current, "playVideo");
             }
@@ -1354,23 +1372,25 @@ export default function VirtualDjConsole({
         webDjEngine.unlock();
         startSilentAudioAnchor();
 
-        if (isPlayingA && iframeRefA.current && videoIdA && !isEjectedA) {
-          if (effectiveVolA === 0) {
+        if (isPlayingARef.current && iframeRefA.current && videoIdARef.current && !isEjectedARef.current) {
+          const volA = effectiveVolARef.current;
+          if (volA === 0) {
             sendPlayerCommand(iframeRefA.current, "mute");
             sendPlayerCommand(iframeRefA.current, "setVolume", [0]);
           } else {
             sendPlayerCommand(iframeRefA.current, "unMute");
-            sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
+            sendPlayerCommand(iframeRefA.current, "setVolume", [volA]);
           }
           sendPlayerCommand(iframeRefA.current, "playVideo");
         }
-        if (isPlayingB && iframeRefB.current && videoIdB && !isEjectedB) {
-          if (effectiveVolB === 0) {
+        if (isPlayingBRef.current && iframeRefB.current && videoIdBRef.current && !isEjectedBRef.current) {
+          const volB = effectiveVolBRef.current;
+          if (volB === 0) {
             sendPlayerCommand(iframeRefB.current, "mute");
             sendPlayerCommand(iframeRefB.current, "setVolume", [0]);
           } else {
             sendPlayerCommand(iframeRefB.current, "unMute");
-            sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
+            sendPlayerCommand(iframeRefB.current, "setVolume", [volB]);
           }
           sendPlayerCommand(iframeRefB.current, "playVideo");
         }
@@ -1385,7 +1405,7 @@ export default function VirtualDjConsole({
         wakeLockRef.current = null;
       }
     };
-  }, [isPlayingA, isPlayingB, effectiveVolA, effectiveVolB]);
+  }, []);
 
 
 
@@ -1885,7 +1905,7 @@ export default function VirtualDjConsole({
     return () => window.removeEventListener("keydown", handleSpaceKeyDown);
   }, [isPlayingA, isPlayingB, trackA, trackB, crossfaderValue, togglePlayA, togglePlayB]);
 
-  // Actualizar MediaSession para control y persistencia en segundo plano
+  // Actualizar metadatos de MediaSession según la pista al aire
   useEffect(() => {
     if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
     try {
@@ -1905,25 +1925,22 @@ export default function VirtualDjConsole({
           ],
         });
       }
+    } catch {}
+  }, [trackA, trackB, currentOnAirDeck]);
 
+  // Handlers globales de MediaSession (Registrados 1 sola vez en el montaje, blindados contra interrupciones entre bandejas)
+  useEffect(() => {
+    if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
+    try {
       navigator.mediaSession.setActionHandler("play", () => {
+        if (isClearingDeckRef.current) return;
         webDjEngine.unlock();
         startSilentAudioAnchor();
-        if (deckModeA === "native" && audioRefA.current) {
-          audioRefA.current.play().catch(() => {});
-          setIsPlayingA(true);
-        } else if (iframeRefA.current && trackA) {
-          sendPlayerCommand(iframeRefA.current, "unMute");
+        if (isPlayingARef.current && iframeRefA.current) {
           sendPlayerCommand(iframeRefA.current, "playVideo");
-          setIsPlayingA(true);
         }
-        if (deckModeB === "native" && audioRefB.current) {
-          audioRefB.current.play().catch(() => {});
-          setIsPlayingB(true);
-        } else if (iframeRefB.current && trackB) {
-          sendPlayerCommand(iframeRefB.current, "unMute");
+        if (isPlayingBRef.current && iframeRefB.current) {
           sendPlayerCommand(iframeRefB.current, "playVideo");
-          setIsPlayingB(true);
         }
         try {
           navigator.mediaSession.playbackState = "playing";
@@ -1931,10 +1948,13 @@ export default function VirtualDjConsole({
       });
 
       navigator.mediaSession.setActionHandler("pause", () => {
+        // En una cabina DJ profesional, NUNCA pausar una bandeja si la otra se está limpiando o si ambas están en mezcla
         if (isClearingDeckRef.current) return;
-        // En una cabina DJ profesional, nunca pausar ambas bandejas a ciegas ni interrumpir una mezcla
+        if (isPlayingARef.current && isPlayingBRef.current) {
+          return;
+        }
         if (isPlayingARef.current && !isPlayingBRef.current) {
-          if (deckModeA === "native" && audioRefA.current) {
+          if (deckModeARef.current === "native" && audioRefA.current) {
             audioRefA.current.pause();
           } else if (iframeRefA.current) {
             sendPlayerCommand(iframeRefA.current, "pauseVideo");
@@ -1942,7 +1962,7 @@ export default function VirtualDjConsole({
           isPlayingARef.current = false;
           setIsPlayingA(false);
         } else if (isPlayingBRef.current && !isPlayingARef.current) {
-          if (deckModeB === "native" && audioRefB.current) {
+          if (deckModeBRef.current === "native" && audioRefB.current) {
             audioRefB.current.pause();
           } else if (iframeRefB.current) {
             sendPlayerCommand(iframeRefB.current, "pauseVideo");
@@ -1954,9 +1974,7 @@ export default function VirtualDjConsole({
           navigator.mediaSession.playbackState = "paused";
         } catch {}
       });
-    } catch {
-      // Ignorar si el navegador restringe handlers de MediaSession
-    }
+    } catch {}
 
     return () => {
       try {
@@ -1966,11 +1984,12 @@ export default function VirtualDjConsole({
         }
       } catch {}
     };
-  }, [trackA, trackB, isPlayingA, isPlayingB]);
+  }, []);
 
   // Sincronización reactiva del estado global de reproducción con la pantalla de TV
   const prevOnAirDeckRef = useRef<"A" | "B" | null>(null);
   useEffect(() => {
+    if (isClearingDeckRef.current) return;
     if (currentOnAirDeck !== prevOnAirDeckRef.current) {
       const prevDeck = prevOnAirDeckRef.current;
       prevOnAirDeckRef.current = currentOnAirDeck;
@@ -2105,6 +2124,11 @@ export default function VirtualDjConsole({
     queueEntryId?: string | null,
     force: boolean = false
   ) => {
+    // Si se está limpiando una bandeja, descartar cargas automáticas en segundo plano
+    if (isClearingDeckRef.current) {
+      return;
+    }
+
     // Si Deck A ya está reproduciendo, NUNCA permitir que una carga automática reinicie o interrumpa la reproducción
     if ((isPlayingARef.current || isPlayingA) && !force) {
       return;
@@ -2206,6 +2230,11 @@ export default function VirtualDjConsole({
     explicitVideoId?: string | null,
     force: boolean = false
   ) => {
+    // Si se está limpiando una bandeja, descartar cargas automáticas en segundo plano
+    if (isClearingDeckRef.current) {
+      return;
+    }
+
     // Si Deck B ya está reproduciendo, NUNCA permitir que una carga automática reinicie o interrumpa la reproducción
     if ((isPlayingBRef.current || isPlayingB) && !force) {
       return;
@@ -2313,7 +2342,7 @@ export default function VirtualDjConsole({
     isClearingDeckRef.current = true;
     setTimeout(() => {
       isClearingDeckRef.current = false;
-    }, 1500);
+    }, 3000);
 
     searchRequestIdA.current++;
     isPlayingARef.current = false;
@@ -2323,10 +2352,8 @@ export default function VirtualDjConsole({
       audioRefA.current.src = "";
       setLocalAudioUrlA(null);
       setLocalAudioNameA(null);
-    } else if (iframeRefA.current) {
-      sendPlayerCommand(iframeRefA.current, "mute");
-      sendPlayerCommand(iframeRefA.current, "stopVideo");
     }
+    // Desmontar el iframe limpia el DOM limpiamente sin emitir eventos postMessage de fin de video a YouTube API
     prevTrackAKeyRef.current = null;
     activeVideoIdARef.current = null;
     activeTrackReqIdARef.current = null;
@@ -2340,6 +2367,15 @@ export default function VirtualDjConsole({
     setActiveLoopA(null);
     setIsLoadingVideoA(false);
     setIsVideoA(false);
+
+    // Salvaguarda absoluta: Asegurar que si Deck B está sonando, continúe al aire sin pestañear
+    if (isPlayingBRef.current || isPlayingB) {
+      isPlayingBRef.current = true;
+      setIsPlayingB(true);
+      if (iframeRefB.current) {
+        sendPlayerCommand(iframeRefB.current, "playVideo");
+      }
+    }
   };
 
   // Limpiar / Expulsar pista de DECK B (Aislamiento Total: Deck A NUNCA es afectada)
@@ -2347,7 +2383,7 @@ export default function VirtualDjConsole({
     isClearingDeckRef.current = true;
     setTimeout(() => {
       isClearingDeckRef.current = false;
-    }, 1500);
+    }, 3000);
 
     searchRequestIdB.current++;
     isPlayingBRef.current = false;
@@ -2357,10 +2393,8 @@ export default function VirtualDjConsole({
       audioRefB.current.src = "";
       setLocalAudioUrlB(null);
       setLocalAudioNameB(null);
-    } else if (iframeRefB.current) {
-      sendPlayerCommand(iframeRefB.current, "mute");
-      sendPlayerCommand(iframeRefB.current, "stopVideo");
     }
+    // Desmontar el iframe limpia el DOM limpiamente sin emitir eventos postMessage de fin de video a YouTube API
     prevTrackBKeyRef.current = null;
     activeVideoIdBRef.current = null;
     activeTrackReqIdBRef.current = null;
@@ -2377,6 +2411,15 @@ export default function VirtualDjConsole({
     setIsLoadingVideoB(false);
     setIsVideoB(false);
     setIsSyncedB(false);
+
+    // Salvaguarda absoluta: Asegurar que si Deck A está sonando, continúe al aire sin pestañear
+    if (isPlayingARef.current || isPlayingA) {
+      isPlayingARef.current = true;
+      setIsPlayingA(true);
+      if (iframeRefA.current) {
+        sendPlayerCommand(iframeRefA.current, "playVideo");
+      }
+    }
   };
 
   // Limpieza total delegada para Bandeja A
@@ -2596,6 +2639,7 @@ export default function VirtualDjConsole({
 
   // Avance de tema del servidor / Sincronización cuando entra un nuevo tema al aire
   useEffect(() => {
+    if (isClearingDeckRef.current) return;
     const currentId = currentPlaying?.id || null;
     if (!currentId) {
       prevServerCurrentPlayingIdRef.current = null;
@@ -2637,8 +2681,8 @@ export default function VirtualDjConsole({
 
       // Solo montar en una bandeja que esté verdaderamente libre (sin tema y sin reproducción activa)
       // NUNCA vaciar ni interrumpir ninguna bandeja que tenga tema o esté sonando en vivo
-      const isAOccupied = Boolean(trackA) || Boolean(deckTrackA) || isPlayingA || isPlayingARef.current;
-      const isBOccupied = Boolean(trackB) || Boolean(deckTrackB) || isPlayingB || isPlayingBRef.current;
+      const isAOccupied = Boolean(trackA) || Boolean(deckTrackA) || isPlayingA || isPlayingARef.current || Boolean(activeVideoIdARef.current);
+      const isBOccupied = Boolean(trackB) || Boolean(deckTrackB) || isPlayingB || isPlayingBRef.current || Boolean(activeVideoIdBRef.current);
       const title = currentPlaying.songRequest.song?.title || currentPlaying.songRequest.customTitle || "Tema";
       const tableLabel = currentPlaying.songRequest.table?.label ? ` (${currentPlaying.songRequest.table.label})` : "";
 
