@@ -184,8 +184,10 @@ const StableIframe = memo(
     // Si hay un video real asignado y la bandeja no está expulsada, registrar que ya montó
     if (videoId && !isEjected) {
       hasMountedEverRef.current = true;
-      if (prevVideoIdRef.current !== videoId) {
-        prevVideoIdRef.current = videoId;
+      // Solo se calcula la URL del iframe UNA SOLA VEZ en toda la vida del componente.
+      // Jamás se muta el atributo src del iframe en cargas posteriores para evitar que Chromium
+      // destruya el contexto de navegación y reinicie el pipeline de audio de la otra bandeja.
+      if (!staticSrcRef.current) {
         const originParam =
           typeof window !== "undefined" && window.location.origin
             ? `&origin=${encodeURIComponent(window.location.origin)}`
@@ -1205,19 +1207,28 @@ export default function VirtualDjConsole({
         }
       }, 400);
     } else {
-      // Modo CUE (por defecto): Cargar en segundo 0 y mantener pausado esperando PLAY manual
+      // Modo CUE (por defecto): Cargar en segundo 0, 100% silenciado y pausado esperando PLAY manual del DJ
+      sendPlayerCommand(iframe, "mute");
+      sendPlayerCommand(iframe, "setVolume", [0]);
       sendPlayerCommand(iframe, "cueVideoById", [vid, 0]);
       sendPlayerCommand(iframe, "pauseVideo");
       sendPlayerCommand(iframe, "seekTo", [0, true]);
-      sendPlayerCommand(iframe, "unMute");
-      sendPlayerCommand(iframe, "setVolume", [volume]);
       sendPlayerCommand(iframe, "addEventListener", ["onStateChange"]);
       setTimeout(() => {
         if (iframe) {
+          sendPlayerCommand(iframe, "mute");
+          sendPlayerCommand(iframe, "setVolume", [0]);
           sendPlayerCommand(iframe, "pauseVideo");
           sendPlayerCommand(iframe, "seekTo", [0, true]);
         }
       }, 350);
+      setTimeout(() => {
+        if (iframe) {
+          sendPlayerCommand(iframe, "cueVideoById", [vid, 0]);
+          sendPlayerCommand(iframe, "pauseVideo");
+          sendPlayerCommand(iframe, "seekTo", [0, true]);
+        }
+      }, 650);
     }
   };
 
@@ -2161,8 +2172,18 @@ export default function VirtualDjConsole({
     searchRequestIdA.current++;
     const reqId = searchRequestIdA.current;
     if (iframeRefA.current) {
-      sendPlayerCommand(iframeRefA.current, "stopVideo");
+      sendPlayerCommand(iframeRefA.current, "mute");
+      sendPlayerCommand(iframeRefA.current, "setVolume", [0]);
       sendPlayerCommand(iframeRefA.current, "pauseVideo");
+    }
+
+    // Salvaguarda absoluta: Asegurar que si Deck B está sonando, continúe al aire sin pestañear
+    if (isPlayingBRef.current || isPlayingB) {
+      isPlayingBRef.current = true;
+      setIsPlayingB(true);
+      if (iframeRefB.current) {
+        sendPlayerCommand(iframeRefB.current, "playVideo");
+      }
     }
     setDeckModeA("youtube");
     if (audioRefA.current) {
@@ -2267,8 +2288,18 @@ export default function VirtualDjConsole({
     searchRequestIdB.current++;
     const reqId = searchRequestIdB.current;
     if (iframeRefB.current) {
-      sendPlayerCommand(iframeRefB.current, "stopVideo");
+      sendPlayerCommand(iframeRefB.current, "mute");
+      sendPlayerCommand(iframeRefB.current, "setVolume", [0]);
       sendPlayerCommand(iframeRefB.current, "pauseVideo");
+    }
+
+    // Salvaguarda absoluta: Asegurar que si Deck A está sonando, continúe al aire sin pestañear
+    if (isPlayingARef.current || isPlayingA) {
+      isPlayingARef.current = true;
+      setIsPlayingA(true);
+      if (iframeRefA.current) {
+        sendPlayerCommand(iframeRefA.current, "playVideo");
+      }
     }
     setDeckModeB("youtube");
     if (audioRefB.current) {
