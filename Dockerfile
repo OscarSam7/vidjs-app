@@ -24,6 +24,8 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV DOCKER_BUILD=1
+# Dummy URL para que prisma generate y build compilen sin requerir conexión a BD en la fase estática
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?sslmode=disable"
 
 # Generar cliente de Prisma y compilar artefactos standalone
 RUN npx prisma generate
@@ -52,8 +54,5 @@ USER nextjs
 
 EXPOSE 3000
 
-# Chequeo de salud del contenedor
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/health || exit 1
-
 CMD ["node", "server.js"]
+
