@@ -2,15 +2,24 @@ import { prisma } from "@/lib/db/prisma";
 import Link from "next/link";
 import { Tv, Radio, ArrowRight, Disc3, Sparkles, Headphones } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function DisplayLauncherPage() {
-  const activeEvents = await prisma.event.findMany({
-    where: { status: "ACTIVE" },
-    include: {
-      venue: { select: { name: true } },
-      tenant: { select: { name: true } },
-    },
-    orderBy: { startsAt: "desc" },
-  });
+  let activeEvents: any[] = [];
+  try {
+    activeEvents = await prisma.event.findMany({
+      where: { status: "ACTIVE" },
+      include: {
+        venue: { select: { name: true } },
+        tenant: { select: { name: true } },
+      },
+      orderBy: { startsAt: "desc" },
+    });
+  } catch (error) {
+    console.warn("DisplayLauncherPage: Fallback de seguridad al consultar eventos:", error);
+    activeEvents = [];
+  }
+
 
   return (
     <div className="min-h-screen bg-[#070709] text-zinc-100 flex flex-col justify-center items-center p-6">
