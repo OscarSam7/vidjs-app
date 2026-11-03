@@ -39,6 +39,7 @@ import {
   Headphones,
   Square,
   Trophy,
+  Award,
   Lock,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
@@ -257,11 +258,40 @@ function GuestContent() {
     id: string;
     name: string;
     code: string;
+    status: string; // "ACTIVE" | "REGISTRATION" | "PAUSED"
+    allowRegistrations: boolean;
+    description?: string | null;
+    prizes?: string | null;
+    rules?: string | null;
     stageTitle: string;
     scoringMode: string;
     publicVoteWeight: number;
+    myApplication?: {
+      id: string;
+      name: string;
+      stageName?: string | null;
+      status: string;
+      songTitle?: string | null;
+      artistName?: string | null;
+    } | null;
     activePerformance?: any;
   } | null>(null);
+
+  // 📝 Formulario de Postulación de Clientes al Concurso
+  const [applicationForm, setApplicationForm] = useState({
+    name: "",
+    stageName: "",
+    songTitle: "",
+    artistName: "",
+    phone: "",
+    bio: "",
+  });
+  const [applicationSubmitting, setApplicationSubmitting] = useState(false);
+  const [applicationFeedback, setApplicationFeedback] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
 
   // 🏆 Votación del Público para Concurso de Karaoke
   const [activeContestVote, setActiveContestVote] = useState<{
@@ -475,6 +505,10 @@ function GuestContent() {
         }
         if (data.data.session?.guestName) {
           setGuestName(data.data.session.guestName);
+          setApplicationForm((prev) => ({
+            ...prev,
+            name: prev.name || data.data.session.guestName,
+          }));
         }
         // Consultar duelos
         if (data.data.session?.event?.id) {
@@ -507,7 +541,12 @@ function GuestContent() {
                 } catch {}
               }
             }
+          } else {
+            setActiveContestVote(null);
           }
+        } else {
+          setActiveContestInfo(null);
+          setActiveContestVote(null);
         }
       } else {
         setSession(null);
@@ -670,15 +709,22 @@ function GuestContent() {
           return;
         }
 
+        if (type === "CONTEST_STAGE_CHANGE") {
+          await loadSessionAndRequests();
+          return;
+        }
+
         if (payload?.contestName || payload?.stageTitle) {
-          setActiveContestInfo((prev) => ({
-            id: payload.contestId || prev?.id || "contest",
-            name: payload.contestName || prev?.name || "Campeonato de Karaoke",
-            code: payload.contestCode || prev?.code || "",
-            stageTitle: payload.stageTitle || prev?.stageTitle || "Gala Oficial",
-            scoringMode: prev?.scoringMode || "AVERAGE",
-            publicVoteWeight: prev?.publicVoteWeight || 30,
-          }));
+          setActiveContestInfo((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              id: payload.contestId || prev.id,
+              name: payload.contestName || prev.name,
+              code: payload.contestCode || prev.code,
+              stageTitle: payload.stageTitle || prev.stageTitle,
+            };
+          });
         }
 
         if (
@@ -827,6 +873,72 @@ function GuestContent() {
       setContestVoteLoading(false);
     }
   };
+
+  // 📝 Postularse como cantante al concurso desde la mesa
+  const handleRegisterContestApplication = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeContestInfo || !session?.table?.label) return;
+    const finalName = applicationForm.name.trim() || guestName.trim() || session?.guestName || "";
+    if (!finalName || !applicationForm.songTitle.trim()) {
+      setApplicationFeedback({
+        type: "error",
+        text: "Por favor ingresa tu nombre y el título de la canción que deseas cantar.",
+      });
+      return;
+    }
+
+    try {
+      setApplicationSubmitting(true);
+      setApplicationFeedback(null);
+      const res = await fetch(`/api/v1/contest/${activeContestInfo.id}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: finalName,
+          stageName: applicationForm.stageName.trim() || null,
+          songTitle: applicationForm.songTitle.trim(),
+          artistName: applicationForm.artistName.trim() || null,
+          phone: applicationForm.phone.trim() || null,
+          bio: applicationForm.bio.trim() || null,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setApplicationFeedback({
+          type: "success",
+          text: json.message || "¡Postulación enviada con éxito!",
+        });
+        setActiveContestInfo((prev) =>
+          prev
+            ? {
+                ...prev,
+                myApplication: {
+                  id: json.data?.participant?.id || "p_app",
+                  name: finalName,
+                  stageName: applicationForm.stageName.trim() || null,
+                  status: "APPLICANT",
+                  songTitle: applicationForm.songTitle.trim(),
+                  artistName: applicationForm.artistName.trim() || null,
+                },
+              }
+            : null
+        );
+      } else {
+        setApplicationFeedback({
+          type: "error",
+          text: json.error || "No se pudo registrar la postulación",
+        });
+      }
+    } catch {
+      setApplicationFeedback({
+        type: "error",
+        text: "Error de conexión al enviar la postulación",
+      });
+    } finally {
+      setApplicationSubmitting(false);
+    }
+  };
+
 
   // Temporizador para finalizar el aplausómetro en el móvil
   useEffect(() => {
@@ -1656,7 +1768,7 @@ function GuestContent() {
         {/* PESTAÑA 1: "MI NOCHE" (WELCOME HUB) */}
         {activeTab === "hub" && (
           <div className="space-y-4 w-full">
-            {/* 🏆 Concurso Oficial de Karaoke Activo esta Noche */}
+            {/* 🏆 Concurso Oficial de Karaoke Activo o en Registro esta Noche */}
             {activeContestInfo && (
               <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-950/80 via-zinc-950 to-zinc-950 border-2 border-amber-500/60 shadow-xl space-y-3">
                 <div className="flex items-center justify-between">
@@ -1666,7 +1778,9 @@ function GuestContent() {
                     </span>
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
-                        CERTAMEN OFICIAL &bull; EN CURSO ESTA NOCHE
+                        {activeContestInfo.status === "REGISTRATION"
+                          ? "CERTAMEN OFICIAL • INSCRIPCIONES ABIERTAS"
+                          : "CERTAMEN OFICIAL • EN CURSO ESTA NOCHE"}
                       </span>
                       <h2 className="text-base font-black text-white">{activeContestInfo.name}</h2>
                     </div>
@@ -1676,14 +1790,42 @@ function GuestContent() {
                   </span>
                 </div>
 
-                {!activeContestVote && (
-                  <div className="p-3 rounded-2xl bg-black/60 border border-zinc-800 flex items-center gap-2 text-xs text-zinc-300">
-                    <Mic className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>
-                      ¡Atención a tu mesa! Cuando el próximo cantante suba al escenario, podrás evaluarlo con 1 a 5 estrellas directamente desde aquí.
-                    </span>
+                {activeContestInfo.status === "REGISTRATION" ? (
+                  <div className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="text-xs text-zinc-300">
+                      <p className="font-bold text-amber-300">¿Quieres subir al escenario y ganar premios?</p>
+                      <p className="text-[11px] text-zinc-400">
+                        {activeContestInfo.myApplication
+                          ? `✅ Tu mesa ya tiene a "${activeContestInfo.myApplication.stageName || activeContestInfo.myApplication.name}" postulado.`
+                          : "Las postulaciones están abiertas para los clientes de las mesas."}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("contest")}
+                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black font-black text-xs transition-all cursor-pointer shadow-md shrink-0 flex items-center justify-center gap-1.5"
+                    >
+                      <Mic className="w-3.5 h-3.5" />
+                      <span>{activeContestInfo.myApplication ? "Ver mi Postulación" : "¡Postularme Ahora!"}</span>
+                    </button>
                   </div>
-                )}
+                ) : !activeContestVote ? (
+                  <div className="p-3 rounded-2xl bg-black/60 border border-zinc-800 flex items-center justify-between gap-2 text-xs text-zinc-300">
+                    <div className="flex items-center gap-2">
+                      <Mic className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>
+                        ¡Atención a tu mesa! Podrás calificar con estrellas a los cantantes en escenario desde aquí.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("contest")}
+                      className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold shrink-0 transition-all cursor-pointer"
+                    >
+                      Ver Concurso
+                    </button>
+                  </div>
+                ) : null}
               </div>
             )}
 
@@ -2748,7 +2890,9 @@ function GuestContent() {
                   </span>
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 block">
-                      CERTAMEN OFICIAL EN VIVO
+                      {activeContestInfo.status === "REGISTRATION"
+                        ? "INSCRIPCIONES Y POSTULACIONES ABIERTAS"
+                        : "CERTAMEN OFICIAL EN VIVO"}
                     </span>
                     <h2 className="text-xl font-black text-white">{activeContestInfo.name}</h2>
                   </div>
@@ -2758,9 +2902,186 @@ function GuestContent() {
                 </div>
               </div>
               <p className="text-xs text-zinc-300 leading-relaxed">
-                ¡Bienvenido a la votación popular de la gala! Tu mesa y cada celular tienen derecho a calificar a los cantantes con estrellas. El veredicto del público incide directamente en el resultado final.
+                {activeContestInfo.status === "REGISTRATION"
+                  ? "¡El escenario está listo para recibir tu talento! Postúlate desde tu mesa ingresando tu canción y tu nombre para participar en la gala."
+                  : "¡Bienvenido a la votación popular de la gala! Tu mesa y cada celular tienen derecho a calificar a los cantantes con estrellas. El veredicto del público incide directamente en el resultado final."}
               </p>
+              {activeContestInfo.prizes && (
+                <div className="p-3 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 flex items-center gap-2">
+                  <Award className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span><strong>Premios:</strong> {activeContestInfo.prizes}</span>
+                </div>
+              )}
             </div>
+
+            {/* Tarjeta de Estado de Postulación de la Mesa */}
+            {activeContestInfo.myApplication && (
+              <div className="p-5 rounded-3xl bg-zinc-900/90 border-2 border-emerald-500/60 shadow-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </span>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">
+                        POSTULACIÓN REGISTRADA DESDE TU MESA
+                      </span>
+                      <h3 className="text-base font-black text-white">
+                        {activeContestInfo.myApplication.stageName || activeContestInfo.myApplication.name}
+                      </h3>
+                    </div>
+                  </div>
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase border ${
+                      activeContestInfo.myApplication.status === "ACTIVE"
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                        : "bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse"
+                    }`}
+                  >
+                    {activeContestInfo.myApplication.status === "ACTIVE"
+                      ? "¡Aprobado para Escenario!"
+                      : "En Revisión por el DJ"}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-black/60 border border-zinc-800 space-y-1">
+                  <div className="text-xs font-bold text-amber-300">
+                    🎤 Canción: {activeContestInfo.myApplication.songTitle}
+                    {activeContestInfo.myApplication.artistName ? ` (${activeContestInfo.myApplication.artistName})` : ""}
+                  </div>
+                  <div className="text-[11px] text-zinc-400">
+                    Mesa: <strong className="text-white">{session?.table?.label || "Tu Mesa"}</strong> • El DJ te llamará por micrófono cuando sea tu turno.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Formulario de Postulación de Clientes (cuando está abierto y la mesa no se ha postulado) */}
+            {!activeContestInfo.myApplication && (activeContestInfo.status === "REGISTRATION" || activeContestInfo.allowRegistrations) && (
+              <div className="p-5 rounded-3xl bg-zinc-900/90 border-2 border-amber-500/60 shadow-xl space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    <Mic className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-base font-black text-white">
+                      ¡Postúlate para Cantar en el Concurso!
+                    </h3>
+                    <p className="text-xs text-zinc-400">
+                      Sube al escenario y compite con tu canción favorita.
+                    </p>
+                  </div>
+                </div>
+
+                {applicationFeedback && (
+                  <div
+                    className={`p-3 rounded-2xl text-xs font-bold flex items-center gap-2 ${
+                      applicationFeedback.type === "success"
+                        ? "bg-emerald-950/80 border border-emerald-500 text-emerald-200"
+                        : "bg-red-950/80 border border-red-500 text-red-200"
+                    }`}
+                  >
+                    {applicationFeedback.type === "success" ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                    )}
+                    <span>{applicationFeedback.text}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleRegisterContestApplication} className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                        Tu Nombre: *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ej: Andrés Gómez"
+                        value={applicationForm.name}
+                        onChange={(e) => setApplicationForm({ ...applicationForm, name: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                        Nombre Artístico (Opcional):
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej: La Voz de Oro"
+                        value={applicationForm.stageName}
+                        onChange={(e) => setApplicationForm({ ...applicationForm, stageName: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                        Canción que cantarás: *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ej: Ya lo sé que tú te vas"
+                        value={applicationForm.songTitle}
+                        onChange={(e) => setApplicationForm({ ...applicationForm, songTitle: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                        Artista original:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej: Juan Gabriel"
+                        value={applicationForm.artistName}
+                        onChange={(e) => setApplicationForm({ ...applicationForm, artistName: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                      Dedicatoria o Nota al DJ (Opcional):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ej: Para la mesa 4 que estamos de cumpleaños"
+                      value={applicationForm.bio}
+                      onChange={(e) => setApplicationForm({ ...applicationForm, bio: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={applicationSubmitting}
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+                  >
+                    {applicationSubmitting ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Mic className="w-4 h-4" />
+                    )}
+                    <span>
+                      {applicationSubmitting
+                        ? "Enviando postulación..."
+                        : `Enviar Postulación desde ${session?.table?.label || "mi mesa"}`}
+                    </span>
+                  </button>
+                </form>
+              </div>
+            )}
+
 
             {/* Tarjeta de Votación Activa */}
             {activeContestVote ? (

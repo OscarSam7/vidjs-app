@@ -374,11 +374,11 @@ export async function GET() {
     });
     const flashDeal = getActiveFlashDeal(pulse.level, branding.activePromo);
 
-    // 5. Consultar Concurso de Karaoke Activo para la noche o establecimiento
+    // 5. Consultar Concurso de Karaoke Activo o en Registro para la noche o establecimiento
     const activeContest = await prisma.karaokeContest.findFirst({
       where: {
         tenantId: guestSession.tenantId,
-        status: "ACTIVE",
+        status: { in: ["ACTIVE", "REGISTRATION"] },
         OR: [
           { eventId: guestSession.eventId },
           { eventId: null },
@@ -392,26 +392,56 @@ export async function GET() {
 
     let contestPayload = null;
     if (activeContest) {
-      const activePerformance = await prisma.contestPerformance.findFirst({
-        where: {
-          contestId: activeContest.id,
-          status: { in: ["ON_STAGE", "VOTING_OPEN"] },
-        },
-        include: {
-          participant: {
-            select: { id: true, name: true, stageName: true, tableLabel: true },
+      const [activePerformance, myApplication] = await Promise.all([
+        prisma.contestPerformance.findFirst({
+          where: {
+            contestId: activeContest.id,
+            status: { in: ["ON_STAGE", "VOTING_OPEN"] },
           },
-        },
-        orderBy: { updatedAt: "desc" },
-      });
+          include: {
+            participant: {
+              select: { id: true, name: true, stageName: true, tableLabel: true },
+            },
+          },
+          orderBy: { updatedAt: "desc" },
+        }),
+        prisma.contestParticipant.findFirst({
+          where: {
+            contestId: activeContest.id,
+            OR: [
+              { tableLabel: guestSession.table.label },
+              ...(guestSession.guestName ? [{ name: guestSession.guestName }] : []),
+            ],
+          },
+          include: {
+            performances: { take: 1, orderBy: { createdAt: "desc" } },
+          },
+          orderBy: { createdAt: "desc" },
+        }),
+      ]);
 
       contestPayload = {
         id: activeContest.id,
         name: activeContest.name,
         code: activeContest.code,
+        status: activeContest.status, // "ACTIVE" | "REGISTRATION"
+        allowRegistrations: activeContest.status === "REGISTRATION" || activeContest.status === "ACTIVE",
+        description: activeContest.description,
+        prizes: activeContest.prizes,
+        rules: activeContest.rules,
         stageTitle: activeContest.stages[0]?.title || "Gala Oficial de Karaoke",
         scoringMode: activeContest.scoringMode,
         publicVoteWeight: activeContest.publicVoteWeight,
+        myApplication: myApplication
+          ? {
+              id: myApplication.id,
+              name: myApplication.name,
+              stageName: myApplication.stageName,
+              status: myApplication.status,
+              songTitle: myApplication.performances[0]?.songTitle || null,
+              artistName: myApplication.performances[0]?.artistName || null,
+            }
+          : null,
         activePerformance: activePerformance
           ? {
               id: activePerformance.id,

@@ -35,7 +35,8 @@ export type RealtimeEventType =
   | "CONTEST_VOTE_UPDATE"
   | "CONTEST_REVEAL_SCORES"
   | "CONTEST_GOLDEN_BUZZER"
-  | "CONTEST_LEADERBOARD_UPDATE";
+  | "CONTEST_LEADERBOARD_UPDATE"
+  | "CONTEST_PARTICIPANT_REGISTERED";
 
 export interface ActivePlaybackState {
   action: "PLAY" | "PAUSE" | "SEEK" | "RESET";

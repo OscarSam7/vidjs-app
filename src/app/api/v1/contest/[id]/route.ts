@@ -53,6 +53,11 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
             { totalPoints: "desc" },
             { createdAt: "asc" },
           ],
+          include: {
+            performances: {
+              orderBy: { createdAt: "desc" },
+            },
+          },
         },
       },
     });
