@@ -6,6 +6,12 @@ export const ROLES = {
   OPERATOR: "OPERATOR",
   GUEST: "GUEST",
   DISPLAY: "DISPLAY",
+  // Roles de Acreditaciones & Control de Acceso
+  EVENT_ADMIN: "EVENT_ADMIN",
+  SUPERVISOR: "SUPERVISOR",
+  ACREDITADOR: "ACREDITADOR",
+  SCANNER: "SCANNER",
+  REPORTES: "REPORTES",
 } as const;
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
@@ -55,11 +61,18 @@ export const PERMISSIONS = {
 
   // Dashboard & Métricas
   DASHBOARD_READ: "dashboard:read",
+
+  // Acreditaciones & Control de Acceso para Eventos
+  ACCREDITATIONS_READ: "accreditations:read",
+  ACCREDITATIONS_MANAGE: "accreditations:manage",
+  ACCREDITATIONS_CHECKIN: "accreditations:checkin",
+  ACCREDITATIONS_PRINT: "accreditations:print",
+  ACCREDITATIONS_REPORTS: "accreditations:reports",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
-export type PermissionCategoryKey = "dj_music" | "screen_karaoke" | "venue_tables" | "admin_management";
+export type PermissionCategoryKey = "dj_music" | "screen_karaoke" | "venue_tables" | "admin_management" | "accreditations";
 
 export interface PermissionCategory {
   id: PermissionCategoryKey;
@@ -92,6 +105,12 @@ export const PERMISSION_CATEGORIES: Record<PermissionCategoryKey, PermissionCate
     label: "Administración, Barra & Equipo",
     description: "Métricas del negocio, ofertas de barra, usuarios y auditoría",
     icon: "ShieldCheck",
+  },
+  accreditations: {
+    id: "accreditations",
+    label: "Acreditaciones & Control de Acceso",
+    description: "Gestión de participantes, credenciales, escáner QR de ingreso y control de puertas",
+    icon: "QrCode",
   },
 };
 
@@ -242,6 +261,38 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     description: "Gestionar el plan de suscripción, tarjetas y pagos del servicio Vidjs",
     category: "admin_management",
   },
+
+  // 5. Acreditaciones & Control de Acceso
+  {
+    id: PERMISSIONS.ACCREDITATIONS_READ,
+    label: "Consultar Acreditaciones & Participantes",
+    description: "Ver participantes, credenciales y estados de acreditación del evento",
+    category: "accreditations",
+  },
+  {
+    id: PERMISSIONS.ACCREDITATIONS_MANAGE,
+    label: "Gestionar Acreditaciones & Categorías",
+    description: "Crear, editar, importar participantes, definir tipos de credencial y asignar accesos",
+    category: "accreditations",
+  },
+  {
+    id: PERMISSIONS.ACCREDITATIONS_CHECKIN,
+    label: "Operar Escáner QR de Ingreso",
+    description: "Validar códigos QR y registrar accesos en puertas y sectores",
+    category: "accreditations",
+  },
+  {
+    id: PERMISSIONS.ACCREDITATIONS_PRINT,
+    label: "Impresión de Credenciales & Gafetes",
+    description: "Imprimir y reimprimir credenciales individuales o masivas con registro de auditoría",
+    category: "accreditations",
+  },
+  {
+    id: PERMISSIONS.ACCREDITATIONS_REPORTS,
+    label: "Reportes de Acceso & Aforo",
+    description: "Consultar estadísticas de ingreso en tiempo real, exportar planillas de presentismo",
+    category: "accreditations",
+  },
 ];
 
 export interface RoleDefinition {
@@ -291,6 +342,51 @@ export const ROLE_DEFINITIONS: RoleDefinition[] = [
     canAssign: true,
     isCustomizable: true,
   },
+  {
+    id: ROLES.EVENT_ADMIN,
+    name: "Administrador de Evento",
+    badge: "EVENT_ADMIN",
+    color: "blue",
+    description: "Gestión completa de eventos, categorías, participantes, acreditaciones y configuración de accesos.",
+    canAssign: true,
+    isCustomizable: true,
+  },
+  {
+    id: ROLES.SUPERVISOR,
+    name: "Supervisor de Accesos",
+    badge: "SUPERVISOR",
+    color: "indigo",
+    description: "Supervisión de puertas, estadísticas de aforo en vivo, reasignación y resolución de incidencias.",
+    canAssign: true,
+    isCustomizable: true,
+  },
+  {
+    id: ROLES.ACREDITADOR,
+    name: "Personal de Acreditación",
+    badge: "ACREDITADOR",
+    color: "teal",
+    description: "Registro de participantes, entrega física e impresión de credenciales en mesas de acreditación.",
+    canAssign: true,
+    isCustomizable: true,
+  },
+  {
+    id: ROLES.SCANNER,
+    name: "Operador de Escáner / Portería",
+    badge: "SCANNER",
+    color: "rose",
+    description: "Validación de códigos QR en puntos de acceso, puertas y sectores autorizados.",
+    canAssign: true,
+    isCustomizable: true,
+  },
+  {
+    id: ROLES.REPORTES,
+    name: "Auditor / Consultor de Reportes",
+    badge: "REPORTES",
+    color: "slate",
+    description: "Consulta de estadísticas, aforos y métricas sin permisos de modificación de datos.",
+    canAssign: true,
+    isCustomizable: true,
+  },
 ];
 
 // Matriz predeterminada de asignación de permisos por rol
@@ -322,6 +418,11 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.INTERACTIVE_CONTROL,
     PERMISSIONS.PHOTOS_MODERATE,
     PERMISSIONS.DEALS_MANAGE,
+    PERMISSIONS.ACCREDITATIONS_READ,
+    PERMISSIONS.ACCREDITATIONS_MANAGE,
+    PERMISSIONS.ACCREDITATIONS_CHECKIN,
+    PERMISSIONS.ACCREDITATIONS_PRINT,
+    PERMISSIONS.ACCREDITATIONS_REPORTS,
   ],
 
   MANAGER: [
@@ -347,6 +448,52 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.INTERACTIVE_CONTROL,
     PERMISSIONS.PHOTOS_MODERATE,
     PERMISSIONS.DEALS_MANAGE,
+    PERMISSIONS.ACCREDITATIONS_READ,
+    PERMISSIONS.ACCREDITATIONS_MANAGE,
+    PERMISSIONS.ACCREDITATIONS_CHECKIN,
+    PERMISSIONS.ACCREDITATIONS_PRINT,
+    PERMISSIONS.ACCREDITATIONS_REPORTS,
+  ],
+
+  EVENT_ADMIN: [
+    PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.EVENTS_READ,
+    PERMISSIONS.EVENTS_MANAGE,
+    PERMISSIONS.ACCREDITATIONS_READ,
+    PERMISSIONS.ACCREDITATIONS_MANAGE,
+    PERMISSIONS.ACCREDITATIONS_CHECKIN,
+    PERMISSIONS.ACCREDITATIONS_PRINT,
+    PERMISSIONS.ACCREDITATIONS_REPORTS,
+    PERMISSIONS.TABLES_READ,
+  ],
+
+  SUPERVISOR: [
+    PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.EVENTS_READ,
+    PERMISSIONS.ACCREDITATIONS_READ,
+    PERMISSIONS.ACCREDITATIONS_CHECKIN,
+    PERMISSIONS.ACCREDITATIONS_PRINT,
+    PERMISSIONS.ACCREDITATIONS_REPORTS,
+  ],
+
+  ACREDITADOR: [
+    PERMISSIONS.EVENTS_READ,
+    PERMISSIONS.ACCREDITATIONS_READ,
+    PERMISSIONS.ACCREDITATIONS_MANAGE,
+    PERMISSIONS.ACCREDITATIONS_PRINT,
+  ],
+
+  SCANNER: [
+    PERMISSIONS.EVENTS_READ,
+    PERMISSIONS.ACCREDITATIONS_READ,
+    PERMISSIONS.ACCREDITATIONS_CHECKIN,
+  ],
+
+  REPORTES: [
+    PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.EVENTS_READ,
+    PERMISSIONS.ACCREDITATIONS_READ,
+    PERMISSIONS.ACCREDITATIONS_REPORTS,
   ],
 
   DJ: [

@@ -29,6 +29,14 @@ model Tenant {
   auditLogs     AuditLog[]
   photoPosts    PhotoPost[]
   karaokeContests KaraokeContest[]
+  eventOrganizations   EventOrganization[]
+  eventParticipants     EventParticipant[]
+  accreditationTypes    AccreditationType[]
+  eventAccreditations   EventAccreditation[]
+  accessPoints          AccessPoint[]
+  checkInRecords        CheckInRecord[]
+  credentialTemplates   CredentialTemplate[]
+  scannerDevices        ScannerDevice[]
 
   @@index([status])
   @@index([slug])
@@ -93,13 +101,38 @@ model Event {
   endsAt      DateTime?
   pin         String?        // PIN de seguridad opcional para DJ o Display
   settings    String?        // JSON: límite de solicitudes por mesa, filtros, etc.
+  
+  // Datos extendidos para eventos profesionales y acreditación
+  bannerUrl            String?
+  logoUrl              String?
+  eventType            String?        @default("GENERAL") // CONGRESO, CONFERENCIA, FERIA, FESTIVAL, CONCIERTO, EMPRESARIAL, PRIVADO, DEPORTIVO, FIESTA, GENERAL
+  organizerName        String?
+  responsibleCompany   String?
+  companyRuc           String?
+  locationName         String?
+  address              String?
+  timeSchedule         String?
+  maxCapacity          Int?
+  daysCount            Int?           @default(1)
+  isPublicRegistration Boolean        @default(false)
+  registrationFields   String?        // JSON string con campos requeridos y opcionales
+
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  guestSessions GuestSession[]
-  songRequests  SongRequest[]
-  queueEntries  QueueEntry[]
-  photoPosts    PhotoPost[]
+  guestSessions       GuestSession[]
+  songRequests        SongRequest[]
+  queueEntries        QueueEntry[]
+  photoPosts          PhotoPost[]
+  eventDays           EventDay[]
+  accreditationTypes  AccreditationType[]
+  organizations       EventOrganization[]
+  participants        EventParticipant[]
+  accreditations      EventAccreditation[]
+  accessPoints        AccessPoint[]
+  checkInRecords      CheckInRecord[]
+  credentialTemplates CredentialTemplate[]
+  scannerDevices      ScannerDevice[]
 
   @@index([tenantId])
   @@index([venueId])
@@ -541,4 +574,317 @@ model ContestTableConsumption {
   @@index([contestId])
   @@index([tableLabel])
 }
+
+// =================================================================
+// MÓDULO ENTERPRISE: GESTIÓN DE EVENTOS, ACREDITACIONES Y CONTROL DE ACCESO QR
+// =================================================================
+
+// 24. EventDay (Jornadas / Días del evento para eventos multidía)
+model EventDay {
+  id             String          @id @default(cuid())
+  eventId        String
+  event          Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  dayNumber      Int             @default(1)
+  name           String          // Ej: "Día 1 - Apertura y Conferencias", "Jornada 2"
+  date           DateTime
+  startTime      String?         // "08:00"
+  endTime        String?         // "20:00"
+  active         Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  checkInRecords CheckInRecord[]
+
+  @@unique([eventId, dayNumber])
+  @@index([eventId])
+  @@index([date])
+}
+
+// 25. EventOrganization (Empresas, Instituciones y Delegaciones)
+model EventOrganization {
+  id          String             @id @default(cuid())
+  tenantId    String
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventId     String
+  event       Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name        String             // Nombre de la empresa o delegación
+  rucOrTaxId  String?            // RUC / CIF / Identificador tributario
+  contactName String?
+  email       String?
+  phone       String?
+  country     String?            @default("Paraguay")
+  city        String?
+  notes       String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  participants EventParticipant[]
+
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([name])
+}
+
+// 26. CredentialTemplate (Diseño y formato visual de credenciales)
+model CredentialTemplate {
+  id                 String              @id @default(cuid())
+  tenantId           String
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventId            String?             // Si es null, plantilla global de la empresa
+  event              Event?              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name               String              // Ej: "Gafete Oficial A6", "PVC VIP CR80", "Pulsera Térmica"
+  format             String              @default("VERTICAL_A6") // VERTICAL_A6, HORIZONTAL_BADGE, PVC_CR80, THERMAL_LABEL, WRISTBAND
+  widthMm            Float               @default(100)
+  heightMm           Float               @default(150)
+  orientation        String              @default("PORTRAIT") // PORTRAIT, LANDSCAPE
+  
+  backgroundColor    String              @default("#FFFFFF")
+  headerColor        String              @default("#080F1F")
+  accentColor        String              @default("#3B82F6")
+  textColor          String              @default("#0F172A")
+  
+  showLogo           Boolean             @default(true)
+  logoUrl            String?
+  showPhoto          Boolean             @default(true)
+  showQrCode         Boolean             @default(true)
+  showCategoryBadge  Boolean             @default(true)
+  showCompany        Boolean             @default(true)
+  showJobTitle       Boolean             @default(true)
+  showEventName      Boolean             @default(true)
+  showDates          Boolean             @default(true)
+  showDocument       Boolean             @default(false)
+  
+  customStyles       String?             // JSON con márgenes, fuentes y coordenadas personalizadas
+  isDefault          Boolean             @default(false)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  accreditationTypes AccreditationType[]
+
+  @@index([tenantId])
+  @@index([eventId])
+}
+
+// 27. AccreditationType (Tipos y Categorías de Acreditación)
+model AccreditationType {
+  id                 String              @id @default(cuid())
+  tenantId           String
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventId            String
+  event              Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name               String              // "VIP", "PRENSA", "STAFF", "ORGANIZADOR", "EXPOSITOR", etc.
+  code               String              // "VIP", "PRESS", "STAFF", "EXPO"
+  description        String?
+  colorHex           String              @default("#3B82F6") // Color identificador en la credencial
+  textColorHex       String              @default("#FFFFFF")
+  maxAvailable       Int?                // Cupos máximos (null = ilimitado)
+  validFrom          DateTime?
+  validUntil         DateTime?
+  allowedStartTime   String?             // "08:00"
+  allowedEndTime     String?             // "22:00"
+  maxCheckInsPerDay  Int?                // Máximo de ingresos por día (null = ilimitado, 1 = solo un ingreso)
+  allowReentry       Boolean             @default(true) // Permite reingreso
+  templateId         String?             // Plantilla de credencial vinculada
+  template           CredentialTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  orderIndex         Int                 @default(0)
+  active             Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  participants       EventParticipant[]
+  accreditations     EventAccreditation[]
+  accessRules        AccessPointRule[]
+
+  @@unique([eventId, code])
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([code])
+}
+
+// 28. EventParticipant (Participantes registrados para el evento)
+model EventParticipant {
+  id                  String              @id @default(cuid())
+  tenantId            String
+  tenant              Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventId             String
+  event               Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  organizationId      String?
+  organization        EventOrganization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  accreditationTypeId String?
+  accreditationType   AccreditationType?  @relation(fields: [accreditationTypeId], references: [id], onDelete: SetNull)
+  
+  firstName           String
+  lastName            String
+  documentNumber      String              // Cédula, Pasaporte o DNI
+  documentType        String              @default("CI") // CI, PASSPORT, DNI, RUC
+  company             String?             // Nombre de empresa/institución (texto directo o delegación)
+  jobTitle            String?             // Cargo o posición
+  email               String
+  phone               String?
+  whatsapp            String?
+  country             String?             @default("Paraguay")
+  city                String?
+  photoUrl            String?
+  notes               String?
+  isSpecialGuest      Boolean             @default(false)
+  customData          String?             // JSON para campos dinámicos
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  accreditation       EventAccreditation?
+  checkInRecords      CheckInRecord[]
+
+  @@unique([eventId, documentNumber])
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([email])
+  @@index([documentNumber])
+  @@index([lastName, firstName])
+}
+
+// 29. EventAccreditation (Credenciales emitidas con tokens QR únicos y firmas criptográficas)
+model EventAccreditation {
+  id                  String            @id @default(cuid())
+  tenantId            String
+  tenant              Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventId             String
+  event               Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  participantId       String            @unique
+  participant         EventParticipant  @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  accreditationTypeId String
+  accreditationType   AccreditationType @relation(fields: [accreditationTypeId], references: [id], onDelete: Restrict)
+  
+  codeNumber          String            @unique // Ej: "EVT-VIP-0042"
+  qrToken             String            @unique // Token único UUID/CUID no predecible
+  qrSignature         String            // Firma HMAC-SHA256 para verificación rápida y anti-falsificación
+  qrCodeUrl           String?           // Imagen DataURL o URL del QR
+  
+  status              String            @default("APPROVED") // PENDING, APPROVED, ACCREDITED, CHECKED_IN, REJECTED, CANCELLED, BLOCKED
+  rejectionReason     String?
+  
+  issuedAt            DateTime?         @default(now())
+  issuedBy            String?           // Nombre del usuario u operador que emitió
+  accreditedAt        DateTime?         // Momento de entrega física de la credencial
+  firstCheckInAt      DateTime?
+  lastCheckInAt       DateTime?
+  totalCheckIns       Int               @default(0)
+  
+  printCount          Int               @default(0)
+  lastPrintedAt       DateTime?
+  lastPrintedBy       String?
+  
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  checkInRecords      CheckInRecord[]
+
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([qrToken])
+  @@index([status])
+  @@index([codeNumber])
+}
+
+// 30. AccessPoint (Puertas, Sectores y Accesos del Evento)
+model AccessPoint {
+  id                 String            @id @default(cuid())
+  tenantId           String
+  tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventId            String
+  event              Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name               String            // "Entrada Principal", "Acceso VIP", "Prensa & Backstage"
+  code               String            // "GATE_1", "VIP_ACCESS", "BACKSTAGE"
+  locationDetails    String?           // "Puerta 3 - Acceso Norte"
+  sectorType         String            @default("MAIN") // MAIN, VIP, PRESS, BACKSTAGE, STAFF, VENDOR
+  active             Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  rules              AccessPointRule[]
+  checkInRecords     CheckInRecord[]
+  scannerDevices     ScannerDevice[]
+
+  @@unique([eventId, code])
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([code])
+}
+
+// 31. AccessPointRule (Matriz de permisos: qué categorías pueden entrar por qué puerta)
+model AccessPointRule {
+  id                  String            @id @default(cuid())
+  accessPointId       String
+  accessPoint         AccessPoint       @relation(fields: [accessPointId], references: [id], onDelete: Cascade)
+  accreditationTypeId String
+  accreditationType   AccreditationType @relation(fields: [accreditationTypeId], references: [id], onDelete: Cascade)
+  isAllowed           Boolean           @default(true)
+  allowedTimeStart    String?           // "08:00"
+  allowedTimeEnd      String?           // "20:00"
+  createdAt           DateTime          @default(now())
+
+  @@unique([accessPointId, accreditationTypeId])
+  @@index([accessPointId])
+  @@index([accreditationTypeId])
+}
+
+// 32. CheckInRecord (Historial inmutable de escaneos y accesos)
+model CheckInRecord {
+  id                  String             @id @default(cuid())
+  tenantId            String
+  tenant              Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventId             String
+  event               Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  accreditationId     String
+  accreditation       EventAccreditation @relation(fields: [accreditationId], references: [id], onDelete: Cascade)
+  participantId       String
+  participant         EventParticipant   @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  accessPointId       String?
+  accessPoint         AccessPoint?       @relation(fields: [accessPointId], references: [id], onDelete: SetNull)
+  eventDayId          String?
+  eventDay            EventDay?          @relation(fields: [eventDayId], references: [id], onDelete: SetNull)
+  
+  direction           String             @default("IN") // IN, OUT
+  status              String             // APPROVED, REJECTED, DUPLICATE, PENDING
+  rejectionReason     String?            // "ALREADY_CHECKED_IN", "INVALID_SECTOR", "OUT_OF_SCHEDULE", "BLOCKED", "INVALID_QR"
+  
+  scannedAt           DateTime           @default(now())
+  operatorId          String?            // ID de usuario operador
+  operatorName        String?            // Nombre del operador
+  deviceIdentifier    String?            // ID o descripción del dispositivo escáner
+  
+  isOfflineRecord     Boolean            @default(false)
+  syncedAt            DateTime?          // Fecha en que se sincronizó si fue offline
+  notes               String?
+  
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([accreditationId])
+  @@index([participantId])
+  @@index([accessPointId])
+  @@index([status])
+  @@index([scannedAt])
+}
+
+// 33. ScannerDevice (Dispositivos móviles y estaciones de escaneo autorizadas)
+model ScannerDevice {
+  id                 String       @id @default(cuid())
+  tenantId           String
+  tenant             Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventId            String
+  event              Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  accessPointId      String?
+  accessPoint        AccessPoint? @relation(fields: [accessPointId], references: [id], onDelete: SetNull)
+  name               String       // "Móvil Puerta 1", "Tablet VIP", "Láser Acceso A"
+  deviceToken        String       @unique // Token para autenticar el dispositivo de escaneo rápido
+  assignedToUser     String?      // Nombre del operador asignado
+  status             String       @default("ACTIVE") // ACTIVE, INACTIVE, REVOKED
+  lastActiveAt       DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([deviceToken])
+}
+
 
