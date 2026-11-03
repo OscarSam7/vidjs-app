@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { setGuestSessionCookie, getCurrentGuestSession } from "@/lib/auth/guest-session";
 import { realtimeBus } from "@/lib/realtime/event-bus";
+import { getRequestOrigin } from "@/lib/url";
 
 export async function GET(
   req: NextRequest,
@@ -18,7 +19,7 @@ export async function GET(
     },
   });
 
-  const baseUrl = new URL(req.url).origin;
+  const baseUrl = getRequestOrigin(req);
 
   if (!table || !table.active) {
     return NextResponse.redirect(`${baseUrl}/guest?error=table_not_found`);

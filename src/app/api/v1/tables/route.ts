@@ -5,6 +5,7 @@ import { requireTenantContext, requireRole } from "@/lib/auth/session";
 import { generateQrDataUrl, generateQrSvg } from "@/lib/qr/generator";
 import { handleApiError } from "@/lib/errors";
 import { assertTenantQuota } from "@/lib/billing/limits";
+import { getRequestOrigin } from "@/lib/url";
 
 const createTableSchema = z.object({
   venueId: z.string().min(1, "El local es obligatorio"),
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
     const { tenantId } = await requireTenantContext();
     const { searchParams } = new URL(req.url);
     const venueId = searchParams.get("venueId");
-    const origin = new URL(req.url).origin;
+    const origin = getRequestOrigin(req);
 
     const whereClause: any = { tenantId };
     if (venueId) {
@@ -179,7 +180,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const origin = new URL(req.url).origin;
+    const origin = getRequestOrigin(req);
     const qrUrl = `${origin}/qr/${newTable.qrToken}`;
     const qrDataUrl = await generateQrDataUrl(qrUrl);
 

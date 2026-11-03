@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { getRequestOrigin } from "@/lib/url";
 
 export async function GET(req: NextRequest) {
   try {
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
       orderBy: { orderIndex: "asc" },
     });
 
-    const origin = new URL(req.url).origin;
+    const origin = getRequestOrigin(req);
 
     // Construir contenido estándar M3U8
     let m3uContent = `#EXTM3U\n`;

@@ -8,6 +8,7 @@ import { getActiveFlashDeal } from "@/lib/pulse/flash-deals";
 import { parseQueuePolicy } from "@/lib/dj/rotation";
 import { searchYouTube } from "@/lib/youtube/search";
 import { realtimeBus } from "@/lib/realtime/event-bus";
+import { getRequestOrigin } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +87,7 @@ export async function GET(req: NextRequest) {
     });
 
     // 4. Generar código QR para proyectar en pantalla
-    const origin = new URL(req.url).origin;
+    const origin = getRequestOrigin(req);
     // URL amigable para escanear desde la TV
     const scanUrl = `${origin}/display/${code}/scan`;
     const qrDataUrl = await generateQrDataUrl(scanUrl);

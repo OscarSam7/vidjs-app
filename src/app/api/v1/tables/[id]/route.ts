@@ -5,6 +5,7 @@ import { requireTenantContext, requireRole } from "@/lib/auth/session";
 import { generateQrDataUrl, generateQrSvg } from "@/lib/qr/generator";
 import { handleApiError, NotFoundError } from "@/lib/errors";
 import { realtimeBus } from "@/lib/realtime/event-bus";
+import { getRequestOrigin } from "@/lib/url";
 
 const updateTableSchema = z.object({
   venueId: z.string().min(1, "El local es obligatorio").optional(),
@@ -38,7 +39,7 @@ export async function GET(
       throw new NotFoundError("Mesa no encontrada en este establecimiento");
     }
 
-    const origin = new URL(req.url).origin;
+    const origin = getRequestOrigin(req);
     const qrUrl = `${origin}/qr/${table.qrToken}`;
     const [qrDataUrl, qrSvg] = await Promise.all([
       generateQrDataUrl(qrUrl),
@@ -168,7 +169,7 @@ export async function PATCH(
       },
     });
 
-    const origin = new URL(req.url).origin;
+    const origin = getRequestOrigin(req);
     const qrUrl = `${origin}/qr/${updatedTable.qrToken}`;
     const [qrDataUrl, qrSvg] = await Promise.all([
       generateQrDataUrl(qrUrl),

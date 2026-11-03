@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { getCurrentGuestSession } from "@/lib/auth/guest-session";
+import { getRequestOrigin } from "@/lib/url";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
   const { code } = await params;
-  const baseUrl = new URL(req.url).origin;
+  const baseUrl = getRequestOrigin(req);
   const rawCode = code.toUpperCase();
 
   let baseCode = rawCode;

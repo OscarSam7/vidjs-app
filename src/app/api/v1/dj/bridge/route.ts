@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireTenantContext, requireRole } from "@/lib/auth/session";
 import { handleApiError, NotFoundError } from "@/lib/errors";
+import { getRequestOrigin } from "@/lib/url";
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
       throw new NotFoundError("No se encontró ningún evento activo");
     }
 
-    const origin = new URL(req.url).origin;
+    const origin = getRequestOrigin(req);
     const bridgeToken = `br_${event.code.toLowerCase()}_${event.pin || "live"}`;
 
     const [queueCount, pendingCount] = await Promise.all([
