@@ -3,6 +3,13 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAccreditation } from "@/lib/accreditation/context";
 import {
+  downloadEventOfflinePack,
+  isEventCachedOffline,
+  checkInOffline,
+  getOfflinePendingCount,
+  syncOfflineQueue,
+} from "@/lib/accreditation/offline-sync";
+import {
   ScanLine,
   Camera,
   CameraOff,
@@ -21,6 +28,10 @@ import {
   Calendar,
   X,
   Zap,
+  Wifi,
+  WifiOff,
+  Download,
+  UploadCloud,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -32,7 +43,6 @@ function playBeep(type: "APPROVED" | "REJECTED" | "DUPLICATE") {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     if (type === "APPROVED") {
-      // Pleasant high-pitched double chime
       const osc1 = ctx.createOscillator();
       const gain1 = ctx.createGain();
       osc1.type = "sine";
@@ -45,7 +55,6 @@ function playBeep(type: "APPROVED" | "REJECTED" | "DUPLICATE") {
       osc1.start();
       osc1.stop(ctx.currentTime + 0.25);
     } else if (type === "REJECTED") {
-      // Low saw-wave buzzer
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sawtooth";
@@ -58,7 +67,6 @@ function playBeep(type: "APPROVED" | "REJECTED" | "DUPLICATE") {
       osc.start();
       osc.stop(ctx.currentTime + 0.4);
     } else {
-      // Warning triple beep
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "triangle";
@@ -85,6 +93,16 @@ export default function AccessScannerPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
+  // Offline Engine State
+  const [offlineInfo, setOfflineInfo] = useState<{
+    cached: boolean;
+    downloadedAt?: string;
+    totalTickets?: number;
+  }>({ cached: false });
+  const [pendingOfflineCount, setPendingOfflineCount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isDownloadingPack, setIsDownloadingPack] = useState(false);
+
   // Scan Result State
   const [lastScan, setLastScan] = useState<{
     status: "APPROVED" | "REJECTED" | "DUPLICATE" | null;
@@ -93,6 +111,7 @@ export default function AccessScannerPage() {
     accessPoint?: any;
     rejectionReason?: string;
     timestamp?: string;
+    isOffline?: boolean;
   } | null>(null);
 
   // Session scan counter
@@ -119,7 +138,59 @@ export default function AccessScannerPage() {
       .catch(console.error);
   }, [activeEventId, selectedPointId]);
 
-  // Handle Verify QR Token
+  // Check offline cache status
+  const refreshOfflineStatus = useCallback(async () => {
+    if (!activeEventId) return;
+    const info = await isEventCachedOffline(activeEventId);
+    setOfflineInfo(info);
+    const count = await getOfflinePendingCount(activeEventId);
+    setPendingOfflineCount(count);
+  }, [activeEventId]);
+
+  useEffect(() => {
+    refreshOfflineStatus();
+  }, [refreshOfflineStatus]);
+
+  // Auto-sync when internet comes back online
+  useEffect(() => {
+    if (isOnline && activeEventId && pendingOfflineCount > 0) {
+      handleSyncNow();
+    }
+  }, [isOnline, activeEventId, pendingOfflineCount]);
+
+  // Download Offline Pack
+  const handleDownloadPack = async () => {
+    if (!activeEventId) return;
+    try {
+      setIsDownloadingPack(true);
+      await downloadEventOfflinePack(activeEventId);
+      await refreshOfflineStatus();
+      alert("¡Base local de acreditaciones descargada exitosamente en el navegador!");
+    } catch (err: any) {
+      alert(err.message || "Error al descargar paquete offline");
+    } finally {
+      setIsDownloadingPack(false);
+    }
+  };
+
+  // Sync Offline Queue
+  const handleSyncNow = async () => {
+    if (!activeEventId || isSyncing) return;
+    try {
+      setIsSyncing(true);
+      const res = await syncOfflineQueue(activeEventId);
+      await refreshOfflineStatus();
+      if (res.syncedCount > 0) {
+        alert(res.message);
+      }
+    } catch (err: any) {
+      console.error("Error syncing offline queue:", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Handle Verify QR Token (with automatic offline fallback)
   const handleVerifyScan = useCallback(
     async (tokenOrCode: string) => {
       const cleanToken = tokenOrCode.trim();
@@ -127,6 +198,28 @@ export default function AccessScannerPage() {
 
       try {
         setIsProcessing(true);
+
+        // If offline mode, perform local check directly
+        if (!isOnline) {
+          const offlineRes = await checkInOffline(activeEventId, cleanToken, selectedPointId);
+          if (soundEnabled) playBeep(offlineRes.status);
+          if (offlineRes.status === "APPROVED") setSessionCount((p) => p + 1);
+
+          setLastScan({
+            status: offlineRes.status,
+            message: offlineRes.message,
+            participant: offlineRes.participant,
+            rejectionReason: offlineRes.rejectionReason,
+            timestamp: new Date().toLocaleTimeString("es-PY"),
+            isOffline: true,
+          });
+
+          await refreshOfflineStatus();
+          setManualCode("");
+          return;
+        }
+
+        // Online mode: attempt server validation
         const res = await fetch("/api/v1/accreditation/checkin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -156,30 +249,41 @@ export default function AccessScannerPage() {
           accessPoint: data.accessPoint,
           rejectionReason: data.rejectionReason,
           timestamp: new Date().toLocaleTimeString("es-PY"),
+          isOffline: false,
         });
 
         setManualCode("");
       } catch (err: any) {
-        if (soundEnabled) playBeep("REJECTED");
+        // Network error during online attempt: Fallback to local offline check!
+        console.warn("Network error during scan, falling back to local offline check:", err);
+        const offlineRes = await checkInOffline(activeEventId, cleanToken, selectedPointId);
+        if (soundEnabled) playBeep(offlineRes.status);
+        if (offlineRes.status === "APPROVED") setSessionCount((p) => p + 1);
+
         setLastScan({
-          status: "REJECTED",
-          message: err.message || "Error al conectar con el servidor",
+          status: offlineRes.status,
+          message: `${offlineRes.message} (Fallo de red detectado)`,
+          participant: offlineRes.participant,
+          rejectionReason: offlineRes.rejectionReason,
           timestamp: new Date().toLocaleTimeString("es-PY"),
+          isOffline: true,
         });
+
+        await refreshOfflineStatus();
+        setManualCode("");
       } finally {
         setIsProcessing(false);
       }
     },
-    [activeEventId, selectedPointId, isProcessing, soundEnabled]
+    [activeEventId, selectedPointId, isProcessing, soundEnabled, isOnline, refreshOfflineStatus]
   );
 
-  // Laser barcode scanner gun keyboard listener (rapid keystrokes followed by Enter)
+  // Laser barcode scanner gun keyboard listener
   const barcodeBufferRef = useRef<string>("");
   const lastKeyTimeRef = useRef<number>(0);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept if user is typing in an input
       if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") {
         return;
       }
@@ -195,7 +299,6 @@ export default function AccessScannerPage() {
         }
       } else if (e.key.length === 1) {
         if (diff > 200) {
-          // Reset buffer if delay between keystrokes was too long (human typing)
           barcodeBufferRef.current = e.key;
         } else {
           barcodeBufferRef.current += e.key;
@@ -234,7 +337,7 @@ export default function AccessScannerPage() {
     setIsCameraActive(false);
   };
 
-  // Continuous Camera QR scanning using BarcodeDetector if available in browser
+  // Continuous Camera QR scanning using BarcodeDetector if available
   useEffect(() => {
     let animId: number;
     let detector: any = null;
@@ -276,7 +379,7 @@ export default function AccessScannerPage() {
   }, [isCameraActive, isProcessing, handleVerifyScan]);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-5 max-w-5xl mx-auto">
       {/* Top Banner with Gate Selector & Session Stats */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0F1E36] border border-[#263858] rounded-2xl p-5 shadow-lg">
         <div>
@@ -294,7 +397,7 @@ export default function AccessScannerPage() {
             Control de Acceso & Escáner QR de Alta Velocidad
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Compatible con cámaras de celular, tablets, computadoras y lectores de código láser USB/Bluetooth
+            Compatible con cámaras, lectores láser USB/Bluetooth y resiliencia offline ante cortes de red
           </p>
         </div>
 
@@ -339,6 +442,66 @@ export default function AccessScannerPage() {
             </span>
             <strong className="text-emerald-400 font-mono text-base">{sessionCount}</strong>
           </div>
+        </div>
+      </div>
+
+      {/* Offline Management Bar (Fase 11) */}
+      <div className="bg-[#0F1E36] border border-[#263858] rounded-xl p-3 flex flex-wrap items-center justify-between text-xs gap-3">
+        <div className="flex items-center gap-2.5">
+          <div
+            className={cn(
+              "flex items-center gap-1.5 px-2 py-0.5 rounded-lg font-mono text-[11px] font-bold border",
+              isOnline
+                ? "bg-emerald-950 text-emerald-300 border-emerald-800"
+                : "bg-amber-950 text-amber-300 border-amber-800 animate-pulse"
+            )}
+          >
+            {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+            <span>{isOnline ? "ONLINE" : "OFFLINE"}</span>
+          </div>
+
+          <span className="text-slate-300">
+            {offlineInfo.cached ? (
+              <span>
+                Copia local lista: <strong className="text-purple-300">{offlineInfo.totalTickets}</strong> acreditaciones
+              </span>
+            ) : (
+              <span className="text-slate-400">Sin datos locales para contingencia</span>
+            )}
+          </span>
+
+          {pendingOfflineCount > 0 && (
+            <span className="bg-amber-950 text-amber-300 px-2 py-0.5 rounded border border-amber-800 font-mono font-bold">
+              {pendingOfflineCount} pendientes de sincronizar
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {pendingOfflineCount > 0 && isOnline && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncNow}
+              disabled={isSyncing}
+              className="border-amber-700 text-amber-300 text-xs flex items-center gap-1"
+            >
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>{isSyncing ? "Sincronizando..." : `Sincronizar (${pendingOfflineCount})`}</span>
+            </Button>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadPack}
+            disabled={isDownloadingPack || !isOnline}
+            className="border-[#263858] text-slate-300 hover:text-white text-xs flex items-center gap-1.5"
+            title="Descarga la lista autorizada a la memoria del navegador para seguir validando si se corta internet"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>{isDownloadingPack ? "Descargando..." : "Descargar para Offline"}</span>
+          </Button>
         </div>
       </div>
 
@@ -460,18 +623,26 @@ export default function AccessScannerPage() {
             <div className="bg-emerald-950/40 border-2 border-emerald-500 rounded-2xl p-6 shadow-2xl space-y-4 animate-fade-in relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
 
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center text-slate-950 shadow-lg shrink-0">
-                  <CheckCircle2 className="w-8 h-8" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center text-slate-950 shadow-lg shrink-0">
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-mono font-extrabold uppercase tracking-widest text-emerald-400">
+                      ACCESO AUTORIZADO
+                    </span>
+                    <h3 className="text-2xl font-black text-white">
+                      {lastScan.participant?.firstName} {lastScan.participant?.lastName}
+                    </h3>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[11px] font-mono font-extrabold uppercase tracking-widest text-emerald-400">
-                    ACCESO AUTORIZADO
+
+                {lastScan.isOffline && (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-mono font-bold">
+                    VALIDADO OFFLINE
                   </span>
-                  <h3 className="text-2xl font-black text-white">
-                    {lastScan.participant?.firstName} {lastScan.participant?.lastName}
-                  </h3>
-                </div>
+                )}
               </div>
 
               {/* Category & Details */}
@@ -499,7 +670,7 @@ export default function AccessScannerPage() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-400">Documento:</span>
                   <span className="font-mono text-slate-200">
-                    {lastScan.participant?.documentType}: {lastScan.participant?.documentNumber}
+                    {lastScan.participant?.documentType || "CI"}: {lastScan.participant?.documentNumber}
                   </span>
                 </div>
 
@@ -521,18 +692,26 @@ export default function AccessScannerPage() {
           ) : lastScan.status === "DUPLICATE" ? (
             // Card AMARILLO: Duplicado / Ya Ingresó (Fase 7)
             <div className="bg-amber-950/40 border-2 border-amber-500 rounded-2xl p-6 shadow-2xl space-y-4 animate-fade-in relative">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center text-slate-950 shadow-lg shrink-0">
-                  <AlertTriangle className="w-8 h-8" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center text-slate-950 shadow-lg shrink-0">
+                    <AlertTriangle className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-mono font-extrabold uppercase tracking-widest text-amber-400">
+                      ¡ATENCIÓN! ACCESO YA REGISTRADO
+                    </span>
+                    <h3 className="text-xl font-bold text-white">
+                      {lastScan.participant?.firstName} {lastScan.participant?.lastName}
+                    </h3>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[11px] font-mono font-extrabold uppercase tracking-widest text-amber-400">
-                    ¡ATENCIÓN! ACCESO YA REGISTRADO
+
+                {lastScan.isOffline && (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-mono font-bold">
+                    DETECTADO OFFLINE
                   </span>
-                  <h3 className="text-xl font-bold text-white">
-                    {lastScan.participant?.firstName} {lastScan.participant?.lastName}
-                  </h3>
-                </div>
+                )}
               </div>
 
               <div className="p-3.5 bg-[#0A1322] border border-amber-800/80 rounded-xl space-y-1.5 text-xs">
