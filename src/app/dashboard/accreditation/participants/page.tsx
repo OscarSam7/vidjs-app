@@ -55,6 +55,9 @@ export default function ParticipantsPage() {
   const [editingParticipant, setEditingParticipant] = useState<any | null>(null);
   const [qrModalParticipant, setQrModalParticipant] = useState<any | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
+  const [isSendingAllEmails, setIsSendingAllEmails] = useState(false);
+  const [emailStatusMsg, setEmailStatusMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Load Categories & Organizations
   useEffect(() => {
@@ -160,6 +163,67 @@ export default function ParticipantsPage() {
     }
   };
 
+  // Enviar credencial QR por correo electrónico individual
+  const handleSendEmail = async (participantId: string, email: string) => {
+    if (!activeEventId) return;
+    setSendingEmailId(participantId);
+    setEmailStatusMsg(null);
+    try {
+      const res = await fetch("/api/v1/accreditation/badges/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: activeEventId,
+          participantIds: [participantId],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setEmailStatusMsg({ type: "error", text: data.message || "Error al despachar correo" });
+      } else {
+        setEmailStatusMsg({ type: "success", text: `Credencial enviada con éxito a ${email}` });
+      }
+    } catch {
+      setEmailStatusMsg({ type: "error", text: "Error de red al despachar correo" });
+    } finally {
+      setSendingEmailId(null);
+    }
+  };
+
+  // Enviar credenciales QR masivas por correo electrónico
+  const handleSendAllEmails = async () => {
+    if (!activeEventId) return;
+    const withEmail = participants.filter((p) => p.email && p.email.includes("@"));
+    if (withEmail.length === 0) {
+      alert("No hay participantes con dirección de correo electrónico en la lista");
+      return;
+    }
+    if (!confirm(`¿Deseas enviar las credenciales QR por correo electrónico a ${withEmail.length} participantes?`)) return;
+
+    setIsSendingAllEmails(true);
+    setEmailStatusMsg(null);
+    try {
+      const res = await fetch("/api/v1/accreditation/badges/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: activeEventId,
+          participantIds: withEmail.map((p) => p.id),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setEmailStatusMsg({ type: "error", text: data.message || "Error al despachar lote" });
+      } else {
+        setEmailStatusMsg({ type: "success", text: data.message });
+      }
+    } catch {
+      setEmailStatusMsg({ type: "error", text: "Error de red al despachar lote de correos" });
+    } finally {
+      setIsSendingAllEmails(false);
+    }
+  };
+
   // Export CSV
   const handleExportCsv = () => {
     if (participants.length === 0) return;
@@ -254,6 +318,18 @@ export default function ParticipantsPage() {
           <Button
             variant="outline"
             size="sm"
+            onClick={handleSendAllEmails}
+            disabled={isSendingAllEmails || participants.length === 0}
+            className="border-emerald-700/60 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/60 hover:text-emerald-200 text-xs flex items-center gap-1.5"
+            title="Enviar credenciales QR por correo a todos los participantes con email registrado"
+          >
+            {isSendingAllEmails ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+            <span>{isSendingAllEmails ? "Despachando..." : "Enviar QRs por Email"}</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleExportCsv}
             disabled={participants.length === 0}
             className="border-[#263858] text-slate-300 hover:text-white text-xs flex items-center gap-1.5"
@@ -286,6 +362,32 @@ export default function ParticipantsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Email Status Alert */}
+      {emailStatusMsg && (
+        <div
+          className={`p-3.5 rounded-xl border text-xs flex items-center justify-between ${
+            emailStatusMsg.type === "success"
+              ? "bg-emerald-950/60 border-emerald-700/80 text-emerald-200"
+              : "bg-red-950/60 border-red-700/80 text-red-200"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {emailStatusMsg.type === "success" ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+            )}
+            <span>{emailStatusMsg.text}</span>
+          </div>
+          <button
+            onClick={() => setEmailStatusMsg(null)}
+            className="text-slate-400 hover:text-white text-xs px-2 py-0.5"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Filter Bar */}
       <div className="bg-[#0F1E36] border border-[#263858] rounded-xl p-3.5 flex flex-col md:flex-row items-center gap-3">
@@ -536,6 +638,29 @@ export default function ParticipantsPage() {
                       {/* Actions */}
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSendEmail(p.id, p.email)}
+                            disabled={!p.email || sendingEmailId === p.id}
+                            className={`p-1.5 ${
+                              p.email
+                                ? "text-slate-400 hover:text-emerald-400"
+                                : "text-slate-600 cursor-not-allowed opacity-40"
+                            }`}
+                            title={
+                              p.email
+                                ? `Enviar credencial con QR por correo a ${p.email}`
+                                : "Sin correo electrónico registrado"
+                            }
+                          >
+                            {sendingEmailId === p.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                            ) : (
+                              <Mail className="w-3.5 h-3.5" />
+                            )}
+                          </Button>
+
                           <Button
                             variant="ghost"
                             size="sm"

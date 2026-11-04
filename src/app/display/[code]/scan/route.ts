@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { getCurrentGuestSession } from "@/lib/auth/guest-session";
-import { getRequestOrigin } from "@/lib/url";
+import { getRequestOrigin, sanitizePublicUrl } from "@/lib/url";
 
 export async function GET(
   req: NextRequest,
@@ -34,7 +34,7 @@ export async function GET(
   ) {
     const guestUrl = new URL(`${baseUrl}/guest`);
     if (targetMode) guestUrl.searchParams.set("mode", targetMode);
-    return NextResponse.redirect(guestUrl.toString());
+    return NextResponse.redirect(sanitizePublicUrl(guestUrl.toString(), req));
   }
 
   // 2. Buscar evento y redirigir al selector de mesa del salón
@@ -49,9 +49,9 @@ export async function GET(
   }
 
   if (!event || event.status !== "ACTIVE") {
-    return NextResponse.redirect(`${baseUrl}/guest?error=no_active_event`);
+    return NextResponse.redirect(sanitizePublicUrl(`${baseUrl}/guest?error=no_active_event`, req));
   }
 
-  return NextResponse.redirect(`${baseUrl}/display/${rawCode}/tables`);
+  return NextResponse.redirect(sanitizePublicUrl(`${baseUrl}/display/${rawCode}/tables`, req));
 }
 

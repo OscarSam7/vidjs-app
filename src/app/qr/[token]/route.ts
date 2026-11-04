@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { setGuestSessionCookie, getCurrentGuestSession } from "@/lib/auth/guest-session";
 import { realtimeBus } from "@/lib/realtime/event-bus";
-import { getRequestOrigin } from "@/lib/url";
+import { getRequestOrigin, sanitizePublicUrl } from "@/lib/url";
 
 export async function GET(
   req: NextRequest,
@@ -22,11 +22,11 @@ export async function GET(
   const baseUrl = getRequestOrigin(req);
 
   if (!table || !table.active) {
-    return NextResponse.redirect(`${baseUrl}/guest?error=table_not_found`);
+    return NextResponse.redirect(sanitizePublicUrl(`${baseUrl}/guest?error=table_not_found`, req));
   }
 
   if (table.tenant.status !== "ACTIVE") {
-    return NextResponse.redirect(`${baseUrl}/guest?error=tenant_inactive`);
+    return NextResponse.redirect(sanitizePublicUrl(`${baseUrl}/guest?error=tenant_inactive`, req));
   }
 
   // 2. Buscar evento activo en esta sede
@@ -41,9 +41,12 @@ export async function GET(
   if (!activeEvent) {
     // Redirigir a vista informando que no hay evento activo
     return NextResponse.redirect(
-      `${baseUrl}/guest?error=no_active_event&venue=${encodeURIComponent(
-        table.venue.name
-      )}&table=${encodeURIComponent(table.label)}`
+      sanitizePublicUrl(
+        `${baseUrl}/guest?error=no_active_event&venue=${encodeURIComponent(
+          table.venue.name
+        )}&table=${encodeURIComponent(table.label)}`,
+        req
+      )
     );
   }
 
@@ -166,6 +169,6 @@ export async function GET(
     }
   }
 
-  return NextResponse.redirect(redirectUrl.toString());
+  return NextResponse.redirect(sanitizePublicUrl(redirectUrl.toString(), req));
 }
 

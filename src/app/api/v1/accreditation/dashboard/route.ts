@@ -9,7 +9,9 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const eventId = searchParams.get("eventId");
 
-    if (!eventId) {
+    let resolvedEventId = eventId;
+
+    if (!resolvedEventId) {
       // Find default active event if none passed
       const firstEvent = await prisma.event.findFirst({
         where: { tenantId },
@@ -27,13 +29,11 @@ export async function GET(req: NextRequest) {
           hourlyCheckIns: [],
         });
       }
-      return NextResponse.redirect(
-        new URL(`/api/v1/accreditation/dashboard?eventId=${firstEvent.id}`, req.url)
-      );
+      resolvedEventId = firstEvent.id;
     }
 
     const event = await prisma.event.findFirst({
-      where: { id: eventId, tenantId },
+      where: { id: resolvedEventId, tenantId },
       include: {
         accreditationTypes: {
           orderBy: { orderIndex: "asc" },
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
 
     // 1. Fetch accreditations breakdown
     const accreditations = await prisma.eventAccreditation.findMany({
-      where: { eventId, tenantId },
+      where: { eventId: resolvedEventId, ...(tenantId ? { tenantId } : {}) },
       select: {
         id: true,
         status: true,
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
     });
 
     const totalParticipants = await prisma.eventParticipant.count({
-      where: { eventId, tenantId },
+      where: { eventId: resolvedEventId, ...(tenantId ? { tenantId } : {}) },
     });
 
     const totalAccredited = accreditations.filter(
@@ -110,7 +110,7 @@ export async function GET(req: NextRequest) {
 
     // 3. Fetch recent 15 check-ins
     const recentCheckInsRaw = await prisma.checkInRecord.findMany({
-      where: { eventId, tenantId },
+      where: { eventId: resolvedEventId, ...(tenantId ? { tenantId } : {}) },
       orderBy: { scannedAt: "desc" },
       take: 15,
       include: {
@@ -138,7 +138,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const recentCheckIns = recentCheckInsRaw.map((r) => ({
+    const recentCheckIns = recentCheckInsRaw.map((r: any) => ({
       id: r.id,
       status: r.status,
       scannedAt: r.scannedAt,
@@ -151,7 +151,7 @@ export async function GET(req: NextRequest) {
 
     // 4. Ingress by hour (last 24 hours of activity)
     const checkInTimes = await prisma.checkInRecord.findMany({
-      where: { eventId, tenantId, status: "APPROVED" },
+      where: { eventId: resolvedEventId, ...(tenantId ? { tenantId } : {}), status: "APPROVED" },
       select: { scannedAt: true },
       orderBy: { scannedAt: "asc" },
     });
