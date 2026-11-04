@@ -18,7 +18,13 @@ import {
   ShieldCheck,
   Zap,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Ticket,
+  PartyPopper,
+  Gift,
+  Building,
+  ScanLine,
+  WifiOff,
 } from "lucide-react";
 
 export function ShowcaseModules() {
@@ -26,7 +32,9 @@ export function ShowcaseModules() {
   const [selectedModuleIndex, setSelectedModuleIndex] = useState<number>(0);
 
   const categories = [
-    { id: "all", label: "Todos los Módulos (7)" },
+    { id: "all", label: "Todos los Módulos (9)" },
+    { id: "events", label: "🎟️ Acreditaciones & Accesos" },
+    { id: "reservations", label: "🍾 Reservas & Camarotes VIP" },
     { id: "audio", label: "🎧 DJ & Audio Pro" },
     { id: "karaoke", label: "🎤 Karaoke & Concursos" },
     { id: "monetization", label: "💰 Monetización & Mesas" },
@@ -210,6 +218,60 @@ export function ShowcaseModules() {
         "Paz mental para el dueño o gerente. Puedes supervisar la operación del boliche o bar desde tu celular mientras viajas o descansas.",
       stats: { label: "Auditoría en Tiempo Real", value: "100% Rastreado" },
     },
+    {
+      id: "accreditation-access",
+      category: "events",
+      title: "Acreditaciones & Control de Acceso QR (RedTicket Pro)",
+      badge: "ALTA SEGURIDAD CRIPTOGRÁFICA",
+      badgeColor: "bg-emerald-950/80 text-emerald-300 border-emerald-800/60",
+      accentColor: "from-emerald-600 to-teal-600",
+      icon: Ticket,
+      directHref: "/dashboard/accreditation",
+      directLabel: "Ver Módulo de Acreditaciones",
+      tagline: "Gestión masiva de congresos, ferias, conciertos y boliches con QR anti-fraude y modo offline.",
+      description:
+        "Inspirado en la potencia de RedTicket Pro pero 100% nativo en la nube de VIDJSPRO. Permite emitir credenciales térmicas, etiquetas o PVC para miles de participantes por categorías (VIP, Prensa, Staff, Disertante, General). Incluye escáner QR de puerta con cámara web/celular, validación en milisegundos, feedback sonoro y sincronización offline en IndexedDB que sigue operando incluso si se corta internet.",
+      features: [
+        "Dashboard en tiempo real con aforo por puerta, sector y categoría",
+        "Códigos QR únicos con firma criptográfica HMAC-SHA256 (imposibles de clonar o adivinar)",
+        "Escáner QR de alta velocidad con respuesta visual (Verde/Rojo/Amarillo) y tonos audibles",
+        "Modo Offline Resiliente (Fase 11): valida localmente y sincroniza por lotes al reconectar",
+        "Diseñador de credenciales personalizables e impresión térmica, PVC o A4 individual/masiva",
+        "Portal de auto-registro público (/accreditation/[code]/register) con validación automática",
+        "Despacho masivo por correo electrónico con credencial digital adjunta",
+        "Matriz de accesos y puertas (VIP, Escenario, Prensa, Acceso Principal)",
+      ],
+      businessValue:
+        "Elimina las filas eternas en la entrada, previene el ingreso de colados o credenciales duplicadas y reduce en un 80% los costos de impresión física y logística de acreditación en eventos de cualquier escala.",
+      stats: { label: "Velocidad de Escaneo", value: "< 0.2 Segundos" },
+    },
+    {
+      id: "vip-reservations-decorations",
+      category: "reservations",
+      title: "Reservas de Camarotes VIP & Paquetes con Fotos de Decoración",
+      badge: "ALTO VALOR COMERCIAL",
+      badgeColor: "bg-pink-950/80 text-pink-300 border-pink-800/60",
+      accentColor: "from-pink-600 to-purple-600",
+      icon: PartyPopper,
+      directHref: "/reservas",
+      directLabel: "Ver Portal de Reservas",
+      tagline: "Venta anticipada de mesas VIP y combos de cumpleaños con elección fotográfica de ambientación.",
+      description:
+        "Monetiza las noches de tu local días antes de abrir puertas. Los clientes eligen su paquete VIP (con 100% consumo acreditable en barra, alquiler limpio o combo cerrado de botellas) y seleccionan visualmente la decoración de su mesa (Neón Glow, Elegance Dorado, Glamour Rosa) viendo fotos reales del montaje. Además, los cumpleañeros suben su foto para ser proyectada en la pantalla gigante de TV durante el brindis.",
+      features: [
+        "Portal público mobile-first sin fricción (/reservas) con selección por fecha y ocasión",
+        "Galería interactiva de opciones de decoración con fotos reales en alta definición",
+        "Modalidades flexibles: 100% Consumo Acreditable, Combo Cerrado o Alquiler Limpio",
+        "Subida de foto del homenajeado para saludo y proyección en Smart TV (/display)",
+        "Pasarela para transferencias bancarias (SIPAP / PIX) con copiado rápido y subida de comprobante",
+        "Invitaciones virales por WhatsApp (/r/[inviteToken]): cada amigo genera su propio pase QR individual",
+        "Panel gerencial con cola de revisión de comprobantes y aprobación de pagos en 1 clic",
+        "Historial y auditoría de consumos y créditos restantes en cada camarote",
+      ],
+      businessValue:
+        "Asegura ingresos récord garantizados antes del fin de semana. Un camarote reservado con combo de cumpleaños o consumo mínimo garantiza entre $150 y $1.200 USD de facturación segura por mesa.",
+      stats: { label: "Ingresos Anticipados", value: "100% Cobrado Antes" },
+    },
   ];
 
   const filteredModules =
@@ -239,7 +301,7 @@ export function ShowcaseModules() {
             </span>
           </h2>
           <p className="mt-4 text-base sm:text-lg text-zinc-300">
-            Descubre en detalle cada una de las 7 herramientas integradas que hacen de Vidjs Pro la plataforma líder del mercado nocturno.
+            Descubre en detalle cada una de las 9 herramientas integradas que hacen de Vidjs Pro la plataforma líder del mercado nocturno.
           </p>
 
           {/* Filtros de Categoría */}
@@ -268,7 +330,7 @@ export function ShowcaseModules() {
         </div>
 
         {/* Selector de Módulos (Pestañas horizontales interactivas) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 mb-10">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2.5 mb-10">
           {modules.map((m, idx) => {
             const Icon = m.icon;
             const isSelected = selectedModuleIndex === idx;

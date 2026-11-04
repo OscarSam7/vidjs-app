@@ -285,6 +285,16 @@ export default function ShowcasePage() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/dashboard/accreditation" className="hover:text-teal-300 transition-colors">
+                    Acreditaciones QR (RedTicket)
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/reservas" className="hover:text-rose-300 transition-colors">
+                    Reservas VIP & Cumpleaños
+                  </Link>
+                </li>
+                <li>
                   <Link href="/dashboard/contest" className="hover:text-cyan-300 transition-colors">
                     Concursos & Super Votos
                   </Link>

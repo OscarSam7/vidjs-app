@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp, Users, Clock, ShieldCheck, DollarSign, Sparkles } from "lucide-react";
+import { TrendingUp, Users, Clock, ShieldCheck, DollarSign, Sparkles, Ticket, PartyPopper } from "lucide-react";
 
 export function ShowcaseMetrics() {
   const metrics = [
@@ -17,6 +17,20 @@ export function ShowcaseMetrics() {
       label: "Mayor Tiempo de Permanencia",
       description: "Los grupos se quedan hasta 2 horas más en el local esperando su turno de karaoke o tema pedido.",
       accent: "from-cyan-500/20 to-cyan-950/40 text-cyan-400 border-cyan-500/30",
+    },
+    {
+      icon: Ticket,
+      value: "< 0.2s",
+      label: "Validación de Acceso QR en Puerta",
+      description: "Escaneo criptográfico HMAC-SHA256 con feedback sonoro y modo offline resiliente (IndexedDB).",
+      accent: "from-teal-500/20 to-teal-950/40 text-teal-400 border-teal-500/30",
+    },
+    {
+      icon: PartyPopper,
+      value: "100%",
+      label: "Cobro Anticipado de Camarotes VIP",
+      description: "Mesas vendidas antes de abrir puertas con transferencias SIPAP/PIX y selección de fotos de decoración.",
+      accent: "from-rose-500/20 to-rose-950/40 text-rose-400 border-rose-500/30",
     },
     {
       icon: Users,
@@ -50,7 +64,7 @@ export function ShowcaseMetrics() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {metrics.map((item, idx) => {
             const Icon = item.icon;
             return (

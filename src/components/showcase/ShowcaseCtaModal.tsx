@@ -14,6 +14,7 @@ export function ShowcaseCtaModal({ isOpen, onClose }: ShowcaseCtaModalProps) {
   const [city, setCity] = useState("");
   const [phone, setPhone] = useState("");
   const [tables, setTables] = useState("20-30 mesas");
+  const [interest, setInterest] = useState("Ecosistema Completo (DJ, Karaoke, Accesos y Reservas)");
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   if (!isOpen) return null;
@@ -24,7 +25,8 @@ export function ShowcaseCtaModal({ isOpen, onClose }: ShowcaseCtaModalProps) {
 - Local: ${venueName || "Mi Establecimiento"}
 - Contacto: ${contactName || "Gerencia"}
 - Ciudad: ${city || "Latinoamérica"}
-- Mesas: ${tables}
+- Mesas / Capacidad: ${tables}
+- Interés Principal: ${interest}
 ¿Podríamos coordinar una demostración guiada del sistema y conocer las opciones de suscripción?`
     );
     // Número comercial o enlace directo
@@ -167,6 +169,33 @@ export function ShowcaseCtaModal({ isOpen, onClose }: ShowcaseCtaModalProps) {
                     <option value="Más de 60 mesas (Mega Club)">Más de 60 mesas (Mega Club)</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
+                  Módulo de Mayor Interés
+                </label>
+                <select
+                  value={interest}
+                  onChange={(e) => setInterest(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-sm text-white focus:outline-none focus:border-cyan-400"
+                >
+                  <option value="Ecosistema Completo (DJ, Karaoke, Accesos y Reservas)">
+                    🌟 Ecosistema Completo (Todas las Soluciones)
+                  </option>
+                  <option value="Acreditaciones & Control de Acceso QR Offline (RedTicket Pro)">
+                    🎟️ Acreditaciones & Control de Acceso QR Offline
+                  </option>
+                  <option value="Reservas de Camarotes VIP & Cumpleaños con Fotos">
+                    🍾 Reservas de Camarotes VIP & Paquetes con Fotos
+                  </option>
+                  <option value="Cabina Virtual DJ HD & Streaming">
+                    🎧 Cabina Virtual DJ HD & Streaming
+                  </option>
+                  <option value="Karaoke 'Canta y Libera' & Super Votos en Barra">
+                    🎤 Karaoke Anti-Monopolio & Super Votos
+                  </option>
+                </select>
               </div>
 
               {/* Botón enviar por WhatsApp */}

@@ -12,7 +12,9 @@ import {
   Tv, 
   TrendingUp, 
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  Ticket,
+  PartyPopper
 } from "lucide-react";
 
 interface ShowcaseHeroProps {
@@ -57,8 +59,8 @@ export function ShowcaseHero({ onOpenDemoModal, onScrollToSection }: ShowcaseHer
         {/* Subtítulo enfocado en Valor de Negocio y Rentabilidad */}
         <p className="mt-6 text-lg sm:text-xl text-zinc-300 max-w-3xl mx-auto font-normal leading-relaxed">
           Digitaliza tu cabina con <span className="text-cyan-300 font-semibold">Virtual DJ HD en la nube</span>, 
-          dispara el consumo en barra con <span className="text-purple-300 font-semibold">Karaokes interactivos y Super Votos</span>, 
-          y proyecta pantallas gigantes sincronizadas <span className="text-emerald-300 font-semibold">sin instalar ninguna app</span>.
+          asegura ingresos anticipados con <span className="text-pink-300 font-semibold">Reservas VIP y Fotos de Decoración</span>, 
+          y blinda la puerta con <span className="text-emerald-300 font-semibold">Acreditaciones QR Offline en 0.2s</span>.
         </p>
 
         {/* Pilares Clave Rápidos */}
@@ -70,6 +72,14 @@ export function ShowcaseHero({ onOpenDemoModal, onScrollToSection }: ShowcaseHer
           <div className="flex items-center gap-1.5 bg-zinc-900/60 px-3 py-1 rounded-full border border-zinc-800">
             <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
             <span>Dual Deck DJ con Video Streaming</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-zinc-900/60 px-3 py-1 rounded-full border border-zinc-800">
+            <CheckCircle2 className="w-4 h-4 text-teal-400 shrink-0" />
+            <span>Control de Acceso QR Offline HMAC</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-zinc-900/60 px-3 py-1 rounded-full border border-zinc-800">
+            <CheckCircle2 className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>Reservas VIP & Fotos de Decoración</span>
           </div>
           <div className="flex items-center gap-1.5 bg-zinc-900/60 px-3 py-1 rounded-full border border-zinc-800">
             <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" />
@@ -107,8 +117,8 @@ export function ShowcaseHero({ onOpenDemoModal, onScrollToSection }: ShowcaseHer
           </button>
         </div>
 
-        {/* Tarjetas Flotantes de Acceso Rápido a los 4 Entornos del Sistema */}
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 max-w-5xl mx-auto">
+        {/* Tarjetas Flotantes de Acceso Rápido a los 6 Entornos del Ecosistema */}
+        <div className="mt-16 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 max-w-7xl mx-auto">
           <Link
             href="/dashboard/dj"
             className="p-4 rounded-2xl bg-zinc-900/70 border border-purple-500/30 hover:border-purple-500/80 hover:bg-purple-950/20 text-left transition-all group backdrop-blur-sm"
@@ -125,7 +135,7 @@ export function ShowcaseHero({ onOpenDemoModal, onScrollToSection }: ShowcaseHer
               Cabina Virtual DJ
             </div>
             <div className="text-[11px] text-zinc-400 mt-1 line-clamp-2">
-              Doble bandeja YouTube HD, crossfader, loops y sincronización armónica de tonos.
+              Doble bandeja YouTube HD, crossfader y sincronización armónica de tonos.
             </div>
           </Link>
 
@@ -145,7 +155,7 @@ export function ShowcaseHero({ onOpenDemoModal, onScrollToSection }: ShowcaseHer
               Karaoke Canta y Libera
             </div>
             <div className="text-[11px] text-zinc-400 mt-1 line-clamp-2">
-              Turnos rotativos anti-monopolio, dedicatorias en vivo y control de tonalidad.
+              Turnos rotativos anti-monopolio, dedicatorias y control de tonalidad.
             </div>
           </Link>
 
@@ -165,7 +175,7 @@ export function ShowcaseHero({ onOpenDemoModal, onScrollToSection }: ShowcaseHer
               Portal Comensales QR
             </div>
             <div className="text-[11px] text-zinc-400 mt-1 line-clamp-2">
-              Peticiones musicales, propinas al DJ y Super Votos con consumo mínimo por mesa.
+              Peticiones musicales, propinas al DJ y Super Votos con consumo por mesa.
             </div>
           </Link>
 
@@ -185,7 +195,47 @@ export function ShowcaseHero({ onOpenDemoModal, onScrollToSection }: ShowcaseHer
               Pantalla TV & Display
             </div>
             <div className="text-[11px] text-zinc-400 mt-1 line-clamp-2">
-              Visualizadores dinámicos, publicidad de sponsors y letras de karaoke en tiempo real.
+              Visualizadores dinámicos, publicidad de sponsors y letras sincronizadas.
+            </div>
+          </Link>
+
+          <Link
+            href="/dashboard/accreditation"
+            className="p-4 rounded-2xl bg-zinc-900/70 border border-teal-500/30 hover:border-teal-500/80 hover:bg-teal-950/20 text-left transition-all group backdrop-blur-sm"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-10 h-10 rounded-xl bg-teal-500/20 flex items-center justify-center text-teal-400 group-hover:scale-110 transition-transform">
+                <Ticket className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] font-mono font-bold text-teal-300 bg-teal-950/60 px-2 py-0.5 rounded border border-teal-800/50">
+                REDTICKET PRO
+              </span>
+            </div>
+            <div className="font-bold text-white text-sm group-hover:text-teal-300 transition-colors">
+              Control de Acceso QR
+            </div>
+            <div className="text-[11px] text-zinc-400 mt-1 line-clamp-2">
+              Escaneo offline en 0.2s, credenciales térmicas/PVC y aforo por puertas.
+            </div>
+          </Link>
+
+          <Link
+            href="/reservas"
+            className="p-4 rounded-2xl bg-zinc-900/70 border border-rose-500/30 hover:border-rose-500/80 hover:bg-rose-950/20 text-left transition-all group backdrop-blur-sm"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/20 flex items-center justify-center text-rose-400 group-hover:scale-110 transition-transform">
+                <PartyPopper className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] font-mono font-bold text-rose-300 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800/50">
+                VIP BOOKING
+              </span>
+            </div>
+            <div className="font-bold text-white text-sm group-hover:text-rose-300 transition-colors">
+              Reservas & Camarotes
+            </div>
+            <div className="text-[11px] text-zinc-400 mt-1 line-clamp-2">
+              Fotos reales de ambientación, pagos con SIPAP/PIX y pases de invitados.
             </div>
           </Link>
         </div>
