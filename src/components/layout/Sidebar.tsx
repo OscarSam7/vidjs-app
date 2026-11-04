@@ -26,6 +26,11 @@ import {
   BarChart3,
   Trophy,
   Tv,
+  Tags,
+  IdCard,
+  ScanLine,
+  DoorOpen,
+  UserCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
@@ -75,6 +80,69 @@ export function Sidebar({
           icon: LayoutDashboard,
           href: "/dashboard",
           active: pathname === "/dashboard",
+        },
+      ],
+    },
+    {
+      title: "Acreditaciones & Eventos",
+      items: [
+        {
+          name: "Dashboard Acreditación",
+          icon: LayoutDashboard,
+          href: "/dashboard/accreditation",
+          active: pathname === "/dashboard/accreditation",
+          badge: "Live",
+          badgeVariant: "success",
+        },
+        {
+          name: "Gestión de Eventos",
+          icon: CalendarCheck2,
+          href: "/dashboard/accreditation/events",
+          active: pathname.startsWith("/dashboard/accreditation/events"),
+        },
+        {
+          name: "Participantes & Invitados",
+          icon: UserCheck,
+          href: "/dashboard/accreditation/participants",
+          active: pathname.startsWith("/dashboard/accreditation/participants"),
+        },
+        {
+          name: "Empresas & Delegaciones",
+          icon: Building2,
+          href: "/dashboard/accreditation/organizations",
+          active: pathname.startsWith("/dashboard/accreditation/organizations"),
+        },
+        {
+          name: "Tipos de Acreditación",
+          icon: Tags,
+          href: "/dashboard/accreditation/types",
+          active: pathname.startsWith("/dashboard/accreditation/types"),
+        },
+        {
+          name: "Diseñador & Credenciales",
+          icon: IdCard,
+          href: "/dashboard/accreditation/badges",
+          active: pathname.startsWith("/dashboard/accreditation/badges"),
+        },
+        {
+          name: "Escáner & Control QR",
+          icon: ScanLine,
+          href: "/dashboard/accreditation/scanner",
+          active: pathname.startsWith("/dashboard/accreditation/scanner"),
+          badge: "Scan",
+          badgeVariant: "primary",
+        },
+        {
+          name: "Puertas & Sectores",
+          icon: DoorOpen,
+          href: "/dashboard/accreditation/access-points",
+          active: pathname.startsWith("/dashboard/accreditation/access-points"),
+        },
+        {
+          name: "Reportes & Auditoría",
+          icon: BarChart3,
+          href: "/dashboard/accreditation/reports",
+          active: pathname.startsWith("/dashboard/accreditation/reports"),
         },
       ],
     },
@@ -386,6 +454,10 @@ export function Sidebar({
                               ? "bg-amber-950/70 text-amber-300 border-amber-800/60"
                               : item.badgeVariant === "karaoke"
                               ? "bg-cyan-950/70 text-cyan-300 border-cyan-800/60"
+                              : item.badgeVariant === "success"
+                              ? "bg-emerald-950/70 text-emerald-300 border-emerald-800/60"
+                              : item.badgeVariant === "primary"
+                              ? "bg-purple-950/70 text-purple-300 border-purple-800/60"
                               : "bg-navy-800 text-slate-300 border-navy-700"
                           )}
                         >

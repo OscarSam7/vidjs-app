@@ -6,11 +6,20 @@ import { env } from "@/lib/env";
  * Genera un token QR criptográfico no predecible y su firma HMAC-SHA256
  * para garantizar autenticidad e imposibilitar falsificaciones o escaneos apócrifos.
  */
-export function generateAccreditationToken(params: {
-  eventId: string;
-  participantId: string;
-}): { qrToken: string; qrSignature: string; qrPayload: string } {
-  const { eventId, participantId } = params;
+export function generateAccreditationToken(
+  paramsOrEventId: { eventId: string; participantId: string } | string,
+  maybeParticipantId?: string
+): { qrToken: string; qrSignature: string; qrPayload: string } {
+  let eventId: string;
+  let participantId: string;
+
+  if (typeof paramsOrEventId === "string") {
+    eventId = paramsOrEventId;
+    participantId = maybeParticipantId || "";
+  } else {
+    eventId = paramsOrEventId.eventId;
+    participantId = paramsOrEventId.participantId;
+  }
 
   // 1. Token criptográfico no predecible de 32 caracteres hexadecimales
   const randomPart = crypto.randomBytes(16).toString("hex");
@@ -33,15 +42,34 @@ export function generateAccreditationToken(params: {
 }
 
 /**
- * Valida la firma criptográfica HMAC-SHA256 de un token QR
+ * Valida la firma criptográfica HMAC-SHA256 de un token QR.
+ * Soporta llamadas con objeto o con parámetros posicionales.
  */
-export function verifyAccreditationSignature(params: {
-  qrToken: string;
-  qrSignature: string;
-  eventId: string;
-  participantId: string;
-}): boolean {
-  const { qrToken, qrSignature, eventId, participantId } = params;
+export function verifyAccreditationSignature(
+  paramsOrToken:
+    | { qrToken: string; qrSignature: string; eventId: string; participantId: string }
+    | string,
+  maybeEventId?: string,
+  maybeParticipantId?: string,
+  maybeSignature?: string
+): boolean {
+  let qrToken: string;
+  let qrSignature: string;
+  let eventId: string;
+  let participantId: string;
+
+  if (typeof paramsOrToken === "string") {
+    qrToken = paramsOrToken;
+    eventId = maybeEventId || "";
+    participantId = maybeParticipantId || "";
+    qrSignature = maybeSignature || "";
+  } else {
+    qrToken = paramsOrToken.qrToken;
+    qrSignature = paramsOrToken.qrSignature;
+    eventId = paramsOrToken.eventId;
+    participantId = paramsOrToken.participantId;
+  }
+
   try {
     const hmac = crypto.createHmac("sha256", env.JWT_SECRET);
     hmac.update(`${qrToken}:${eventId}:${participantId}`);
@@ -76,10 +104,25 @@ export async function generateAccreditationQrDataUrl(
 }
 
 /**
- * Formatea un número correlativo legible para impresión de credencial (ej: EVT-VIP-0042)
+ * Formatea un número correlativo legible para impresión de credencial (ej: EVT-VIP-0042 o EVT-0042)
  */
-export function formatCodeNumber(prefix: string, number: number, digits = 4): string {
-  const cleanPrefix = (prefix || "ACR").toUpperCase().replace(/[^A-Z0-9]/g, "");
-  const padded = String(number).padStart(digits, "0");
-  return `${cleanPrefix}-${padded}`;
+export function formatCodeNumber(
+  eventPrefix: string,
+  categoryOrNumber: string | number,
+  maybeNumberOrDigits: number = 1,
+  maybeDigits = 4
+): string {
+  if (typeof categoryOrNumber === "string") {
+    const cleanEvent = (eventPrefix || "EVT").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const cleanCat = (categoryOrNumber || "GEN").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const num = typeof maybeNumberOrDigits === "number" ? maybeNumberOrDigits : 1;
+    const padded = String(num).padStart(maybeDigits, "0");
+    return `${cleanEvent}-${cleanCat}-${padded}`;
+  } else {
+    const cleanPrefix = (eventPrefix || "ACR").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const num = categoryOrNumber;
+    const digits = typeof maybeNumberOrDigits === "number" ? maybeNumberOrDigits : 4;
+    const padded = String(num).padStart(digits, "0");
+    return `${cleanPrefix}-${padded}`;
+  }
 }

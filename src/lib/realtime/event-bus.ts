@@ -119,6 +119,22 @@ class RealtimeEventBus {
   }
 
   /**
+   * Método de conveniencia compatible con firma (type, data) o (eventId, type, data)
+   */
+  public emit<T = any>(
+    typeOrEventId: string,
+    dataOrType: any,
+    maybeData?: any
+  ): void {
+    if (maybeData !== undefined) {
+      this.broadcast(typeOrEventId, dataOrType, maybeData);
+    } else {
+      const eventId = dataOrType?.eventId || "global";
+      this.broadcast(eventId, typeOrEventId as RealtimeEventType, dataOrType);
+    }
+  }
+
+  /**
    * Suscribe un callback a los eventos de un eventId particular
    */
   public subscribe(eventId: string, listener: RealtimeListener): void {
