@@ -203,6 +203,14 @@ export function Sidebar({
           active: pathname === "/dashboard/tables",
         },
         {
+          name: "Reservas & Camarotes",
+          icon: Sparkles,
+          href: "/dashboard/reservations",
+          active: pathname.startsWith("/dashboard/reservations"),
+          badge: "VIP",
+          badgeVariant: "primary",
+        },
+        {
           name: "Equipo & Roles",
           icon: Users,
           href: "/dashboard/team",

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getRequestOrigin } from "@/lib/url";
+import { getRequestOrigin, sanitizePublicUrl } from "@/lib/url";
 
 // Lista de patrones de sondeo maliciosos y escáneres automáticos de vulnerabilidades
 const SUSPICIOUS_PATTERNS = [
@@ -42,7 +42,7 @@ export function middleware(request: NextRequest) {
       const origin = getRequestOrigin(request);
       const loginUrl = new URL("/login", origin);
       loginUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.redirect(sanitizePublicUrl(loginUrl.toString(), request));
     }
   }
 

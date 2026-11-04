@@ -37,6 +37,8 @@ model Tenant {
   checkInRecords        CheckInRecord[]
   credentialTemplates   CredentialTemplate[]
   scannerDevices        ScannerDevice[]
+  reservationPackages   ReservationPackage[]
+  tableReservations     TableReservation[]
 
   @@index([status])
   @@index([slug])
@@ -76,11 +78,22 @@ model Venue {
   timezone    String      @default("UTC")
   active      Boolean     @default(true)
   settings    String?     // JSON string con branding y configuraciones específicas del local
+  
+  // Datos bancarios para transferencias directas y soporte WhatsApp
+  bankName        String?
+  bankAccount     String?
+  bankHolder      String?
+  bankTaxId       String?
+  bankAlias       String?     // Alias SIPAP / PIX
+  whatsappNumber  String?     // WhatsApp oficial para soporte y reservas
+
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  events      Event[]
-  tables      Table[]
+  events              Event[]
+  tables              Table[]
+  reservationPackages ReservationPackage[]
+  tableReservations   TableReservation[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -133,6 +146,7 @@ model Event {
   checkInRecords      CheckInRecord[]
   credentialTemplates CredentialTemplate[]
   scannerDevices      ScannerDevice[]
+  reservations        TableReservation[]
 
   @@index([tenantId])
   @@index([venueId])
@@ -159,6 +173,7 @@ model Table {
   guestSessions GuestSession[]
   songRequests  SongRequest[]
   photoPosts    PhotoPost[]
+  reservations  TableReservation[]
 
   @@unique([venueId, number])
   @@index([tenantId])
@@ -886,5 +901,147 @@ model ScannerDevice {
   @@index([eventId])
   @@index([deviceToken])
 }
+
+// 34. ReservationPackage (Paquetes, combos de cumpleaños y camarotes)
+model ReservationPackage {
+  id                    String              @id @default(cuid())
+  tenantId              String
+  tenant                Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId               String?
+  venue                 Venue?              @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  name                  String              // Ej: "Combo Cumpleaños Gold", "Camarote Ultra VIP"
+  description           String?
+  imageUrl              String?             // Foto del paquete / portada
+  itemsIncluded         String              // JSON string: array de strings de artículos incluidos
+  
+  // Modalidad Financiera:
+  // CLEAN_FEE: Alquiler limpio/puro (no se descuenta de consumo)
+  // CREDIT_CONSUMPTION: 100% o monto acreditable a favor en consumición
+  // FIXED_COMBO: Paquete cerrado con bebidas y productos predefinidos
+  pricingType           String              @default("PACKAGE") 
+  priceCents            Int                 @default(0)
+  creditAmountCents     Int                 @default(0) // Saldo a favor si es CREDIT_CONSUMPTION
+  
+  maxGuests             Int                 @default(8)
+  isBirthdayPackage     Boolean             @default(false)
+  allowScreenShoutout   Boolean             @default(true) // Proyecta saludo y foto en la TV
+  colorHex              String              @default("#8B5CF6")
+  active                Boolean             @default(true)
+  orderIndex            Int                 @default(0)
+  
+  decorations           DecorationOption[]
+  reservations          TableReservation[]
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([active])
+}
+
+// 35. DecorationOption (Opciones de decoración con fotos para que el cliente elija)
+model DecorationOption {
+  id                    String              @id @default(cuid())
+  tenantId              String
+  packageId             String
+  package               ReservationPackage  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  name                  String              // Ej: "Decoración Neón Glow", "Elegance Dorado & Negro", "Rosas & Champagne"
+  description           String?
+  imageUrl              String              // Foto real de la decoración
+  extraPriceCents       Int                 @default(0) // 0 si está incluida sin cargo adicional
+  active                Boolean             @default(true)
+  orderIndex            Int                 @default(0)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  reservations          TableReservation[]
+
+  @@index([tenantId])
+  @@index([packageId])
+}
+
+// 36. TableReservation (Reserva oficial de mesa o camarote)
+model TableReservation {
+  id                    String              @id @default(cuid())
+  tenantId              String
+  tenant                Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId               String
+  venue                 Venue               @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  tableId               String
+  table                 Table               @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  packageId             String?
+  package               ReservationPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  decorationId          String?
+  decoration            DecorationOption?   @relation(fields: [decorationId], references: [id], onDelete: SetNull)
+  eventId               String?
+  event                 Event?              @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  // Cliente Titular
+  customerName          String
+  customerPhone         String              // WhatsApp
+  customerEmail         String?
+  customerDoc           String?
+  
+  // Opciones especiales de Cumpleaños / Celebración
+  birthdayPersonName    String?             // Nombre del homenajeado para la pantalla gigante
+  birthdayPhotoUrl      String?             // Foto del cumpleañero para proyectar en TV
+  specialNotes          String?             // Solicitudes especiales
+
+  // Modalidad y Finanzas
+  pricingType           String              // CLEAN_FEE, CREDIT_CONSUMPTION, FIXED_COMBO
+  totalAmountCents      Int
+  creditAmountCents     Int                 @default(0) // Saldo a favor acreditable en mesa
+  creditRemainingCents  Int                 @default(0) // Saldo restante por consumir
+  
+  // Pago
+  paymentMethod         String              @default("TRANSFER") // TRANSFER, CARD_ONLINE, QR_PAGOS, CASH_DOOR
+  paymentStatus         String              @default("PENDING") // PENDING, PENDING_REVIEW, APPROVED, REJECTED, REFUNDED
+  paymentProofUrl       String?             // Comprobante de transferencia bancaria
+  paymentRef            String?
+  verifiedByUserId      String?             // ID del usuario staff que aprobó
+  verifiedAt            DateTime?
+
+  // Estado de la Reserva
+  status                String              @default("PENDING") // PENDING, CONFIRMED, CHECKED_IN, CANCELLED
+  reservationDate       DateTime
+  checkInTime           DateTime?
+
+  // Pases de Amigos / Invitados
+  inviteToken           String              @unique // Token para compartir pases por WhatsApp
+  maxGuests             Int                 @default(8)
+  guests                ReservationGuest[]
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([tableId])
+  @@index([packageId])
+  @@index([reservationDate])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([inviteToken])
+}
+
+// 37. ReservationGuest (Pases individuales para acompañantes del camarote)
+model ReservationGuest {
+  id                    String              @id @default(cuid())
+  reservationId         String
+  reservation           TableReservation    @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  
+  guestName             String
+  guestDoc              String?
+  guestPhone            String?
+  qrToken               String              @unique
+  checkedIn             Boolean             @default(false)
+  checkedInAt           DateTime?
+  
+  createdAt             DateTime            @default(now())
+
+  @@index([reservationId])
+  @@index([qrToken])
+}
+
 
 
