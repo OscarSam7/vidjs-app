@@ -303,6 +303,7 @@ export default function PublicDisplayScreenPage({
 
   // Simulación y control de tiempo transcurrido de la canción
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const isUserClearedRef = useRef(false);
 
   // Sincronizador unificado de reproducción entre la cabina DJ y la pantalla TV
   const handleIncomingPlaybackControl = useCallback(
@@ -320,8 +321,16 @@ export default function PublicDisplayScreenPage({
       const { action, seconds, duration, trackTitle, trackArtist, videoId, fileUrl, isVideo } = payload;
 
       if (action === "RESET") {
+        isUserClearedRef.current = false;
         setIsTvPaused(false);
         sendYouTubeCommand("stopVideo", [], false);
+        if (directVideoRef.current) {
+          try {
+            directVideoRef.current.pause();
+            directVideoRef.current.src = "";
+            directVideoRef.current.load();
+          } catch {}
+        }
         setKaraokeVideoId(null);
         setMediaFileUrl(null);
         setDismissedVideoTrackId(null);
@@ -337,6 +346,7 @@ export default function PublicDisplayScreenPage({
       }
 
       if (action === "PLAY") {
+        isUserClearedRef.current = false;
         setIsTvPaused(false);
         if (fileUrl) {
           setMediaFileUrl(fileUrl);
@@ -450,28 +460,76 @@ export default function PublicDisplayScreenPage({
   const [isResetting, setIsResetting] = useState(false);
   const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null);
 
-  // Borrar solamente el video de la pantalla TV (sin pausar la canción, manteniendo el audio y la música activos)
-  const handleClearVideoOnly = () => {
+  // Borrar inmediatamente el video y la pista actual de la pantalla TV y liberar la base de datos
+  const handleClearVideoOnly = async () => {
     setIsResetting(true);
+    isUserClearedRef.current = true;
     try {
-      // 1. Asegurar explícitamente que la pantalla TV y la música NO se pausen
-      setIsTvPaused(false);
-
-      // 2. Marcar el track actual para que el video no se vuelva a autoinyectar por polling o búsqueda automática
-      const currentTrackId = data?.currentPlaying?.id || data?.currentPlaying?.song?.title || "current";
-      setDismissedVideoTrackId(currentTrackId);
-
-      // 3. Conmutar al visualizador de vinilo en pantalla
-      setIsKaraokeVideoEnabled(false);
-
-      // 4. Si ya estaba en modo vinilo y se vuelve a presionar "Borrar Video", purgar completamente los IDs de video
-      if (!isKaraokeVideoEnabled) {
-        setKaraokeVideoId(null);
-        setMediaFileUrl(null);
+      // 1. Detener reproducción local inmediatamente (YouTube y Video MP4 directo)
+      sendYouTubeCommand("stopVideo", [], false);
+      if (directVideoRef.current) {
+        try {
+          directVideoRef.current.pause();
+          directVideoRef.current.src = "";
+          directVideoRef.current.load();
+        } catch {}
       }
 
-      setResetSuccessMessage("🎬 Video borrado de la pantalla. Visualizador de audio y música activos.");
+      // 2. Limpieza inmediata y reactiva del estado local (0 ms de latencia en pantalla)
+      setIsTvPaused(false);
+      setKaraokeVideoId(null);
+      setMediaFileUrl(null);
+      setDismissedVideoTrackId(null);
+      setIsKaraokeVideoEnabled(true);
+      setElapsedSeconds(0);
+      setData((prev) => (prev ? { ...prev, currentPlaying: null } : null));
+
+      // 3. Limpiar almacenamiento local sincronizado y notificar a BroadcastChannel (cabinas y pantallas)
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.removeItem("vidjs_playback_sync_payload");
+        } catch {}
+
+        const resetPayload = {
+          type: "PLAYBACK_CONTROL",
+          action: "RESET",
+          timestamp: Date.now(),
+        };
+
+        const channelNames = ["vidjs_karaoke_sync_global"];
+        if (code) {
+          channelNames.push(`vidjs_karaoke_sync_${code}`);
+          channelNames.push(`vidjs_karaoke_sync_${code.toUpperCase()}`);
+        }
+        if (data?.event?.id) {
+          channelNames.push(`vidjs_karaoke_sync_${data.event.id}`);
+        }
+
+        channelNames.forEach((chName) => {
+          try {
+            const ch = new BroadcastChannel(chName);
+            ch.postMessage(resetPayload);
+            setTimeout(() => {
+              try {
+                ch.close();
+              } catch {}
+            }, 1000);
+          } catch {}
+        });
+      }
+
+      // 4. Notificar al backend para liberar la canción en la base de datos (marcar COMPLETED / PLAYED)
+      await fetch("/api/v1/display/state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, action: "RESET" }),
+      });
+
+      setResetSuccessMessage("✨ Video borrado y pantalla liberada.");
       setTimeout(() => setResetSuccessMessage(null), 3500);
+
+      // 5. Recargar estado fresco del servidor
+      await fetchDisplayState();
     } catch (err) {
       console.warn("Error borrando video de pantalla:", err);
     } finally {
@@ -487,6 +545,19 @@ export default function PublicDisplayScreenPage({
         const json = await res.json();
         setData((prev) => {
           if (!prev) return json.data;
+
+          // Si el usuario borró la pantalla TV manualmente, respetar el borrado local
+          if (isUserClearedRef.current) {
+            if (json.data?.currentPlaying) {
+              // El servidor ya tiene un tema nuevo o el DJ lanzó otra pista
+              isUserClearedRef.current = false;
+              return json.data;
+            }
+            return {
+              ...json.data,
+              currentPlaying: null,
+            };
+          }
 
           // Si en la pantalla la canción está sonando activamente (isPlaying y no reseteada),
           // y el servidor devolvió null para currentPlaying (ej. DJ tiró la pista manualmente o de biblioteca),
@@ -1059,7 +1130,7 @@ export default function PublicDisplayScreenPage({
             onClick={handleClearVideoOnly}
             disabled={isResetting}
             className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-rose-950/80 to-red-950/80 hover:from-rose-600 hover:to-red-600 border border-rose-600/60 hover:border-rose-400 text-rose-200 hover:text-white text-xs font-black shadow-md shadow-rose-950/60 transition-all cursor-pointer active:scale-95"
-            title="Borrar solamente el video de la pantalla TV (sin cortar el audio ni resetear la música)"
+            title="Borrar video y liberar pantalla para el siguiente pedido"
           >
             <VideoOff className="w-3.5 h-3.5 text-rose-400" />
             <span className="hidden sm:inline">Borrar Video</span>
@@ -1430,7 +1501,7 @@ export default function PublicDisplayScreenPage({
                       onClick={handleClearVideoOnly}
                       disabled={isResetting}
                       className="text-[11px] text-rose-300 hover:text-white px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-800 border border-rose-700/60 transition-colors cursor-pointer flex items-center gap-1.5 active:scale-95"
-                      title="Borrar solamente el video de la pantalla (manteniendo el audio intacto)"
+                      title="Borrar video y liberar pantalla"
                     >
                       <VideoOff className="w-3 h-3 text-rose-400" />
                       <span>Borrar Video</span>
@@ -1578,12 +1649,12 @@ export default function PublicDisplayScreenPage({
                     </button>
                   )}
 
-                  {(karaokeVideoId || mediaFileUrl) && (
+                  {(karaokeVideoId || mediaFileUrl || track) && (
                     <button
                       onClick={handleClearVideoOnly}
                       disabled={isResetting}
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-white border border-rose-600/60 hover:border-rose-400 text-xs font-bold transition-colors cursor-pointer shadow-sm active:scale-95"
-                      title="Borrar solamente el video de la pantalla (manteniendo el audio y la música intactos)"
+                      title="Borrar video y liberar pantalla"
                     >
                       <VideoOff className="w-3 h-3 text-rose-400" />
                       <span>Borrar Video</span>
