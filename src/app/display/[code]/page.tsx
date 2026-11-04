@@ -199,6 +199,7 @@ export default function PublicDisplayScreenPage({
   const [karaokeVideoId, setKaraokeVideoId] = useState<string | null>(null);
   const [mediaFileUrl, setMediaFileUrl] = useState<string | null>(null);
   const [isKaraokeVideoEnabled, setIsKaraokeVideoEnabled] = useState<boolean>(true);
+  const [dismissedVideoTrackId, setDismissedVideoTrackId] = useState<string | null>(null);
   const karaokeIframeRef = useRef<HTMLIFrameElement>(null);
   const directVideoRef = useRef<HTMLVideoElement | null>(null);
   const [isTvPaused, setIsTvPaused] = useState<boolean>(false);
@@ -249,11 +250,13 @@ export default function PublicDisplayScreenPage({
   }, []);
 
   // Control remoto de Video (YouTube IFrame o Video MP4 local) y estado TV
-  const sendYouTubeCommand = (func: string, args: any[] = []) => {
-    if (func === "playVideo") {
-      setIsTvPaused(false);
-    } else if (func === "pauseVideo") {
-      setIsTvPaused(true);
+  const sendYouTubeCommand = (func: string, args: any[] = [], updateTvPauseState = true) => {
+    if (updateTvPauseState) {
+      if (func === "playVideo") {
+        setIsTvPaused(false);
+      } else if (func === "pauseVideo") {
+        setIsTvPaused(true);
+      }
     }
 
     // Si hay un video MP4 directo montado en la pantalla
@@ -318,9 +321,11 @@ export default function PublicDisplayScreenPage({
 
       if (action === "RESET") {
         setIsTvPaused(false);
-        sendYouTubeCommand("pauseVideo");
+        sendYouTubeCommand("stopVideo", [], false);
         setKaraokeVideoId(null);
         setMediaFileUrl(null);
+        setDismissedVideoTrackId(null);
+        setIsKaraokeVideoEnabled(true);
         setElapsedSeconds(0);
         setData((prev) => (prev ? { ...prev, currentPlaying: null } : null));
         if (typeof window !== "undefined") {
@@ -347,9 +352,13 @@ export default function PublicDisplayScreenPage({
 
         if (videoId) {
           setKaraokeVideoId(videoId);
+          setIsKaraokeVideoEnabled(true);
+          setDismissedVideoTrackId(null);
         } else if (trackTitle) {
           setKaraokeVideoId((prevVid) => {
             if (data?.currentPlaying?.song?.title && data.currentPlaying.song.title !== trackTitle) {
+              setDismissedVideoTrackId(null);
+              setIsKaraokeVideoEnabled(true);
               return null;
             }
             return prevVid;
@@ -441,15 +450,26 @@ export default function PublicDisplayScreenPage({
   const [isResetting, setIsResetting] = useState(false);
   const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null);
 
-  // Borrar solamente el video de la pantalla TV (sin resetear el evento, sin cortar el audio del DJ y sin reiniciar la carga)
+  // Borrar solamente el video de la pantalla TV (sin pausar la canción, manteniendo el audio y la música activos)
   const handleClearVideoOnly = () => {
     setIsResetting(true);
     try {
-      sendYouTubeCommand("stopVideo");
-      sendYouTubeCommand("pauseVideo");
-      setKaraokeVideoId(null);
-      setMediaFileUrl(null);
+      // 1. Asegurar explícitamente que la pantalla TV y la música NO se pausen
+      setIsTvPaused(false);
+
+      // 2. Marcar el track actual para que el video no se vuelva a autoinyectar por polling o búsqueda automática
+      const currentTrackId = data?.currentPlaying?.id || data?.currentPlaying?.song?.title || "current";
+      setDismissedVideoTrackId(currentTrackId);
+
+      // 3. Conmutar al visualizador de vinilo en pantalla
       setIsKaraokeVideoEnabled(false);
+
+      // 4. Si ya estaba en modo vinilo y se vuelve a presionar "Borrar Video", purgar completamente los IDs de video
+      if (!isKaraokeVideoEnabled) {
+        setKaraokeVideoId(null);
+        setMediaFileUrl(null);
+      }
+
       setResetSuccessMessage("🎬 Video borrado de la pantalla. Visualizador de audio y música activos.");
       setTimeout(() => setResetSuccessMessage(null), 3500);
     } catch (err) {
@@ -484,8 +504,19 @@ export default function PublicDisplayScreenPage({
           return json.data;
         });
 
+        if (json.data?.currentPlaying) {
+          const trackKey = json.data.currentPlaying.id || json.data.currentPlaying.song?.title;
+          if (dismissedVideoTrackId && dismissedVideoTrackId !== trackKey) {
+            setDismissedVideoTrackId(null);
+            setIsKaraokeVideoEnabled(true);
+          }
+        }
+
         if (json.data?.currentPlaying?.youtubeVideoId) {
-          setKaraokeVideoId(json.data.currentPlaying.youtubeVideoId);
+          const trackKey = json.data.currentPlaying.id || json.data.currentPlaying.song?.title;
+          if (!dismissedVideoTrackId || dismissedVideoTrackId !== trackKey) {
+            setKaraokeVideoId(json.data.currentPlaying.youtubeVideoId);
+          }
         }
         setError(null);
       } else {
@@ -886,6 +917,8 @@ export default function PublicDisplayScreenPage({
   useEffect(() => {
     const current = data?.currentPlaying;
     if (!isKaraoke || !current || isDirectVideo) return;
+    const currentTrackId = current.id || current.song?.title;
+    if (dismissedVideoTrackId && dismissedVideoTrackId === currentTrackId) return;
     if (karaokeVideoId) return;
 
     let isMounted = true;
@@ -906,7 +939,7 @@ export default function PublicDisplayScreenPage({
     return () => {
       isMounted = false;
     };
-  }, [data?.currentPlaying?.id, isKaraoke, karaokeVideoId]);
+  }, [data?.currentPlaying?.id, isKaraoke, karaokeVideoId, dismissedVideoTrackId]);
 
   if (loading && !data) {
     return (
@@ -1533,7 +1566,10 @@ export default function PublicDisplayScreenPage({
 
                   {(isKaraoke || isDirectVideo) && (
                     <button
-                      onClick={() => setIsKaraokeVideoEnabled(true)}
+                      onClick={() => {
+                        setIsKaraokeVideoEnabled(true);
+                        setDismissedVideoTrackId(null);
+                      }}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/90 text-cyan-300 border border-cyan-500/50 text-xs font-bold hover:bg-cyan-900 transition-colors cursor-pointer shadow-sm"
                       title="Activar video en la TV"
                     >
@@ -1656,6 +1692,34 @@ export default function PublicDisplayScreenPage({
                     <span>{formatTime(duration)}</span>
                   </div>
                 </div>
+
+                {/* Audio/Video de fondo para mantener la música sonando si el video fue borrado visualmente de la pantalla */}
+                {!isKaraokeVideoEnabled && (karaokeVideoId || mediaFileUrl) && (
+                  <div
+                    className="fixed -left-[9999px] -top-[9999px] w-1 h-1 opacity-0 pointer-events-none overflow-hidden"
+                    aria-hidden="true"
+                  >
+                    {isDirectVideo && mediaFileUrl ? (
+                      <video
+                        ref={directVideoRef}
+                        key={mediaFileUrl}
+                        src={mediaFileUrl}
+                        autoPlay
+                        playsInline
+                        controls={false}
+                      />
+                    ) : karaokeVideoId ? (
+                      <iframe
+                        ref={karaokeIframeRef}
+                        key={karaokeVideoId}
+                        src={`https://www.youtube.com/embed/${karaokeVideoId}?autoplay=1&enablejsapi=1&origin=${typeof window !== "undefined" ? encodeURIComponent(window.location.origin) : ""}`}
+                        title={`Audio: ${track.song.title}`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        className="w-1 h-1 border-0"
+                      />
+                    ) : null}
+                  </div>
+                )}
               </div>
             )
           ) : (
