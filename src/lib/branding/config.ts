@@ -194,7 +194,11 @@ export function getMergedBranding(
   };
 
   // Si no hay logo definido en settings, usar el logoUrl nativo de Tenant si existe
-  if (!merged.logoUrl && tenantLogoFallback) {
+  const logoExplicitlyConfigured =
+    ("logoUrl" in venueConfig && venueConfig.logoUrl !== undefined) ||
+    ("logoUrl" in tenantConfig && tenantConfig.logoUrl !== undefined);
+
+  if (!logoExplicitlyConfigured && !merged.logoUrl && tenantLogoFallback) {
     merged.logoUrl = tenantLogoFallback;
   }
 

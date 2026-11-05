@@ -7,10 +7,24 @@ import { handleApiError, BadRequestError } from "@/lib/errors";
 const ALLOWED_MIME_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/jpg": "jpg",
+  "image/pjpeg": "jpg",
   "image/png": "png",
+  "image/x-png": "png",
   "image/webp": "webp",
   "image/svg+xml": "svg",
   "image/gif": "gif",
+  "image/jfif": "jpg",
+};
+
+const ALLOWED_EXTENSIONS: Record<string, string> = {
+  jpg: "jpg",
+  jpeg: "jpg",
+  png: "png",
+  webp: "webp",
+  svg: "svg",
+  gif: "gif",
+  jfif: "jpg",
+  pjpeg: "jpg",
 };
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -39,8 +53,14 @@ export async function POST(req: NextRequest) {
       throw new BadRequestError("El tamaño máximo permitido es de 10 MB");
     }
 
-    const mimeType = imageFile.type.toLowerCase();
-    const ext = ALLOWED_MIME_TYPES[mimeType];
+    const mimeType = (imageFile.type || "").toLowerCase();
+    let ext = ALLOWED_MIME_TYPES[mimeType];
+
+    // Fallback por extensión de nombre de archivo si el mimeType del navegador es genérico o no estándar
+    if (!ext && imageFile.name) {
+      const parsedExt = path.extname(imageFile.name).toLowerCase().replace(".", "");
+      ext = ALLOWED_EXTENSIONS[parsedExt];
+    }
 
     if (!ext) {
       throw new BadRequestError(
@@ -53,7 +73,7 @@ export async function POST(req: NextRequest) {
     await fs.mkdir(uploadDir, { recursive: true });
 
     // Nombre de archivo seguro y único
-    const cleanTenant = tenantId.replace(/[^a-zA-Z0-9_-]/g, "");
+    const cleanTenant = (tenantId || "default").replace(/[^a-zA-Z0-9_-]/g, "");
     const filename = `${uploadType}-${cleanTenant}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
     const targetFilePath = path.join(uploadDir, filename);
 
@@ -72,7 +92,7 @@ export async function POST(req: NextRequest) {
         filename,
         originalName: imageFile.name,
         size: imageFile.size,
-        mimeType,
+        mimeType: mimeType || `image/${ext}`,
       },
     });
   } catch (error) {

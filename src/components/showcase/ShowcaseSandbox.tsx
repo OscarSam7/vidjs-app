@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Headphones,
   Smartphone,
@@ -39,6 +39,8 @@ import {
   Wifi,
   Building2,
   Image as ImageIcon,
+  Trash2,
+  RefreshCw,
 } from "lucide-react";
 
 export function ShowcaseSandbox() {
@@ -190,7 +192,55 @@ export function ShowcaseSandbox() {
     },
   ];
 
-  const currentBrand = brandPresets[selectedBrandIndex];
+  // Estados interactivos para personalizar Logo y Portada en vivo en el simulador
+  const [customLogoUrl, setCustomLogoUrl] = useState<string | null>(null);
+  const [customBannerUrl, setCustomBannerUrl] = useState<string | null>(null);
+  const [customVenueName, setCustomVenueName] = useState<string>("");
+  const [showCustomControls, setShowCustomControls] = useState(false);
+  const simLogoInputRef = useRef<HTMLInputElement>(null);
+  const simBannerInputRef = useRef<HTMLInputElement>(null);
+
+  const currentPreset = brandPresets[selectedBrandIndex];
+  const isCustomActive = Boolean(customLogoUrl || customBannerUrl || customVenueName.trim());
+  const currentBrand = {
+    ...currentPreset,
+    name: customVenueName.trim() ? customVenueName : currentPreset.name,
+    logoUrl: customLogoUrl || currentPreset.logoUrl,
+    bannerUrl: customBannerUrl || currentPreset.bannerUrl,
+    isCustom: isCustomActive,
+  };
+
+  const handleSimLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setCustomLogoUrl(ev.target?.result as string);
+        setShowCustomControls(true);
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = "";
+  };
+
+  const handleSimBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setCustomBannerUrl(ev.target?.result as string);
+        setShowCustomControls(true);
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = "";
+  };
+
+  const handleResetCustomBranding = () => {
+    setCustomLogoUrl(null);
+    setCustomBannerUrl(null);
+    setCustomVenueName("");
+  };
 
   const themeColors: Record<string, { primary: string; accent: string; name: string }> = {
     "cyber-purple": { primary: "#8B5CF6", accent: "#06B6D4", name: "Cyber Purple & Cyan" },
@@ -1491,7 +1541,7 @@ Configuración en vivo en: vidjs.com/dashboard/branding`;
                 </div>
               </div>
 
-              {/* GRID 1: 4 TARJETAS TÉCNICAS DE PÍXELES Y FORMATOS RECOMENDADOS */}
+              {/* GRID 1: 4 TARJETAS TÉCNICAS DE PÍXELES CON BOTONES DE PRUEBA EN VIVO */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* 1. Logotipo Oficial */}
                 <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-purple-900/50 hover:border-purple-500/60 transition-all space-y-2 relative overflow-hidden group">
@@ -1511,8 +1561,25 @@ Configuración en vivo en: vidjs.com/dashboard/branding`;
                   <p className="text-[10px] text-zinc-400 leading-snug">
                     Fondo 100% transparente sin marco. Máximo contraste para modo oscuro en celulares y Smart TVs.
                   </p>
-                  <div className="text-[9px] font-mono text-purple-300 font-bold pt-1 border-t border-zinc-900">
-                    Ratio 1:1 o 4:1 • Máx 10 MB
+                  <div className="pt-2 border-t border-zinc-900 flex items-center justify-between gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => simLogoInputRef.current?.click()}
+                      className="flex-1 py-1.5 px-2 rounded-xl bg-purple-600/25 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40 text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                    >
+                      <Upload className="w-3 h-3" />
+                      <span>{customLogoUrl ? "Cambiar mi Logo" : "Subir mi Logo"}</span>
+                    </button>
+                    {customLogoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomLogoUrl(null)}
+                        title="Quitar logo personalizado"
+                        className="p-1.5 rounded-xl bg-zinc-900 hover:bg-red-950/60 text-zinc-400 hover:text-red-300 border border-zinc-800 cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1534,8 +1601,25 @@ Configuración en vivo en: vidjs.com/dashboard/branding`;
                   <p className="text-[10px] text-zinc-400 leading-snug">
                     Cabecera del menú QR. Textos centrados en el 80% medio para que no se corten en celulares delgados.
                   </p>
-                  <div className="text-[9px] font-mono text-cyan-300 font-bold pt-1 border-t border-zinc-900">
-                    Zona Segura 80% • Carga en 4G/5G
+                  <div className="pt-2 border-t border-zinc-900 flex items-center justify-between gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => simBannerInputRef.current?.click()}
+                      className="flex-1 py-1.5 px-2 rounded-xl bg-cyan-600/25 hover:bg-cyan-600 text-cyan-200 hover:text-white border border-cyan-500/40 text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                    >
+                      <Upload className="w-3 h-3" />
+                      <span>{customBannerUrl ? "Cambiar Portada" : "Subir mi Portada"}</span>
+                    </button>
+                    {customBannerUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomBannerUrl(null)}
+                        title="Quitar portada personalizada"
+                        className="p-1.5 rounded-xl bg-zinc-900 hover:bg-red-950/60 text-zinc-400 hover:text-red-300 border border-zinc-800 cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1557,7 +1641,7 @@ Configuración en vivo en: vidjs.com/dashboard/branding`;
                   <p className="text-[10px] text-zinc-400 leading-snug">
                     Fondo de espera y publicidad en Smart TVs, proyectores o pantallas LED de la pista principal.
                   </p>
-                  <div className="text-[9px] font-mono text-amber-300 font-bold pt-1 border-t border-zinc-900">
+                  <div className="text-[9px] font-mono text-amber-300 font-bold pt-2 border-t border-zinc-900">
                     Relación 16:9 Estándar TV
                   </div>
                 </div>
@@ -1580,21 +1664,131 @@ Configuración en vivo en: vidjs.com/dashboard/branding`;
                   <p className="text-[10px] text-zinc-400 leading-snug">
                     Miniatura atractiva que aparece al compartir links de reservas o pases de cumpleaños por WhatsApp.
                   </p>
-                  <div className="text-[9px] font-mono text-pink-300 font-bold pt-1 border-t border-zinc-900">
+                  <div className="text-[9px] font-mono text-pink-300 font-bold pt-2 border-t border-zinc-900">
                     Miniatura Viral WhatsApp
                   </div>
                 </div>
               </div>
 
+              {/* INPUTS DE ARCHIVOS OCULTOS PARA PRUEBA EN VIVO */}
+              <input
+                ref={simLogoInputRef}
+                type="file"
+                accept="image/*,.png,.jpg,.jpeg,.webp,.svg,.gif,.jfif"
+                className="hidden"
+                onChange={handleSimLogoUpload}
+              />
+              <input
+                ref={simBannerInputRef}
+                type="file"
+                accept="image/*,.png,.jpg,.jpeg,.webp,.svg,.gif,.jfif"
+                className="hidden"
+                onChange={handleSimBannerUpload}
+              />
+
+              {/* PANEL DE PERSONALIZACIÓN EN VIVO (EXPANDIBLE / ACTIVO CON ARCHIVOS) */}
+              {(showCustomControls || isCustomActive) && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/40 via-zinc-900/90 to-cyan-950/40 border border-purple-500/40 space-y-3 animate-fadeIn">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-400">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-black text-white flex items-center gap-2">
+                          <span>Personalizador en Vivo de tu Marca</span>
+                          <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono font-bold">
+                            SIMULADOR ACTIVO
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-zinc-400">
+                          Las imágenes que subas se reflejarán inmediatamente en las pantallas de abajo (Móvil y Smart TV).
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {isCustomActive && (
+                        <button
+                          type="button"
+                          onClick={handleResetCustomBranding}
+                          className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Restablecer Todo</span>
+                        </button>
+                      )}
+                      <a
+                        href="/dashboard/branding"
+                        className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-purple-600/30"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>Guardar en Base de Datos</span>
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* Campo Nombre del Local */}
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-zinc-300 block">
+                        Nombre de tu Local / Bar:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej: Velvet Rooftop, Retro Club..."
+                        value={customVenueName}
+                        onChange={(e) => setCustomVenueName(e.target.value)}
+                        className="w-full px-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+
+                    {/* Logo Control */}
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-zinc-300 block">
+                        Logo del Establecimiento:
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => simLogoInputRef.current?.click()}
+                        className="w-full px-3 py-1.5 rounded-xl bg-purple-600/25 hover:bg-purple-600/40 text-purple-200 border border-purple-500/40 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span className="truncate">
+                          {customLogoUrl ? "Cambiar archivo de Logo" : "Subir archivo de Logo"}
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Portada Control */}
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-zinc-300 block">
+                        Portada / Banner Móvil (3:1):
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => simBannerInputRef.current?.click()}
+                        className="w-full px-3 py-1.5 rounded-xl bg-cyan-600/25 hover:bg-cyan-600/40 text-cyan-200 border border-cyan-500/40 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span className="truncate">
+                          {customBannerUrl ? "Cambiar archivo de Portada" : "Subir archivo de Portada"}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* BARRA DE HERRAMIENTAS INTERACTIVAS */}
               <div className="p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-                {/* 1. Selector de Marca Demo */}
+                {/* 1. Selector de Marca Demo y Mi Marca */}
                 <div className="flex items-center gap-2">
                   <span className="text-zinc-400 font-bold text-[11px] flex items-center gap-1">
                     <Building2 className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Establecimiento Demo:</span>
+                    <span>Establecimiento:</span>
                   </span>
-                  <div className="flex gap-1.5">
+                  <div className="flex flex-wrap gap-1.5">
                     {brandPresets.map((b, i) => (
                       <button
                         key={b.slug}
@@ -1604,7 +1798,7 @@ Configuración en vivo en: vidjs.com/dashboard/branding`;
                           setSelectedThemePreset(b.preset);
                         }}
                         className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
-                          selectedBrandIndex === i
+                          selectedBrandIndex === i && !isCustomActive
                             ? "bg-purple-600 text-white border-purple-400 shadow-sm"
                             : "bg-zinc-900 text-zinc-400 hover:text-white border-zinc-800"
                         }`}
@@ -1612,6 +1806,19 @@ Configuración en vivo en: vidjs.com/dashboard/branding`;
                         {b.logoText}
                       </button>
                     ))}
+
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomControls(!showCustomControls)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center gap-1 ${
+                        isCustomActive
+                          ? "bg-gradient-to-r from-purple-600 to-cyan-600 text-white border-white shadow-md"
+                          : "bg-zinc-900 text-purple-300 hover:text-white border-purple-800/80 hover:border-purple-500"
+                      }`}
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-300" />
+                      <span>{isCustomActive ? "⭐ Mi Marca (Personalizada)" : "+ Probar Mi Marca"}</span>
+                    </button>
                   </div>
                 </div>
 

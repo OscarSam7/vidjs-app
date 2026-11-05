@@ -63,9 +63,13 @@ export default function BrandingSettingsPage() {
 
   // Función para subir archivo de imagen directamente desde el dispositivo
   const uploadFile = async (file: File, type: "logo" | "banner") => {
-    const allowed = ["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"];
-    if (!allowed.includes(file.type)) {
-      showFeedback("error", "Formato no válido. Debe ser PNG, JPG, WebP, SVG o GIF.");
+    const validExtensions = [".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".jfif", ".pjpeg"];
+    const fileName = file.name.toLowerCase();
+    const hasValidExt = validExtensions.some((ext) => fileName.endsWith(ext));
+    const isImageMime = file.type.startsWith("image/") || file.type === "";
+
+    if (!hasValidExt && !isImageMime) {
+      showFeedback("error", "Formato no válido. Debe ser PNG, JPG, JPEG, WebP, SVG o GIF.");
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -94,10 +98,36 @@ export default function BrandingSettingsPage() {
             ...prev,
             [type === "logo" ? "logoUrl" : "bannerUrl"]: uploadedUrl,
           }));
-          showFeedback("success", `¡${type === "logo" ? "Logotipo" : "Portada"} subido exitosamente desde tu dispositivo!`);
+          showFeedback(
+            "success",
+            `¡${type === "logo" ? "Logotipo" : "Portada"} subido exitosamente! (Haz clic en Guardar Cambios)`
+          );
         }
       } else {
-        // Fallback resiliente: leer como base64 data URL para no bloquear al usuario
+        const errJson = await res.json().catch(() => null);
+        const serverError = errJson?.error?.message || errJson?.message;
+
+        // Si el archivo es ligero (<= 800 KB), permitir lectura directa en base64
+        if (file.size <= 800 * 1024) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const base64 = e.target?.result as string;
+            setFormData((prev) => ({
+              ...prev,
+              [type === "logo" ? "logoUrl" : "bannerUrl"]: base64,
+            }));
+            showFeedback(
+              "success",
+              `¡${type === "logo" ? "Logotipo" : "Portada"} cargado localmente! (Haz clic en Guardar Cambios)`
+            );
+          };
+          reader.readAsDataURL(file);
+        } else {
+          showFeedback("error", serverError || "Error al subir archivo al servidor. Prueba con un archivo más ligero.");
+        }
+      }
+    } catch {
+      if (file.size <= 800 * 1024) {
         const reader = new FileReader();
         reader.onload = (e) => {
           const base64 = e.target?.result as string;
@@ -105,21 +135,15 @@ export default function BrandingSettingsPage() {
             ...prev,
             [type === "logo" ? "logoUrl" : "bannerUrl"]: base64,
           }));
-          showFeedback("success", `¡${type === "logo" ? "Logotipo" : "Portada"} cargado desde tu dispositivo!`);
+          showFeedback(
+            "success",
+            `¡${type === "logo" ? "Logotipo" : "Portada"} cargado localmente! (Haz clic en Guardar Cambios)`
+          );
         };
         reader.readAsDataURL(file);
+      } else {
+        showFeedback("error", "Error de red al subir la imagen. Verifica tu conexión.");
       }
-    } catch {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = e.target?.result as string;
-        setFormData((prev) => ({
-          ...prev,
-          [type === "logo" ? "logoUrl" : "bannerUrl"]: base64,
-        }));
-        showFeedback("success", `¡${type === "logo" ? "Logotipo" : "Portada"} cargado desde tu dispositivo!`);
-      };
-      reader.readAsDataURL(file);
     } finally {
       if (type === "logo") setUploadingLogo(false);
       else setUploadingBanner(false);
@@ -453,7 +477,7 @@ export default function BrandingSettingsPage() {
               <input
                 ref={logoInputRef}
                 type="file"
-                accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
+                accept="image/*,.png,.jpg,.jpeg,.webp,.svg,.gif,.jfif"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -553,13 +577,20 @@ export default function BrandingSettingsPage() {
                   <span>{showManualUrl.logo ? "Ocultar opción de enlace URL" : "O pegar enlace web externo"}</span>
                 </button>
                 {showManualUrl.logo && (
-                  <input
-                    type="text"
-                    placeholder="https://ejemplo.com/logo.png"
-                    value={formData.logoUrl || ""}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, logoUrl: e.target.value }))}
-                    className="mt-1.5 w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500"
-                  />
+                  <div className="mt-1.5 space-y-1">
+                    <input
+                      type="text"
+                      placeholder="https://ejemplo.com/logo.png o /uploads/..."
+                      value={formData.logoUrl?.startsWith("data:") ? "" : (formData.logoUrl || "")}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, logoUrl: e.target.value }))}
+                      className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500"
+                    />
+                    {formData.logoUrl?.startsWith("data:") && (
+                      <p className="text-[10px] text-amber-400">
+                        * Actualmente tienes una imagen cargada desde tu equipo. Escribe o pega una URL para reemplazarla.
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -586,7 +617,7 @@ export default function BrandingSettingsPage() {
               <input
                 ref={bannerInputRef}
                 type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
+                accept="image/*,.png,.jpg,.jpeg,.webp,.svg,.gif,.jfif"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -678,13 +709,20 @@ export default function BrandingSettingsPage() {
                   <span>{showManualUrl.banner ? "Ocultar opción de enlace URL" : "O pegar enlace web externo"}</span>
                 </button>
                 {showManualUrl.banner && (
-                  <input
-                    type="text"
-                    placeholder="https://ejemplo.com/banner.jpg"
-                    value={formData.bannerUrl || ""}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, bannerUrl: e.target.value }))}
-                    className="mt-1.5 w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500"
-                  />
+                  <div className="mt-1.5 space-y-1">
+                    <input
+                      type="text"
+                      placeholder="https://ejemplo.com/banner.jpg o /uploads/..."
+                      value={formData.bannerUrl?.startsWith("data:") ? "" : (formData.bannerUrl || "")}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, bannerUrl: e.target.value }))}
+                      className="mt-1.5 w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500"
+                    />
+                    {formData.bannerUrl?.startsWith("data:") && (
+                      <p className="text-[10px] text-amber-400">
+                        * Actualmente tienes una portada cargada desde tu equipo. Escribe o pega una URL para reemplazarla.
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
