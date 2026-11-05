@@ -2513,7 +2513,7 @@ export default function DjBoothPage() {
         pendingDeckLoad={pendingDeckLoad}
         onDeckLoaded={() => setPendingDeckLoad(null)}
         onPlaybackControl={handlePlaybackControl}
-        isAutoPlayMode={Boolean(queuePolicy.autoPlayRequests)}
+        isAutoPlayMode={Boolean(queuePolicy.autoPlayRequests || queuePolicy.nextTurnMode === "AUTOPLAY_ON_TIMEOUT")}
       />
 
       {/* 2.5 SOUNDBOARD FX LAUNCHPAD PARA DJ */}
