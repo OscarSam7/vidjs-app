@@ -304,6 +304,11 @@ export default function ShowcasePage() {
                     Biblioteca Musical
                   </Link>
                 </li>
+                <li>
+                  <Link href="/dashboard/branding" className="hover:text-purple-300 transition-colors">
+                    White-Label & Marca Blanca
+                  </Link>
+                </li>
               </ul>
             </div>
 

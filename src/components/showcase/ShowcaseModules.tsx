@@ -25,6 +25,8 @@ import {
   Building,
   ScanLine,
   WifiOff,
+  Palette,
+  Image as ImageIcon,
 } from "lucide-react";
 
 export function ShowcaseModules() {
@@ -32,7 +34,8 @@ export function ShowcaseModules() {
   const [selectedModuleIndex, setSelectedModuleIndex] = useState<number>(0);
 
   const categories = [
-    { id: "all", label: "Todos los Módulos (9)" },
+    { id: "all", label: "Todos los Módulos (10)" },
+    { id: "branding", label: "🎨 White-Label & Marca Propia" },
     { id: "events", label: "🎟️ Acreditaciones & Accesos" },
     { id: "reservations", label: "🍾 Reservas & Camarotes VIP" },
     { id: "audio", label: "🎧 DJ & Audio Pro" },
@@ -271,6 +274,33 @@ export function ShowcaseModules() {
       businessValue:
         "Asegura ingresos récord garantizados antes del fin de semana. Un camarote reservado con combo de cumpleaños o consumo mínimo garantiza entre $150 y $1.200 USD de facturación segura por mesa.",
       stats: { label: "Ingresos Anticipados", value: "100% Cobrado Antes" },
+    },
+    {
+      id: "white-label-branding",
+      category: "branding",
+      title: "White-Label & Branding Total (Logo, Portada & Neón UI)",
+      badge: "MARCA BLANCA EMPRESARIAL",
+      badgeColor: "bg-purple-950/80 text-purple-300 border-purple-800/60",
+      accentColor: "from-purple-600 via-pink-600 to-cyan-500",
+      icon: Palette,
+      directHref: "/dashboard/branding",
+      directLabel: "Configurar Marca Blanca",
+      tagline: "Convierte Vidjs en la aplicación oficial de tu local con tu propio logotipo, portada y colores.",
+      description:
+        "Tus clientes y comensales interactúan exclusivamente con la identidad de tu marca. El portal móvil, las pantallas gigantes de televisión, las reservas VIP y los tickets QR llevan el logo de tu empresa, tu banner de bienvenida y la paleta de iluminación neón de tu establecimiento.",
+      features: [
+        "Especificación Logo Oficial: 512 × 512 px (1:1) o 800 × 200 px (4:1) en PNG transparente o SVG",
+        "Especificación Portada Móvil: 1200 × 400 px (3:1 panorámico WebP/JPG) con zona segura central del 80%",
+        "Fondo para Pantallas TV / Espera: 1920 × 1080 px Full HD (16:9)",
+        "Motor de Paletas Neón: Cyber Purple, Golden Luxury, Retro Synthwave, Emerald Speakeasy y Midnight Velvet",
+        "Soporte Multi-Sucursal (Multi-Venue): Personalización visual independiente para cada local de la cadena",
+        "Banner promocional interactivo: Anuncio de Happy Hour / Cumpleaños con botón de acción directa a WhatsApp",
+        "Subida directa drag & drop desde cualquier celular o PC (archivos PNG, SVG, WebP y JPG de hasta 10 MB)",
+        "Portal PWA instalable sin tiendas con el nombre e icono oficial de tu negocio",
+      ],
+      businessValue:
+        "Genera estatus y pertenencia. Tu establecimiento proyecta una imagen de cadena internacional con software propio de alta gama sin pagar cientos de miles de dólares en desarrollo a medida.",
+      stats: { label: "Personalización Visual", value: "100% White-Label" },
     },
   ];
 

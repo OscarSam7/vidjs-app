@@ -33,11 +33,17 @@ import {
   ExternalLink,
   ArrowRight,
   Upload,
+  Palette,
+  Copy,
+  CheckCheck,
+  Wifi,
+  Building2,
+  Image as ImageIcon,
 } from "lucide-react";
 
 export function ShowcaseSandbox() {
   const [activeTab, setActiveTab] = useState<
-    "dj" | "mobile" | "tv" | "contest" | "accreditation" | "reservations"
+    "dj" | "mobile" | "tv" | "contest" | "accreditation" | "reservations" | "branding"
   >("dj");
 
   // Estados interactivos para el simulador DJ
@@ -125,6 +131,108 @@ export function ShowcaseSandbox() {
       badge: "Premium VIP",
     },
   ];
+
+  // Estados interactivos para el simulador de White-Label & Marca Propia
+  const [selectedBrandIndex, setSelectedBrandIndex] = useState(0);
+  const [selectedThemePreset, setSelectedThemePreset] = useState("cyber-purple");
+  const [copiedSpecs, setCopiedSpecs] = useState(false);
+  const [showActivePromoSim, setShowActivePromoSim] = useState(true);
+  const [previewDeviceMode, setPreviewDeviceMode] = useState<"MOBILE" | "TV">("MOBILE");
+
+  const brandPresets = [
+    {
+      name: "Velvet Nightclub & Rooftop",
+      slug: "velvet-club",
+      tagline: "El epicentro de la música electrónica & VIP",
+      logoUrl: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400&auto=format&fit=crop",
+      logoText: "VELVET",
+      logoSub: "NIGHTCLUB",
+      bannerUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop",
+      preset: "cyber-purple",
+      primaryColor: "#8B5CF6",
+      accentColor: "#06B6D4",
+      wifiSsid: "VELVET_VIP_5G",
+      wifiPass: "velvet2026",
+      promoTitle: "🍸 2x1 Gin Tonic & Fernet",
+      promoSubtitle: "Hasta las 01:00 hs en Barra Principal",
+    },
+    {
+      name: "Golden Luxury Lounge Bar",
+      slug: "golden-lounge",
+      tagline: "Coctelería de autor y ambiente exclusivo",
+      logoUrl: "https://images.unsplash.com/photo-1574096079513-d8259312b785?w=400&auto=format&fit=crop",
+      logoText: "GOLDEN",
+      logoSub: "LUXURY LOUNGE",
+      bannerUrl: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=1200&auto=format&fit=crop",
+      preset: "golden-lounge",
+      primaryColor: "#EAB308",
+      accentColor: "#F97316",
+      wifiSsid: "GOLDEN_GUESTS",
+      wifiPass: "champagne2026",
+      promoTitle: "🍾 Champagne Chandon 30% OFF",
+      promoSubtitle: "Pide desde tu mesa con tu camarote VIP",
+    },
+    {
+      name: "Emerald Speakeasy & Cocktails",
+      slug: "emerald-speakeasy",
+      tagline: "Música en vivo, mixología y tapas",
+      logoUrl: "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=400&auto=format&fit=crop",
+      logoText: "EMERALD",
+      logoSub: "SPEAKEASY",
+      bannerUrl: "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=1200&auto=format&fit=crop",
+      preset: "emerald-bar",
+      primaryColor: "#10B981",
+      accentColor: "#06B6D4",
+      wifiSsid: "EMERALD_FREE",
+      wifiPass: "esmeralda77",
+      promoTitle: "🍺 3x2 en Cervezas Artesanales",
+      promoSubtitle: "Válido para pedidos de mesas antes de medianoche",
+    },
+  ];
+
+  const currentBrand = brandPresets[selectedBrandIndex];
+
+  const themeColors: Record<string, { primary: string; accent: string; name: string }> = {
+    "cyber-purple": { primary: "#8B5CF6", accent: "#06B6D4", name: "Cyber Purple & Cyan" },
+    "golden-lounge": { primary: "#EAB308", accent: "#F97316", name: "Golden Luxury" },
+    "retro-wave": { primary: "#EC4899", accent: "#8B5CF6", name: "Retro Synthwave" },
+    "emerald-bar": { primary: "#10B981", accent: "#06B6D4", name: "Emerald Speakeasy" },
+    "midnight-velvet": { primary: "#3B82F6", accent: "#A855F7", name: "Midnight Velvet" },
+  };
+
+  const activeColors = themeColors[selectedThemePreset] || themeColors["cyber-purple"];
+
+  const handleCopySpecs = () => {
+    const specsText = `📐 GUÍA DE ESPECIFICACIONES WHITE-LABEL (VIDJS PRO) PARA DISEÑADOR:
+
+1. LOGOTIPO DEL ESTABLECIMIENTO:
+   • Tamaño Recomendado: 512 x 512 px (Cuadrado 1:1) o 800 x 200 px (Horizontal 4:1).
+   • Formato: PNG transparente (sin fondo blanco/negro) o SVG vectorial.
+   • Peso sugerido: < 500 KB (soporta hasta 10 MB).
+   • Usos: Esquina superior de Pantalla TV, Menú Móvil QR, PWA, Credenciales.
+   • Tip: Diseñar con alto contraste para interfaz Dark Mode (fondos oscuros).
+
+2. PORTADA / BANNER HERO DEL MÓVIL:
+   • Tamaño Recomendado: 1200 x 400 px (Proporción panorámica 3:1).
+   • Formato: WebP o JPG en alta calidad (85-90%).
+   • Peso sugerido: Entre 300 KB y 1.5 MB para carga instantánea en 4G/5G.
+   • Usos: Cabecera superior del menú digital y reservas de mesas.
+   • Zona Segura: Colocar textos y elementos clave en el 80% central.
+
+3. PANTALLA TV GIGANTE / VIDEO WALL:
+   • Tamaño Recomendado: 1920 x 1080 px (Full HD 16:9).
+
+4. COMPARTIR EN REDES / WHATSAPP (OPENGRAPH):
+   • Tamaño Recomendado: 1200 x 630 px (1.91:1).
+
+Configuración en vivo en: vidjs.com/dashboard/branding`;
+
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(specsText);
+      setCopiedSpecs(true);
+      setTimeout(() => setCopiedSpecs(false), 3000);
+    }
+  };
 
   return (
     <section id="sandbox" className="py-24 bg-zinc-950 relative border-t border-zinc-900">
@@ -223,6 +331,19 @@ export function ShowcaseSandbox() {
             >
               <PartyPopper className="w-4 h-4" />
               <span>6. Reservas VIP & Fotos</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("branding")}
+              className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === "branding"
+                  ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-900/50 scale-105"
+                  : "bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800"
+              }`}
+            >
+              <Palette className="w-4 h-4 text-purple-400" />
+              <span>7. White-Label & Marca Propia</span>
             </button>
           </div>
         </div>
@@ -1310,6 +1431,529 @@ export function ShowcaseSandbox() {
                       <span>Abrir Portal de Reservas</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: WHITE-LABEL & MARCA PROPIA (LOGO, PORTADA & PÍXELES) */}
+          {activeTab === "branding" && (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Encabezado del Módulo con Copiado de Especificaciones */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md bg-purple-950 text-purple-300 border border-purple-800 text-[10px] font-mono font-bold uppercase">
+                      MARCA BLANCA EMPRESARIAL
+                    </span>
+                    <span className="text-xs text-zinc-400">Personalización 100% Sin Huella de Terceros</span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-black text-white mt-1">
+                    Simulador White-Label & Guía Técnica de Píxeles
+                  </h3>
+                  <p className="text-xs text-zinc-400 max-w-2xl mt-0.5">
+                    Descubre las medidas exactas recomendadas para el logotipo y la portada de tu establecimiento. Prueba en tiempo real cómo lucirá tu marca en celulares de clientes y pantallas gigantes TV.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleCopySpecs}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 shadow-md select-none ${
+                      copiedSpecs
+                        ? "bg-emerald-600 text-white border-emerald-400 shadow-emerald-600/30 scale-105"
+                        : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white border-zinc-700"
+                    }`}
+                    title="Copiar medidas en formato texto para enviar por WhatsApp o correo a tu diseñador gráfico"
+                  >
+                    {copiedSpecs ? (
+                      <>
+                        <CheckCheck className="w-4 h-4 text-emerald-200" />
+                        <span>¡Medidas Copiadas!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4 text-purple-400" />
+                        <span>Copiar Guía para Diseñador</span>
+                      </>
+                    )}
+                  </button>
+
+                  <a
+                    href="/dashboard/branding"
+                    className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-bold shadow-md shadow-purple-900/30 transition-all flex items-center gap-1.5"
+                  >
+                    <span>Configurador Real</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+
+              {/* GRID 1: 4 TARJETAS TÉCNICAS DE PÍXELES Y FORMATOS RECOMENDADOS */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* 1. Logotipo Oficial */}
+                <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-purple-900/50 hover:border-purple-500/60 transition-all space-y-2 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-purple-600/10 rounded-full blur-xl pointer-events-none" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-purple-300">
+                      1. LOGOTIPO
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-950/80 text-purple-300 border border-purple-800">
+                      PNG / SVG
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-lg font-black text-white font-mono">512 × 512 px</div>
+                    <div className="text-[11px] text-zinc-400 font-mono">o 800 × 200 px (Horizontal)</div>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 leading-snug">
+                    Fondo 100% transparente sin marco. Máximo contraste para modo oscuro en celulares y Smart TVs.
+                  </p>
+                  <div className="text-[9px] font-mono text-purple-300 font-bold pt-1 border-t border-zinc-900">
+                    Ratio 1:1 o 4:1 • Máx 10 MB
+                  </div>
+                </div>
+
+                {/* 2. Portada / Banner Móvil */}
+                <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-cyan-900/50 hover:border-cyan-500/60 transition-all space-y-2 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-600/10 rounded-full blur-xl pointer-events-none" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-cyan-300">
+                      2. PORTADA MÓVIL
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800">
+                      WebP / JPG
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-lg font-black text-white font-mono">1200 × 400 px</div>
+                    <div className="text-[11px] text-zinc-400 font-mono">Proporción 3:1 (Hero)</div>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 leading-snug">
+                    Cabecera del menú QR. Textos centrados en el 80% medio para que no se corten en celulares delgados.
+                  </p>
+                  <div className="text-[9px] font-mono text-cyan-300 font-bold pt-1 border-t border-zinc-900">
+                    Zona Segura 80% • Carga en 4G/5G
+                  </div>
+                </div>
+
+                {/* 3. Pantalla TV / Video Wall */}
+                <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-amber-900/50 hover:border-amber-500/60 transition-all space-y-2 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-amber-600/10 rounded-full blur-xl pointer-events-none" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
+                      3. PANTALLA TV
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-950/80 text-amber-300 border border-amber-800">
+                      1080p / 4K
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-lg font-black text-white font-mono">1920 × 1080 px</div>
+                    <div className="text-[11px] text-zinc-400 font-mono">Full HD 16:9 Panorámico</div>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 leading-snug">
+                    Fondo de espera y publicidad en Smart TVs, proyectores o pantallas LED de la pista principal.
+                  </p>
+                  <div className="text-[9px] font-mono text-amber-300 font-bold pt-1 border-t border-zinc-900">
+                    Relación 16:9 Estándar TV
+                  </div>
+                </div>
+
+                {/* 4. Redes & WhatsApp OpenGraph */}
+                <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-pink-900/50 hover:border-pink-500/60 transition-all space-y-2 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-pink-600/10 rounded-full blur-xl pointer-events-none" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-pink-300">
+                      4. SOCIAL & WA
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-pink-950/80 text-pink-300 border border-pink-800">
+                      OpenGraph
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-lg font-black text-white font-mono">1200 × 630 px</div>
+                    <div className="text-[11px] text-zinc-400 font-mono">Ratio 1.91:1 Social Share</div>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 leading-snug">
+                    Miniatura atractiva que aparece al compartir links de reservas o pases de cumpleaños por WhatsApp.
+                  </p>
+                  <div className="text-[9px] font-mono text-pink-300 font-bold pt-1 border-t border-zinc-900">
+                    Miniatura Viral WhatsApp
+                  </div>
+                </div>
+              </div>
+
+              {/* BARRA DE HERRAMIENTAS INTERACTIVAS */}
+              <div className="p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+                {/* 1. Selector de Marca Demo */}
+                <div className="flex items-center gap-2">
+                  <span className="text-zinc-400 font-bold text-[11px] flex items-center gap-1">
+                    <Building2 className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Establecimiento Demo:</span>
+                  </span>
+                  <div className="flex gap-1.5">
+                    {brandPresets.map((b, i) => (
+                      <button
+                        key={b.slug}
+                        type="button"
+                        onClick={() => {
+                          setSelectedBrandIndex(i);
+                          setSelectedThemePreset(b.preset);
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                          selectedBrandIndex === i
+                            ? "bg-purple-600 text-white border-purple-400 shadow-sm"
+                            : "bg-zinc-900 text-zinc-400 hover:text-white border-zinc-800"
+                        }`}
+                      >
+                        {b.logoText}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Selector de Paleta Neón */}
+                <div className="flex items-center gap-2">
+                  <span className="text-zinc-400 font-bold text-[11px] flex items-center gap-1">
+                    <Palette className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Paleta Neón:</span>
+                  </span>
+                  <div className="flex gap-1.5">
+                    {Object.entries(themeColors).map(([key, item]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setSelectedThemePreset(key)}
+                        className={`w-6 h-6 rounded-full border-2 transition-transform cursor-pointer relative ${
+                          selectedThemePreset === key
+                            ? "scale-125 border-white shadow-md ring-2 ring-purple-500/50"
+                            : "border-zinc-700 hover:scale-110 opacity-70 hover:opacity-100"
+                        }`}
+                        style={{
+                          background: `linear-gradient(135deg, ${item.primary} 50%, ${item.accent} 50%)`,
+                        }}
+                        title={item.name}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. Selector de Dispositivo Preview (Móvil vs TV) */}
+                <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDeviceMode("MOBILE")}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      previewDeviceMode === "MOBILE"
+                        ? "bg-purple-600 text-white shadow-sm"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                    <span>Vista Móvil</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDeviceMode("TV")}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      previewDeviceMode === "TV"
+                        ? "bg-amber-600 text-white shadow-sm"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Tv className="w-3.5 h-3.5" />
+                    <span>Vista TV 16:9</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* AREA PRINCIPAL: MOCKUP INTERACTIVO SEGÚN DISPOSITIVO */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* COLUMNA IZQUIERDA: MOCKUP DE DISPOSITIVO (7 COLS) */}
+                <div className="lg:col-span-7 flex justify-center">
+                  {previewDeviceMode === "MOBILE" ? (
+                    /* SMARTPHONE MOCKUP CON BANNER Y LOGO */
+                    <div className="w-full max-w-[340px] rounded-[36px] bg-black border-4 border-zinc-800 p-2 shadow-2xl shadow-purple-950/40 relative overflow-hidden">
+                      {/* Notch superior */}
+                      <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-zinc-900 rounded-b-xl z-30 flex items-center justify-center">
+                        <div className="w-2.5 h-2.5 rounded-full bg-zinc-950 border border-zinc-800" />
+                      </div>
+
+                      {/* Pantalla interna del móvil */}
+                      <div className="rounded-[28px] bg-zinc-950 overflow-hidden relative border border-zinc-900 min-h-[520px] flex flex-col justify-between">
+                        {/* Cabecera con PORTADA 1200x400 (Ratio 3:1) */}
+                        <div className="relative h-32 w-full overflow-hidden shrink-0">
+                          <img
+                            src={currentBrand.bannerUrl}
+                            alt="Portada del local"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-black/30" />
+
+                          {/* Indicador de píxeles sobre la portada */}
+                          <div className="absolute top-5 left-3 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-xs text-[8px] font-mono text-zinc-300 border border-white/10">
+                            Banner 1200 × 400 (3:1)
+                          </div>
+
+                          {/* LOGOTIPO FLOTANTE EN CÍRCULO NEÓN */}
+                          <div
+                            className="absolute -bottom-5 left-4 w-14 h-14 rounded-2xl bg-zinc-900 border-2 p-1 flex items-center justify-center shadow-xl z-20"
+                            style={{ borderColor: activeColors.primary }}
+                          >
+                            <img
+                              src={currentBrand.logoUrl}
+                              alt="Logo del local"
+                              className="w-full h-full object-cover rounded-xl"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Contenido del Móvil */}
+                        <div className="px-4 pt-7 pb-4 flex-1 space-y-3">
+                          {/* Nombre del Local y Subtítulo */}
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <h4 className="text-sm font-black text-white">{currentBrand.name}</h4>
+                              <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                            </div>
+                            <p className="text-[10px] text-zinc-400 leading-tight mt-0.5">{currentBrand.tagline}</p>
+                          </div>
+
+                          {/* Wi-Fi de Cortesía con Contraseña */}
+                          <div className="p-2 rounded-xl bg-zinc-900/90 border border-zinc-800 text-[10px] flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <Wifi className="w-3 h-3 text-cyan-400 shrink-0" />
+                              <span className="text-zinc-400 truncate">
+                                Wi-Fi: <strong className="text-white font-mono">{currentBrand.wifiSsid}</strong>
+                              </span>
+                            </div>
+                            <span className="text-[9px] font-mono text-zinc-300 font-bold px-1.5 py-0.5 rounded bg-zinc-800">
+                              {currentBrand.wifiPass}
+                            </span>
+                          </div>
+
+                          {/* Banner de Promoción Activa Simulada */}
+                          {showActivePromoSim && (
+                            <div
+                              className="p-2.5 rounded-xl border text-[10px] flex items-center justify-between gap-2 shadow-md animate-fadeIn"
+                              style={{
+                                backgroundColor: `${activeColors.primary}18`,
+                                borderColor: `${activeColors.primary}50`,
+                              }}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[7.5px] font-black uppercase px-1 rounded bg-black/60 text-amber-300">
+                                    PROMO ACTIVA
+                                  </span>
+                                  <span className="text-[10px] font-black text-white truncate">
+                                    {currentBrand.promoTitle}
+                                  </span>
+                                </div>
+                                <p className="text-[9px] text-zinc-300 truncate mt-0.5">
+                                  {currentBrand.promoSubtitle}
+                                </p>
+                              </div>
+                              <span
+                                className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase text-white shadow-sm shrink-0"
+                                style={{ backgroundColor: activeColors.primary }}
+                              >
+                                Canjear
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Buscador de Canciones simulado */}
+                          <div className="space-y-1.5">
+                            <div className="h-8 rounded-xl bg-zinc-900 border border-zinc-800 px-2.5 flex items-center justify-between text-xs text-zinc-400">
+                              <span className="text-[10px]">🔎 Buscar canción o artista...</span>
+                              <span className="text-[9px] font-mono text-zinc-600">YouTube HD</span>
+                            </div>
+
+                            <button
+                              type="button"
+                              className="w-full py-2 rounded-xl text-white font-bold text-xs shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                              style={{
+                                backgroundColor: activeColors.primary,
+                                boxShadow: `0 8px 20px ${activeColors.primary}40`,
+                              }}
+                            >
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>Pedir Canción a la Cabina</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Barra inferior del móvil */}
+                        <div className="p-2 border-t border-zinc-900 bg-zinc-950/90 flex justify-around text-[9px] font-bold text-zinc-500">
+                          <span className="text-white font-bold">🎵 Pedir</span>
+                          <span>🏆 Duelos</span>
+                          <span>🍾 Camarotes</span>
+                          <span>⭐ Propina</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* SMART TV MOCKUP 16:9 CON LOGO SUPERIOR Y VIDEO HD */
+                    <div className="w-full max-w-[540px] rounded-2xl bg-zinc-950 border-4 border-zinc-800 p-2 shadow-2xl shadow-cyan-950/40 relative overflow-hidden">
+                      {/* Marco biselado TV */}
+                      <div className="rounded-xl bg-black border border-zinc-900 overflow-hidden relative aspect-video flex flex-col justify-between">
+                        {/* Video de fondo simulado */}
+                        <img
+                          src={currentBrand.bannerUrl}
+                          alt="Video en vivo"
+                          className="absolute inset-0 w-full h-full object-cover opacity-60"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/60" />
+
+                        {/* HEADER TV: LOGOTIPO OFICIAL DEL LOCAL */}
+                        <div className="relative z-10 p-3 flex items-start justify-between">
+                          <div className="flex items-center gap-2 p-1.5 rounded-xl bg-black/75 backdrop-blur-md border border-white/10">
+                            <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-white/20">
+                              <img
+                                src={currentBrand.logoUrl}
+                                alt="Logo TV"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div>
+                              <div className="text-xs font-black text-white leading-tight font-mono tracking-wider">
+                                {currentBrand.logoText}
+                              </div>
+                              <div className="text-[8px] font-bold uppercase tracking-widest text-cyan-300">
+                                {currentBrand.logoSub}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="px-2 py-1 rounded-lg bg-black/80 backdrop-blur-md text-[9px] font-mono text-emerald-400 border border-emerald-500/40 font-black flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                            <span>PANTALLA EN VIVO • 1080p</span>
+                          </div>
+                        </div>
+
+                        {/* CENTRO TV: REPRODUCTOR & EQUALIZADOR NEON */}
+                        <div className="relative z-10 p-4 text-center space-y-1">
+                          <span className="px-2 py-0.5 rounded-full bg-purple-950/80 border border-purple-800 text-[9px] font-black text-purple-300">
+                            CANCIÓN AL AIRE • MESA 14
+                          </span>
+                          <h3 className="text-base sm:text-lg font-black text-white drop-shadow-md">
+                            Dua Lipa &bull; Levitating
+                          </h3>
+                          {/* Barras de Vúmetro animadas */}
+                          <div className="flex items-center justify-center gap-1 h-8 pt-1">
+                            {[12, 24, 18, 30, 22, 28, 16, 26, 20, 14].map((h, i) => (
+                              <div
+                                key={i}
+                                className="w-1.5 rounded-full animate-pulse"
+                                style={{
+                                  height: `${h}px`,
+                                  backgroundColor: i % 2 === 0 ? activeColors.primary : activeColors.accent,
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* FOOTER TV: CINTILLO ROTATIVO & QR DINÁMICO */}
+                        <div className="relative z-10 p-2.5 bg-black/90 backdrop-blur-md border-t border-zinc-800 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2 text-[10px] text-zinc-300 truncate">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <span className="truncate">
+                              🍸 {currentBrand.promoTitle} &bull; Escanea el QR para pedir tu canción favorita
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0 px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-[9px] font-mono font-bold text-white">
+                            <QrCode className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>vidjs.com/g/mesa14</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* COLUMNA DERECHA: ESPECIFICACIONES & CHECKLIST DE CALIDAD (5 COLS) */}
+                <div className="lg:col-span-5 space-y-4">
+                  {/* Tarjeta de Control & Opciones */}
+                  <div className="p-4 rounded-2xl bg-zinc-950/90 border border-zinc-800 space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-zinc-900">
+                      <span className="text-xs font-black text-white flex items-center gap-1.5">
+                        <ImageIcon className="w-4 h-4 text-purple-400" />
+                        <span>Parámetros de Branding</span>
+                      </span>
+                      <span className="text-[10px] font-mono text-emerald-400 font-bold">100% OK</span>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      {/* Check 1: Logo */}
+                      <div className="flex items-start gap-2 p-2 rounded-xl bg-zinc-900/60 border border-zinc-800">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-white block">Logotipo Transparente</span>
+                          <span className="text-[10px] text-zinc-400">
+                            Recomendado 512×512 px en PNG transparente o SVG. Sin recuadro de color para encajar con el modo oscuro.
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Check 2: Banner */}
+                      <div className="flex items-start gap-2 p-2 rounded-xl bg-zinc-900/60 border border-zinc-800">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-white block">Portada Panorámica 1200×400</span>
+                          <span className="text-[10px] text-zinc-400">
+                            Proporción 3:1 en formato WebP o JPG. Los elementos y textos deben ubicarse en el 80% central.
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Check 3: Paleta Neón */}
+                      <div className="flex items-start gap-2 p-2 rounded-xl bg-zinc-900/60 border border-zinc-800">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-white block">Esquema de Color Neón</span>
+                          <span className="text-[10px] text-zinc-400">
+                            Color primario ({activeColors.primary}) y resplandor acento ({activeColors.accent}) activos en botones y vúmetros.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Toggle de Promoción Activa */}
+                    <div className="pt-2 border-t border-zinc-900 flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-zinc-300">Banner de Promoción Activa</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowActivePromoSim(!showActivePromoSim)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-colors cursor-pointer border ${
+                          showActivePromoSim
+                            ? "bg-emerald-600 text-white border-emerald-400"
+                            : "bg-zinc-900 text-zinc-400 border-zinc-800"
+                        }`}
+                      >
+                        {showActivePromoSim ? "MOSTRAR: ON" : "OCULTO"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Resumen de Valor Comercial */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-950/40 via-zinc-950 to-cyan-950/30 border border-purple-900/40 space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs font-black text-purple-300">
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <span>¿Por qué importa el White-Label?</span>
+                    </div>
+                    <p className="text-xs text-zinc-300 leading-relaxed">
+                      Tus clientes nunca ven marcas genéricas ni publicidad ajena. Cada interacción refuerza el prestigio de tu propio local, aumentando la fidelidad y la percepción de servicio VIP de primer nivel.
+                    </p>
+                    <div className="pt-2 flex items-center justify-between text-[11px] text-zinc-400">
+                      <span>Soporta cadenas multi-local</span>
+                      <span className="text-cyan-400 font-bold font-mono">100% Personalizado</span>
+                    </div>
                   </div>
                 </div>
               </div>
