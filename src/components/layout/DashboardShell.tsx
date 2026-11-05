@@ -78,7 +78,7 @@ export function DashboardShell({ children, user, tenantName, venues = [] }: Dash
           isSidebarCollapsed={isCollapsed}
           onToggleSidebar={handleToggleSidebar}
         />
-        <main className="flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 pb-24 sm:pb-28 max-w-7xl w-full mx-auto overflow-y-auto overflow-x-hidden">
+        <main className="flex-1 p-3.5 sm:p-5 md:p-6 lg:p-6 pb-28 sm:pb-36 max-w-7xl w-full mx-auto overflow-y-auto overflow-x-hidden">
           {children}
         </main>
 

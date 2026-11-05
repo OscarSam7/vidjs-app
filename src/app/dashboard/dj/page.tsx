@@ -1280,8 +1280,8 @@ export default function DjBoothPage() {
   return (
     <div className="space-y-6 w-full max-w-full overflow-hidden mx-auto">
       {/* 1. Header de Cabina & Selector de Evento */}
-      <div className="flex flex-col lg:flex-row items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-zinc-950 border border-zinc-800 text-center lg:text-left w-full max-w-full">
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-zinc-950 border border-zinc-800 text-left w-full max-w-full">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full xl:w-auto">
           <div
             className={`p-2.5 rounded-xl border transition-all shrink-0 ${
               queuePolicy.zone === "KARAOKE"
@@ -1413,7 +1413,7 @@ export default function DjBoothPage() {
         )}
 
         {/* Métricas Rápidas */}
-        <div className="grid grid-cols-3 gap-2 w-full lg:w-auto shrink-0">
+        <div className="grid grid-cols-3 gap-2 w-full xl:w-auto shrink-0">
           <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-center">
             <div className="text-[10px] text-zinc-400 font-bold uppercase">Pendientes</div>
             <div className="text-base font-black text-amber-400">{data.stats.pending}</div>
@@ -1434,8 +1434,8 @@ export default function DjBoothPage() {
       </div>
 
       {/* 🎛️ SELECTOR PRINCIPAL DE MODALIDAD: MODO DJ vs MODO KARAOKE */}
-      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950 border border-zinc-800 shadow-xl flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left w-full max-w-full">
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 w-full md:w-auto">
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950 border border-zinc-800 shadow-xl flex flex-col xl:flex-row xl:items-center justify-between gap-3.5 text-left w-full max-w-full">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full xl:w-auto">
           <span className="text-xs font-black uppercase tracking-wider text-zinc-400 shrink-0 flex items-center gap-1.5">
             <Sliders className="w-3.5 h-3.5 text-purple-400" />
             <span>Modalidad:</span>
@@ -1505,10 +1505,10 @@ export default function DjBoothPage() {
           </button>
         </div>
 
-        <div className="flex items-center justify-center gap-2 text-xs w-full md:w-auto flex-wrap">
+        <div className="flex flex-wrap items-center gap-2 text-xs w-full xl:w-auto xl:justify-end pt-2.5 xl:pt-0 border-t xl:border-t-0 border-zinc-800/80">
           {queuePolicy.zone === "KARAOKE" ? (
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-3 py-1.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 font-semibold flex items-center justify-center gap-1.5 text-[11px] sm:text-xs">
+              <span className="px-3 py-1.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 font-semibold flex items-center gap-1.5 text-[11px] sm:text-xs shrink-0 whitespace-nowrap">
                 <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
                 <span>Turnos &ldquo;Canta y Libera&rdquo; sincronizados</span>
               </span>
@@ -1522,7 +1522,7 @@ export default function DjBoothPage() {
                       window.open(`/display/${data.event.code}?mode=karaoke`, "vidjs_tv_display");
                     }
                   }}
-                  className="px-2.5 py-1.5 rounded-xl bg-cyan-950/90 hover:bg-cyan-900 border border-cyan-500/60 text-cyan-200 font-bold flex items-center gap-1 text-[11px] transition-colors cursor-pointer shadow-sm shadow-cyan-900/40"
+                  className="px-2.5 py-1.5 rounded-xl bg-cyan-950/90 hover:bg-cyan-900 border border-cyan-500/60 text-cyan-200 font-bold flex items-center gap-1 text-[11px] transition-colors cursor-pointer shadow-sm shadow-cyan-900/40 shrink-0 whitespace-nowrap"
                   title="Abrir o enfocar pantalla de TV Karaoke para mesas y cantantes"
                 >
                   <Tv className="w-3.5 h-3.5 text-cyan-400" />
@@ -1537,7 +1537,7 @@ export default function DjBoothPage() {
                   setIsKaraokeModalOpen(true);
                   handleSearchKaraoke();
                 }}
-                className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white font-bold flex items-center gap-1 text-[11px] transition-colors cursor-pointer"
+                className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white font-bold flex items-center gap-1 text-[11px] transition-colors cursor-pointer shrink-0 whitespace-nowrap"
                 title="Buscar y proyectar video de karaoke en la TV"
               >
                 <Youtube className="w-3.5 h-3.5 text-red-500" />
@@ -1557,8 +1557,8 @@ export default function DjBoothPage() {
                 }`}
                 title="Abrir o colapsar el Muro de Fotos en Vivo"
               >
-                <Camera className="w-3.5 h-3.5 text-pink-400" />
-                <span>Muro Fotos</span>
+                <Camera className="w-3.5 h-3.5 text-pink-400 shrink-0" />
+                <span className="whitespace-nowrap">Muro Fotos</span>
                 <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[9px] font-mono">
                   {pendingPhotos.length + approvedPhotos.length + removedPhotos.length}
                 </span>
@@ -1596,10 +1596,9 @@ export default function DjBoothPage() {
       </div>
 
       {/* 1.5. BARRA DE ACCIONES RÁPIDAS & NIGHT MOMENTS */}
-      <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800/90 space-y-3 w-full max-w-full overflow-hidden">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 w-full max-w-full">
-          {/* Night Moments Switcher */}
-          <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 scrollbar-none text-xs">
+      <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800/90 space-y-3 w-full max-w-full">
+        {/* Fila 1: Selector de Momento de la Noche */}
+        <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 scrollbar-none text-xs">
             <span className="text-[10px] uppercase font-bold text-zinc-500 mr-1 flex items-center gap-1 shrink-0">
               <Sparkles className="w-3 h-3 text-purple-400" />
               <span>Momento:</span>
@@ -1626,8 +1625,8 @@ export default function DjBoothPage() {
             ))}
           </div>
 
-          {/* Quick Action Buttons */}
-          <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-2 scrollbar-none flex-nowrap lg:flex-wrap lg:justify-end w-full lg:w-auto">
+        {/* Fila 2: Botones de Acción Rápida (layout flex-wrap amplio sin encimarse) */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-800/70">
             <button
               onClick={() => setIsManualModalOpen(true)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border shrink-0 ${
@@ -1706,7 +1705,6 @@ export default function DjBoothPage() {
               <Dices className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span className="whitespace-nowrap">Ruleta Sorteo</span>
             </button>
-          </div>
         </div>
 
         {/* Sugerencias Inteligentes con Explicabilidad (Queue Intelligence) */}
@@ -1745,8 +1743,8 @@ export default function DjBoothPage() {
 
       {/* 1.6 CONTROL FAIR-PLAY & ROTACIÓN DE TURNOS ("CANTA Y LIBERA") */}
       <div className="p-4 rounded-2xl bg-gradient-to-r from-zinc-950 via-purple-950/20 to-zinc-950 border border-purple-500/30 space-y-3 shadow-lg w-full max-w-full overflow-hidden">
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-3 text-center lg:text-left">
-          <div className="flex flex-col sm:flex-row items-center gap-2.5">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-left">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5">
             <div className="p-2 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30 shrink-0">
               <Scale className="w-5 h-5" />
             </div>
@@ -1781,7 +1779,7 @@ export default function DjBoothPage() {
           </div>
 
           {/* Selectores rápidos de política en vivo */}
-          <div className="flex flex-wrap items-center justify-center lg:justify-end gap-2 w-full lg:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto xl:justify-end pt-2 xl:pt-0 border-t xl:border-t-0 border-purple-900/30">
             <span className="text-[10px] uppercase font-bold text-zinc-500 mr-1">Cupo:</span>
 
             <button

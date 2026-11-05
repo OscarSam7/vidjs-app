@@ -185,18 +185,18 @@ export function BottomNavigationDock() {
       <nav
         aria-label="Navegación rápida de cabina"
         data-dock="navigation"
-        className="fixed bottom-2 sm:bottom-3 left-1/2 -translate-x-1/2 z-40 max-w-2xl w-[calc(100%-1rem)] sm:w-auto transition-all duration-300"
+        className="fixed bottom-2 sm:bottom-3 left-1/2 -translate-x-1/2 z-40 max-w-2xl w-[calc(100%-1rem)] sm:w-auto transition-all duration-300 pointer-events-none"
       >
         <div
           id="bottom-navigation-dock"
-          className="backdrop-blur-xl border border-[#263858] rounded-2xl p-1.5 sm:p-2 flex items-center justify-between sm:justify-center gap-1 sm:gap-1.5 transition-colors duration-200 bg-[#0D1930]/95 text-[#F8FAFC] shadow-[0_12px_40px_rgba(4,10,24,0.95)]"
+          className="backdrop-blur-xl border border-[#263858] rounded-2xl p-1.5 sm:p-2 flex items-center justify-between sm:justify-center gap-1 sm:gap-1.5 transition-colors duration-200 bg-[#0D1930]/95 text-[#F8FAFC] shadow-[0_12px_40px_rgba(4,10,24,0.95)] pointer-events-auto"
         >
           {/* Si está colapsado: muestra solo una barra ultra delgada con botón para expandir */}
           {isCollapsed ? (
             <button
               type="button"
               onClick={toggleCollapsed}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer select-none border bg-purple-600/10 hover:bg-purple-600/20 text-purple-300 border-purple-500/30"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer select-none border bg-purple-600/10 hover:bg-purple-600/20 text-purple-300 border-purple-500/30 pointer-events-auto"
               title="Expandir barra de acceso rápido"
             >
               <Layers className="w-3.5 h-3.5 text-purple-400" />

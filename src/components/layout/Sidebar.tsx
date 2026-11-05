@@ -302,15 +302,12 @@ export function Sidebar({
           )}
         >
           {collapsed ? (
-            <button
-              type="button"
-              onClick={onToggleCollapse}
-              className="p-2 rounded-xl bg-navy-800 hover:bg-navy-750 border border-navy-700 text-purple-400 transition-all cursor-pointer group"
-              title="Expandir menú lateral"
-              aria-label="Expandir menú"
+            <div
+              className="w-8 h-8 rounded-xl bg-purple-950/70 border border-purple-700/50 flex items-center justify-center text-purple-300 shadow-sm shrink-0"
+              title="VIDJEIS PRO"
             >
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </button>
+              <Disc3 className="w-4 h-4 text-purple-400" />
+            </div>
           ) : (
             <>
               <div className="flex items-center gap-2.5 overflow-hidden">
@@ -327,26 +324,14 @@ export function Sidebar({
                 </div>
               </div>
 
-              {isMobile ? (
-                onClose && (
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800 transition-colors"
-                    aria-label="Cerrar menú"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                )
-              ) : (
+              {isMobile && onClose && (
                 <button
                   type="button"
-                  onClick={onToggleCollapse}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800/80 border border-transparent hover:border-navy-700 transition-colors cursor-pointer"
-                  title="Minimizar menú"
-                  aria-label="Minimizar menú"
+                  onClick={onClose}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800 transition-colors"
+                  aria-label="Cerrar menú"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               )}
             </>
@@ -356,9 +341,8 @@ export function Sidebar({
         {/* Tenant Isolated Indicator */}
         {collapsed ? (
           <div
-            className="mx-auto my-3 w-10 h-10 rounded-xl bg-navy-850 border border-navy-700 shrink-0 flex items-center justify-center relative cursor-pointer group"
+            className="mx-auto my-3 w-10 h-10 rounded-xl bg-navy-850 border border-navy-700 shrink-0 flex items-center justify-center relative group"
             title={`Establecimiento: ${tenantName}`}
-            onClick={onToggleCollapse}
           >
             <Building2 className="w-4 h-4 text-slate-400 group-hover:text-purple-300 transition-colors" />
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse absolute top-1.5 right-1.5" />
@@ -488,34 +472,15 @@ export function Sidebar({
         {/* Footer Session Info */}
         <div className="p-3 border-t border-[#263858] shrink-0 bg-[#0D1930]">
           {collapsed ? (
-            <button
-              type="button"
-              onClick={onToggleCollapse}
-              className="w-9 h-9 mx-auto rounded-xl bg-navy-800 hover:bg-navy-750 border border-navy-700 text-purple-400 flex items-center justify-center transition-all cursor-pointer"
-              title="Expandir menú"
-              aria-label="Expandir menú"
-            >
-              <PanelLeftOpen className="w-4 h-4" />
-            </button>
+            <div className="flex flex-col items-center justify-center text-[10px] text-[#94A3B8] font-mono py-1">
+              <span className="text-purple-400 font-bold">v1.0</span>
+            </div>
           ) : (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-[11px] text-[#94A3B8] px-1">
-                <span>
-                  Rol: <strong className="text-[#F8FAFC] font-semibold">{role}</strong>
-                </span>
-                <span className="text-[#94A3B8] font-mono">v1.0 SaaS</span>
-              </div>
-              {!isMobile && (
-                <button
-                  type="button"
-                  onClick={onToggleCollapse}
-                  className="w-full flex items-center justify-center gap-2 py-1.5 px-2 rounded-xl bg-navy-850 hover:bg-navy-800 border border-navy-700 text-slate-300 hover:text-white text-xs font-medium transition-all cursor-pointer"
-                  title="Minimizar hacia la izquierda"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                  <span>Contraer menú</span>
-                </button>
-              )}
+            <div className="flex items-center justify-between text-[11px] text-[#94A3B8] px-1 py-1">
+              <span>
+                Rol: <strong className="text-[#F8FAFC] font-semibold">{role}</strong>
+              </span>
+              <span className="text-[#94A3B8] font-mono">v1.0 SaaS</span>
             </div>
           )}
         </div>
