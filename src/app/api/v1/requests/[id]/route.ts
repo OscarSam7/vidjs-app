@@ -42,9 +42,12 @@ export async function POST(
     });
     const policy = parseQueuePolicy(event?.settings);
 
-    if (!policy.autoPlayRequests) {
+    const isAutoPlay = Boolean(policy.autoPlayRequests);
+    const isNextTurnAllowed = policy.nextTurnMode && policy.nextTurnMode !== "DISABLED";
+
+    if (!isAutoPlay && !isNextTurnAllowed) {
       throw new AppError(
-        "El modo Auto-Play debe estar activado por el DJ para poder darle al Play directamente.",
+        "El modo Auto-Play o Turno con Play debe estar activado por el DJ para poder darle al Play directamente.",
         403,
         "AUTO_PLAY_NOT_ACTIVE"
       );
@@ -52,6 +55,7 @@ export async function POST(
 
     const body = await req.json().catch(() => ({}));
     const action = body.action || "PLAY";
+    const isForce = Boolean(body.force);
 
     if (action === "FINISH") {
       // El solicitante decide terminar su reproducción activa para dar lugar al siguiente
@@ -173,9 +177,14 @@ export async function POST(
       include: { table: true, song: true },
     });
 
-    if (prevPlaying.length > 0) {
+    const activePlayback = realtimeBus.getPlaybackState(guestSession.eventId);
+    const isBoothPlaying = activePlayback?.action === "PLAY";
+
+    if (prevPlaying.length > 0 && isBoothPlaying && !isForce) {
+      const playingTitle =
+        prevPlaying[0].song?.title || prevPlaying[0].customTitle || "Canción anterior";
       throw new AppError(
-        "Hay una canción ejecutándose actualmente en la bandeja. Espera a que termine para poder darle al Play.",
+        `Actualmente está sonando "${playingTitle}" en cabina. Espera a que termine o confirma darle al Play para sonar ahora.`,
         400,
         "DECK_CURRENTLY_PLAYING"
       );
@@ -246,6 +255,18 @@ export async function POST(
     realtimeBus.broadcast(guestSession.eventId, "QUEUE_UPDATE", {
       action: "PLAY",
     });
+    realtimeBus.broadcast(guestSession.eventId, "NEXT_TURN_CANCELLED", {
+      songRequestId: songRequest.id,
+      queueEntryId: queueEntry.id,
+      reason: "GUEST_PLAYED",
+    });
+    if (event?.code) {
+      realtimeBus.broadcast(event.code, "NEXT_TURN_CANCELLED", {
+        songRequestId: songRequest.id,
+        queueEntryId: queueEntry.id,
+        reason: "GUEST_PLAYED",
+      });
+    }
 
     // Desbloquear slots ("Canta y Libera") para las mesas que terminaron de sonar
     for (const p of prevPlaying) {

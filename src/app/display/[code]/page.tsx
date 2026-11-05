@@ -24,7 +24,7 @@ import {
   VideoOff,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
-import { RealtimeEventType } from "@/lib/realtime/event-bus";
+import { RealtimeEventType, NextTurnCountdownPayload } from "@/lib/realtime/event-bus";
 import KaraokeContestOverlay, {
   ContestPerformanceDisplay,
   ContestCriteriaItem,
@@ -194,6 +194,10 @@ export default function PublicDisplayScreenPage({
 
   // 🎤 Llamado a Cantante al Escenario (Karaoke Stage Call)
   const [singerCall, setSingerCall] = useState<SingerCallState | null>(null);
+
+  // ⏱️ Cuenta Regresiva de Siguiente Turno (5 segundos para dar Play)
+  const [nextTurnCountdown, setNextTurnCountdown] = useState<NextTurnCountdownPayload | null>(null);
+  const [countdownSecondsRemaining, setCountdownSecondsRemaining] = useState<number>(0);
 
   // 📺 Video de Karaoke o Video MP4 Directo (sincronizado con cabina DJ)
   const [karaokeVideoId, setKaraokeVideoId] = useState<string | null>(null);
@@ -687,6 +691,10 @@ export default function PublicDisplayScreenPage({
         setTimeout(() => {
           setSingerCall((prev) => (prev && Date.now() - prev.timestamp >= 9500 ? null : prev));
         }, 10000);
+      } else if (type === "NEXT_TURN_COUNTDOWN") {
+        setNextTurnCountdown(payload);
+      } else if (type === "NEXT_TURN_CANCELLED") {
+        setNextTurnCountdown(null);
       } else if (type === "PHOTO_FIT_MODE") {
         if (payload?.photoFitMode) {
           setPhotoFitMode(payload.photoFitMode);
@@ -748,6 +756,9 @@ export default function PublicDisplayScreenPage({
         type === "QUEUE_SLOT_UNLOCKED" ||
         type === "TABLE_RELEASED"
       ) {
+        if (type === "TRACK_CHANGE") {
+          setNextTurnCountdown(null);
+        }
         if (type === "QUEUE_POLICY_UPDATED" && payload?.policy?.photoFitMode) {
           setPhotoFitMode(payload.policy.photoFitMode);
         }
@@ -849,6 +860,26 @@ export default function PublicDisplayScreenPage({
     }, 1000);
     return () => clearInterval(timer);
   }, [applause?.endsAt, applause?.active]);
+
+  // Temporizador para cuenta regresiva de siguiente turno (5 segundos para dar Play)
+  useEffect(() => {
+    if (!nextTurnCountdown) {
+      setCountdownSecondsRemaining(0);
+      return;
+    }
+    const updateTime = () => {
+      const remaining = Math.max(0, Math.ceil((nextTurnCountdown.expiresAt - Date.now()) / 1000));
+      setCountdownSecondsRemaining(remaining);
+      if (remaining <= 0) {
+        setTimeout(() => {
+          setNextTurnCountdown((curr) => (curr?.queueEntryId === nextTurnCountdown.queueEntryId ? null : curr));
+        }, 1500);
+      }
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 250);
+    return () => clearInterval(timer);
+  }, [nextTurnCountdown]);
 
   // Carga inicial y polling de respaldo resiliente (cada 15 segundos)
   useEffect(() => {
@@ -2134,6 +2165,56 @@ export default function PublicDisplayScreenPage({
               <span>🎙️</span>
               <span>El micrófono está listo para ti en el escenario. ¡A romperla!</span>
               <span>🌟</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ⏱️ Overlay de Cuenta Regresiva de Siguiente Turno (5 segundos para dar Play) */}
+      {nextTurnCountdown && !data?.currentPlaying && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-fadeIn">
+          <div className="max-w-2xl w-full bg-gradient-to-b from-purple-950/95 via-zinc-950 to-zinc-950 border-4 border-purple-500 rounded-3xl p-8 space-y-6 shadow-[0_0_90px_rgba(168,85,247,0.5)] text-center relative overflow-hidden">
+            <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400 text-sm font-black tracking-widest uppercase animate-bounce">
+              <Clock className="w-5 h-5 text-purple-400 animate-spin" />
+              <span>⏱️ ¡SIGUIENTE EN TURNO! 5 SEGUNDOS PARA DAR PLAY</span>
+              <Sparkles className="w-5 h-5 text-amber-400" />
+            </div>
+
+            <div className="space-y-3">
+              <div className="text-4xl sm:text-6xl font-black text-white tracking-tight drop-shadow-[0_0_25px_rgba(168,85,247,0.7)]">
+                {nextTurnCountdown.guestName
+                  ? `${nextTurnCountdown.guestName}`
+                  : nextTurnCountdown.tableLabel}
+              </div>
+              <div className="inline-block px-4 py-1.5 rounded-xl bg-purple-900/60 border border-purple-600 text-purple-200 font-mono text-sm sm:text-base font-extrabold shadow-sm">
+                {nextTurnCountdown.tableLabel}
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-zinc-900/90 border border-purple-500/40 shadow-inner space-y-1">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold">
+                Canción en Turno:
+              </span>
+              <h3 className="text-2xl sm:text-3xl font-black text-amber-300">
+                {nextTurnCountdown.songTitle}
+              </h3>
+              {nextTurnCountdown.artist && (
+                <p className="text-base text-zinc-300 font-semibold">{nextTurnCountdown.artist}</p>
+              )}
+            </div>
+
+            {/* Contador Gigante de 5 Segundos */}
+            <div className="flex flex-col items-center justify-center gap-2">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-purple-400 bg-purple-950/80 flex items-center justify-center shadow-[0_0_35px_rgba(168,85,247,0.6)] animate-pulse">
+                <span className="text-4xl sm:text-5xl font-black font-mono text-white">
+                  {countdownSecondsRemaining}s
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-zinc-300 font-bold max-w-md mx-auto pt-1">
+                {nextTurnCountdown.timeoutAction === "SKIP"
+                  ? "📲 Dale al Play en tu celular ahora o pasará automáticamente al siguiente de la cola."
+                  : "🚀 Dale al Play en tu celular ahora o comenzará automáticamente la reproducción de cabina."}
+              </p>
             </div>
           </div>
         </div>

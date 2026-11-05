@@ -2,15 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireTenantContext, requireRole } from "@/lib/auth/session";
-import { calculateFairQueue } from "@/lib/dj/rotation";
+import { calculateFairQueue, parseQueuePolicy } from "@/lib/dj/rotation";
 import { handleApiError, AppError, NotFoundError } from "@/lib/errors";
 import { realtimeBus } from "@/lib/realtime/event-bus";
 
 const queueActionSchema = z.object({
-  action: z.enum(["PLAY", "NEXT", "ROTATE", "SKIP", "REORDER"]),
+  action: z.enum([
+    "PLAY",
+    "NEXT",
+    "ROTATE",
+    "SKIP",
+    "REORDER",
+    "FINISH_CURRENT",
+    "START_NEXT_TURN_COUNTDOWN",
+    "TIMEOUT_NEXT_TURN",
+    "CANCEL_NEXT_TURN_COUNTDOWN",
+  ]),
   eventId: z.string().optional(),
   queueEntryId: z.string().optional(),
   newOrder: z.array(z.string()).optional(), // Array de queueEntryId en nuevo orden
+  timeoutAction: z.enum(["SKIP", "AUTOPLAY"]).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -228,6 +239,361 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         message: "Siguiente canción cargada en Deck A",
+      });
+    }
+
+    // 2.1 Acción: FINISH_CURRENT (marcar la pista que estaba al aire como finalizada, liberando turno)
+    if (data.action === "FINISH_CURRENT") {
+      const eventId = data.eventId;
+      if (!eventId) throw new AppError("eventId es obligatorio para FINISH_CURRENT");
+
+      const prevPlaying = await prisma.songRequest.findMany({
+        where: { tenantId, eventId, status: "PLAYING" },
+        include: {
+          table: { select: { id: true, label: true } },
+          song: { select: { title: true } },
+        },
+      });
+
+      const now = new Date();
+      await prisma.$transaction([
+        prisma.queueEntry.updateMany({
+          where: { tenantId, eventId, status: "CURRENT" },
+          data: { status: "COMPLETED" },
+        }),
+        prisma.songRequest.updateMany({
+          where: { tenantId, eventId, status: "PLAYING" },
+          data: { status: "PLAYED", playedAt: now },
+        }),
+      ]);
+
+      realtimeBus.broadcast(eventId, "TRACK_CHANGE", {
+        currentEntryId: null,
+      });
+
+      realtimeBus.broadcast(eventId, "QUEUE_UPDATE", {
+        action: "FINISH_CURRENT",
+      });
+
+      for (const p of prevPlaying) {
+        realtimeBus.broadcast(eventId, "QUEUE_SLOT_UNLOCKED", {
+          tableId: p.tableId,
+          tableLabel: p.table.label,
+          songTitle: p.song?.title || p.customTitle || "Canción",
+        });
+      }
+
+      realtimeBus.setPlaybackState(eventId, {
+        action: "PAUSE",
+        updatedAt: now.toISOString(),
+      });
+
+      // Si el evento tiene activada la opción de otorgar 5s al siguiente turno para dar Play
+      try {
+        const eventObj = await prisma.event.findUnique({
+          where: { id: eventId },
+          select: { id: true, code: true, settings: true },
+        });
+        const policy = parseQueuePolicy(eventObj?.settings);
+
+        if (policy.nextTurnMode && policy.nextTurnMode !== "DISABLED") {
+          const nextInLine = await prisma.queueEntry.findFirst({
+            where: { tenantId, eventId, status: "QUEUED" },
+            orderBy: { orderIndex: "asc" },
+            include: {
+              songRequest: {
+                include: {
+                  song: { include: { artist: true } },
+                  table: { select: { id: true, label: true } },
+                  guestSession: { select: { guestName: true } },
+                },
+              },
+            },
+          });
+
+          if (nextInLine) {
+            const seconds = policy.nextTurnCountdownSeconds || 5;
+            const startedAt = Date.now();
+            const expiresAt = startedAt + seconds * 1000;
+            const timeoutAction = policy.nextTurnMode === "SKIP_ON_TIMEOUT" ? "SKIP" : "AUTOPLAY";
+
+            const countdownPayload = {
+              queueEntryId: nextInLine.id,
+              songRequestId: nextInLine.songRequestId,
+              tableId: nextInLine.songRequest.tableId,
+              tableLabel: nextInLine.songRequest.table.label,
+              guestName: nextInLine.songRequest.guestSession?.guestName || null,
+              songTitle: nextInLine.songRequest.song?.title || nextInLine.songRequest.customTitle || "Canción",
+              artist: nextInLine.songRequest.song?.artist?.name || nextInLine.songRequest.customArtist || null,
+              seconds,
+              startedAt,
+              expiresAt,
+              timeoutAction,
+            };
+
+            realtimeBus.broadcast(eventId, "NEXT_TURN_COUNTDOWN", countdownPayload);
+            if (eventObj?.code) {
+              realtimeBus.broadcast(eventObj.code, "NEXT_TURN_COUNTDOWN", countdownPayload);
+            }
+          }
+        }
+      } catch (countdownErr) {
+        console.warn("No se pudo iniciar cuenta regresiva de siguiente turno en FINISH_CURRENT:", countdownErr);
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Pista marcada como finalizada y cupo liberado",
+      });
+    }
+
+    // 2.2 Acción: START_NEXT_TURN_COUNTDOWN (otorgar 5 segundos para que el siguiente turno le dé al Play)
+    if (data.action === "START_NEXT_TURN_COUNTDOWN") {
+      const eventId = data.eventId;
+      if (!eventId) throw new AppError("eventId es obligatorio para START_NEXT_TURN_COUNTDOWN");
+
+      const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { id: true, code: true, settings: true },
+      });
+      if (!event) throw new NotFoundError("Evento no encontrado");
+      const policy = parseQueuePolicy(event.settings);
+
+      const targetEntry = data.queueEntryId
+        ? await prisma.queueEntry.findFirst({
+            where: { id: data.queueEntryId, tenantId },
+            include: {
+              songRequest: {
+                include: {
+                  song: { include: { artist: true } },
+                  table: { select: { id: true, label: true } },
+                  guestSession: { select: { guestName: true } },
+                },
+              },
+            },
+          })
+        : await prisma.queueEntry.findFirst({
+            where: { tenantId, eventId, status: "QUEUED" },
+            orderBy: { orderIndex: "asc" },
+            include: {
+              songRequest: {
+                include: {
+                  song: { include: { artist: true } },
+                  table: { select: { id: true, label: true } },
+                  guestSession: { select: { guestName: true } },
+                },
+              },
+            },
+          });
+
+      if (!targetEntry) throw new NotFoundError("No hay pedidos en cola disponibles para otorgar turno");
+
+      const seconds = policy.nextTurnCountdownSeconds || 5;
+      const startedAt = Date.now();
+      const expiresAt = startedAt + seconds * 1000;
+      const timeoutAction =
+        data.timeoutAction || (policy.nextTurnMode === "SKIP_ON_TIMEOUT" ? "SKIP" : "AUTOPLAY");
+
+      const countdownPayload = {
+        queueEntryId: targetEntry.id,
+        songRequestId: targetEntry.songRequestId,
+        tableId: targetEntry.songRequest.tableId,
+        tableLabel: targetEntry.songRequest.table.label,
+        guestName: targetEntry.songRequest.guestSession?.guestName || null,
+        songTitle: targetEntry.songRequest.song?.title || targetEntry.songRequest.customTitle || "Canción",
+        artist: targetEntry.songRequest.song?.artist?.name || targetEntry.songRequest.customArtist || null,
+        seconds,
+        startedAt,
+        expiresAt,
+        timeoutAction,
+      };
+
+      realtimeBus.broadcast(eventId, "NEXT_TURN_COUNTDOWN", countdownPayload);
+      if (event.code) {
+        realtimeBus.broadcast(event.code, "NEXT_TURN_COUNTDOWN", countdownPayload);
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `⏱️ Otorgados ${seconds} segundos a ${countdownPayload.tableLabel} para darle al Play.`,
+        data: countdownPayload,
+      });
+    }
+
+    // 2.3 Acción: TIMEOUT_NEXT_TURN (cuando vencen los 5 segundos sin que el usuario le dé Play)
+    if (data.action === "TIMEOUT_NEXT_TURN") {
+      const eventId = data.eventId;
+      if (!eventId) throw new AppError("eventId es obligatorio para TIMEOUT_NEXT_TURN");
+      if (!data.queueEntryId) throw new AppError("queueEntryId es obligatorio para TIMEOUT_NEXT_TURN");
+
+      const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { id: true, code: true, settings: true },
+      });
+      if (!event) throw new NotFoundError("Evento no encontrado");
+      const policy = parseQueuePolicy(event.settings);
+
+      const targetEntry = await prisma.queueEntry.findFirst({
+        where: { id: data.queueEntryId, tenantId },
+        include: {
+          songRequest: {
+            include: {
+              song: { include: { artist: true } },
+              table: { select: { id: true, label: true } },
+            },
+          },
+        },
+      });
+
+      if (!targetEntry) throw new NotFoundError("Entrada de cola no encontrada");
+
+      // Si la entrada ya no está en QUEUED (ej. ya le dieron al Play o ya fue completada), no hacer nada
+      if (targetEntry.status !== "QUEUED") {
+        return NextResponse.json({
+          success: true,
+          message: "La canción ya fue reproducida o modificada previamente",
+        });
+      }
+
+      const timeoutAction =
+        data.timeoutAction || (policy.nextTurnMode === "SKIP_ON_TIMEOUT" ? "SKIP" : "AUTOPLAY");
+
+      if (timeoutAction === "SKIP") {
+        // Vencieron los 5 segundos sin dar Play: saltar al siguiente de la cola
+        await prisma.$transaction([
+          prisma.queueEntry.update({
+            where: { id: targetEntry.id },
+            data: { status: "SKIPPED" },
+          }),
+          prisma.songRequest.update({
+            where: { id: targetEntry.songRequestId },
+            data: { status: "CANCELLED" },
+          }),
+        ]);
+
+        realtimeBus.broadcast(eventId, "NEXT_TURN_CANCELLED", {
+          queueEntryId: targetEntry.id,
+          reason: "TIMEOUT_SKIPPED",
+        });
+        if (event.code) {
+          realtimeBus.broadcast(event.code, "NEXT_TURN_CANCELLED", {
+            queueEntryId: targetEntry.id,
+            reason: "TIMEOUT_SKIPPED",
+          });
+        }
+
+        realtimeBus.broadcast(eventId, "QUEUE_UPDATE", { action: "SKIP" });
+        realtimeBus.broadcast(eventId, "QUEUE_SLOT_UNLOCKED", {
+          tableId: targetEntry.songRequest.tableId,
+          tableLabel: targetEntry.songRequest.table.label,
+          songTitle: targetEntry.songRequest.song?.title || targetEntry.songRequest.customTitle || "Canción",
+        });
+
+        // Si la política sigue activa y hay más temas en cola, otorgar automáticamente 5s al siguiente en cola
+        if (policy.nextTurnMode && policy.nextTurnMode !== "DISABLED") {
+          const nextInLine = await prisma.queueEntry.findFirst({
+            where: { tenantId, eventId, status: "QUEUED" },
+            orderBy: { orderIndex: "asc" },
+            include: {
+              songRequest: {
+                include: {
+                  song: { include: { artist: true } },
+                  table: { select: { id: true, label: true } },
+                  guestSession: { select: { guestName: true } },
+                },
+              },
+            },
+          });
+
+          if (nextInLine) {
+            const seconds = policy.nextTurnCountdownSeconds || 5;
+            const startedAt = Date.now();
+            const expiresAt = startedAt + seconds * 1000;
+            const nextTimeoutAction = policy.nextTurnMode === "SKIP_ON_TIMEOUT" ? "SKIP" : "AUTOPLAY";
+
+            const nextPayload = {
+              queueEntryId: nextInLine.id,
+              songRequestId: nextInLine.songRequestId,
+              tableId: nextInLine.songRequest.tableId,
+              tableLabel: nextInLine.songRequest.table.label,
+              guestName: nextInLine.songRequest.guestSession?.guestName || null,
+              songTitle: nextInLine.songRequest.song?.title || nextInLine.songRequest.customTitle || "Canción",
+              artist: nextInLine.songRequest.song?.artist?.name || nextInLine.songRequest.customArtist || null,
+              seconds,
+              startedAt,
+              expiresAt,
+              timeoutAction: nextTimeoutAction,
+            };
+
+            realtimeBus.broadcast(eventId, "NEXT_TURN_COUNTDOWN", nextPayload);
+            if (event.code) {
+              realtimeBus.broadcast(event.code, "NEXT_TURN_COUNTDOWN", nextPayload);
+            }
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          message: "Tiempo de 5 segundos agotado: se avanzó al siguiente en la cola.",
+          actionTaken: "SKIP",
+        });
+      } else {
+        // timeoutAction === "AUTOPLAY": Reproducción automática desde cabina tanto para Karaoke o DJ
+        const now = new Date();
+        await prisma.$transaction([
+          prisma.queueEntry.updateMany({
+            where: { tenantId, eventId, status: "CURRENT", id: { not: targetEntry.id } },
+            data: { status: "COMPLETED" },
+          }),
+          prisma.songRequest.updateMany({
+            where: { tenantId, eventId, status: "PLAYING", id: { not: targetEntry.songRequestId } },
+            data: { status: "PLAYED", playedAt: now },
+          }),
+          prisma.queueEntry.update({
+            where: { id: targetEntry.id },
+            data: { status: "CURRENT" },
+          }),
+          prisma.songRequest.update({
+            where: { id: targetEntry.songRequestId },
+            data: { status: "PLAYING", playedAt: now },
+          }),
+        ]);
+
+        realtimeBus.broadcast(eventId, "NEXT_TURN_CANCELLED", {
+          queueEntryId: targetEntry.id,
+          reason: "TIMEOUT_AUTOPLAY",
+        });
+        if (event.code) {
+          realtimeBus.broadcast(event.code, "NEXT_TURN_CANCELLED", {
+            queueEntryId: targetEntry.id,
+            reason: "TIMEOUT_AUTOPLAY",
+          });
+        }
+
+        realtimeBus.broadcast(eventId, "TRACK_CHANGE", {
+          currentEntryId: targetEntry.id,
+        });
+        realtimeBus.broadcast(eventId, "QUEUE_UPDATE", { action: "PLAY" });
+
+        return NextResponse.json({
+          success: true,
+          message: "Tiempo de 5 segundos cumplido: reproducción automática iniciada desde cabina.",
+          actionTaken: "AUTOPLAY",
+        });
+      }
+    }
+
+    // 2.4 Acción: CANCEL_NEXT_TURN_COUNTDOWN (cancelar cuenta regresiva por DJ)
+    if (data.action === "CANCEL_NEXT_TURN_COUNTDOWN") {
+      const eventId = data.eventId;
+      if (!eventId) throw new AppError("eventId es obligatorio");
+      realtimeBus.broadcast(eventId, "NEXT_TURN_CANCELLED", {
+        queueEntryId: data.queueEntryId || null,
+        reason: "DJ_CANCELLED",
+      });
+      return NextResponse.json({
+        success: true,
+        message: "Cuenta regresiva de turno cancelada",
       });
     }
 

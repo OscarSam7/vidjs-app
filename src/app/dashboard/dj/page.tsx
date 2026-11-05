@@ -57,7 +57,7 @@ import ModeSettingsModal from "@/components/dashboard/ModeSettingsModal";
 import { calculateCrossfaderGains, djSoundEffects } from "@/lib/audio/dj-audio-engine";
 import { generateQueueIntelligence, QueueSuggestion } from "@/lib/dj/queue-intelligence";
 import { useRealtime } from "@/hooks/use-realtime";
-import { RealtimeEventType } from "@/lib/realtime/event-bus";
+import { RealtimeEventType, NextTurnCountdownPayload } from "@/lib/realtime/event-bus";
 import { parseQueuePolicy, QueuePolicy } from "@/lib/dj/rotation";
 import PwaInstallButton from "@/components/pwa/PwaInstallButton";
 
@@ -157,6 +157,8 @@ interface QueuePolicyState {
   photoFitMode?: "BLUR_FILL" | "CONTAIN" | "COVER";
   nightMode?: "KARAOKE_ONLY" | "DJ_ONLY" | "HYBRID";
   autoPlayRequests?: boolean;
+  nextTurnMode?: "DISABLED" | "SKIP_ON_TIMEOUT" | "AUTOPLAY_ON_TIMEOUT";
+  nextTurnCountdownSeconds?: number;
 }
 
 export default function DjBoothPage() {
@@ -176,6 +178,8 @@ export default function DjBoothPage() {
     photoRotationSeconds: 8,
     photoFitMode: "BLUR_FILL",
     autoPlayRequests: false,
+    nextTurnMode: "DISABLED",
+    nextTurnCountdownSeconds: 5,
   });
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [policyLoading, setPolicyLoading] = useState(false);
@@ -249,6 +253,10 @@ export default function DjBoothPage() {
   const [isTvVideoEnabled, setIsTvVideoEnabled] = useState(true);
   const [isSearchingKaraoke, setIsSearchingKaraoke] = useState(false);
   const [customKaraokeQuery, setCustomKaraokeQuery] = useState("");
+
+  // ⏱️ Cuenta Regresiva de Siguiente Turno (5 segundos para dar Play)
+  const [activeTurnCountdown, setActiveTurnCountdown] = useState<NextTurnCountdownPayload | null>(null);
+  const [turnCountdownSeconds, setTurnCountdownSeconds] = useState<number>(0);
 
   // Cargar estado de la cabina
   const fetchDjState = async (eventId?: string) => {
@@ -660,6 +668,10 @@ export default function DjBoothPage() {
           "success",
           `🎤 ${payload?.tableLabel || "Mesa"} completó su turno. ¡Cupo liberado!`
         );
+      } else if (type === "NEXT_TURN_COUNTDOWN") {
+        setActiveTurnCountdown(payload);
+      } else if (type === "NEXT_TURN_CANCELLED") {
+        setActiveTurnCountdown(null);
       } else if (type === "KARAOKE_PLAYBACK_CONTROL") {
         if (payload?.action === "RESET") {
           fetchDjState();
@@ -697,6 +709,16 @@ export default function DjBoothPage() {
 
     const eventId = selectedEventId || data?.event?.id;
     const eventCode = data?.event?.code;
+
+    if (false as boolean) {
+      fetch("/api/v1/dj/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "FINISH_CURRENT", eventId }),
+      })
+        .then(() => fetchDjState())
+        .catch(() => {});
+    }
     const channels = ["vidjs_karaoke_sync_global"];
     if (eventId) channels.push(`vidjs_karaoke_sync_${eventId}`);
     if (eventCode) channels.push(`vidjs_karaoke_sync_${eventCode}`);
@@ -925,6 +947,84 @@ export default function DjBoothPage() {
     }
   };
 
+  // Temporizador para cuenta regresiva de siguiente turno (5 segundos para dar Play)
+  useEffect(() => {
+    if (!activeTurnCountdown) {
+      setTurnCountdownSeconds(0);
+      return;
+    }
+    const updateCountdown = () => {
+      const remaining = Math.max(0, Math.ceil((activeTurnCountdown.expiresAt - Date.now()) / 1000));
+      setTurnCountdownSeconds(remaining);
+      if (remaining <= 0) {
+        const evId = selectedEventId || data?.event?.id;
+        if (evId) {
+          fetch("/api/v1/dj/queue", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "TIMEOUT_NEXT_TURN",
+              eventId: evId,
+              queueEntryId: activeTurnCountdown.queueEntryId,
+              timeoutAction: activeTurnCountdown.timeoutAction,
+            }),
+          })
+            .then(() => fetchDjState())
+            .catch(() => {});
+        }
+        setActiveTurnCountdown(null);
+      }
+    };
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 250);
+    return () => clearInterval(timer);
+  }, [activeTurnCountdown, selectedEventId, data?.event?.id]);
+
+  const handleStartNextTurnCountdown = async (queueEntryId?: string) => {
+    const evId = selectedEventId || data?.event?.id;
+    if (!evId) return;
+    try {
+      const res = await fetch("/api/v1/dj/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "START_NEXT_TURN_COUNTDOWN",
+          eventId: evId,
+          queueEntryId,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        showFeedback("info", json.message || "⏱️ Cuenta regresiva de 5s activada para el turno");
+        await fetchDjState();
+      } else {
+        showFeedback("error", json.error?.message || "No se pudo iniciar cuenta regresiva");
+      }
+    } catch {
+      showFeedback("error", "Error de red al activar turno");
+    }
+  };
+
+  const handleCancelNextTurnCountdown = async () => {
+    const evId = selectedEventId || data?.event?.id;
+    if (!evId) return;
+    try {
+      await fetch("/api/v1/dj/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "CANCEL_NEXT_TURN_COUNTDOWN",
+          eventId: evId,
+          queueEntryId: activeTurnCountdown?.queueEntryId,
+        }),
+      });
+      setActiveTurnCountdown(null);
+      showFeedback("info", "Cuenta regresiva de turno cancelada");
+    } catch {
+      showFeedback("error", "Error al cancelar cuenta regresiva");
+    }
+  };
+
   // Avanzar a la siguiente canción
   const isAdvancingTrackRef = useRef(false);
   const handleNextTrack = async () => {
@@ -1074,7 +1174,7 @@ export default function DjBoothPage() {
 
   // Sincronización de Play/Pause desde la consola con la pantalla de TV (BroadcastChannel 0ms + LocalStorage + SSE Remoto)
   const handlePlaybackControl = (
-    action: "PLAY" | "PAUSE" | "SEEK",
+    action: "PLAY" | "PAUSE" | "SEEK" | "ENDED",
     deckId?: "A" | "B",
     details?: {
       currentTime?: number;
@@ -1087,10 +1187,20 @@ export default function DjBoothPage() {
     }
   ) => {
     if (action === "PLAY") setIsPlaying(true);
-    if (action === "PAUSE") setIsPlaying(false);
+    if (action === "PAUSE" || action === "ENDED") setIsPlaying(false); if (action === "ENDED" && (selectedEventId || data?.event?.id)) { fetch("/api/v1/dj/queue", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "FINISH_CURRENT", eventId: selectedEventId || data?.event?.id }) }).then(() => fetchDjState()).catch(() => {}); }
 
     const eventId = selectedEventId || data?.event?.id;
     const eventCode = data?.event?.code;
+
+    if (false as boolean) {
+      fetch("/api/v1/dj/queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "FINISH_CURRENT", eventId }),
+      })
+        .then(() => fetchDjState())
+        .catch(() => {});
+    }
 
     const payload = {
       type: "PLAYBACK_CONTROL",
@@ -1511,6 +1621,52 @@ export default function DjBoothPage() {
               {queuePolicy.autoPlayRequests ? "ON" : "OFF"}
             </span>
           </button>
+
+          {/* Selector de Modo de Turno Siguiente (5s para Dar Play) */}
+          <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-700/80 rounded-xl p-1 shrink-0 shadow-md">
+            <span className="text-[10px] font-black text-purple-300 px-2 flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-purple-400" />
+              <span className="hidden md:inline">Turno:</span> 5s Play:
+            </span>
+            <button
+              onClick={() => handleUpdatePolicy({ nextTurnMode: "DISABLED" })}
+              disabled={policyLoading}
+              className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer ${
+                (!queuePolicy.nextTurnMode || queuePolicy.nextTurnMode === "DISABLED")
+                  ? "bg-zinc-800 text-white shadow-sm border border-zinc-600"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+              title="Manual: Sin cuenta regresiva de 5 segundos"
+            >
+              Manual
+            </button>
+            <button
+              onClick={() => handleUpdatePolicy({ nextTurnMode: "SKIP_ON_TIMEOUT" })}
+              disabled={policyLoading}
+              className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer flex items-center gap-1 ${
+                queuePolicy.nextTurnMode === "SKIP_ON_TIMEOUT"
+                  ? "bg-amber-600 text-white shadow-sm shadow-amber-900/50 border border-amber-400"
+                  : "text-zinc-400 hover:text-amber-300"
+              }`}
+              title="Otorgar 5s al siguiente turno para dar Play. Si no da Play, pasa al siguiente de la cola (Skip)"
+            >
+              <SkipForward className="w-3 h-3" />
+              <span>5s ➔ Skip</span>
+            </button>
+            <button
+              onClick={() => handleUpdatePolicy({ nextTurnMode: "AUTOPLAY_ON_TIMEOUT" })}
+              disabled={policyLoading}
+              className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer flex items-center gap-1 ${
+                queuePolicy.nextTurnMode === "AUTOPLAY_ON_TIMEOUT"
+                  ? "bg-purple-600 text-white shadow-sm shadow-purple-900/50 border border-purple-400"
+                  : "text-zinc-400 hover:text-purple-300"
+              }`}
+              title="Otorgar 5s al siguiente turno para dar Play. Si no da Play, reproducción automática desde cabina (Auto-Play)"
+            >
+              <Play className="w-3 h-3 fill-current" />
+              <span>5s ➔ Auto-Play</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs w-full xl:w-auto xl:justify-end pt-2.5 xl:pt-0 border-t xl:border-t-0 border-zinc-800/80">
@@ -2580,6 +2736,55 @@ export default function DjBoothPage() {
             </button>
           </div>
 
+          {/* ⏱️ Banner Activo de Cuenta Regresiva de Turno (5 segundos para dar Play) */}
+          {activeTurnCountdown && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/90 via-zinc-950 to-indigo-950/90 border-2 border-purple-500 shadow-xl flex items-center justify-between flex-wrap gap-3 animate-fadeIn">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-purple-600/30 border border-purple-400 flex items-center justify-center font-mono font-black text-xl text-purple-300 shadow-[0_0_20px_rgba(168,85,247,0.5)] animate-pulse">
+                  {turnCountdownSeconds}s
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase text-purple-300 tracking-wider">
+                      ⏱️ Turno en Espera de Play ({turnCountdownSeconds}s)
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-purple-900/80 border border-purple-600 text-[10px] font-bold text-purple-200">
+                      {activeTurnCountdown.timeoutAction === "SKIP" ? "Pasará al siguiente si vence" : "Auto-Play al vencer"}
+                    </span>
+                  </div>
+                  <p className="text-sm font-black text-white">
+                    {activeTurnCountdown.songTitle} • <span className="text-amber-400">{activeTurnCountdown.tableLabel}</span> {activeTurnCountdown.guestName ? `(${activeTurnCountdown.guestName})` : ""}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePlayQueueEntry(activeTurnCountdown.queueEntryId)}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950 transition-all cursor-pointer active:scale-95"
+                  title="Reproducir este tema inmediatamente en cabina y TV"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Forzar Play</span>
+                </button>
+                <button
+                  onClick={() => handleSkipQueueEntry(activeTurnCountdown.queueEntryId)}
+                  className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-bold text-xs flex items-center gap-1.5 border border-zinc-700 transition-all cursor-pointer active:scale-95"
+                  title="Saltear este tema y pasar al siguiente de la cola"
+                >
+                  <SkipForward className="w-3.5 h-3.5" />
+                  <span>Saltar (Skip)</span>
+                </button>
+                <button
+                  onClick={handleCancelNextTurnCountdown}
+                  className="p-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-all cursor-pointer"
+                  title="Cancelar cuenta regresiva"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {data.queue.length === 0 ? (
             <div className="p-12 text-center text-zinc-500 space-y-2">
               {queuePolicy.zone === "KARAOKE" ? (
@@ -2653,6 +2858,17 @@ export default function DjBoothPage() {
                       {queuePolicy.zone === "KARAOKE" ? (
                         <>
                           <button
+                            onClick={() => handleStartNextTurnCountdown(entry.id)}
+                            title="Otorgar 5 segundos para que esta mesa le dé al Play desde su celular"
+                            className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                              activeTurnCountdown?.queueEntryId === entry.id
+                                ? "bg-purple-600 text-white border-purple-400 animate-pulse"
+                                : "bg-purple-950/60 hover:bg-purple-600 border-purple-800 text-purple-300 hover:text-white"
+                            }`}
+                          >
+                            <Clock className="w-3.5 h-3.5" />
+                          </button>
+                          <button
                             onClick={() => handleCallSinger(entry)}
                             title="Llamar a esta mesa al escenario (alerta en TV)"
                             className="p-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white transition-colors cursor-pointer"
@@ -2681,6 +2897,18 @@ export default function DjBoothPage() {
                         </>
                       ) : (
                         <>
+                          <button
+                            type="button"
+                            onClick={() => handleStartNextTurnCountdown(entry.id)}
+                            title="Otorgar 5 segundos para que esta mesa le dé al Play desde su celular"
+                            className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                              activeTurnCountdown?.queueEntryId === entry.id
+                                ? "bg-purple-600 text-white border-purple-400 animate-pulse"
+                                : "bg-purple-950/60 hover:bg-purple-600 border-purple-800 text-purple-300 hover:text-white"
+                            }`}
+                          >
+                            <Clock className="w-3.5 h-3.5" />
+                          </button>
                           {/* Cargar específicamente en Deck A */}
                           <button
                             type="button"

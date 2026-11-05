@@ -143,7 +143,10 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      const isDeckFree = !activeCurrent && !activePlayingSong;
+      const activePlayback = realtimeBus.getPlaybackState(guestSession.eventId);
+      const isPlaybackRunning = activePlayback?.action === "PLAY";
+
+      const isDeckFree = !activeCurrent && !activePlayingSong && !isPlaybackRunning;
 
       if (isDeckFree) {
         // En Auto-Play con cabina libre, la canción pasa a sonar al aire de inmediato
@@ -456,6 +459,8 @@ export async function GET() {
       };
     }
 
+    const activeLivePlayback = realtimeBus.getPlaybackState(guestSession.eventId);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -480,6 +485,16 @@ export async function GET() {
                 "Artista",
               tableLabel: currentPlayingEntry.songRequest.table.label,
               isMyRequest: currentPlayingEntry.songRequest.tableId === guestSession.tableId,
+            }
+          : (activeLivePlayback && activeLivePlayback.action === "PLAY" && activeLivePlayback.trackTitle)
+          ? {
+              id: "deck-live",
+              requestId: null,
+              tableId: null,
+              title: activeLivePlayback.trackTitle,
+              artist: activeLivePlayback.trackArtist || "Cabina DJ",
+              tableLabel: "Cabina DJ",
+              isMyRequest: false,
             }
           : null,
         branding,

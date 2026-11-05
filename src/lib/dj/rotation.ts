@@ -35,6 +35,10 @@ export interface QueuePolicy {
   // Reproducción automática de pedidos (Auto-Play / Jukebox)
   autoPlayRequests?: boolean;
 
+  // Control de turno siguiente con cuenta regresiva para dar Play
+  nextTurnMode?: "DISABLED" | "SKIP_ON_TIMEOUT" | "AUTOPLAY_ON_TIMEOUT";
+  nextTurnCountdownSeconds?: number;
+
   // Parámetros de proyección visual y fotos
   photosAllowed: boolean;
   photoRotationSeconds: number;
@@ -81,6 +85,8 @@ export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
     rotationMode: "ROUND_ROBIN",
     avgSongDurationMinutes: 4,
     autoPlayRequests: false,
+    nextTurnMode: "DISABLED",
+    nextTurnCountdownSeconds: 5,
   };
 
   if (!settingsJson) {
@@ -167,6 +173,14 @@ export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
       rotationMode: parsed.rotationMode || effectiveRotation,
       avgSongDurationMinutes: karaoke.avgSongDurationMinutes,
       autoPlayRequests: typeof parsed.autoPlayRequests === "boolean" ? parsed.autoPlayRequests : false,
+      nextTurnMode:
+        parsed.nextTurnMode === "SKIP_ON_TIMEOUT" || parsed.nextTurnMode === "AUTOPLAY_ON_TIMEOUT"
+          ? parsed.nextTurnMode
+          : "DISABLED",
+      nextTurnCountdownSeconds:
+        typeof parsed.nextTurnCountdownSeconds === "number"
+          ? Math.max(3, Math.min(30, parsed.nextTurnCountdownSeconds))
+          : 5,
     };
   } catch {
     return fallbackPolicy;

@@ -90,6 +90,8 @@ export function useRealtime({
       "ROULETTE_SPIN",
       "ROULETTE_RESULT",
       "SINGER_CALLED",
+      "NEXT_TURN_COUNTDOWN",
+      "NEXT_TURN_CANCELLED",
       "KARAOKE_VIDEO_UPDATE",
       "KARAOKE_PLAYBACK_CONTROL",
       "PULSE_UPDATE",

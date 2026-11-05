@@ -43,7 +43,7 @@ import {
   Lock,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
-import { RealtimeEventType } from "@/lib/realtime/event-bus";
+import { RealtimeEventType, NextTurnCountdownPayload } from "@/lib/realtime/event-bus";
 import PwaInstallButton from "@/components/pwa/PwaInstallButton";
 
 interface Song {
@@ -245,6 +245,8 @@ function GuestContent() {
   const [session, setSession] = useState<GuestSessionInfo | null>(null);
   const [tableAllowance, setTableAllowance] = useState<TableAllowanceInfo | null>(null);
   const [currentPlaying, setCurrentPlaying] = useState<CurrentPlayingInfo | null>(null);
+  const [activeTurnCountdown, setActiveTurnCountdown] = useState<NextTurnCountdownPayload | null>(null);
+  const [turnSecondsRemaining, setTurnSecondsRemaining] = useState<number>(0);
   const [flashDeal, setFlashDeal] = useState<FlashDealInfo | null>(null);
   const [activeDuel, setActiveDuel] = useState<LiveDuelInfo | null>(null);
   const [votedOption, setVotedOption] = useState<"A" | "B" | null>(null);
@@ -393,6 +395,28 @@ function GuestContent() {
   const handleGoBack = () => {
     handleReturnToClient();
   };
+
+  // Temporizador para cuenta regresiva de turno (5 segundos para dar Play)
+  useEffect(() => {
+    if (!activeTurnCountdown) {
+      setTurnSecondsRemaining(0);
+      return;
+    }
+    const updateCountdown = () => {
+      const rem = Math.max(0, Math.ceil((activeTurnCountdown.expiresAt - Date.now()) / 1000));
+      setTurnSecondsRemaining(rem);
+      if (rem <= 0) {
+        setTimeout(() => {
+          setActiveTurnCountdown((curr) =>
+            curr?.queueEntryId === activeTurnCountdown.queueEntryId ? null : curr
+          );
+        }, 2000);
+      }
+    };
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 250);
+    return () => clearInterval(interval);
+  }, [activeTurnCountdown]);
 
   const handleJoinByCode = (e: React.FormEvent) => {
     e.preventDefault();
@@ -666,6 +690,10 @@ function GuestContent() {
           );
           setTimeout(() => setSuccessMessage(null), 7000);
         }
+      } else if (type === "NEXT_TURN_COUNTDOWN") {
+        setActiveTurnCountdown(payload);
+      } else if (type === "NEXT_TURN_CANCELLED") {
+        setActiveTurnCountdown(null);
       } else if (type === "QUEUE_POLICY_UPDATED") {
         await loadSessionAndRequests();
       } else if (
@@ -1467,6 +1495,54 @@ function GuestContent() {
 
   return (
     <div className="flex-1 flex flex-col w-full overflow-x-hidden">
+      {/* ⏱️ Alerta de Turno Siguiente: 5 Segundos para Darle al Play */}
+      {activeTurnCountdown && (session?.table?.id === activeTurnCountdown.tableId || myRequests.some((r) => r.id === activeTurnCountdown.songRequestId)) && (
+        <div className="fixed top-4 inset-x-3 sm:max-w-md sm:mx-auto z-50 animate-bounce-short">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950 via-zinc-950 to-emerald-950 border-2 border-emerald-500 shadow-[0_0_50px_rgba(16,185,129,0.7)] backdrop-blur-md text-white space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping" />
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-300">
+                  🎤 ¡ES TU TURNO AL ESCENARIO!
+                </span>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center font-mono font-black text-sm text-emerald-300 shadow-md">
+                {turnSecondsRemaining}s
+              </div>
+            </div>
+
+            <div>
+              <p className="text-base font-black text-white leading-tight">
+                {activeTurnCountdown.songTitle}
+              </p>
+              {activeTurnCountdown.artist && (
+                <p className="text-xs text-zinc-300 font-semibold">{activeTurnCountdown.artist}</p>
+              )}
+            </div>
+
+            {/* Botón de Play Gigante */}
+            <button
+              type="button"
+              onClick={() => handlePlayRequest(activeTurnCountdown.songRequestId)}
+              disabled={actionLoadingId === activeTurnCountdown.songRequestId}
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/40 cursor-pointer active:scale-95 transition-all"
+            >
+              {actionLoadingId === activeTurnCountdown.songRequestId ? (
+                <RefreshCw className="w-5 h-5 animate-spin" />
+              ) : (
+                <Play className="w-5 h-5 fill-current" />
+              )}
+              <span>▶ ¡DARLE AL PLAY AHORA! ({turnSecondsRemaining}s)</span>
+            </button>
+
+            <p className="text-[11px] text-zinc-300 text-center font-bold">
+              {activeTurnCountdown.timeoutAction === "SKIP"
+                ? "⚠️ Tienes 5 segundos para darle al Play o tu turno pasará al siguiente de la cola."
+                : "🚀 Tienes 5 segundos para darle al Play o la cabina iniciará la reproducción automáticamente."}
+            </p>
+          </div>
+        </div>
+      )}
       {/* 1. Header Nocturno de Mesa */}
       <header className="p-3 sm:p-4 bg-zinc-900/95 border-b border-zinc-800 sticky top-0 z-20 backdrop-blur-md w-full">
         <div className="flex items-center justify-between gap-2 w-full">

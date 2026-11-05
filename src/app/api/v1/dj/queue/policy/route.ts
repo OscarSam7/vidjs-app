@@ -39,6 +39,8 @@ const updatePolicySchema = z.object({
   photoRotationSeconds: z.number().int().min(3).max(60).optional(),
   photoFitMode: z.enum(["BLUR_FILL", "CONTAIN", "COVER"]).optional(),
   autoPlayRequests: z.boolean().optional(),
+  nextTurnMode: z.enum(["DISABLED", "SKIP_ON_TIMEOUT", "AUTOPLAY_ON_TIMEOUT"]).optional(),
+  nextTurnCountdownSeconds: z.number().int().min(3).max(30).optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -139,6 +141,11 @@ export async function PATCH(req: NextRequest) {
       rotationMode: data.rotationMode ?? updatedKaraoke.fairPlayMode,
       avgSongDurationMinutes: data.avgSongDurationMinutes ?? updatedKaraoke.avgSongDurationMinutes,
       autoPlayRequests: data.autoPlayRequests !== undefined ? data.autoPlayRequests : currentPolicy.autoPlayRequests,
+      nextTurnMode: data.nextTurnMode !== undefined ? data.nextTurnMode : currentPolicy.nextTurnMode,
+      nextTurnCountdownSeconds:
+        data.nextTurnCountdownSeconds !== undefined
+          ? data.nextTurnCountdownSeconds
+          : currentPolicy.nextTurnCountdownSeconds,
     };
 
     // Combinar con otras configuraciones existentes del evento si las hubiera

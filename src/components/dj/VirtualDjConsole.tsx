@@ -110,7 +110,7 @@ interface VirtualDjConsoleProps {
   pendingDeckLoad?: PendingDeckLoad | null;
   onDeckLoaded?: () => void;
   onPlaybackControl?: (
-    action: "PLAY" | "PAUSE" | "SEEK",
+    action: "PLAY" | "PAUSE" | "SEEK" | "ENDED",
     deckId?: "A" | "B",
     details?: PlaybackSyncDetails
   ) => void;
@@ -2379,6 +2379,12 @@ export default function VirtualDjConsole({
           setVideoIdA(resolvedId);
           if (canAutoPlay && !isPlayingBRef.current && !isPlayingB) {
             setIsPlayingA(true);
+          if (isPlayingB || isPlayingBRef.current) {
+            isPlayingBRef.current = false;
+            setIsPlayingB(false);
+            if (iframeRefB.current) sendPlayerCommand(iframeRefB.current, "pauseVideo");
+            if (audioRefB.current) audioRefB.current.pause();
+          }
             isPlayingARef.current = true;
             setCrossfaderValue(-100);
             unlockAudioA();
@@ -2549,6 +2555,12 @@ export default function VirtualDjConsole({
           setVideoIdB(resolvedId);
           if (canAutoPlay && !isPlayingARef.current && !isPlayingA) {
             setIsPlayingB(true);
+          if (isPlayingA || isPlayingARef.current) {
+            isPlayingARef.current = false;
+            setIsPlayingA(false);
+            if (iframeRefA.current) sendPlayerCommand(iframeRefA.current, "pauseVideo");
+            if (audioRefA.current) audioRefA.current.pause();
+          }
             isPlayingBRef.current = true;
             setCrossfaderValue(100);
             unlockAudioB();
@@ -2734,7 +2746,7 @@ export default function VirtualDjConsole({
       setEngancheDirection("B_TO_A");
       showFeedback("info", "🔄 Fin de pista Deck A. Deck B continúa al aire.");
     } else {
-      onPlaybackControl?.("PAUSE", "A", getDeckSyncDetails("A"));
+      onPlaybackControl?.("ENDED", "A", getDeckSyncDetails("A"));
       showFeedback("info", "🏁 Pista de Deck A finalizada.");
     }
 
@@ -2770,7 +2782,7 @@ export default function VirtualDjConsole({
       setEngancheDirection("A_TO_B");
       showFeedback("info", "🔄 Fin de pista Deck B. Deck A continúa al aire.");
     } else {
-      onPlaybackControl?.("PAUSE", "B", getDeckSyncDetails("B"));
+      onPlaybackControl?.("ENDED", "B", getDeckSyncDetails("B"));
       showFeedback("info", "🏁 Pista de Deck B finalizada.");
     }
 
@@ -3045,7 +3057,7 @@ export default function VirtualDjConsole({
 
       // Si ya está en Bandeja A y está en pausa mientras el modo Auto-Play está activo:
       if (isAlreadyInA) {
-        if (isAutoPlayMode && !isPlayingA && !isPlayingARef.current && !isPlayingB && !isPlayingBRef.current) {
+        if (!isPlayingA && !isPlayingARef.current) {
           unlockAudioA();
           setCrossfaderValue(-100);
           if (iframeRefA.current) {
@@ -3055,6 +3067,12 @@ export default function VirtualDjConsole({
           }
           isPlayingARef.current = true;
           setIsPlayingA(true);
+          if (isPlayingB || isPlayingBRef.current) {
+            isPlayingBRef.current = false;
+            setIsPlayingB(false);
+            if (iframeRefB.current) sendPlayerCommand(iframeRefB.current, "pauseVideo");
+            if (audioRefB.current) audioRefB.current.pause();
+          }
           onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
           showFeedback("success", `▶ ¡Reproduciendo en Deck A! "${title}"`);
         }
@@ -3063,7 +3081,7 @@ export default function VirtualDjConsole({
 
       // Si ya está en Bandeja B y está en pausa mientras el modo Auto-Play está activo:
       if (isAlreadyInB) {
-        if (isAutoPlayMode && !isPlayingB && !isPlayingBRef.current && !isPlayingA && !isPlayingARef.current) {
+        if (!isPlayingB && !isPlayingBRef.current) {
           unlockAudioB();
           setCrossfaderValue(100);
           if (iframeRefB.current) {
@@ -3073,6 +3091,12 @@ export default function VirtualDjConsole({
           }
           isPlayingBRef.current = true;
           setIsPlayingB(true);
+          if (isPlayingA || isPlayingARef.current) {
+            isPlayingARef.current = false;
+            setIsPlayingA(false);
+            if (iframeRefA.current) sendPlayerCommand(iframeRefA.current, "pauseVideo");
+            if (audioRefA.current) audioRefA.current.pause();
+          }
           onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
           showFeedback("success", `▶ ¡Reproduciendo en Deck B! "${title}"`);
         }
