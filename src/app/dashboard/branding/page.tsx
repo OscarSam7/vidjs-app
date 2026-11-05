@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Palette,
   Sparkles,
@@ -35,6 +36,7 @@ interface VenueOption {
 }
 
 export default function BrandingSettingsPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [venues, setVenues] = useState<VenueOption[]>([]);
@@ -229,6 +231,7 @@ export default function BrandingSettingsPage() {
       if (res.ok) {
         showFeedback("success", "¡Personalización de marca guardada exitosamente!");
         await fetchBranding(selectedTarget === "VENUE" ? selectedVenueId : undefined);
+        router.refresh();
       } else {
         const err = await res.json();
         showFeedback("error", err.error?.message || "Error al guardar personalización");

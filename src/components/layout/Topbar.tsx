@@ -26,6 +26,7 @@ interface TopbarProps {
     role: string;
   };
   tenantName: string;
+  tenantLogo?: string | null;
   venues?: TopbarVenue[];
   isSidebarCollapsed?: boolean;
   onToggleSidebar?: () => void;
@@ -34,6 +35,7 @@ interface TopbarProps {
 export function Topbar({
   user,
   tenantName,
+  tenantLogo = null,
   venues = [],
   isSidebarCollapsed,
   onToggleSidebar,
@@ -109,7 +111,11 @@ export function Topbar({
             </div>
           ) : (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-navy-850 border border-navy-700 text-slate-200 text-xs font-semibold max-w-[160px] sm:max-w-[240px] truncate shadow-sm">
-              <Sparkles className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              {tenantLogo ? (
+                <img src={tenantLogo} alt={tenantName} className="w-4 h-4 object-contain rounded shrink-0" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              )}
               <span className="truncate">{tenantName}</span>
             </div>
           )}

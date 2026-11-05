@@ -609,7 +609,22 @@ export default function PublicDisplayScreenPage({
   const { isConnected: isRealtime } = useRealtime({
     code,
     onEvent: (type: RealtimeEventType, payload: any) => {
-      if (type === "DUEL_UPDATE") {
+      if (type === "BRANDING_UPDATED") {
+        if (payload) {
+          setData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  branding: { ...prev.branding, ...payload },
+                  event: {
+                    ...prev.event,
+                    logoUrl: payload.logoUrl || prev.event.logoUrl,
+                  },
+                }
+              : prev
+          );
+        }
+      } else if (type === "DUEL_UPDATE") {
         setActiveDuel(payload || null);
       } else if (type === "PHOTO_APPROVED") {
         setApprovedPhotos((prev) => [
@@ -1083,6 +1098,18 @@ export default function PublicDisplayScreenPage({
       data-display="tv"
       className="tv-screen dark h-[100dvh] max-h-[100dvh] w-screen bg-[#040406] text-zinc-100 flex flex-col justify-between p-2 sm:p-4 lg:p-6 relative overflow-hidden select-none"
     >
+      {/* Portada / Banner atmosférico de fondo del local */}
+      {data.branding?.bannerUrl && (
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+          <img
+            src={data.branding.bannerUrl}
+            alt="Portada de fondo"
+            className="w-full h-full object-cover opacity-25 filter blur-[1px] scale-105 transition-opacity duration-1000"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#040406] via-[#040406]/75 to-[#040406]/85" />
+        </div>
+      )}
+
       {/* Luces de fondo y resplandor estilo discoteca */}
       <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none" />
@@ -1826,10 +1853,20 @@ export default function PublicDisplayScreenPage({
             )
           ) : (
             /* MODO INTERMEDIO (IDLE): Pantalla de Bienvenida y Animación */
-            <div className="w-full h-full flex flex-col items-center justify-center space-y-4 p-4 text-center animate-fadeIn">
-              <div className="p-4 sm:p-5 rounded-3xl bg-purple-600/20 border-2 border-purple-500/40 text-purple-400 shadow-2xl glow-purple">
-                <Disc3 className="w-14 h-14 sm:w-16 sm:h-16 animate-spin [animation-duration:10s]" />
-              </div>
+            <div className="w-full h-full flex flex-col items-center justify-center space-y-4 p-4 text-center animate-fadeIn relative z-10">
+              {data.branding?.logoUrl || data.event.logoUrl ? (
+                <div className="w-24 h-24 sm:w-32 sm:h-32 xl:w-36 xl:h-36 rounded-3xl bg-zinc-900/90 border-2 border-purple-500/50 p-3 sm:p-4 flex items-center justify-center shadow-2xl glow-purple overflow-hidden">
+                  <img
+                    src={data.branding?.logoUrl || data.event.logoUrl || ""}
+                    alt={data.event.tenantName}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="p-4 sm:p-5 rounded-3xl bg-purple-600/20 border-2 border-purple-500/40 text-purple-400 shadow-2xl glow-purple">
+                  <Disc3 className="w-14 h-14 sm:w-16 sm:h-16 animate-spin [animation-duration:10s]" />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <span className="px-3.5 py-1 rounded-full bg-purple-950 text-purple-300 border border-purple-800 text-xs font-black uppercase tracking-wider">

@@ -14,10 +14,17 @@ interface DashboardShellProps {
     role: string;
   };
   tenantName: string;
+  tenantLogo?: string | null;
   venues?: TopbarVenue[];
 }
 
-export function DashboardShell({ children, user, tenantName, venues = [] }: DashboardShellProps) {
+export function DashboardShell({
+  children,
+  user,
+  tenantName,
+  tenantLogo,
+  venues = [],
+}: DashboardShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
@@ -63,6 +70,7 @@ export function DashboardShell({ children, user, tenantName, venues = [] }: Dash
       <Sidebar
         role={user.role}
         tenantName={tenantName}
+        tenantLogo={tenantLogo}
         isMobileOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
         isCollapsed={isCollapsed}
@@ -74,6 +82,7 @@ export function DashboardShell({ children, user, tenantName, venues = [] }: Dash
         <Topbar
           user={user}
           tenantName={tenantName}
+          tenantLogo={tenantLogo}
           venues={venues}
           isSidebarCollapsed={isCollapsed}
           onToggleSidebar={handleToggleSidebar}

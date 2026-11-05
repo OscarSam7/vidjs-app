@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireTenantContext, requireRole, getCurrentSession } from "@/lib/auth/session";
 import { handleApiError, NotFoundError, BadRequestError } from "@/lib/errors";
+import { realtimeBus } from "@/lib/realtime/event-bus";
 import {
   brandingSchema,
   getMergedBranding,
@@ -18,9 +19,35 @@ const updateBrandingSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const { tenantId } = await requireTenantContext();
     const { searchParams } = new URL(req.url);
     const venueId = searchParams.get("venueId");
+    const code = searchParams.get("code")?.trim().toUpperCase();
+    const tenantSlug = searchParams.get("tenant");
+    const requestedTenantId = searchParams.get("tenantId");
+
+    let tenantId: string | null = null;
+    if (code) {
+      const event = await prisma.event.findUnique({
+        where: { code },
+        select: { tenantId: true, venueId: true },
+      });
+      if (event) {
+        tenantId = event.tenantId;
+      }
+    } else if (tenantSlug) {
+      const t = await prisma.tenant.findUnique({
+        where: { slug: tenantSlug },
+        select: { id: true },
+      });
+      if (t) tenantId = t.id;
+    } else if (requestedTenantId) {
+      tenantId = requestedTenantId;
+    }
+
+    if (!tenantId) {
+      const auth = await requireTenantContext();
+      tenantId = auth.tenantId;
+    }
 
     // 1. Obtener Tenant
     const tenant = await prisma.tenant.findUnique({
@@ -185,6 +212,22 @@ export async function PUT(req: NextRequest) {
           metadata: JSON.stringify({ theme: parsed.branding.themePreset }),
         },
       });
+    }
+
+    // Emitir en tiempo real a todas las pantallas de TV, cabinas y comensales conectados
+    try {
+      const events = await prisma.event.findMany({
+        where: parsed.target === "VENUE" && parsed.venueId ? { venueId: parsed.venueId } : { tenantId },
+        select: { id: true, code: true },
+      });
+      for (const ev of events) {
+        realtimeBus.broadcast(ev.id, "BRANDING_UPDATED", parsed.branding);
+        if (ev.code) {
+          realtimeBus.broadcast(ev.code, "BRANDING_UPDATED", parsed.branding);
+        }
+      }
+    } catch (e) {
+      console.warn("No se pudo emitir evento de branding en tiempo real:", e);
     }
 
     return NextResponse.json({

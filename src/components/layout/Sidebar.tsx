@@ -39,6 +39,7 @@ interface SidebarProps {
   currentPath?: string;
   role?: string;
   tenantName?: string;
+  tenantLogo?: string | null;
   isMobileOpen?: boolean;
   onClose?: () => void;
   isCollapsed?: boolean;
@@ -64,6 +65,7 @@ interface NavCategory {
 export function Sidebar({
   role = "OWNER",
   tenantName = "Retro Bar",
+  tenantLogo = null,
   isMobileOpen = false,
   onClose,
   isCollapsed = false,
@@ -302,24 +304,39 @@ export function Sidebar({
           )}
         >
           {collapsed ? (
-            <div
-              className="w-8 h-8 rounded-xl bg-purple-950/70 border border-purple-700/50 flex items-center justify-center text-purple-300 shadow-sm shrink-0"
-              title="VIDJEIS PRO"
-            >
-              <Disc3 className="w-4 h-4 text-purple-400" />
-            </div>
+            tenantLogo ? (
+              <div
+                className="w-9 h-9 rounded-xl bg-purple-950/70 border border-purple-700/50 p-1 flex items-center justify-center overflow-hidden shadow-sm shrink-0"
+                title={tenantName}
+              >
+                <img src={tenantLogo} alt={tenantName} className="max-h-full max-w-full object-contain" />
+              </div>
+            ) : (
+              <div
+                className="w-8 h-8 rounded-xl bg-purple-950/70 border border-purple-700/50 flex items-center justify-center text-purple-300 shadow-sm shrink-0"
+                title="VIDJEIS PRO"
+              >
+                <Disc3 className="w-4 h-4 text-purple-400" />
+              </div>
+            )
           ) : (
             <>
               <div className="flex items-center gap-2.5 overflow-hidden">
-                <div className="w-8 h-8 rounded-xl bg-purple-950/70 border border-purple-700/50 flex items-center justify-center text-purple-300 shadow-sm shrink-0">
-                  <Disc3 className="w-4 h-4 text-purple-400" />
-                </div>
+                {tenantLogo ? (
+                  <div className="w-9 h-9 rounded-xl bg-purple-950/80 border border-purple-600/50 p-1 flex items-center justify-center overflow-hidden shadow-sm shrink-0">
+                    <img src={tenantLogo} alt={tenantName} className="max-h-full max-w-full object-contain" />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-xl bg-purple-950/70 border border-purple-700/50 flex items-center justify-center text-purple-300 shadow-sm shrink-0">
+                    <Disc3 className="w-4 h-4 text-purple-400" />
+                  </div>
+                )}
                 <div className="truncate">
                   <span className="font-bold text-sm tracking-wide text-[#F8FAFC] block leading-tight truncate">
-                    VIDJEIS PRO
+                    {tenantName || "VIDJEIS PRO"}
                   </span>
-                  <span className="text-[10px] text-[#94A3B8] font-medium block truncate">
-                    SaaS Entertainment
+                  <span className="text-[10px] text-purple-400 font-medium block truncate">
+                    {tenantLogo ? "White-Label Pro" : "SaaS Entertainment"}
                   </span>
                 </div>
               </div>
@@ -341,10 +358,14 @@ export function Sidebar({
         {/* Tenant Isolated Indicator */}
         {collapsed ? (
           <div
-            className="mx-auto my-3 w-10 h-10 rounded-xl bg-navy-850 border border-navy-700 shrink-0 flex items-center justify-center relative group"
+            className="mx-auto my-3 w-10 h-10 rounded-xl bg-navy-850 border border-navy-700 shrink-0 flex items-center justify-center relative group overflow-hidden"
             title={`Establecimiento: ${tenantName}`}
           >
-            <Building2 className="w-4 h-4 text-slate-400 group-hover:text-purple-300 transition-colors" />
+            {tenantLogo ? (
+              <img src={tenantLogo} alt={tenantName} className="w-6 h-6 object-contain" />
+            ) : (
+              <Building2 className="w-4 h-4 text-slate-400 group-hover:text-purple-300 transition-colors" />
+            )}
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse absolute top-1.5 right-1.5" />
           </div>
         ) : (
@@ -356,8 +377,15 @@ export function Sidebar({
                 Aislado
               </span>
             </div>
-            <div className="text-xs sm:text-sm font-semibold text-[#F8FAFC] truncate">
-              {tenantName}
+            <div className="flex items-center gap-2">
+              {tenantLogo && (
+                <div className="w-5 h-5 rounded-md bg-zinc-900 border border-zinc-700 p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                  <img src={tenantLogo} alt={tenantName} className="max-h-full max-w-full object-contain" />
+                </div>
+              )}
+              <div className="text-xs sm:text-sm font-semibold text-[#F8FAFC] truncate">
+                {tenantName}
+              </div>
             </div>
           </div>
         )}

@@ -214,6 +214,7 @@ function GuestContent() {
   const errorParam = searchParams.get("error");
   const venueParam = searchParams.get("venue");
   const tableParam = searchParams.get("table");
+  const eventParam = searchParams.get("event") || searchParams.get("code");
 
   const modeParam = searchParams.get("mode")?.toUpperCase();
   const [activeMode, setActiveMode] = useState<"DJ" | "KARAOKE">(() => {
@@ -574,6 +575,17 @@ function GuestContent() {
         }
       } else {
         setSession(null);
+        // Si no hay sesión activa, cargar branding público para que el invitado vea logo y portada
+        try {
+          const codeQuery = eventParam || venueParam || "RETRO-POP";
+          const brandRes = await fetch(`/api/v1/branding?code=${encodeURIComponent(codeQuery)}`);
+          if (brandRes.ok) {
+            const bJson = await brandRes.json();
+            if (bJson.data?.resolved) {
+              setBranding(bJson.data.resolved);
+            }
+          }
+        } catch {}
       }
     } catch {
       setSession(null);
@@ -671,7 +683,11 @@ function GuestContent() {
     eventId: session?.event?.id,
     code: session?.event?.code,
     onEvent: async (type: RealtimeEventType, payload: any) => {
-      if (type === "DUEL_UPDATE") {
+      if (type === "BRANDING_UPDATED") {
+        if (payload) {
+          setBranding((prev) => ({ ...(prev || {}), ...payload }));
+        }
+      } else if (type === "DUEL_UPDATE") {
         setActiveDuel(payload || null);
       } else if (type === "APPLAUSE_START") {
         setActiveApplause({
@@ -708,6 +724,7 @@ function GuestContent() {
             setMyRequests(data.data.requests);
             setCurrentPlaying(data.data.currentPlaying || null);
             if (data.data.flashDeal) setFlashDeal(data.data.flashDeal);
+            if (data.data.branding) setBranding(data.data.branding);
             if (data.data.tableAllowance) setTableAllowance(data.data.tableAllowance);
             if (data.data.contest) {
               setActiveContestInfo(data.data.contest);

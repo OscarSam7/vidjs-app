@@ -24,25 +24,42 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Obtener nombre del establecimiento y venues disponibles con fallback tolerante a fallos
+  // Obtener nombre del establecimiento, logotipo y venues disponibles con fallback tolerante a fallos
   let tenantName = "Plataforma Central";
+  let tenantLogo: string | null = null;
   let tenantId = session.tenantId;
 
   if (tenantId) {
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { name: true },
+      select: { name: true, logoUrl: true, settings: true },
     }).catch(() => null);
-    if (tenant) tenantName = tenant.name;
+    if (tenant) {
+      tenantName = tenant.name;
+      tenantLogo = tenant.logoUrl;
+      if (!tenantLogo && tenant.settings) {
+        try {
+          const parsed = JSON.parse(tenant.settings);
+          tenantLogo = parsed.branding?.logoUrl || parsed.logoUrl || null;
+        } catch {}
+      }
+    }
   } else if (session.role === "SUPER_ADMIN") {
     tenantName = "Vidjeis Global SaaS (Admin)";
     const firstTenant = await prisma.tenant.findFirst({
       where: { status: "ACTIVE" },
-      select: { id: true, name: true },
+      select: { id: true, name: true, logoUrl: true, settings: true },
     }).catch(() => null);
     if (firstTenant) {
       tenantId = firstTenant.id;
       tenantName = `${firstTenant.name} (Global)`;
+      tenantLogo = firstTenant.logoUrl;
+      if (!tenantLogo && firstTenant.settings) {
+        try {
+          const parsed = JSON.parse(firstTenant.settings);
+          tenantLogo = parsed.branding?.logoUrl || parsed.logoUrl || null;
+        } catch {}
+      }
     }
   }
 
@@ -64,6 +81,7 @@ export default async function DashboardLayout({
         role: session.role,
       }}
       tenantName={tenantName}
+      tenantLogo={tenantLogo}
       venues={venues}
     >
       {children}

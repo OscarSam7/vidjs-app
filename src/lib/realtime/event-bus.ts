@@ -2,6 +2,7 @@ import { EventEmitter } from "events";
 
 export type RealtimeEventType =
   | "CONNECTED"
+  | "BRANDING_UPDATED"
   | "DUEL_UPDATE"
   | "TRACK_CHANGE"
   | "QUEUE_UPDATE"
