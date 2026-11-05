@@ -8,8 +8,11 @@ import {
   RotateCcw,
   RotateCw,
   Zap,
+  Volume1,
   Volume2,
   VolumeX,
+  Minus,
+  Plus,
   Disc,
   Disc3,
   Music,
@@ -447,7 +450,7 @@ export default function VirtualDjConsole({
   const [isKeyLockA, setIsKeyLockA] = useState(true);
   const [activeLoopA, setActiveLoopA] = useState<number | null>(null);
   const [hotCuesA, setHotCuesA] = useState<Record<number, number>>({ 1: 0, 2: 30, 3: 60, 4: 90 });
-  const [gainA, setGainA] = useState(80);
+  const [gainA, setGainA] = useState(100);
   const [eqHiA, setEqHiA] = useState(0);
   const [eqMidA, setEqMidA] = useState(0);
   const [eqLowA, setEqLowA] = useState(0);
@@ -477,7 +480,7 @@ export default function VirtualDjConsole({
   const [isSyncedB, setIsSyncedB] = useState(false);
   const [activeLoopB, setActiveLoopB] = useState<number | null>(null);
   const [hotCuesB, setHotCuesB] = useState<Record<number, number>>({ 1: 0, 2: 15, 3: 45, 4: 75 });
-  const [gainB, setGainB] = useState(80);
+  const [gainB, setGainB] = useState(100);
   const [eqHiB, setEqHiB] = useState(0);
   const [eqMidB, setEqMidB] = useState(0);
   const [eqLowB, setEqLowB] = useState(0);
@@ -4234,12 +4237,49 @@ export default function VirtualDjConsole({
           </div>
 
           <div className="hidden sm:flex items-center gap-2 text-[10px] text-zinc-400">
-            <span className="px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-800">
-              CH 1: {effectiveVolA}%
-            </span>
-            <span className="px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800">
-              CH 2: {effectiveVolB}%
-            </span>
+            {/* Control Rápido Volumen Deck A */}
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-800">
+              <span className="font-black">DECK A:</span>
+              <button
+                type="button"
+                onClick={() => setChannelVolA((v) => Math.max(0, v - 5))}
+                className="w-4 h-4 rounded bg-purple-900/60 hover:bg-purple-700 active:scale-95 flex items-center justify-center cursor-pointer text-white font-black"
+                title="Bajar volumen Deck A (-5%)"
+              >
+                -
+              </button>
+              <span className="font-mono font-bold min-w-[30px] text-center text-white">{channelVolA}%</span>
+              <button
+                type="button"
+                onClick={() => setChannelVolA((v) => Math.min(100, v + 5))}
+                className="w-4 h-4 rounded bg-purple-900/60 hover:bg-purple-700 active:scale-95 flex items-center justify-center cursor-pointer text-white font-black"
+                title="Subir volumen Deck A (+5%)"
+              >
+                +
+              </button>
+            </div>
+
+            {/* Control Rápido Volumen Deck B */}
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800">
+              <span className="font-black">DECK B:</span>
+              <button
+                type="button"
+                onClick={() => setChannelVolB((v) => Math.max(0, v - 5))}
+                className="w-4 h-4 rounded bg-cyan-900/60 hover:bg-cyan-700 active:scale-95 flex items-center justify-center cursor-pointer text-white font-black"
+                title="Bajar volumen Deck B (-5%)"
+              >
+                -
+              </button>
+              <span className="font-mono font-bold min-w-[30px] text-center text-white">{channelVolB}%</span>
+              <button
+                type="button"
+                onClick={() => setChannelVolB((v) => Math.min(100, v + 5))}
+                className="w-4 h-4 rounded bg-cyan-900/60 hover:bg-cyan-700 active:scale-95 flex items-center justify-center cursor-pointer text-white font-black"
+                title="Subir volumen Deck B (+5%)"
+              >
+                +
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -5103,6 +5143,75 @@ export default function VirtualDjConsole({
                 BASS KILL
               </button>
             </div>
+
+            {/* Control de Volumen Deck A (Alzar y Bajar Volumen) */}
+            <div className="pt-2.5 border-t border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-2">
+              <div className="flex items-center justify-between w-full sm:w-auto gap-2">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {channelVolA === 0 ? (
+                    <VolumeX className="w-4 h-4 text-red-400 shrink-0" />
+                  ) : channelVolA < 50 ? (
+                    <Volume1 className="w-4 h-4 text-purple-400 shrink-0" />
+                  ) : (
+                    <Volume2 className="w-4 h-4 text-purple-400 shrink-0" />
+                  )}
+                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-300">VOL DECK A</span>
+                </div>
+                <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded bg-zinc-900 border border-purple-900/60 text-purple-200 min-w-[42px] text-center shadow-inner">
+                  {channelVolA}%
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 w-full sm:flex-1 sm:max-w-[280px]">
+                {/* Botón Bajar Volumen (-5%) */}
+                <button
+                  type="button"
+                  onClick={() => setChannelVolA((v) => Math.max(0, v - 5))}
+                  className="h-8 px-2.5 rounded-lg bg-zinc-900 hover:bg-purple-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-purple-500/50 flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0"
+                  title="Bajar volumen Deck A (-5%)"
+                >
+                  <Minus className="w-3.5 h-3.5 text-purple-400" />
+                  <span>-5%</span>
+                </button>
+
+                {/* Slider / Fader de Volumen */}
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={channelVolA}
+                  onChange={(e) => setChannelVolA(Number(e.target.value))}
+                  className="flex-1 accent-purple-500 h-2 bg-zinc-800 rounded-lg cursor-pointer transition-all hover:bg-zinc-700 min-w-[70px]"
+                  title={`Volumen Canal Deck A: ${channelVolA}%`}
+                />
+
+                {/* Botón Alzar / Subir Volumen (+5%) */}
+                <button
+                  type="button"
+                  onClick={() => setChannelVolA((v) => Math.min(100, v + 5))}
+                  className="h-8 px-2.5 rounded-lg bg-zinc-900 hover:bg-purple-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-purple-500/50 flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0"
+                  title="Alzar / Subir volumen Deck A (+5%)"
+                >
+                  <Plus className="w-3.5 h-3.5 text-purple-400" />
+                  <span>+5%</span>
+                </button>
+
+                {/* Botón MUTE / RESTORE */}
+                <button
+                  type="button"
+                  onClick={() => setChannelVolA((v) => (v === 0 ? 100 : 0))}
+                  className={`h-8 px-2.5 rounded-lg text-[9px] font-black border transition-all cursor-pointer select-none shrink-0 ${
+                    channelVolA === 0
+                      ? "bg-red-600/90 text-white border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse"
+                      : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-800"
+                  }`}
+                  title={channelVolA === 0 ? "Desmutear (Restaurar al 100%)" : "Silenciar Deck A"}
+                >
+                  {channelVolA === 0 ? "MUTED" : "MUTE"}
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Controles de Transporte: PLAY, CUE, SYNC */}
@@ -5157,11 +5266,37 @@ export default function VirtualDjConsole({
             </span>
           </div>
 
-          {/* VU Meters Dinámicos A & B */}
-          <div className="flex items-center justify-center gap-3 w-full my-1">
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[8px] font-bold text-purple-400">CH 1</span>
-              <div className="flex flex-col gap-0.5 h-16 w-3 bg-zinc-900 p-0.5 rounded">
+          {/* VU Meters Dinámicos A & B y Controles Rápidos de Volumen de Canal */}
+          <div className="flex items-center justify-between gap-2 w-full my-1 p-2 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
+            {/* Control Volumen CH 1 */}
+            <div className="flex flex-col items-center gap-1 flex-1">
+              <span className="text-[9px] font-black text-purple-400 tracking-wider">CH 1 VOL</span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setChannelVolA((v) => Math.max(0, v - 5))}
+                  className="w-6 h-6 rounded bg-zinc-900 hover:bg-purple-950/80 active:scale-95 text-purple-300 hover:text-white border border-zinc-800 hover:border-purple-500/40 flex items-center justify-center text-xs font-bold cursor-pointer select-none transition-all"
+                  title="Bajar volumen CH 1 (-5%)"
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="text-[10px] font-mono font-black text-purple-200 min-w-[32px] text-center">
+                  {channelVolA}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setChannelVolA((v) => Math.min(100, v + 5))}
+                  className="w-6 h-6 rounded bg-zinc-900 hover:bg-purple-950/80 active:scale-95 text-purple-300 hover:text-white border border-zinc-800 hover:border-purple-500/40 flex items-center justify-center text-xs font-bold cursor-pointer select-none transition-all"
+                  title="Alzar volumen CH 1 (+5%)"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+
+            {/* VU Meters y Botón Swap Bass */}
+            <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-0.5 h-14 w-2.5 bg-zinc-900 p-0.5 rounded">
                 {[5, 4, 3, 2, 1].map((lvl) => (
                   <div
                     key={lvl}
@@ -5177,22 +5312,16 @@ export default function VirtualDjConsole({
                   />
                 ))}
               </div>
-            </div>
 
-            <div className="flex flex-col items-center gap-1">
-              {/* Botón Swap Bass */}
               <button
                 onClick={handleSwapBass}
-                className="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-[9px] font-black text-amber-300 transition-colors cursor-pointer"
+                className="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-[8px] font-black text-amber-300 transition-colors cursor-pointer shrink-0"
                 title="Intercambiar bajo entre canales"
               >
                 SWAP BASS
               </button>
-            </div>
 
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[8px] font-bold text-cyan-400">CH 2</span>
-              <div className="flex flex-col gap-0.5 h-16 w-3 bg-zinc-900 p-0.5 rounded">
+              <div className="flex flex-col gap-0.5 h-14 w-2.5 bg-zinc-900 p-0.5 rounded">
                 {[5, 4, 3, 2, 1].map((lvl) => (
                   <div
                     key={lvl}
@@ -5207,6 +5336,32 @@ export default function VirtualDjConsole({
                     }`}
                   />
                 ))}
+              </div>
+            </div>
+
+            {/* Control Volumen CH 2 */}
+            <div className="flex flex-col items-center gap-1 flex-1">
+              <span className="text-[9px] font-black text-cyan-400 tracking-wider">CH 2 VOL</span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setChannelVolB((v) => Math.max(0, v - 5))}
+                  className="w-6 h-6 rounded bg-zinc-900 hover:bg-cyan-950/80 active:scale-95 text-cyan-300 hover:text-white border border-zinc-800 hover:border-cyan-500/40 flex items-center justify-center text-xs font-bold cursor-pointer select-none transition-all"
+                  title="Bajar volumen CH 2 (-5%)"
+                >
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="text-[10px] font-mono font-black text-cyan-200 min-w-[32px] text-center">
+                  {channelVolB}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setChannelVolB((v) => Math.min(100, v + 5))}
+                  className="w-6 h-6 rounded bg-zinc-900 hover:bg-cyan-950/80 active:scale-95 text-cyan-300 hover:text-white border border-zinc-800 hover:border-cyan-500/40 flex items-center justify-center text-xs font-bold cursor-pointer select-none transition-all"
+                  title="Alzar volumen CH 2 (+5%)"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
               </div>
             </div>
           </div>
@@ -6227,6 +6382,75 @@ export default function VirtualDjConsole({
               >
                 BASS KILL
               </button>
+            </div>
+
+            {/* Control de Volumen Deck B (Alzar y Bajar Volumen) */}
+            <div className="pt-2.5 border-t border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-2">
+              <div className="flex items-center justify-between w-full sm:w-auto gap-2">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {channelVolB === 0 ? (
+                    <VolumeX className="w-4 h-4 text-red-400 shrink-0" />
+                  ) : channelVolB < 50 ? (
+                    <Volume1 className="w-4 h-4 text-cyan-400 shrink-0" />
+                  ) : (
+                    <Volume2 className="w-4 h-4 text-cyan-400 shrink-0" />
+                  )}
+                  <span className="text-[10px] font-black uppercase tracking-wider text-cyan-300">VOL DECK B</span>
+                </div>
+                <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded bg-zinc-900 border border-cyan-900/60 text-cyan-200 min-w-[42px] text-center shadow-inner">
+                  {channelVolB}%
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 w-full sm:flex-1 sm:max-w-[280px]">
+                {/* Botón Bajar Volumen (-5%) */}
+                <button
+                  type="button"
+                  onClick={() => setChannelVolB((v) => Math.max(0, v - 5))}
+                  className="h-8 px-2.5 rounded-lg bg-zinc-900 hover:bg-cyan-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-cyan-500/50 flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0"
+                  title="Bajar volumen Deck B (-5%)"
+                >
+                  <Minus className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>-5%</span>
+                </button>
+
+                {/* Slider / Fader de Volumen */}
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={channelVolB}
+                  onChange={(e) => setChannelVolB(Number(e.target.value))}
+                  className="flex-1 accent-cyan-500 h-2 bg-zinc-800 rounded-lg cursor-pointer transition-all hover:bg-zinc-700 min-w-[70px]"
+                  title={`Volumen Canal Deck B: ${channelVolB}%`}
+                />
+
+                {/* Botón Alzar / Subir Volumen (+5%) */}
+                <button
+                  type="button"
+                  onClick={() => setChannelVolB((v) => Math.min(100, v + 5))}
+                  className="h-8 px-2.5 rounded-lg bg-zinc-900 hover:bg-cyan-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-cyan-500/50 flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0"
+                  title="Alzar / Subir volumen Deck B (+5%)"
+                >
+                  <Plus className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>+5%</span>
+                </button>
+
+                {/* Botón MUTE / RESTORE */}
+                <button
+                  type="button"
+                  onClick={() => setChannelVolB((v) => (v === 0 ? 100 : 0))}
+                  className={`h-8 px-2.5 rounded-lg text-[9px] font-black border transition-all cursor-pointer select-none shrink-0 ${
+                    channelVolB === 0
+                      ? "bg-red-600/90 text-white border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse"
+                      : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-800"
+                  }`}
+                  title={channelVolB === 0 ? "Desmutear (Restaurar al 100%)" : "Silenciar Deck B"}
+                >
+                  {channelVolB === 0 ? "MUTED" : "MUTE"}
+                </button>
+              </div>
             </div>
           </div>
 
