@@ -145,8 +145,8 @@ export async function POST(req: NextRequest) {
 
       const isDeckFree = !activeCurrent && !activePlayingSong;
 
-      if (data.playNow && isDeckFree) {
-        // El comensal seleccionó darle al Play de inmediato y la bandeja está libre
+      if (isDeckFree) {
+        // En Auto-Play con cabina libre, la canción pasa a sonar al aire de inmediato
         initialStatus = "PLAYING";
         queueEntryStatus = "CURRENT";
         playedAt = new Date();

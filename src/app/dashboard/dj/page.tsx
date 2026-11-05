@@ -192,6 +192,7 @@ export default function DjBoothPage() {
     entry: QueueEntryData;
     targetDeck?: "AUTO" | "A" | "B";
     timestamp: number;
+    autoPlay?: boolean;
   } | null>(null);
 
   // Mensaje de notificación
@@ -865,9 +866,16 @@ export default function DjBoothPage() {
   };
 
   // Cargar / Preparar o Reproducir tema de la cola en la bandeja libre o seleccionada
-  const handleLoadQueueEntry = async (entry: QueueEntryData, targetDeck: "AUTO" | "A" | "B" = "AUTO") => {
+  const handleLoadQueueEntry = async (
+    entry: QueueEntryData,
+    targetDeck: "AUTO" | "A" | "B" = "AUTO",
+    shouldAutoPlay: boolean = false
+  ) => {
     // 1. Cargar y preparar en la consola Virtual DJ en la bandeja solicitada
-    setPendingDeckLoad({ entry, targetDeck, timestamp: Date.now() });
+    const autoPlayEffective =
+      shouldAutoPlay ||
+      (Boolean(queuePolicy.autoPlayRequests) && !isPlaying && !data?.currentPlaying);
+    setPendingDeckLoad({ entry, targetDeck, timestamp: Date.now(), autoPlay: autoPlayEffective });
 
     // Si el DJ seleccionó explícitamente cargar en Bandeja A o B ("◀ A" o "B ▶"),
     // o si ya hay una reproducción activa sonando en cabina, NO llamamos al backend con action: "PLAY"
@@ -900,7 +908,7 @@ export default function DjBoothPage() {
     try {
       const entry = data?.queue?.find((q) => q.id === queueEntryId);
       if (entry) {
-        setPendingDeckLoad({ entry, targetDeck: "AUTO", timestamp: Date.now() });
+        setPendingDeckLoad({ entry, targetDeck: "AUTO", timestamp: Date.now(), autoPlay: true });
       }
       const res = await fetch("/api/v1/dj/queue", {
         method: "POST",
@@ -2349,6 +2357,7 @@ export default function DjBoothPage() {
         pendingDeckLoad={pendingDeckLoad}
         onDeckLoaded={() => setPendingDeckLoad(null)}
         onPlaybackControl={handlePlaybackControl}
+        isAutoPlayMode={Boolean(queuePolicy.autoPlayRequests)}
       />
 
       {/* 2.5 SOUNDBOARD FX LAUNCHPAD PARA DJ */}

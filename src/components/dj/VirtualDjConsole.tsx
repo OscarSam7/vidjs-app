@@ -85,6 +85,7 @@ export interface PendingDeckLoad {
   entry: QueueEntryData;
   targetDeck?: "AUTO" | "A" | "B";
   timestamp: number;
+  autoPlay?: boolean;
 }
 
 export interface PlaybackSyncDetails {
@@ -113,6 +114,7 @@ interface VirtualDjConsoleProps {
     deckId?: "A" | "B",
     details?: PlaybackSyncDetails
   ) => void;
+  isAutoPlayMode?: boolean;
 }
 
 interface DeckPlayerProps {
@@ -422,6 +424,7 @@ export default function VirtualDjConsole({
   pendingDeckLoad,
   onDeckLoaded,
   onPlaybackControl,
+  isAutoPlayMode = false,
 }: VirtualDjConsoleProps) {
   // ==================== MASTER AUDIO CABINA STATE ====================
   const [isMasterMuted, setIsMasterMuted] = useState(false);
@@ -2139,7 +2142,8 @@ export default function VirtualDjConsole({
     track: SongRequestData,
     explicitVideoId?: string | null,
     queueEntryId?: string | null,
-    force: boolean = false
+    force: boolean = false,
+    autoPlay: boolean = false
   ) => {
     // Si se está limpiando una bandeja, descartar cargas automáticas en segundo plano
     if (isClearingDeckRef.current) {
@@ -2171,7 +2175,9 @@ export default function VirtualDjConsole({
 
     searchRequestIdA.current++;
     const reqId = searchRequestIdA.current;
-    if (iframeRefA.current) {
+
+    // Solo silenciar y pausar si NO vamos a reproducir de inmediato
+    if (!autoPlay && iframeRefA.current) {
       sendPlayerCommand(iframeRefA.current, "mute");
       sendPlayerCommand(iframeRefA.current, "setVolume", [0]);
       sendPlayerCommand(iframeRefA.current, "pauseVideo");
@@ -2197,20 +2203,39 @@ export default function VirtualDjConsole({
     activeTrackReqIdARef.current = track.id;
     activeQueueEntryIdARef.current = queueEntryId || null;
     activeVideoIdARef.current = null;
-    setIsPlayingA(false);
     setPlaybackSecondsA(0);
     setActiveLoopA(null);
     setIsEjectedA(false);
     setDeckTrackA(track);
     setManualTrackA(track);
 
+    // Determinamos si es seguro hacer autoPlay (no interrumpe Deck B que esté sonando)
+    const canAutoPlay = Boolean(autoPlay && !isPlayingBRef.current && !isPlayingB);
+
     if (directId) {
       activeVideoIdARef.current = directId;
       setVideoIdA(directId);
       setIsLoadingVideoA(false);
-      setIsPlayingA(false);
-      loadVideoIntoIframe(iframeRefA.current, directId, effectiveVolA, false);
-      showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A (Listo para Play)`);
+      if (canAutoPlay) {
+        setIsPlayingA(true);
+        isPlayingARef.current = true;
+        setCrossfaderValue(-100);
+        unlockAudioA();
+        loadVideoIntoIframe(iframeRefA.current, directId, effectiveVolA || 80, true);
+        onPlaybackControl?.("PLAY", "A", {
+          currentTime: 0,
+          duration: track.song?.durationSeconds || 0,
+          trackTitle: track.song?.title || track.customTitle || "Pista Deck A",
+          trackArtist: track.song?.artist?.name || track.customArtist || "DJ Mix",
+          videoId: directId,
+          isVideo: true,
+        });
+        showFeedback("success", `▶ ¡Reproduciendo en vivo en Deck A! "${track.song?.title || track.customTitle}"`);
+      } else {
+        setIsPlayingA(false);
+        loadVideoIntoIframe(iframeRefA.current, directId, effectiveVolA, false);
+        showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A (Listo para Play)`);
+      }
       return;
     }
 
@@ -2232,9 +2257,26 @@ export default function VirtualDjConsole({
           const resolvedId = data.data.results[0].id;
           activeVideoIdARef.current = resolvedId;
           setVideoIdA(resolvedId);
-          setIsPlayingA(false);
-          loadVideoIntoIframe(iframeRefA.current, resolvedId, effectiveVolA, false);
-          showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A (Listo para Play)`);
+          if (canAutoPlay && !isPlayingBRef.current && !isPlayingB) {
+            setIsPlayingA(true);
+            isPlayingARef.current = true;
+            setCrossfaderValue(-100);
+            unlockAudioA();
+            loadVideoIntoIframe(iframeRefA.current, resolvedId, effectiveVolA || 80, true);
+            onPlaybackControl?.("PLAY", "A", {
+              currentTime: 0,
+              duration: track.song?.durationSeconds || 0,
+              trackTitle: track.song?.title || track.customTitle || "Pista Deck A",
+              trackArtist: track.song?.artist?.name || track.customArtist || "DJ Mix",
+              videoId: resolvedId,
+              isVideo: true,
+            });
+            showFeedback("success", `▶ ¡Reproduciendo en vivo en Deck A! "${track.song?.title || track.customTitle}"`);
+          } else {
+            setIsPlayingA(false);
+            loadVideoIntoIframe(iframeRefA.current, resolvedId, effectiveVolA, false);
+            showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A (Listo para Play)`);
+          }
         } else {
           showFeedback("error", `No se encontró audio en YouTube para "${title}"`);
         }
@@ -2255,7 +2297,8 @@ export default function VirtualDjConsole({
     track: SongRequestData,
     queueEntryId?: string | null,
     explicitVideoId?: string | null,
-    force: boolean = false
+    force: boolean = false,
+    autoPlay: boolean = false
   ) => {
     // Si se está limpiando una bandeja, descartar cargas automáticas en segundo plano
     if (isClearingDeckRef.current) {
@@ -2287,7 +2330,9 @@ export default function VirtualDjConsole({
 
     searchRequestIdB.current++;
     const reqId = searchRequestIdB.current;
-    if (iframeRefB.current) {
+
+    // Solo silenciar y pausar si NO vamos a reproducir de inmediato
+    if (!autoPlay && iframeRefB.current) {
       sendPlayerCommand(iframeRefB.current, "mute");
       sendPlayerCommand(iframeRefB.current, "setVolume", [0]);
       sendPlayerCommand(iframeRefB.current, "pauseVideo");
@@ -2313,7 +2358,6 @@ export default function VirtualDjConsole({
     activeQueueEntryIdBRef.current = queueEntryId || null;
     prevTrackBKeyRef.current = trackKey;
     activeVideoIdBRef.current = null;
-    setIsPlayingB(false);
     setPlaybackSecondsB(0);
     setActiveLoopB(null);
     setIsEjectedB(false);
@@ -2328,13 +2372,32 @@ export default function VirtualDjConsole({
       setManualTrackB(track);
     }
 
+    const canAutoPlay = Boolean(autoPlay && !isPlayingARef.current && !isPlayingA);
+
     if (directId) {
       activeVideoIdBRef.current = directId;
       setVideoIdB(directId);
       setIsLoadingVideoB(false);
-      setIsPlayingB(false);
-      loadVideoIntoIframe(iframeRefB.current, directId, effectiveVolB, false);
-      showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B (Listo para Play)`);
+      if (canAutoPlay) {
+        setIsPlayingB(true);
+        isPlayingBRef.current = true;
+        setCrossfaderValue(100);
+        unlockAudioB();
+        loadVideoIntoIframe(iframeRefB.current, directId, effectiveVolB || 80, true);
+        onPlaybackControl?.("PLAY", "B", {
+          currentTime: 0,
+          duration: track.song?.durationSeconds || 0,
+          trackTitle: track.song?.title || track.customTitle || "Pista Deck B",
+          trackArtist: track.song?.artist?.name || track.customArtist || "DJ Mix",
+          videoId: directId,
+          isVideo: true,
+        });
+        showFeedback("success", `▶ ¡Reproduciendo en vivo en Deck B! "${track.song?.title || track.customTitle}"`);
+      } else {
+        setIsPlayingB(false);
+        loadVideoIntoIframe(iframeRefB.current, directId, effectiveVolB, false);
+        showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B (Listo para Play)`);
+      }
       return;
     }
 
@@ -2356,9 +2419,26 @@ export default function VirtualDjConsole({
           const resolvedId = data.data.results[0].id;
           activeVideoIdBRef.current = resolvedId;
           setVideoIdB(resolvedId);
-          setIsPlayingB(false);
-          loadVideoIntoIframe(iframeRefB.current, resolvedId, effectiveVolB, false);
-          showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B (Listo para Play)`);
+          if (canAutoPlay && !isPlayingARef.current && !isPlayingA) {
+            setIsPlayingB(true);
+            isPlayingBRef.current = true;
+            setCrossfaderValue(100);
+            unlockAudioB();
+            loadVideoIntoIframe(iframeRefB.current, resolvedId, effectiveVolB || 80, true);
+            onPlaybackControl?.("PLAY", "B", {
+              currentTime: 0,
+              duration: track.song?.durationSeconds || 0,
+              trackTitle: track.song?.title || track.customTitle || "Pista Deck B",
+              trackArtist: track.song?.artist?.name || track.customArtist || "DJ Mix",
+              videoId: resolvedId,
+              isVideo: true,
+            });
+            showFeedback("success", `▶ ¡Reproduciendo en vivo en Deck B! "${track.song?.title || track.customTitle}"`);
+          } else {
+            setIsPlayingB(false);
+            loadVideoIntoIframe(iframeRefB.current, resolvedId, effectiveVolB, false);
+            showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B (Listo para Play)`);
+          }
         } else {
           showFeedback("error", `No se encontró audio en YouTube para "${title}"`);
         }
@@ -2369,7 +2449,7 @@ export default function VirtualDjConsole({
       }
     } finally {
       if (searchRequestIdB.current === reqId) {
-        setIsLoadingVideoB(false);
+        setIsLoadingVideoA(false);
       }
     }
   };
@@ -2633,9 +2713,9 @@ export default function VirtualDjConsole({
   useEffect(() => {
     if (!initialLoadedA.current && currentPlaying?.songRequest && !isEjectedA && !deckTrackA) {
       initialLoadedA.current = true;
-      loadTrackIntoDeckA(currentPlaying.songRequest, currentPlaying.youtubeVideoId, currentPlaying.id);
+      loadTrackIntoDeckA(currentPlaying.songRequest, currentPlaying.youtubeVideoId, currentPlaying.id, false, isAutoPlayMode);
     }
-  }, [currentPlaying?.id, isEjectedA]);
+  }, [currentPlaying?.id, isEjectedA, isAutoPlayMode]);
 
   // Función para determinar inteligentemente cuál bandeja está libre para recibir la pista
   const determineFreeDeck = (requested?: "AUTO" | "A" | "B"): "A" | "B" => {
@@ -2671,26 +2751,34 @@ export default function VirtualDjConsole({
     if (!pendingDeckLoad || pendingDeckLoad.timestamp === lastHandledLoadTimestamp.current) return;
     lastHandledLoadTimestamp.current = pendingDeckLoad.timestamp;
 
-    const { entry, targetDeck = "AUTO" } = pendingDeckLoad;
+    const { entry, targetDeck = "AUTO", autoPlay: requestedAutoPlay } = pendingDeckLoad;
 
     const resolvedTarget = determineFreeDeck(targetDeck);
     const title = entry.songRequest.song?.title || entry.songRequest.customTitle || "Tema";
     const tableLabel = entry.songRequest.table?.label ? ` (${entry.songRequest.table.label})` : "";
 
+    const shouldAutoPlay =
+      requestedAutoPlay === true ||
+      (Boolean(isAutoPlayMode) && !isPlayingA && !isPlayingB && !isPlayingARef.current && !isPlayingBRef.current);
+
     if (resolvedTarget === "A") {
       if (!isPlayingARef.current && !isPlayingA) {
-        loadTrackIntoDeckA(entry.songRequest, entry.youtubeVideoId, entry.id, false);
-        showFeedback("success", `🎧 Cargada en Bandeja A: "${title}"${tableLabel} (Listo para Play)`);
+        loadTrackIntoDeckA(entry.songRequest, entry.youtubeVideoId, entry.id, false, shouldAutoPlay);
+        if (!shouldAutoPlay) {
+          showFeedback("success", `🎧 Cargada en Bandeja A: "${title}"${tableLabel} (Listo para Play)`);
+        }
       }
     } else {
       if (!isPlayingBRef.current && !isPlayingB) {
-        loadTrackIntoDeckB(entry.songRequest, entry.id, entry.youtubeVideoId, false);
-        showFeedback("success", `🎧 Cargada en Bandeja B: "${title}"${tableLabel} (Listo para Play)`);
+        loadTrackIntoDeckB(entry.songRequest, entry.id, entry.youtubeVideoId, false, shouldAutoPlay);
+        if (!shouldAutoPlay) {
+          showFeedback("success", `🎧 Cargada en Bandeja B: "${title}"${tableLabel} (Listo para Play)`);
+        }
       }
     }
 
     if (onDeckLoaded) onDeckLoaded();
-  }, [pendingDeckLoad, isPlayingA, isPlayingB]);
+  }, [pendingDeckLoad, isPlayingA, isPlayingB, isAutoPlayMode]);
 
   // Avance de tema del servidor / Sincronización cuando entra un nuevo tema al aire
   useEffect(() => {
@@ -2709,6 +2797,8 @@ export default function VirtualDjConsole({
 
       const currentReqId = currentPlaying.songRequest.id;
       const currentEntryId = currentPlaying.id;
+      const title = currentPlaying.songRequest.song?.title || currentPlaying.songRequest.customTitle || "Tema";
+      const tableLabel = currentPlaying.songRequest.table?.label ? ` (${currentPlaying.songRequest.table.label})` : "";
 
       // Verificar si la pista ya está cargada en alguna de las bandejas
       const isAlreadyInA =
@@ -2729,8 +2819,39 @@ export default function VirtualDjConsole({
         videoIdB === currentPlaying.youtubeVideoId ||
         (Boolean(currentPlaying.youtubeVideoId) && activeVideoIdBRef.current === currentPlaying.youtubeVideoId);
 
-      // Si ya está en alguna de las bandejas, no hacer nada para no duplicar en la otra bandeja
-      if (isAlreadyInA || isAlreadyInB) {
+      // Si ya está en Bandeja A y está en pausa mientras el modo Auto-Play está activo:
+      if (isAlreadyInA) {
+        if (isAutoPlayMode && !isPlayingA && !isPlayingARef.current && !isPlayingB && !isPlayingBRef.current) {
+          unlockAudioA();
+          setCrossfaderValue(-100);
+          if (iframeRefA.current) {
+            sendPlayerCommand(iframeRefA.current, "unMute");
+            sendPlayerCommand(iframeRefA.current, "setVolume", [Math.max(80, effectiveVolA)]);
+            sendPlayerCommand(iframeRefA.current, "playVideo");
+          }
+          isPlayingARef.current = true;
+          setIsPlayingA(true);
+          onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
+          showFeedback("success", `▶ ¡Reproduciendo en Deck A! "${title}"`);
+        }
+        return;
+      }
+
+      // Si ya está en Bandeja B y está en pausa mientras el modo Auto-Play está activo:
+      if (isAlreadyInB) {
+        if (isAutoPlayMode && !isPlayingB && !isPlayingBRef.current && !isPlayingA && !isPlayingARef.current) {
+          unlockAudioB();
+          setCrossfaderValue(100);
+          if (iframeRefB.current) {
+            sendPlayerCommand(iframeRefB.current, "unMute");
+            sendPlayerCommand(iframeRefB.current, "setVolume", [Math.max(80, effectiveVolB)]);
+            sendPlayerCommand(iframeRefB.current, "playVideo");
+          }
+          isPlayingBRef.current = true;
+          setIsPlayingB(true);
+          onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
+          showFeedback("success", `▶ ¡Reproduciendo en Deck B! "${title}"`);
+        }
         return;
       }
 
@@ -2738,18 +2859,22 @@ export default function VirtualDjConsole({
       // NUNCA vaciar ni interrumpir ninguna bandeja que tenga tema o esté sonando en vivo
       const isAOccupied = Boolean(trackA) || Boolean(deckTrackA) || isPlayingA || isPlayingARef.current || Boolean(activeVideoIdARef.current);
       const isBOccupied = Boolean(trackB) || Boolean(deckTrackB) || isPlayingB || isPlayingBRef.current || Boolean(activeVideoIdBRef.current);
-      const title = currentPlaying.songRequest.song?.title || currentPlaying.songRequest.customTitle || "Tema";
-      const tableLabel = currentPlaying.songRequest.table?.label ? ` (${currentPlaying.songRequest.table.label})` : "";
+
+      const shouldAutoPlay = Boolean(isAutoPlayMode) && !isPlayingA && !isPlayingB && !isPlayingARef.current && !isPlayingBRef.current;
 
       if (!isAOccupied && !isPlayingARef.current) {
-        loadTrackIntoDeckA(currentPlaying.songRequest, currentPlaying.youtubeVideoId, currentPlaying.id, false);
-        showFeedback("info", `🎧 Montada en Bandeja A: "${title}"${tableLabel} (Listo para Play)`);
+        loadTrackIntoDeckA(currentPlaying.songRequest, currentPlaying.youtubeVideoId, currentPlaying.id, false, shouldAutoPlay);
+        if (!shouldAutoPlay) {
+          showFeedback("info", `🎧 Montada en Bandeja A: "${title}"${tableLabel} (Listo para Play)`);
+        }
       } else if (!isBOccupied && !isPlayingBRef.current) {
-        loadTrackIntoDeckB(currentPlaying.songRequest, currentPlaying.id, currentPlaying.youtubeVideoId, false);
-        showFeedback("info", `🎧 Montada en Bandeja B: "${title}"${tableLabel} (Listo para Play)`);
+        loadTrackIntoDeckB(currentPlaying.songRequest, currentPlaying.id, currentPlaying.youtubeVideoId, false, shouldAutoPlay);
+        if (!shouldAutoPlay) {
+          showFeedback("info", `🎧 Montada en Bandeja B: "${title}"${tableLabel} (Listo para Play)`);
+        }
       }
     }
-  }, [currentPlaying?.id, trackA?.id, trackB?.id, isPlayingA, isPlayingB]);
+  }, [currentPlaying?.id, trackA?.id, trackB?.id, isPlayingA, isPlayingB, isAutoPlayMode]);
 
   // Detección inteligente de dirección para Auto-Enganche según la bandeja que está al aire
   useEffect(() => {
