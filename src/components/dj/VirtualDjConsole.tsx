@@ -4132,7 +4132,7 @@ export default function VirtualDjConsole({
   const isBeatMatched = Math.abs(effectiveBpmA - effectiveBpmB) <= 0.3;
 
   return (
-    <div className="space-y-4 select-none">
+    <div translate="no" className="notranslate space-y-4 select-none">
       {/* ========================================================================= */}
       {/* 0. CABINA MASTER AUDIO STATUS & QUICK GAIN BAR                            */}
       {/* ========================================================================= */}
@@ -4773,8 +4773,8 @@ export default function VirtualDjConsole({
             onClearVideo={handleClearVideoOnlyA}
           />
 
-          {/* Platter / Jogwheel Deck A & Pitch Fader */}
-          <div className="flex items-center justify-around sm:justify-between gap-3 sm:gap-4 py-2 w-full">
+          {/* Fila 1: Platter / Jogwheel Deck A & Pitch Fader lado a lado */}
+          <div className="flex items-center justify-between gap-2 sm:gap-3 py-1 w-full notranslate" translate="no">
             {/* Jogwheel Giratorio con soporte Drag & Drop */}
             <div
               onDragOver={(e) => {
@@ -4788,7 +4788,7 @@ export default function VirtualDjConsole({
                 const file = e.dataTransfer.files?.[0];
                 if (file) handleLoadLocalFileA(file);
               }}
-              className="relative shrink-0 mx-auto"
+              className="relative shrink-0 flex items-center justify-center"
             >
               <div
                 ref={platterRefA}
@@ -4796,7 +4796,7 @@ export default function VirtualDjConsole({
                 onPointerMove={handlePlatterPointerMoveA}
                 onPointerUp={handlePlatterPointerUpA}
                 onPointerCancel={handlePlatterPointerUpA}
-                className={`w-36 h-36 rounded-full bg-gradient-to-tr from-zinc-950 via-zinc-900 to-zinc-950 border-4 ${
+                className={`w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-tr from-zinc-950 via-zinc-900 to-zinc-950 border-4 ${
                   isDraggingA
                     ? "border-purple-400 scale-105"
                     : vinylActionA === "SPINBACK"
@@ -4821,8 +4821,8 @@ export default function VirtualDjConsole({
                 <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-6 rounded-full bg-gradient-to-b from-white via-purple-200 to-transparent shadow-[0_0_8px_rgba(255,255,255,0.9)] pointer-events-none z-10" />
 
                 {/* Ranuras de vinilo intermedias */}
-                <div className="w-28 h-28 rounded-full border border-zinc-800 flex items-center justify-center pointer-events-none">
-                  <div className="w-20 h-20 rounded-full border border-zinc-700/60 flex items-center justify-center">
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border border-zinc-800 flex items-center justify-center pointer-events-none">
+                  <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full border border-zinc-700/60 flex items-center justify-center">
                     {/* Centro HUD de Jogwheel (Spindle / Record Label con botón Play/Pause táctil) */}
                     <div
                       data-spindle="true"
@@ -4830,93 +4830,50 @@ export default function VirtualDjConsole({
                         e.stopPropagation();
                         togglePlayA();
                       }}
-                      className="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-700 to-indigo-600 border-2 border-white flex flex-col items-center justify-center text-white shadow-lg pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                      className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-purple-700 to-indigo-600 border-2 border-white flex flex-col items-center justify-center text-white shadow-lg pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-transform"
                       title="Click en centro: Play / Pausa"
                     >
                       {vinylActionA === "REWIND" ? (
-                        <div className="flex flex-col items-center animate-pulse">
+                        <div className="flex flex-col items-center animate-pulse notranslate" translate="no">
                           <RotateCcw className="w-4 h-4 text-amber-300" />
-                          <span className="text-[7px] font-black text-amber-200">REWIND</span>
+                          <span className="text-[7px] font-black text-amber-200 notranslate" translate="no">REWIND</span>
                         </div>
                       ) : vinylActionA === "FORWARD" ? (
-                        <div className="flex flex-col items-center animate-pulse">
+                        <div className="flex flex-col items-center animate-pulse notranslate" translate="no">
                           <RotateCw className="w-4 h-4 text-purple-200" />
-                          <span className="text-[7px] font-black text-purple-100">PUSH</span>
+                          <span className="text-[7px] font-black text-purple-100 notranslate" translate="no">PUSH</span>
                         </div>
                       ) : vinylActionA === "SPINBACK" ? (
-                        <div className="flex flex-col items-center animate-spin">
+                        <div className="flex flex-col items-center animate-spin notranslate" translate="no">
                           <Disc3 className="w-4 h-4 text-pink-300" />
-                          <span className="text-[7px] font-black text-pink-200">SPINBACK</span>
+                          <span className="text-[7px] font-black text-pink-200 notranslate" translate="no">SPINBACK</span>
                         </div>
                       ) : vinylActionA === "SCRATCH" ? (
-                        <div className="flex flex-col items-center">
+                        <div className="flex flex-col items-center notranslate" translate="no">
                           <Disc className="w-4 h-4 text-purple-200 animate-spin [animation-duration:1s]" />
-                          <span className="text-[7px] font-black text-purple-100">SCRATCH</span>
+                          <span className="text-[7px] font-black text-purple-100 notranslate" translate="no">SCRATCH</span>
                         </div>
                       ) : (
-                        <>
-                          <span className="text-[11px] font-black">{effectiveBpmA}</span>
-                          <span className="text-[8px] font-bold opacity-80">BPM</span>
-                        </>
+                        <div className="flex flex-col items-center justify-center notranslate" translate="no">
+                          <span className="text-[11px] font-black leading-tight notranslate" translate="no">{effectiveBpmA}</span>
+                          <span className="text-[8px] font-bold opacity-80 uppercase notranslate" translate="no">BPM</span>
+                        </div>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
-
-              {/* Controles de Vinilo: Nudge Atrás, Spinback Club, Nudge Adelante */}
-              <div className="flex items-center justify-center gap-1.5 mt-2.5">
-                {/* Nudge Atrás (Clic: Empujón vinilo atrás | Mantener: Rebobinado continuo de disco) */}
-                <button
-                  onMouseDown={() => startContinuousNudge("A", -1)}
-                  onMouseUp={() => stopContinuousNudge("A")}
-                  onMouseLeave={() => stopContinuousNudge("A")}
-                  onTouchStart={() => startContinuousNudge("A", -1)}
-                  onTouchEnd={() => stopContinuousNudge("A")}
-                  onClick={() => handleNudge("A", -1)}
-                  className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-purple-950/50 active:bg-purple-900 border border-zinc-800 hover:border-purple-600/40 text-[10px] font-black text-zinc-300 hover:text-purple-300 transition-all cursor-pointer flex items-center gap-1 shadow-sm select-none"
-                  title="Clic: Empujar vinilo atrás (-0.5s) | Mantener: Rebobinado continuo de vinilo"
-                >
-                  <RotateCcw className="w-3 h-3 text-purple-400" />
-                  <span>&laquo; NUDGE</span>
-                </button>
-
-                {/* Botón Central: SPINBACK / RETROCESO REAL DE DISCO */}
-                <button
-                  onClick={() => handleSpinback("A")}
-                  className="px-2 py-1 rounded-lg bg-gradient-to-r from-red-600/20 via-purple-600/30 to-pink-600/20 hover:from-red-600/40 hover:to-pink-600/40 border border-purple-500/40 text-[10px] font-black text-white hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1 shadow-lg shadow-purple-900/20"
-                  title="Efecto Spinback: Retroceso salvaje de vinilo club (-4 segs con frenada inercial)"
-                >
-                  <Disc3 className="w-3.5 h-3.5 text-pink-400 animate-spin [animation-duration:4s]" />
-                  <span className="bg-gradient-to-r from-pink-300 to-purple-200 bg-clip-text text-transparent">SPINBACK</span>
-                </button>
-
-                {/* Nudge Adelante (Clic: Empuje adelante | Mantener: Avance continuo) */}
-                <button
-                  onMouseDown={() => startContinuousNudge("A", 1)}
-                  onMouseUp={() => stopContinuousNudge("A")}
-                  onMouseLeave={() => stopContinuousNudge("A")}
-                  onTouchStart={() => startContinuousNudge("A", 1)}
-                  onTouchEnd={() => stopContinuousNudge("A")}
-                  onClick={() => handleNudge("A", 1)}
-                  className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-purple-950/50 active:bg-purple-900 border border-zinc-800 hover:border-purple-600/40 text-[10px] font-black text-zinc-300 hover:text-purple-300 transition-all cursor-pointer flex items-center gap-1 shadow-sm select-none"
-                  title="Clic: Empujar vinilo adelante (+0.5s) | Mantener: Avance continuo"
-                >
-                  <span>NUDGE &raquo;</span>
-                  <RotateCw className="w-3 h-3 text-purple-400" />
-                </button>
-              </div>
             </div>
 
             {/* Contenedor Pitch Fader y Botones Subir/Bajar Tiempo Deck A */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              {/* Botones 2-Toques Subir / Bajar Tiempo Deck A (lado izquierdo del cuadro hacia dentro) */}
-              <div className="flex flex-col justify-between h-40 py-0.5 gap-1 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 notranslate" translate="no">
+              {/* Botones 2-Toques Subir / Bajar Tiempo Deck A */}
+              <div className="flex flex-col justify-between h-36 sm:h-40 py-0.5 gap-1 shrink-0">
                 {/* Botón SUBIR TIEMPO (+0.5%) */}
                 <button
                   type="button"
                   onClick={handlePitchUpA}
-                  className={`w-9 sm:w-10 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-1 cursor-pointer select-none active:scale-95 border ${
+                  className={`w-8 sm:w-9 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-0.5 sm:p-1 cursor-pointer select-none active:scale-95 border ${
                     pitchUpSuccessA
                       ? "bg-emerald-500 text-black border-emerald-400 font-black shadow-md scale-105"
                       : pitchUpArmedA
@@ -4930,11 +4887,11 @@ export default function VirtualDjConsole({
                   }
                 >
                   <ChevronUp className="w-3.5 h-3.5 shrink-0" />
-                  <span className="text-[8px] font-mono font-black leading-none mt-0.5">
+                  <span className="text-[7.5px] sm:text-[8px] font-mono font-black leading-none mt-0.5 notranslate" translate="no">
                     {pitchUpSuccessA ? "✓" : pitchUpArmedA ? "CONFIRM" : "+0.5%"}
                   </span>
-                  <span className="text-[6.5px] uppercase font-bold tracking-tight opacity-75">
-                    {pitchUpArmedA ? "SUBIR" : "TEMPO"}
+                  <span className="text-[6px] sm:text-[6.5px] uppercase font-bold tracking-tight opacity-75 notranslate" translate="no">
+                    TEMPO
                   </span>
                 </button>
 
@@ -4942,7 +4899,7 @@ export default function VirtualDjConsole({
                 <button
                   type="button"
                   onClick={handlePitchDownA}
-                  className={`w-9 sm:w-10 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-1 cursor-pointer select-none active:scale-95 border ${
+                  className={`w-8 sm:w-9 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-0.5 sm:p-1 cursor-pointer select-none active:scale-95 border ${
                     pitchDownSuccessA
                       ? "bg-emerald-500 text-black border-emerald-400 font-black shadow-md scale-105"
                       : pitchDownArmedA
@@ -4956,116 +4913,161 @@ export default function VirtualDjConsole({
                   }
                 >
                   <ChevronDown className="w-3.5 h-3.5 shrink-0" />
-                  <span className="text-[8px] font-mono font-black leading-none mt-0.5">
+                  <span className="text-[7.5px] sm:text-[8px] font-mono font-black leading-none mt-0.5 notranslate" translate="no">
                     {pitchDownSuccessA ? "✓" : pitchDownArmedA ? "CONFIRM" : "-0.5%"}
                   </span>
-                  <span className="text-[6.5px] uppercase font-bold tracking-tight opacity-75">
-                    {pitchDownArmedA ? "BAJAR" : "TEMPO"}
+                  <span className="text-[6px] sm:text-[6.5px] uppercase font-bold tracking-tight opacity-75 notranslate" translate="no">
+                    TEMPO
                   </span>
                 </button>
               </div>
 
               {/* Pitch / Tempo Fader Vertical Deck A (2-Toques Seguridad) */}
-              <div className="flex flex-col items-center justify-between h-40 w-20 bg-zinc-950/80 p-1.5 rounded-xl border border-zinc-800 touch-pan-y select-none relative">
-              {/* Indicador de Valor y Bloqueo / Desbloqueo */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (isPitchActiveA) {
-                    setIsPitchActiveA(false);
-                    if (pitchTimerARef.current) clearTimeout(pitchTimerARef.current);
-                  } else {
-                    handleActivatePitchA();
-                  }
-                }}
-                className={`flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold transition-all cursor-pointer ${
-                  isPitchActiveA
-                    ? "bg-purple-950 border border-purple-400 text-purple-200 shadow-sm animate-pulse"
-                    : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-300"
-                }`}
-                title={isPitchActiveA ? "Pitch activo (toca para bloquear)" : "1° toque: Toca para activar ajuste de tempo"}
-              >
-                {isPitchActiveA ? (
-                  <>
-                    <Unlock className="w-2.5 h-2.5 text-purple-400 shrink-0" />
-                    <span>{pitchA >= 0 ? `+${pitchA.toFixed(1)}%` : `${pitchA.toFixed(1)}%`}</span>
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-2.5 h-2.5 text-zinc-500 shrink-0" />
-                    <span>{pitchA >= 0 ? `+${pitchA.toFixed(1)}%` : `${pitchA.toFixed(1)}%`}</span>
-                  </>
-                )}
-              </button>
-
-              {/* Slider con Overlay protector para el 1er toque y libre scroll vertical */}
-              <div className="relative flex items-center justify-center my-auto w-20 h-24 touch-pan-y">
-                {!isPitchActiveA && (
-                  <div
-                    onClick={handleActivatePitchA}
-                    className="absolute inset-0 z-10 cursor-pointer flex flex-col items-center justify-center rounded-lg bg-zinc-950/75 border border-dashed border-purple-500/40 hover:border-purple-400 transition-all touch-pan-y select-none group"
-                    title="1er toque: Toca para activar y mover el tempo"
-                  >
-                    <Lock className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
-                    <span className="text-[7.5px] font-mono text-zinc-400 group-hover:text-purple-300 mt-0.5 text-center font-bold px-0.5 leading-tight">
-                      1° toque activar
-                    </span>
-                  </div>
-                )}
-
-                <input
-                  type="range"
-                  min={-8}
-                  max={8}
-                  step={0.1}
-                  disabled={!isPitchActiveA}
-                  value={pitchA}
-                  onChange={(e) => {
-                    setPitchA(Number(e.target.value));
-                    resetPitchTimerA();
+              <div className="flex flex-col items-center justify-between h-36 sm:h-40 w-18 sm:w-20 bg-zinc-950/80 p-1 sm:p-1.5 rounded-xl border border-zinc-800 touch-pan-y select-none relative">
+                {/* Indicador de Valor y Bloqueo / Desbloqueo */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isPitchActiveA) {
+                      setIsPitchActiveA(false);
+                      if (pitchTimerARef.current) clearTimeout(pitchTimerARef.current);
+                    } else {
+                      handleActivatePitchA();
+                    }
                   }}
-                  onPointerDown={resetPitchTimerA}
-                  className={`h-24 -rotate-90 w-24 accent-purple-500 appearance-none bg-zinc-800 rounded-lg transition-all ${
+                  className={`flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-full text-[8.5px] sm:text-[9px] font-mono font-bold transition-all cursor-pointer ${
                     isPitchActiveA
-                      ? "cursor-pointer ring-1 ring-purple-500/50 shadow-sm shadow-purple-500/20"
-                      : "opacity-40 pointer-events-none cursor-not-allowed"
+                      ? "bg-purple-950 border border-purple-400 text-purple-200 shadow-sm animate-pulse"
+                      : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-300"
                   }`}
-                />
-              </div>
+                  title={isPitchActiveA ? "Pitch activo (toca para bloquear)" : "1° toque: Toca para activar ajuste de tempo"}
+                >
+                  {isPitchActiveA ? (
+                    <>
+                      <Unlock className="w-2.5 h-2.5 text-purple-400 shrink-0" />
+                      <span className="notranslate" translate="no">{pitchA >= 0 ? `+${pitchA.toFixed(1)}%` : `${pitchA.toFixed(1)}%`}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-2.5 h-2.5 text-zinc-500 shrink-0" />
+                      <span className="notranslate" translate="no">{pitchA >= 0 ? `+${pitchA.toFixed(1)}%` : `${pitchA.toFixed(1)}%`}</span>
+                    </>
+                  )}
+                </button>
 
-              {/* Botón RESET con confirmación en 2 toques */}
-              <button
-                type="button"
-                onClick={handleResetPitchA}
-                className={`text-[9px] font-mono transition-all rounded px-2 py-0.5 cursor-pointer font-bold select-none ${
-                  resetSuccessPitchA
-                    ? "bg-emerald-500 text-black font-black shadow-md scale-105"
-                    : resetArmedPitchA
-                    ? "bg-amber-400 text-black font-black animate-pulse shadow-[0_0_10px_rgba(251,191,36,0.6)] scale-105"
-                    : "text-purple-300 hover:text-white bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/60 hover:border-purple-500"
-                }`}
-                title={
-                  resetArmedPitchA
-                    ? "2° toque: Toca para resetear Pitch a 0%"
-                    : "1° toque: Toca para activar reseteo a 0%"
-                }
-              >
-                {resetSuccessPitchA ? "✓ 0.0%" : resetArmedPitchA ? "¿CONFIRMAR 0%?" : "RESET"}
-              </button>
+                {/* Slider con Overlay protector para el 1er toque y libre scroll vertical */}
+                <div className="relative flex items-center justify-center my-auto w-18 sm:w-20 h-20 sm:h-24 touch-pan-y">
+                  {!isPitchActiveA && (
+                    <div
+                      onClick={handleActivatePitchA}
+                      className="absolute inset-0 z-10 cursor-pointer flex flex-col items-center justify-center rounded-lg bg-zinc-950/75 border border-dashed border-purple-500/40 hover:border-purple-400 transition-all touch-pan-y select-none group"
+                      title="1er toque: Toca para activar y mover el tempo"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
+                      <span className="text-[7.5px] font-mono text-zinc-400 group-hover:text-purple-300 mt-0.5 text-center font-bold px-0.5 leading-tight notranslate" translate="no">
+                        1° toque activar
+                      </span>
+                    </div>
+                  )}
+
+                  <input
+                    type="range"
+                    min={-8}
+                    max={8}
+                    step={0.1}
+                    disabled={!isPitchActiveA}
+                    value={pitchA}
+                    onChange={(e) => {
+                      setPitchA(Number(e.target.value));
+                      resetPitchTimerA();
+                    }}
+                    onPointerDown={resetPitchTimerA}
+                    className={`h-20 sm:h-24 -rotate-90 w-20 sm:w-24 accent-purple-500 appearance-none bg-zinc-800 rounded-lg transition-all ${
+                      isPitchActiveA
+                        ? "cursor-pointer ring-1 ring-purple-500/50 shadow-sm shadow-purple-500/20"
+                        : "opacity-40 pointer-events-none cursor-not-allowed"
+                    }`}
+                  />
+                </div>
+
+                {/* Botón RESET con confirmación en 2 toques */}
+                <button
+                  type="button"
+                  onClick={handleResetPitchA}
+                  className={`text-[8.5px] sm:text-[9px] font-mono transition-all rounded px-2 py-0.5 cursor-pointer font-bold select-none notranslate ${
+                    resetSuccessPitchA
+                      ? "bg-emerald-500 text-black font-black shadow-md scale-105"
+                      : resetArmedPitchA
+                      ? "bg-amber-400 text-black font-black animate-pulse shadow-[0_0_10px_rgba(251,191,36,0.6)] scale-105"
+                      : "text-purple-300 hover:text-white bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/60 hover:border-purple-500"
+                  }`}
+                  translate="no"
+                  title={
+                    resetArmedPitchA
+                      ? "2° toque: Toca para resetear Pitch a 0%"
+                      : "1° toque: Toca para activar reseteo a 0%"
+                  }
+                >
+                  {resetSuccessPitchA ? "✓ 0.0%" : resetArmedPitchA ? "¿CONFIRMAR?" : "REINICIAR"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* Fila 2: Controles de Vinilo: Nudge Atrás, Spinback Club, Nudge Adelante a ancho completo */}
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full pt-0.5 notranslate" translate="no">
+            {/* Nudge Atrás */}
+            <button
+              onMouseDown={() => startContinuousNudge("A", -1)}
+              onMouseUp={() => stopContinuousNudge("A")}
+              onMouseLeave={() => stopContinuousNudge("A")}
+              onTouchStart={() => startContinuousNudge("A", -1)}
+              onTouchEnd={() => stopContinuousNudge("A")}
+              onClick={() => handleNudge("A", -1)}
+              className="px-2 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-purple-950/50 active:bg-purple-900 border border-zinc-800 hover:border-purple-600/40 text-[10px] font-black text-zinc-300 hover:text-purple-300 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm select-none"
+              title="Clic: Empujar vinilo atrás (-0.5s) | Mantener: Rebobinado continuo de vinilo"
+            >
+              <RotateCcw className="w-3 h-3 text-purple-400 shrink-0" />
+              <span className="notranslate" translate="no">&laquo; NUDGE</span>
+            </button>
+
+            {/* Botón Central: SPINBACK / RETROCESO REAL DE DISCO */}
+            <button
+              onClick={() => handleSpinback("A")}
+              className="px-2 py-1.5 rounded-lg bg-gradient-to-r from-red-600/20 via-purple-600/30 to-pink-600/20 hover:from-red-600/40 hover:to-pink-600/40 border border-purple-500/40 text-[10px] font-black text-white hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-lg shadow-purple-900/20"
+              title="Efecto Spinback: Retroceso salvaje de vinilo club (-4 segs con frenada inercial)"
+            >
+              <Disc3 className="w-3.5 h-3.5 text-pink-400 animate-spin [animation-duration:4s] shrink-0" />
+              <span className="bg-gradient-to-r from-pink-300 to-purple-200 bg-clip-text text-transparent notranslate" translate="no">SPINBACK</span>
+            </button>
+
+            {/* Nudge Adelante */}
+            <button
+              onMouseDown={() => startContinuousNudge("A", 1)}
+              onMouseUp={() => stopContinuousNudge("A")}
+              onMouseLeave={() => stopContinuousNudge("A")}
+              onTouchStart={() => startContinuousNudge("A", 1)}
+              onTouchEnd={() => stopContinuousNudge("A")}
+              onClick={() => handleNudge("A", 1)}
+              className="px-2 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-purple-950/50 active:bg-purple-900 border border-zinc-800 hover:border-purple-600/40 text-[10px] font-black text-zinc-300 hover:text-purple-300 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm select-none"
+              title="Clic: Empujar vinilo adelante (+0.5s) | Mantener: Avance continuo"
+            >
+              <span className="notranslate" translate="no">NUDGE &raquo;</span>
+              <RotateCw className="w-3 h-3 text-purple-400 shrink-0" />
+            </button>
+          </div>
 
           {/* Performance Pads: Hot Cues & Auto Loop */}
-          <div className="space-y-2 pt-2 border-t border-zinc-800/80">
+          <div className="space-y-2 pt-2 border-t border-zinc-800/80 notranslate" translate="no">
             <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400">
-              <span>HOT CUES</span>
+              <span className="notranslate" translate="no">HOT CUES</span>
               <div className="flex gap-1.5">
                 {[1, 2, 3, 4].map((c) => (
                   <button
                     key={c}
                     onClick={() => handleHotCue("A", c)}
-                    className="w-7 h-6 rounded bg-zinc-900 hover:bg-purple-600 hover:text-white text-purple-300 font-black border border-zinc-800 text-[10px] transition-colors cursor-pointer"
+                    className="w-7 h-6 rounded bg-zinc-900 hover:bg-purple-600 hover:text-white text-purple-300 font-black border border-zinc-800 text-[10px] transition-colors cursor-pointer notranslate"
+                    translate="no"
                     title={`Saltar a Hot Cue ${c}`}
                   >
                     {c}
@@ -5075,17 +5077,18 @@ export default function VirtualDjConsole({
             </div>
 
             <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400">
-              <span>AUTO LOOP</span>
+              <span className="notranslate" translate="no">AUTO LOOP</span>
               <div className="flex gap-1.5">
                 {[1, 2, 4, 8].map((beats) => (
                   <button
                     key={beats}
                     onClick={() => handleToggleLoop("A", beats)}
-                    className={`px-1.5 h-6 rounded font-black border text-[9px] transition-colors cursor-pointer ${
+                    className={`px-1.5 h-6 rounded font-black border text-[9px] transition-colors cursor-pointer notranslate ${
                       activeLoopA === beats
                         ? "bg-amber-400 text-black border-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
                         : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border-zinc-800"
                     }`}
+                    translate="no"
                   >
                     {beats}B
                   </button>
@@ -5095,10 +5098,10 @@ export default function VirtualDjConsole({
           </div>
 
           {/* Channel Strip: EQ 3-Band, Gain & Fader */}
-          <div className="p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-2">
+          <div className="p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-2 notranslate" translate="no">
             <div className="flex items-center justify-between gap-2 text-center text-[10px] font-bold text-zinc-400">
               <div className="flex-1">
-                <span>HI</span>
+                <span className="notranslate" translate="no">HI</span>
                 <input
                   type="range"
                   min={-50}
@@ -5109,7 +5112,7 @@ export default function VirtualDjConsole({
                 />
               </div>
               <div className="flex-1">
-                <span>MID</span>
+                <span className="notranslate" translate="no">MID</span>
                 <input
                   type="range"
                   min={-50}
@@ -5120,7 +5123,7 @@ export default function VirtualDjConsole({
                 />
               </div>
               <div className="flex-1">
-                <span>LOW</span>
+                <span className="notranslate" translate="no">LOW</span>
                 <input
                   type="range"
                   min={-50}
@@ -5133,11 +5136,12 @@ export default function VirtualDjConsole({
               </div>
               <button
                 onClick={() => setBassKillA(!bassKillA)}
-                className={`px-2 py-1 rounded text-[9px] font-black border transition-all cursor-pointer ${
+                className={`px-2 py-1 rounded text-[9px] font-black border transition-all cursor-pointer notranslate ${
                   bassKillA
                     ? "bg-red-600 text-white border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
                     : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
                 }`}
+                translate="no"
                 title="Kill Bass / Matar Graves en Deck A"
               >
                 BASS KILL
@@ -5145,7 +5149,7 @@ export default function VirtualDjConsole({
             </div>
 
             {/* Control de Volumen Deck A (Alzar y Bajar Volumen) */}
-            <div className="pt-2.5 border-t border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div className="pt-2.5 border-t border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 notranslate" translate="no">
               <div className="flex items-center justify-between w-full sm:w-auto gap-2">
                 <div className="flex items-center gap-1.5 shrink-0">
                   {channelVolA === 0 ? (
@@ -5155,9 +5159,9 @@ export default function VirtualDjConsole({
                   ) : (
                     <Volume2 className="w-4 h-4 text-purple-400 shrink-0" />
                   )}
-                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-300">VOL DECK A</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-300 notranslate" translate="no">VOL DECK A</span>
                 </div>
-                <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded bg-zinc-900 border border-purple-900/60 text-purple-200 min-w-[42px] text-center shadow-inner">
+                <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded bg-zinc-900 border border-purple-900/60 text-purple-200 min-w-[42px] text-center shadow-inner notranslate" translate="no">
                   {channelVolA}%
                 </span>
               </div>
@@ -5167,7 +5171,8 @@ export default function VirtualDjConsole({
                 <button
                   type="button"
                   onClick={() => setChannelVolA((v) => Math.max(0, v - 5))}
-                  className="h-8 px-2.5 rounded-lg bg-zinc-900 hover:bg-purple-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-purple-500/50 flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0"
+                  className="h-8 px-2.5 rounded-lg bg-zinc-900 hover:bg-purple-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-purple-500/50 flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0 notranslate"
+                  translate="no"
                   title="Bajar volumen Deck A (-5%)"
                 >
                   <Minus className="w-3.5 h-3.5 text-purple-400" />
@@ -5190,7 +5195,8 @@ export default function VirtualDjConsole({
                 <button
                   type="button"
                   onClick={() => setChannelVolA((v) => Math.min(100, v + 5))}
-                  className="h-8 px-2.5 rounded-lg bg-zinc-900 hover:bg-purple-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-purple-500/50 flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0"
+                  className="h-8 px-2.5 rounded-lg bg-zinc-900 hover:bg-purple-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-purple-500/50 flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0 notranslate"
+                  translate="no"
                   title="Alzar / Subir volumen Deck A (+5%)"
                 >
                   <Plus className="w-3.5 h-3.5 text-purple-400" />
@@ -5201,11 +5207,12 @@ export default function VirtualDjConsole({
                 <button
                   type="button"
                   onClick={() => setChannelVolA((v) => (v === 0 ? 100 : 0))}
-                  className={`h-8 px-2.5 rounded-lg text-[9px] font-black border transition-all cursor-pointer select-none shrink-0 ${
+                  className={`h-8 px-2.5 rounded-lg text-[9px] font-black border transition-all cursor-pointer select-none shrink-0 notranslate ${
                     channelVolA === 0
                       ? "bg-red-600/90 text-white border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse"
                       : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-800"
                   }`}
+                  translate="no"
                   title={channelVolA === 0 ? "Desmutear (Restaurar al 100%)" : "Silenciar Deck A"}
                 >
                   {channelVolA === 0 ? "MUTED" : "MUTE"}
@@ -5215,11 +5222,12 @@ export default function VirtualDjConsole({
           </div>
 
           {/* Controles de Transporte: PLAY, CUE, SYNC */}
-          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800">
+          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800 notranslate" translate="no">
             <button
               onClick={() => handleCue("A")}
               disabled={!trackA}
-              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40"
+              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40 notranslate"
+              translate="no"
             >
               CUE
             </button>
@@ -5227,27 +5235,29 @@ export default function VirtualDjConsole({
               onClick={togglePlayA}
               disabled={!trackA}
               title={isPlayingA ? "Pausar Bandeja A" : "Reproducir Bandeja A"}
-              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 ${
+              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 notranslate ${
                 isPlayingA
                   ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-purple-600/30"
                   : trackA
                   ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/40 ring-1 ring-emerald-400/50 animate-pulse"
                   : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400"
               }`}
+              translate="no"
             >
               {isPlayingA ? (
                 <Pause className="w-4 h-4" />
               ) : (
                 <Play className="w-4 h-4 fill-current" />
               )}
-              <span>
+              <span className="notranslate" translate="no">
                 {isPlayingA ? "PAUSA" : "PLAY"}
               </span>
             </button>
             <button
               onClick={handleSyncDeckA}
               disabled={!trackA || !trackB}
-              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-emerald-950 border border-zinc-700 hover:border-emerald-600 text-emerald-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40"
+              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-emerald-950 border border-zinc-700 hover:border-emerald-600 text-emerald-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40 notranslate"
+              translate="no"
               title="Sincronizar BPM de Deck A con Deck B"
             >
               SYNC
@@ -5465,17 +5475,17 @@ export default function VirtualDjConsole({
           </div>
 
           {/* VÚMETROS ESTÉREO LED DE CABINA (CH 1 / MASTER / CH 2) */}
-          <div className="w-full py-2 px-3 rounded-xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-around shadow-inner">
+          <div className="w-full py-2 px-3 rounded-xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-around shadow-inner notranslate" translate="no">
             <div className="flex flex-col items-center gap-1">
-              <span className="text-[8px] font-mono text-purple-400 font-bold">CH 1</span>
+              <span className="text-[8px] font-mono text-purple-400 font-bold notranslate" translate="no">CH 1</span>
               <VuMeterBar peak={vuLevelsA.peak} rms={vuLevelsA.rms} channelColor="purple" />
             </div>
             <div className="flex flex-col items-center gap-1">
-              <span className="text-[8px] font-mono text-emerald-400 font-bold">MASTER</span>
+              <span className="text-[8px] font-mono text-emerald-400 font-bold notranslate" translate="no">MASTER</span>
               <VuMeterBar peak={vuLevelsMaster.peak} rms={vuLevelsMaster.rms} channelColor="emerald" />
             </div>
             <div className="flex flex-col items-center gap-1">
-              <span className="text-[8px] font-mono text-cyan-400 font-bold">CH 2</span>
+              <span className="text-[8px] font-mono text-cyan-400 font-bold notranslate" translate="no">CH 2</span>
               <VuMeterBar peak={vuLevelsB.peak} rms={vuLevelsB.rms} channelColor="cyan" />
             </div>
           </div>
@@ -5623,7 +5633,7 @@ export default function VirtualDjConsole({
             })()}
 
             {/* Botones de Posición Rápida y Reset (Hardware DJ Style) */}
-            <div className="grid grid-cols-3 gap-1.5 pt-0.5 w-full">
+            <div className="grid grid-cols-3 gap-1.5 pt-0.5 w-full notranslate" translate="no">
               <button
                 type="button"
                 onClick={() => {
@@ -5634,20 +5644,21 @@ export default function VirtualDjConsole({
                     resetCrossfaderTimer();
                   }
                 }}
-                className={`py-2 px-1 rounded-xl text-[10px] font-mono font-bold transition-all whitespace-nowrap flex items-center justify-center gap-1 cursor-pointer shadow-sm ${
+                className={`py-2 px-1 rounded-xl text-[10px] font-mono font-bold transition-all whitespace-nowrap flex items-center justify-center gap-1 cursor-pointer shadow-sm notranslate ${
                   crossfaderValue === -100
                     ? "bg-purple-600 text-white shadow-purple-600/30 font-black"
                     : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-purple-300 border border-zinc-800"
                 }`}
+                translate="no"
                 title="Llevar crossfader a Deck A (100%)"
               >
-                <span>◀ DECK A</span>
+                <span className="notranslate" translate="no">◀ DECK A</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleResetCrossfader}
-                className={`py-2 px-1 rounded-xl text-[10px] font-mono font-bold transition-all flex items-center justify-center whitespace-nowrap select-none cursor-pointer shadow-sm ${
+                className={`py-2 px-1 rounded-xl text-[10px] font-mono font-bold transition-all flex items-center justify-center whitespace-nowrap select-none cursor-pointer shadow-sm notranslate ${
                   resetCrossfaderSuccess
                     ? "bg-emerald-500 text-black font-black shadow-md scale-105"
                     : resetCrossfaderArmed
@@ -5656,14 +5667,15 @@ export default function VirtualDjConsole({
                     ? "bg-zinc-800 text-zinc-200 border border-zinc-700"
                     : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-800"
                 }`}
+                translate="no"
                 title="Resetear Crossfader al Centro (50/50) en 2 toques"
               >
                 {resetCrossfaderSuccess ? (
-                  <span>✓ 50/50</span>
+                  <span className="notranslate" translate="no">✓ 50/50</span>
                 ) : resetCrossfaderArmed ? (
-                  <span>¿CONFIRMAR?</span>
+                  <span className="notranslate" translate="no">¿CONFIRMAR?</span>
                 ) : (
-                  <span>RESET (50/50)</span>
+                  <span className="notranslate" translate="no">RESET (50/50)</span>
                 )}
               </button>
 
@@ -5677,14 +5689,15 @@ export default function VirtualDjConsole({
                     resetCrossfaderTimer();
                   }
                 }}
-                className={`py-2 px-1 rounded-xl text-[10px] font-mono font-bold transition-all whitespace-nowrap flex items-center justify-center gap-1 cursor-pointer shadow-sm ${
+                className={`py-2 px-1 rounded-xl text-[10px] font-mono font-bold transition-all whitespace-nowrap flex items-center justify-center gap-1 cursor-pointer shadow-sm notranslate ${
                   crossfaderValue === 100
                     ? "bg-cyan-600 text-white shadow-cyan-600/30 font-black"
                     : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-cyan-300 border border-zinc-800"
                 }`}
+                translate="no"
                 title="Llevar crossfader a Deck B (100%)"
               >
-                <span>DECK B ▶</span>
+                <span className="notranslate" translate="no">DECK B ▶</span>
               </button>
             </div>
           </div>
@@ -6012,12 +6025,12 @@ export default function VirtualDjConsole({
             onClearVideo={handleClearVideoOnlyB}
           />
 
-          {/* Platter / Jogwheel Deck B & Pitch Fader */}
-          <div className="flex items-center justify-around sm:justify-between gap-3 sm:gap-4 py-2 w-full">
+          {/* Fila 1: Pitch Fader & Platter / Jogwheel Deck B lado a lado */}
+          <div className="flex items-center justify-between gap-2 sm:gap-3 py-1 w-full notranslate" translate="no">
             {/* Contenedor Pitch Fader y Botones Subir/Bajar Tiempo Deck B */}
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 notranslate" translate="no">
               {/* Pitch / Tempo Fader Vertical Deck B (2-Toques Seguridad) */}
-              <div className="flex flex-col items-center justify-between h-40 w-20 bg-zinc-950/80 p-1.5 rounded-xl border border-zinc-800 touch-pan-y select-none relative">
+              <div className="flex flex-col items-center justify-between h-36 sm:h-40 w-18 sm:w-20 bg-zinc-950/80 p-1 sm:p-1.5 rounded-xl border border-zinc-800 touch-pan-y select-none relative">
                 {/* Indicador de Valor y Bloqueo / Desbloqueo */}
                 <button
                   type="button"
@@ -6029,7 +6042,7 @@ export default function VirtualDjConsole({
                       handleActivatePitchB();
                     }
                   }}
-                  className={`flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-full text-[8.5px] sm:text-[9px] font-mono font-bold transition-all cursor-pointer ${
                     isPitchActiveB
                       ? "bg-cyan-950 border border-cyan-400 text-cyan-200 shadow-sm animate-pulse"
                       : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-300"
@@ -6039,18 +6052,18 @@ export default function VirtualDjConsole({
                   {isPitchActiveB ? (
                     <>
                       <Unlock className="w-2.5 h-2.5 text-cyan-400 shrink-0" />
-                      <span>{pitchB >= 0 ? `+${pitchB.toFixed(1)}%` : `${pitchB.toFixed(1)}%`}</span>
+                      <span className="notranslate" translate="no">{pitchB >= 0 ? `+${pitchB.toFixed(1)}%` : `${pitchB.toFixed(1)}%`}</span>
                     </>
                   ) : (
                     <>
                       <Lock className="w-2.5 h-2.5 text-zinc-500 shrink-0" />
-                      <span>{pitchB >= 0 ? `+${pitchB.toFixed(1)}%` : `${pitchB.toFixed(1)}%`}</span>
+                      <span className="notranslate" translate="no">{pitchB >= 0 ? `+${pitchB.toFixed(1)}%` : `${pitchB.toFixed(1)}%`}</span>
                     </>
                   )}
                 </button>
 
                 {/* Slider con Overlay protector para el 1er toque y libre scroll vertical */}
-                <div className="relative flex items-center justify-center my-auto w-20 h-24 touch-pan-y">
+                <div className="relative flex items-center justify-center my-auto w-18 sm:w-20 h-20 sm:h-24 touch-pan-y">
                   {!isPitchActiveB && (
                     <div
                       onClick={handleActivatePitchB}
@@ -6058,7 +6071,7 @@ export default function VirtualDjConsole({
                       title="1er toque: Toca para activar y mover el tempo"
                     >
                       <Lock className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
-                      <span className="text-[7.5px] font-mono text-zinc-400 group-hover:text-cyan-300 mt-0.5 text-center font-bold px-0.5 leading-tight">
+                      <span className="text-[7.5px] font-mono text-zinc-400 group-hover:text-cyan-300 mt-0.5 text-center font-bold px-0.5 leading-tight notranslate" translate="no">
                         1° toque activar
                       </span>
                     </div>
@@ -6077,7 +6090,7 @@ export default function VirtualDjConsole({
                       resetPitchTimerB();
                     }}
                     onPointerDown={resetPitchTimerB}
-                    className={`h-24 -rotate-90 w-24 accent-cyan-400 appearance-none bg-zinc-800 rounded-lg transition-all ${
+                    className={`h-20 sm:h-24 -rotate-90 w-20 sm:w-24 accent-cyan-400 appearance-none bg-zinc-800 rounded-lg transition-all ${
                       isPitchActiveB
                         ? "cursor-pointer ring-1 ring-cyan-500/50 shadow-sm shadow-cyan-500/20"
                         : "opacity-40 pointer-events-none cursor-not-allowed"
@@ -6089,30 +6102,31 @@ export default function VirtualDjConsole({
                 <button
                   type="button"
                   onClick={handleResetPitchB}
-                  className={`text-[9px] font-mono transition-all rounded px-2 py-0.5 cursor-pointer font-bold select-none ${
+                  className={`text-[8.5px] sm:text-[9px] font-mono transition-all rounded px-2 py-0.5 cursor-pointer font-bold select-none notranslate ${
                     resetSuccessPitchB
                       ? "bg-emerald-500 text-black font-black shadow-md scale-105"
                       : resetArmedPitchB
                       ? "bg-amber-400 text-black font-black animate-pulse shadow-[0_0_10px_rgba(251,191,36,0.6)] scale-105"
                       : "text-cyan-300 hover:text-white bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/60 hover:border-cyan-500"
                   }`}
+                  translate="no"
                   title={
                     resetArmedPitchB
                       ? "2° toque: Toca para resetear Pitch a 0%"
                       : "1° toque: Toca para activar reseteo a 0%"
                   }
                 >
-                  {resetSuccessPitchB ? "✓ 0.0%" : resetArmedPitchB ? "¿CONFIRMAR 0%?" : "RESET"}
+                  {resetSuccessPitchB ? "✓ 0.0%" : resetArmedPitchB ? "¿CONFIRMAR?" : "REINICIAR"}
                 </button>
               </div>
 
-              {/* Botones 2-Toques Subir / Bajar Tiempo Deck B (lado derecho del cuadro hacia dentro) */}
-              <div className="flex flex-col justify-between h-40 py-0.5 gap-1 shrink-0">
+              {/* Botones 2-Toques Subir / Bajar Tiempo Deck B */}
+              <div className="flex flex-col justify-between h-36 sm:h-40 py-0.5 gap-1 shrink-0">
                 {/* Botón SUBIR TIEMPO (+0.5%) */}
                 <button
                   type="button"
                   onClick={handlePitchUpB}
-                  className={`w-9 sm:w-10 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-1 cursor-pointer select-none active:scale-95 border ${
+                  className={`w-8 sm:w-9 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-0.5 sm:p-1 cursor-pointer select-none active:scale-95 border ${
                     pitchUpSuccessB
                       ? "bg-emerald-500 text-black border-emerald-400 font-black shadow-md scale-105"
                       : pitchUpArmedB
@@ -6126,11 +6140,11 @@ export default function VirtualDjConsole({
                   }
                 >
                   <ChevronUp className="w-3.5 h-3.5 shrink-0" />
-                  <span className="text-[8px] font-mono font-black leading-none mt-0.5">
+                  <span className="text-[7.5px] sm:text-[8px] font-mono font-black leading-none mt-0.5 notranslate" translate="no">
                     {pitchUpSuccessB ? "✓" : pitchUpArmedB ? "CONFIRM" : "+0.5%"}
                   </span>
-                  <span className="text-[6.5px] uppercase font-bold tracking-tight opacity-75">
-                    {pitchUpArmedB ? "SUBIR" : "TEMPO"}
+                  <span className="text-[6px] sm:text-[6.5px] uppercase font-bold tracking-tight opacity-75 notranslate" translate="no">
+                    TEMPO
                   </span>
                 </button>
 
@@ -6138,7 +6152,7 @@ export default function VirtualDjConsole({
                 <button
                   type="button"
                   onClick={handlePitchDownB}
-                  className={`w-9 sm:w-10 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-1 cursor-pointer select-none active:scale-95 border ${
+                  className={`w-8 sm:w-9 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-0.5 sm:p-1 cursor-pointer select-none active:scale-95 border ${
                     pitchDownSuccessB
                       ? "bg-emerald-500 text-black border-emerald-400 font-black shadow-md scale-105"
                       : pitchDownArmedB
@@ -6152,17 +6166,17 @@ export default function VirtualDjConsole({
                   }
                 >
                   <ChevronDown className="w-3.5 h-3.5 shrink-0" />
-                  <span className="text-[8px] font-mono font-black leading-none mt-0.5">
+                  <span className="text-[7.5px] sm:text-[8px] font-mono font-black leading-none mt-0.5 notranslate" translate="no">
                     {pitchDownSuccessB ? "✓" : pitchDownArmedB ? "CONFIRM" : "-0.5%"}
                   </span>
-                  <span className="text-[6.5px] uppercase font-bold tracking-tight opacity-75">
-                    {pitchDownArmedB ? "BAJAR" : "TEMPO"}
+                  <span className="text-[6px] sm:text-[6.5px] uppercase font-bold tracking-tight opacity-75 notranslate" translate="no">
+                    TEMPO
                   </span>
                 </button>
               </div>
             </div>
 
-            {/* Jogwheel Giratorio Deck B con soporte Drag & Drop desplazado hacia la derecha */}
+            {/* Jogwheel Giratorio Deck B con soporte Drag & Drop */}
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -6175,7 +6189,7 @@ export default function VirtualDjConsole({
                 const file = e.dataTransfer.files?.[0];
                 if (file) handleLoadLocalFileB(file);
               }}
-              className="relative shrink-0 ml-auto mr-1 sm:mr-3 translate-x-1 sm:translate-x-2"
+              className="relative shrink-0 flex items-center justify-center"
             >
               <div
                 ref={platterRefB}
@@ -6183,7 +6197,7 @@ export default function VirtualDjConsole({
                 onPointerMove={handlePlatterPointerMoveB}
                 onPointerUp={handlePlatterPointerUpB}
                 onPointerCancel={handlePlatterPointerUpB}
-                className={`w-36 h-36 rounded-full bg-gradient-to-tr from-zinc-950 via-zinc-900 to-zinc-950 border-4 ${
+                className={`w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-tr from-zinc-950 via-zinc-900 to-zinc-950 border-4 ${
                   isDraggingB
                     ? "border-cyan-400 scale-105"
                     : vinylActionB === "SPINBACK"
@@ -6204,12 +6218,12 @@ export default function VirtualDjConsole({
                 <div className="absolute inset-5 rounded-full border border-zinc-800/60 pointer-events-none" />
                 <div className="absolute inset-7 rounded-full border border-zinc-700/30 pointer-events-none" />
 
-                {/* Marcador de Vinilo / Stripe Blanca de Posición (Estilo Slipmat de Torna) */}
+                {/* Marcador de Vinilo / Stripe Blanca de Posición */}
                 <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-6 rounded-full bg-gradient-to-b from-white via-cyan-200 to-transparent shadow-[0_0_8px_rgba(255,255,255,0.9)] pointer-events-none z-10" />
 
                 {/* Ranuras de vinilo intermedias */}
-                <div className="w-28 h-28 rounded-full border border-zinc-800 flex items-center justify-center pointer-events-none">
-                  <div className="w-20 h-20 rounded-full border border-zinc-700/60 flex items-center justify-center">
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border border-zinc-800 flex items-center justify-center pointer-events-none">
+                  <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full border border-zinc-700/60 flex items-center justify-center">
                     {/* Centro HUD de Jogwheel (Spindle / Record Label con botón Play/Pause táctil) */}
                     <div
                       data-spindle="true"
@@ -6217,95 +6231,96 @@ export default function VirtualDjConsole({
                         e.stopPropagation();
                         togglePlayB();
                       }}
-                      className="w-14 h-14 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-600 border-2 border-white flex flex-col items-center justify-center text-white shadow-lg pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                      className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-600 border-2 border-white flex flex-col items-center justify-center text-white shadow-lg pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-transform"
                       title="Click en centro: Play / Pausa"
                     >
                       {vinylActionB === "REWIND" ? (
-                        <div className="flex flex-col items-center animate-pulse">
+                        <div className="flex flex-col items-center animate-pulse notranslate" translate="no">
                           <RotateCcw className="w-4 h-4 text-amber-300" />
-                          <span className="text-[7px] font-black text-amber-200">REWIND</span>
+                          <span className="text-[7px] font-black text-amber-200 notranslate" translate="no">REWIND</span>
                         </div>
                       ) : vinylActionB === "FORWARD" ? (
-                        <div className="flex flex-col items-center animate-pulse">
+                        <div className="flex flex-col items-center animate-pulse notranslate" translate="no">
                           <RotateCw className="w-4 h-4 text-cyan-200" />
-                          <span className="text-[7px] font-black text-cyan-100">PUSH</span>
+                          <span className="text-[7px] font-black text-cyan-100 notranslate" translate="no">PUSH</span>
                         </div>
                       ) : vinylActionB === "SPINBACK" ? (
-                        <div className="flex flex-col items-center animate-spin">
+                        <div className="flex flex-col items-center animate-spin notranslate" translate="no">
                           <Disc3 className="w-4 h-4 text-pink-300" />
-                          <span className="text-[7px] font-black text-pink-200">SPINBACK</span>
+                          <span className="text-[7px] font-black text-pink-200 notranslate" translate="no">SPINBACK</span>
                         </div>
                       ) : vinylActionB === "SCRATCH" ? (
-                        <div className="flex flex-col items-center">
+                        <div className="flex flex-col items-center notranslate" translate="no">
                           <Disc className="w-4 h-4 text-cyan-200 animate-spin [animation-duration:1s]" />
-                          <span className="text-[7px] font-black text-cyan-100">SCRATCH</span>
+                          <span className="text-[7px] font-black text-cyan-100 notranslate" translate="no">SCRATCH</span>
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center justify-center translate-x-0.5">
-                          <span className="text-[11px] font-black tracking-wider">{effectiveBpmB}</span>
-                          <span className="text-[8px] font-bold opacity-80 tracking-widest">BPM</span>
+                        <div className="flex flex-col items-center justify-center notranslate" translate="no">
+                          <span className="text-[11px] font-black leading-tight notranslate" translate="no">{effectiveBpmB}</span>
+                          <span className="text-[8px] font-bold opacity-80 uppercase notranslate" translate="no">BPM</span>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
-
-              {/* Controles de Vinilo: Nudge Atrás, Spinback Club, Nudge Adelante */}
-              <div className="flex items-center justify-center gap-1.5 mt-2.5">
-                {/* Nudge Atrás (Clic: Empujón vinilo atrás | Mantener: Rebobinado continuo de disco) */}
-                <button
-                  onMouseDown={() => startContinuousNudge("B", -1)}
-                  onMouseUp={() => stopContinuousNudge("B")}
-                  onMouseLeave={() => stopContinuousNudge("B")}
-                  onTouchStart={() => startContinuousNudge("B", -1)}
-                  onTouchEnd={() => stopContinuousNudge("B")}
-                  onClick={() => handleNudge("B", -1)}
-                  className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-cyan-950/50 active:bg-cyan-900 border border-zinc-800 hover:border-cyan-600/40 text-[10px] font-black text-zinc-300 hover:text-cyan-300 transition-all cursor-pointer flex items-center gap-1 shadow-sm select-none"
-                  title="Clic: Empujar vinilo atrás (-0.5s) | Mantener: Rebobinado continuo de vinilo"
-                >
-                  <RotateCcw className="w-3 h-3 text-cyan-400" />
-                  <span>&laquo; NUDGE</span>
-                </button>
-
-                {/* Botón Central: SPINBACK / RETROCESO REAL DE DISCO */}
-                <button
-                  onClick={() => handleSpinback("B")}
-                  className="px-2 py-1 rounded-lg bg-gradient-to-r from-red-600/20 via-cyan-600/30 to-pink-600/20 hover:from-red-600/40 hover:to-pink-600/40 border border-cyan-500/40 text-[10px] font-black text-white hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1 shadow-lg shadow-cyan-900/20"
-                  title="Efecto Spinback: Retroceso salvaje de vinilo club (-4 segs con frenada inercial)"
-                >
-                  <Disc3 className="w-3.5 h-3.5 text-pink-400 animate-spin [animation-duration:4s]" />
-                  <span className="bg-gradient-to-r from-pink-300 to-cyan-200 bg-clip-text text-transparent">SPINBACK</span>
-                </button>
-
-                {/* Nudge Adelante (Clic: Empuje adelante | Mantener: Avance continuo) */}
-                <button
-                  onMouseDown={() => startContinuousNudge("B", 1)}
-                  onMouseUp={() => stopContinuousNudge("B")}
-                  onMouseLeave={() => stopContinuousNudge("B")}
-                  onTouchStart={() => startContinuousNudge("B", 1)}
-                  onTouchEnd={() => stopContinuousNudge("B")}
-                  onClick={() => handleNudge("B", 1)}
-                  className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-cyan-950/50 active:bg-cyan-900 border border-zinc-800 hover:border-cyan-600/40 text-[10px] font-black text-zinc-300 hover:text-cyan-300 transition-all cursor-pointer flex items-center gap-1 shadow-sm select-none"
-                  title="Clic: Empujar vinilo adelante (+0.5s) | Mantener: Avance continuo"
-                >
-                  <span>NUDGE &raquo;</span>
-                  <RotateCw className="w-3 h-3 text-cyan-400" />
-                </button>
-              </div>
             </div>
           </div>
 
+          {/* Fila 2: Controles de Vinilo Deck B: Nudge Atrás, Spinback Club, Nudge Adelante a ancho completo */}
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full pt-0.5 notranslate" translate="no">
+            {/* Nudge Atrás */}
+            <button
+              onMouseDown={() => startContinuousNudge("B", -1)}
+              onMouseUp={() => stopContinuousNudge("B")}
+              onMouseLeave={() => stopContinuousNudge("B")}
+              onTouchStart={() => startContinuousNudge("B", -1)}
+              onTouchEnd={() => stopContinuousNudge("B")}
+              onClick={() => handleNudge("B", -1)}
+              className="px-2 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-cyan-950/50 active:bg-cyan-900 border border-zinc-800 hover:border-cyan-600/40 text-[10px] font-black text-zinc-300 hover:text-cyan-300 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm select-none"
+              title="Clic: Empujar vinilo atrás (-0.5s) | Mantener: Rebobinado continuo de vinilo"
+            >
+              <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0" />
+              <span className="notranslate" translate="no">&laquo; NUDGE</span>
+            </button>
+
+            {/* Botón Central: SPINBACK / RETROCESO REAL DE DISCO */}
+            <button
+              onClick={() => handleSpinback("B")}
+              className="px-2 py-1.5 rounded-lg bg-gradient-to-r from-red-600/20 via-cyan-600/30 to-pink-600/20 hover:from-red-600/40 hover:to-pink-600/40 border border-cyan-500/40 text-[10px] font-black text-white hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-lg shadow-cyan-900/20"
+              title="Efecto Spinback: Retroceso salvaje de vinilo club (-4 segs con frenada inercial)"
+            >
+              <Disc3 className="w-3.5 h-3.5 text-pink-400 animate-spin [animation-duration:4s] shrink-0" />
+              <span className="bg-gradient-to-r from-pink-300 to-cyan-200 bg-clip-text text-transparent notranslate" translate="no">SPINBACK</span>
+            </button>
+
+            {/* Nudge Adelante */}
+            <button
+              onMouseDown={() => startContinuousNudge("B", 1)}
+              onMouseUp={() => stopContinuousNudge("B")}
+              onMouseLeave={() => stopContinuousNudge("B")}
+              onTouchStart={() => startContinuousNudge("B", 1)}
+              onTouchEnd={() => stopContinuousNudge("B")}
+              onClick={() => handleNudge("B", 1)}
+              className="px-2 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-cyan-950/50 active:bg-cyan-900 border border-zinc-800 hover:border-cyan-600/40 text-[10px] font-black text-zinc-300 hover:text-cyan-300 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm select-none"
+              title="Clic: Empujar vinilo adelante (+0.5s) | Mantener: Avance continuo"
+            >
+              <span className="notranslate" translate="no">NUDGE &raquo;</span>
+              <RotateCw className="w-3 h-3 text-cyan-400 shrink-0" />
+            </button>
+          </div>
+
           {/* Performance Pads: Hot Cues & Auto Loop */}
-          <div className="space-y-2 pt-2 border-t border-zinc-800/80">
+          <div className="space-y-2 pt-2 border-t border-zinc-800/80 notranslate" translate="no">
             <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400">
-              <span>HOT CUES</span>
+              <span className="notranslate" translate="no">HOT CUES</span>
               <div className="flex gap-1.5">
                 {[1, 2, 3, 4].map((c) => (
                   <button
                     key={c}
                     onClick={() => handleHotCue("B", c)}
-                    className="w-7 h-6 rounded bg-zinc-900 hover:bg-cyan-600 hover:text-white text-cyan-300 font-black border border-zinc-800 text-[10px] transition-colors cursor-pointer"
+                    className="w-7 h-6 rounded bg-zinc-900 hover:bg-cyan-600 hover:text-white text-cyan-300 font-black border border-zinc-800 text-[10px] transition-colors cursor-pointer notranslate"
+                    translate="no"
                     title={`Saltar a Hot Cue ${c}`}
                   >
                     {c}
@@ -6315,17 +6330,18 @@ export default function VirtualDjConsole({
             </div>
 
             <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400">
-              <span>AUTO LOOP</span>
+              <span className="notranslate" translate="no">AUTO LOOP</span>
               <div className="flex gap-1.5">
                 {[1, 2, 4, 8].map((beats) => (
                   <button
                     key={beats}
                     onClick={() => handleToggleLoop("B", beats)}
-                    className={`px-1.5 h-6 rounded font-black border text-[9px] transition-colors cursor-pointer ${
+                    className={`px-1.5 h-6 rounded font-black border text-[9px] transition-colors cursor-pointer notranslate ${
                       activeLoopB === beats
                         ? "bg-amber-400 text-black border-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
                         : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border-zinc-800"
                     }`}
+                    translate="no"
                   >
                     {beats}B
                   </button>
@@ -6335,10 +6351,10 @@ export default function VirtualDjConsole({
           </div>
 
           {/* Channel Strip: EQ 3-Band, Gain & Fader */}
-          <div className="p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-2">
+          <div className="p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-2 notranslate" translate="no">
             <div className="flex items-center justify-between gap-2 text-center text-[10px] font-bold text-zinc-400">
               <div className="flex-1">
-                <span>HI</span>
+                <span className="notranslate" translate="no">HI</span>
                 <input
                   type="range"
                   min={-50}
@@ -6349,7 +6365,7 @@ export default function VirtualDjConsole({
                 />
               </div>
               <div className="flex-1">
-                <span>MID</span>
+                <span className="notranslate" translate="no">MID</span>
                 <input
                   type="range"
                   min={-50}
@@ -6360,7 +6376,7 @@ export default function VirtualDjConsole({
                 />
               </div>
               <div className="flex-1">
-                <span>LOW</span>
+                <span className="notranslate" translate="no">LOW</span>
                 <input
                   type="range"
                   min={-50}
@@ -6373,11 +6389,12 @@ export default function VirtualDjConsole({
               </div>
               <button
                 onClick={() => setBassKillB(!bassKillB)}
-                className={`px-2 py-1 rounded text-[9px] font-black border transition-all cursor-pointer ${
+                className={`px-2 py-1 rounded text-[9px] font-black border transition-all cursor-pointer notranslate ${
                   bassKillB
                     ? "bg-red-600 text-white border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
                     : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
                 }`}
+                translate="no"
                 title="Kill Bass / Matar Graves en Deck B"
               >
                 BASS KILL
@@ -6385,7 +6402,7 @@ export default function VirtualDjConsole({
             </div>
 
             {/* Control de Volumen Deck B (Alzar y Bajar Volumen) */}
-            <div className="pt-2.5 border-t border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div className="pt-2.5 border-t border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 notranslate" translate="no">
               <div className="flex items-center justify-between w-full sm:w-auto gap-2">
                 <div className="flex items-center gap-1.5 shrink-0">
                   {channelVolB === 0 ? (
@@ -6395,9 +6412,9 @@ export default function VirtualDjConsole({
                   ) : (
                     <Volume2 className="w-4 h-4 text-cyan-400 shrink-0" />
                   )}
-                  <span className="text-[10px] font-black uppercase tracking-wider text-cyan-300">VOL DECK B</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-cyan-300 notranslate" translate="no">VOL DECK B</span>
                 </div>
-                <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded bg-zinc-900 border border-cyan-900/60 text-cyan-200 min-w-[42px] text-center shadow-inner">
+                <span className="text-[11px] font-mono font-black px-2 py-0.5 rounded bg-zinc-900 border border-cyan-900/60 text-cyan-200 min-w-[42px] text-center shadow-inner notranslate" translate="no">
                   {channelVolB}%
                 </span>
               </div>
@@ -6407,7 +6424,8 @@ export default function VirtualDjConsole({
                 <button
                   type="button"
                   onClick={() => setChannelVolB((v) => Math.max(0, v - 5))}
-                  className="h-8 px-2.5 rounded-lg bg-zinc-900 hover:bg-cyan-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-cyan-500/50 flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0"
+                  className="h-8 px-2.5 rounded-lg bg-zinc-900 hover:bg-cyan-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-cyan-500/50 flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0 notranslate"
+                  translate="no"
                   title="Bajar volumen Deck B (-5%)"
                 >
                   <Minus className="w-3.5 h-3.5 text-cyan-400" />
@@ -6430,7 +6448,8 @@ export default function VirtualDjConsole({
                 <button
                   type="button"
                   onClick={() => setChannelVolB((v) => Math.min(100, v + 5))}
-                  className="h-8 px-2.5 rounded-lg bg-zinc-900 hover:bg-cyan-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-cyan-500/50 flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0"
+                  className="h-8 px-2.5 rounded-lg bg-zinc-900 hover:bg-cyan-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-cyan-500/50 flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0 notranslate"
+                  translate="no"
                   title="Alzar / Subir volumen Deck B (+5%)"
                 >
                   <Plus className="w-3.5 h-3.5 text-cyan-400" />
@@ -6441,11 +6460,12 @@ export default function VirtualDjConsole({
                 <button
                   type="button"
                   onClick={() => setChannelVolB((v) => (v === 0 ? 100 : 0))}
-                  className={`h-8 px-2.5 rounded-lg text-[9px] font-black border transition-all cursor-pointer select-none shrink-0 ${
+                  className={`h-8 px-2.5 rounded-lg text-[9px] font-black border transition-all cursor-pointer select-none shrink-0 notranslate ${
                     channelVolB === 0
                       ? "bg-red-600/90 text-white border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse"
                       : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-800"
                   }`}
+                  translate="no"
                   title={channelVolB === 0 ? "Desmutear (Restaurar al 100%)" : "Silenciar Deck B"}
                 >
                   {channelVolB === 0 ? "MUTED" : "MUTE"}
@@ -6455,11 +6475,12 @@ export default function VirtualDjConsole({
           </div>
 
           {/* Controles de Transporte: PLAY, CUE, SYNC */}
-          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800">
+          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800 notranslate" translate="no">
             <button
               onClick={() => handleCue("B")}
               disabled={!trackB}
-              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40"
+              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40 notranslate"
+              translate="no"
             >
               CUE
             </button>
@@ -6467,31 +6488,33 @@ export default function VirtualDjConsole({
               onClick={togglePlayB}
               disabled={!trackB}
               title={isPlayingB ? "Pausar Bandeja B" : "Reproducir Bandeja B"}
-              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 ${
+              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 notranslate ${
                 isPlayingB
                   ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-cyan-600/30"
                   : trackB
                   ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/40 ring-1 ring-emerald-400/50 animate-pulse"
                   : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400"
               }`}
+              translate="no"
             >
               {isPlayingB ? (
                 <Pause className="w-4 h-4" />
               ) : (
                 <Play className="w-4 h-4 fill-current" />
               )}
-              <span>
+              <span className="notranslate" translate="no">
                 {isPlayingB ? "PAUSA" : "PLAY"}
               </span>
             </button>
             <button
               onClick={handleSyncDeckB}
               disabled={!trackA || !trackB}
-              className={`py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95 border disabled:opacity-40 ${
+              className={`py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95 border disabled:opacity-40 notranslate ${
                 isSyncedB
                   ? "bg-emerald-600 text-white border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.5)]"
                   : "bg-zinc-900 hover:bg-emerald-950 border-zinc-700 hover:border-emerald-600 text-emerald-400"
               }`}
+              translate="no"
               title="Sincronizar BPM de Deck B con Deck A"
             >
               SYNC

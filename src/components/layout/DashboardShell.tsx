@@ -65,7 +65,7 @@ export function DashboardShell({
   }, [pathname]);
 
   return (
-    <div className="flex min-h-screen bg-[#080F1F] text-[#F8FAFC] overflow-x-hidden selection:bg-purple-600/30 selection:text-white">
+    <div translate="no" className="notranslate flex min-h-screen bg-[#080F1F] text-[#F8FAFC] overflow-x-hidden selection:bg-purple-600/30 selection:text-white">
       {/* Sidebar Desktop y Drawer Móvil */}
       <Sidebar
         role={user.role}
