@@ -46,6 +46,8 @@ import {
   Tv,
   EyeOff,
   Youtube,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import Link from "next/link";
 import DjBridgeModal from "@/components/dj/DjBridgeModal";
@@ -257,6 +259,44 @@ export default function DjBoothPage() {
   // ⏱️ Cuenta Regresiva de Siguiente Turno (5 segundos para dar Play)
   const [activeTurnCountdown, setActiveTurnCountdown] = useState<NextTurnCountdownPayload | null>(null);
   const [turnCountdownSeconds, setTurnCountdownSeconds] = useState<number>(0);
+
+  // 🔲 Modo Pantalla Completa para Cabina DJ
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    try {
+      if (!document.fullscreenElement) {
+        const el = document.documentElement;
+        if (el.requestFullscreen) {
+          el.requestFullscreen().catch(() => {});
+        } else if ((el as any).webkitRequestFullscreen) {
+          (el as any).webkitRequestFullscreen();
+        }
+        setIsFullscreen(true);
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        }
+        setIsFullscreen(false);
+      }
+    } catch (e) {
+      console.warn("Error alternando pantalla completa en DJ:", e);
+    }
+  };
 
   // Cargar estado de la cabina
   const fetchDjState = async (eventId?: string) => {
@@ -3403,6 +3443,44 @@ export default function DjBoothPage() {
           }}
         />
       )}
+
+      {/* 🔲 Botón Flotante Fijo Pantalla Completa en Panel Principal DJ */}
+      <div
+        className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-40 select-none"
+        data-floating="dj-fullscreen-control"
+      >
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          className={`group flex items-center gap-2 sm:gap-2.5 px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl border backdrop-blur-md shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 ${
+            isFullscreen
+              ? "bg-purple-950/90 hover:bg-purple-900 border-purple-500/70 text-purple-200 hover:text-white shadow-purple-950/60 ring-2 ring-purple-500/30"
+              : "bg-zinc-950/90 hover:bg-zinc-900 border-zinc-700/80 hover:border-cyan-500/80 text-zinc-300 hover:text-white shadow-black/80 hover:shadow-cyan-950/40 ring-1 ring-white/10"
+          }`}
+          title={
+            isFullscreen
+              ? "Salir de pantalla completa (Esc o clic)"
+              : "Poner cabina en pantalla completa (F11 o clic)"
+          }
+          aria-label={
+            isFullscreen
+              ? "Salir de pantalla completa"
+              : "Poner pantalla completa"
+          }
+        >
+          {isFullscreen ? (
+            <Minimize2 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-300 group-hover:scale-110 transition-transform" />
+          ) : (
+            <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-300 group-hover:scale-110 transition-transform" />
+          )}
+          <span className="text-xs sm:text-sm font-black tracking-wide">
+            {isFullscreen ? "Salir Pantalla Completa" : "Pantalla Completa DJ"}
+          </span>
+          <span className="ml-1 px-1.5 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-[10px] font-mono text-zinc-400 hidden sm:inline">
+            {isFullscreen ? "ESC" : "F11"}
+          </span>
+        </button>
+      </div>
     </div>
   );
 }

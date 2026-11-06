@@ -160,41 +160,24 @@ export default function DedicatedContestDisplayPage({
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl animate-pulse" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl animate-pulse" />
 
-      {/* 🔲 Botón Flotante Fijo para Poner y Sacar de Pantalla Completa */}
-      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex items-center select-none">
+      {/* 🔲 Botón Flotante Fijo Icono-Only Pantalla Completa */}
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 select-none">
         <button
           type="button"
           onClick={toggleFullscreen}
-          className={`group flex items-center gap-2 sm:gap-2.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl border backdrop-blur-md shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 ${
+          className={`p-3 sm:p-3.5 rounded-2xl border backdrop-blur-md shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 flex items-center justify-center group ${
             isFullscreen
               ? "bg-purple-950/85 hover:bg-purple-900 border-purple-500/70 text-purple-200 hover:text-white shadow-purple-950/60 ring-2 ring-purple-500/30"
               : "bg-zinc-950/85 hover:bg-zinc-900 border-zinc-700/80 hover:border-cyan-500/80 text-zinc-300 hover:text-white shadow-black/80 hover:shadow-cyan-950/40 ring-1 ring-white/10"
           }`}
-          title={isFullscreen ? "Salir de pantalla completa" : "Poner pantalla completa"}
+          title={isFullscreen ? "Salir de pantalla completa (Esc)" : "Pantalla Completa (F11)"}
           aria-label={isFullscreen ? "Salir de pantalla completa" : "Poner pantalla completa"}
         >
           {isFullscreen ? (
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-xl bg-purple-600/30 border border-purple-500/50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <Minimize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-300" />
-            </div>
+            <Minimize2 className="w-5 h-5 text-purple-300 group-hover:scale-110 transition-transform" />
           ) : (
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-xl bg-cyan-600/30 border border-cyan-500/50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-300" />
-            </div>
+            <Maximize2 className="w-5 h-5 text-cyan-300 group-hover:scale-110 transition-transform" />
           )}
-
-          <div className="flex flex-col text-left">
-            <span className="text-xs sm:text-sm font-black tracking-wide leading-tight">
-              {isFullscreen ? "Salir de Pantalla Completa" : "Pantalla Completa"}
-            </span>
-            <span className="text-[10px] text-zinc-400 font-mono hidden sm:inline leading-none">
-              {isFullscreen ? "Presiona Esc o clic aquí" : "Presiona F11 o clic aquí"}
-            </span>
-          </div>
-
-          <span className="ml-1 px-1.5 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-[10px] font-mono text-zinc-300 hidden md:inline">
-            {isFullscreen ? "ESC" : "F11"}
-          </span>
         </button>
       </div>
 
