@@ -94,13 +94,62 @@ export default function DedicatedContestDisplayPage({
     },
   });
 
+  // Sincronizar estado de pantalla completa ante eventos del navegador (F11, Esc o botón táctil)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = Boolean(
+        document.fullscreenElement ||
+          (document as any).webkitFullscreenElement ||
+          (document as any).mozFullScreenElement ||
+          (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isCurrentlyFullscreen);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
+    };
+  }, []);
+
   const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen().catch(() => {});
-      setIsFullscreen(false);
+    try {
+      const isCurrentlyFullscreen = Boolean(
+        document.fullscreenElement ||
+          (document as any).webkitFullscreenElement ||
+          (document as any).mozFullScreenElement ||
+          (document as any).msFullscreenElement
+      );
+
+      if (!isCurrentlyFullscreen) {
+        const el = document.documentElement;
+        if (el.requestFullscreen) {
+          el.requestFullscreen().catch(() => {});
+        } else if ((el as any).webkitRequestFullscreen) {
+          (el as any).webkitRequestFullscreen();
+        } else if ((el as any).msRequestFullscreen) {
+          (el as any).msRequestFullscreen();
+        }
+        setIsFullscreen(true);
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        } else if ((document as any).msExitFullscreen) {
+          (document as any).msExitFullscreen();
+        }
+        setIsFullscreen(false);
+      }
+    } catch (e) {
+      console.warn("Error alternando pantalla completa:", e);
     }
   };
 
@@ -111,14 +160,41 @@ export default function DedicatedContestDisplayPage({
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl animate-pulse" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl animate-pulse" />
 
-      {/* Botón Flotante de Pantalla Completa */}
-      <div className="absolute top-4 right-4 z-50">
+      {/* 🔲 Botón Flotante Fijo para Poner y Sacar de Pantalla Completa */}
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex items-center select-none">
         <button
+          type="button"
           onClick={toggleFullscreen}
-          className="p-3 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800 text-white border border-zinc-700 backdrop-blur-md shadow-xl transition-all cursor-pointer hover:scale-105 active:scale-95"
-          title="Pantalla Completa"
+          className={`group flex items-center gap-2 sm:gap-2.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl border backdrop-blur-md shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 ${
+            isFullscreen
+              ? "bg-purple-950/85 hover:bg-purple-900 border-purple-500/70 text-purple-200 hover:text-white shadow-purple-950/60 ring-2 ring-purple-500/30"
+              : "bg-zinc-950/85 hover:bg-zinc-900 border-zinc-700/80 hover:border-cyan-500/80 text-zinc-300 hover:text-white shadow-black/80 hover:shadow-cyan-950/40 ring-1 ring-white/10"
+          }`}
+          title={isFullscreen ? "Salir de pantalla completa" : "Poner pantalla completa"}
+          aria-label={isFullscreen ? "Salir de pantalla completa" : "Poner pantalla completa"}
         >
-          {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+          {isFullscreen ? (
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-xl bg-purple-600/30 border border-purple-500/50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Minimize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-300" />
+            </div>
+          ) : (
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-xl bg-cyan-600/30 border border-cyan-500/50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-300" />
+            </div>
+          )}
+
+          <div className="flex flex-col text-left">
+            <span className="text-xs sm:text-sm font-black tracking-wide leading-tight">
+              {isFullscreen ? "Salir de Pantalla Completa" : "Pantalla Completa"}
+            </span>
+            <span className="text-[10px] text-zinc-400 font-mono hidden sm:inline leading-none">
+              {isFullscreen ? "Presiona Esc o clic aquí" : "Presiona F11 o clic aquí"}
+            </span>
+          </div>
+
+          <span className="ml-1 px-1.5 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-[10px] font-mono text-zinc-300 hidden md:inline">
+            {isFullscreen ? "ESC" : "F11"}
+          </span>
         </button>
       </div>
 
