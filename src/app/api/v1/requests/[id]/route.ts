@@ -301,6 +301,11 @@ export async function DELETE(
 
     const songRequest = await prisma.songRequest.findUnique({
       where: { id },
+      include: {
+        table: true,
+        song: true,
+        queueEntry: true,
+      },
     });
 
     if (!songRequest) {
@@ -315,19 +320,234 @@ export async function DELETE(
       throw new ForbiddenError("No puedes cancelar solicitudes de otra mesa");
     }
 
-    // Solo se puede cancelar si sigue en estado PENDING
-    if (songRequest.status !== "PENDING") {
+    // Si ya terminó o fue cancelada anteriormente
+    if (
+      songRequest.status === "PLAYED" ||
+      songRequest.status === "REJECTED" ||
+      songRequest.status === "CANCELLED"
+    ) {
       return NextResponse.json(
         {
           error: {
-            code: "CANNOT_CANCEL",
-            message: "La canción ya fue aceptada o reproducida por el DJ y no se puede cancelar",
+            code: "ALREADY_FINISHED",
+            message: "Esta canción ya fue reproducida o cancelada anteriormente.",
           },
         },
         { status: 400 }
       );
     }
 
+    const event = await prisma.event.findUnique({
+      where: { id: guestSession.eventId },
+    });
+    const policy = parseQueuePolicy(event?.settings);
+    const isAutoPlay = Boolean(policy.autoPlayRequests);
+    const eventCode = event?.code || null;
+    const title = songRequest.song?.title || songRequest.customTitle || "Canción";
+    const tableLabel = songRequest.table?.label || "Mesa";
+
+    // 1. Caso CANCELACIÓN EN ESTADO PENDING (Aún no aceptada por el DJ)
+    if (songRequest.status === "PENDING") {
+      await prisma.$transaction([
+        prisma.songRequest.update({
+          where: { id },
+          data: { status: "CANCELLED" },
+        }),
+        ...(songRequest.queueEntry
+          ? [
+              prisma.queueEntry.update({
+                where: { id: songRequest.queueEntry.id },
+                data: { status: "SKIPPED" },
+              }),
+            ]
+          : []),
+      ]);
+
+      realtimeBus.broadcast(guestSession.eventId, "QUEUE_UPDATE", { action: "CANCEL" });
+      realtimeBus.broadcast(guestSession.eventId, "QUEUE_SLOT_UNLOCKED", {
+        tableId: songRequest.tableId,
+        tableLabel,
+        songTitle: title,
+      });
+
+      if (eventCode) {
+        realtimeBus.broadcast(eventCode, "QUEUE_UPDATE", { action: "CANCEL" });
+        realtimeBus.broadcast(eventCode, "QUEUE_SLOT_UNLOCKED", {
+          tableId: songRequest.tableId,
+          tableLabel,
+          songTitle: title,
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Solicitud cancelada exitosamente y cupo de mesa liberado.",
+      });
+    }
+
+    // 2. Caso CANCELACIÓN EN ESTADO ACCEPTED (En cola de espera para sonar)
+    if (songRequest.status === "ACCEPTED") {
+      await prisma.$transaction([
+        prisma.songRequest.update({
+          where: { id },
+          data: { status: "CANCELLED" },
+        }),
+        ...(songRequest.queueEntry
+          ? [
+              prisma.queueEntry.update({
+                where: { id: songRequest.queueEntry.id },
+                data: { status: "SKIPPED" },
+              }),
+            ]
+          : []),
+      ]);
+
+      if (songRequest.queueEntry) {
+        realtimeBus.broadcast(guestSession.eventId, "NEXT_TURN_CANCELLED", {
+          queueEntryId: songRequest.queueEntry.id,
+          reason: "GUEST_CANCELLED",
+        });
+        if (eventCode) {
+          realtimeBus.broadcast(eventCode, "NEXT_TURN_CANCELLED", {
+            queueEntryId: songRequest.queueEntry.id,
+            reason: "GUEST_CANCELLED",
+          });
+        }
+      }
+
+      realtimeBus.broadcast(guestSession.eventId, "QUEUE_UPDATE", { action: "SKIP" });
+      realtimeBus.broadcast(guestSession.eventId, "QUEUE_SLOT_UNLOCKED", {
+        tableId: songRequest.tableId,
+        tableLabel,
+        songTitle: title,
+      });
+
+      if (eventCode) {
+        realtimeBus.broadcast(eventCode, "QUEUE_UPDATE", { action: "SKIP" });
+        realtimeBus.broadcast(eventCode, "QUEUE_SLOT_UNLOCKED", {
+          tableId: songRequest.tableId,
+          tableLabel,
+          songTitle: title,
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Turno cancelado y retirado de la cola. Tu mesa ya puede pedir otra canción.",
+      });
+    }
+
+    // 3. Caso CANCELACIÓN EN ESTADO PLAYING (Al aire: video de YouTube fallido, sin sonido o cancelado por comensal)
+    if (songRequest.status === "PLAYING") {
+      const now = new Date();
+      const nextEntry = await prisma.queueEntry.findFirst({
+        where: {
+          tenantId: guestSession.tenantId,
+          eventId: guestSession.eventId,
+          status: "QUEUED",
+        },
+        include: { songRequest: { include: { song: true, table: true } } },
+        orderBy: { orderIndex: "asc" },
+      });
+
+      const shouldAdvance = Boolean(isAutoPlay && nextEntry);
+
+      if (shouldAdvance && nextEntry) {
+        await prisma.$transaction([
+          prisma.songRequest.update({
+            where: { id },
+            data: { status: "CANCELLED" },
+          }),
+          prisma.queueEntry.updateMany({
+            where: {
+              tenantId: guestSession.tenantId,
+              eventId: guestSession.eventId,
+              status: "CURRENT",
+            },
+            data: { status: "COMPLETED" },
+          }),
+          prisma.queueEntry.update({
+            where: { id: nextEntry.id },
+            data: { status: "CURRENT" },
+          }),
+          prisma.songRequest.update({
+            where: { id: nextEntry.songRequestId },
+            data: { status: "PLAYING", playedAt: now },
+          }),
+        ]);
+
+        realtimeBus.broadcast(guestSession.eventId, "TRACK_CHANGE", {
+          currentEntryId: nextEntry.id,
+        });
+        realtimeBus.broadcast(guestSession.eventId, "QUEUE_UPDATE", { action: "NEXT" });
+
+        if (eventCode) {
+          realtimeBus.broadcast(eventCode, "TRACK_CHANGE", {
+            currentEntryId: nextEntry.id,
+          });
+          realtimeBus.broadcast(eventCode, "QUEUE_UPDATE", { action: "NEXT" });
+        }
+      } else {
+        await prisma.$transaction([
+          prisma.songRequest.update({
+            where: { id },
+            data: { status: "CANCELLED" },
+          }),
+          prisma.queueEntry.updateMany({
+            where: {
+              tenantId: guestSession.tenantId,
+              eventId: guestSession.eventId,
+              status: "CURRENT",
+            },
+            data: { status: "COMPLETED" },
+          }),
+        ]);
+
+        realtimeBus.broadcast(guestSession.eventId, "TRACK_CHANGE", {
+          currentEntryId: null,
+        });
+        realtimeBus.broadcast(guestSession.eventId, "QUEUE_UPDATE", { action: "STOP" });
+
+        if (eventCode) {
+          realtimeBus.broadcast(eventCode, "TRACK_CHANGE", {
+            currentEntryId: null,
+          });
+          realtimeBus.broadcast(eventCode, "QUEUE_UPDATE", { action: "STOP" });
+        }
+      }
+
+      // Cancelar cuenta regresiva si estaba activa y desbloquear mesa
+      realtimeBus.broadcast(guestSession.eventId, "NEXT_TURN_CANCELLED", {
+        queueEntryId: songRequest.queueEntry?.id || null,
+        reason: "GUEST_CANCELLED",
+      });
+      realtimeBus.broadcast(guestSession.eventId, "QUEUE_SLOT_UNLOCKED", {
+        tableId: songRequest.tableId,
+        tableLabel,
+        songTitle: title,
+      });
+
+      if (eventCode) {
+        realtimeBus.broadcast(eventCode, "NEXT_TURN_CANCELLED", {
+          queueEntryId: songRequest.queueEntry?.id || null,
+          reason: "GUEST_CANCELLED",
+        });
+        realtimeBus.broadcast(eventCode, "QUEUE_SLOT_UNLOCKED", {
+          tableId: songRequest.tableId,
+          tableLabel,
+          songTitle: title,
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: shouldAdvance
+          ? "Turno cancelado. Avanzando automáticamente a la siguiente canción y cupo liberado."
+          : "Turno cancelado y finalizado. Tu mesa ya puede pedir otra canción.",
+      });
+    }
+
+    // Por defecto si no coincide con los estados cancelables
     await prisma.songRequest.update({
       where: { id },
       data: { status: "CANCELLED" },

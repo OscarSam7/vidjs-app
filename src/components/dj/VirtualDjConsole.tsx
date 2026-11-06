@@ -2196,6 +2196,8 @@ export default function VirtualDjConsole({
   const watchdogTimerARef = useRef<NodeJS.Timeout | null>(null);
   const watchdogTimerBRef = useRef<NodeJS.Timeout | null>(null);
   const lastSkippedTrackIdRef = useRef<string | null>(null);
+  const handleClearDeckARef = useRef<(isAuto?: boolean) => void>(() => {});
+  const handleClearDeckBRef = useRef<(isAuto?: boolean) => void>(() => {});
 
   // Helper para saltar tema automáticamente si el video no reproduce o tiene restricciones
   const triggerAutoSkipOnStall = useCallback((deckId: "A" | "B", trackTitle: string, trackId: string, reasonText?: string) => {
@@ -2211,13 +2213,29 @@ export default function VirtualDjConsole({
       watchdogTimerBRef.current = null;
     }
 
+    // Vaciar y expulsar de inmediato la bandeja fallida para dejarla libre y disponible para el siguiente tema
+    if (deckId === "A") {
+      handleClearDeckARef.current?.(true);
+    } else {
+      handleClearDeckBRef.current?.(true);
+    }
+
     const detail = reasonText || "no emitió audio o no reprodujo en YouTube";
     console.warn(`[DJ Watchdog] Deck ${deckId}: "${trackTitle}" ${detail}. Saltando al siguiente tema...`);
     showFeedbackRef.current(
       "error",
       `⚠️ "${trackTitle}" ${detail}. Saltando automáticamente al siguiente tema de la cola...`
     );
+
+    // Avanzar inmediatamente al siguiente tema de la cola en el servidor y cabina
     onNextTrackRef.current();
+
+    // Restablecer el flag de salto tras 2.5s para no bloquear subsiguientes saltos si otra pista consecutiva falla
+    setTimeout(() => {
+      if (lastSkippedTrackIdRef.current === trackId) {
+        lastSkippedTrackIdRef.current = null;
+      }
+    }, 2500);
   }, []);
 
   // Iniciar watchdog al solicitar reproducción en Deck A
@@ -2233,7 +2251,7 @@ export default function VirtualDjConsole({
       if (isPlayingARef.current && !hasPlaybackStartedARef.current) {
         triggerAutoSkipOnStall("A", title, trackId, "no inició reproducción de audio tras el tiempo límite");
       }
-    }, 7000);
+    }, 5500);
   }, [triggerAutoSkipOnStall]);
 
   // Iniciar watchdog al solicitar reproducción en Deck B
@@ -2249,7 +2267,7 @@ export default function VirtualDjConsole({
       if (isPlayingBRef.current && !hasPlaybackStartedBRef.current) {
         triggerAutoSkipOnStall("B", title, trackId, "no inició reproducción de audio tras el tiempo límite");
       }
-    }, 7000);
+    }, 5500);
   }, [triggerAutoSkipOnStall]);
 
   // Cleanup de timers al desmontar
@@ -2722,6 +2740,14 @@ export default function VirtualDjConsole({
     }
   }, [deckModeB, isPlayingA]);
 
+  useEffect(() => {
+    handleClearDeckARef.current = handleClearDeckA;
+  }, [handleClearDeckA]);
+
+  useEffect(() => {
+    handleClearDeckBRef.current = handleClearDeckB;
+  }, [handleClearDeckB]);
+
   // Limpieza total delegada para Bandeja A
   const handleClearVideoOnlyA = (e?: React.MouseEvent) => {
     if (e) {
@@ -2937,6 +2963,8 @@ export default function VirtualDjConsole({
           reason = "fue eliminado o es privado en YouTube (Error 100)";
         } else if (errorCode === 2) {
           reason = "tiene un enlace o ID no válido (Error 2)";
+        } else if (errorCode === 5) {
+          reason = "no puede reproducirse en el reproductor HTML5 (Error 5)";
         }
 
         triggerAutoSkipOnStall(deck, title, trackKey, reason);

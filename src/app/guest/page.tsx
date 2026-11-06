@@ -41,6 +41,8 @@ import {
   Trophy,
   Award,
   Lock,
+  SkipForward,
+  Trash2,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType, NextTurnCountdownPayload } from "@/lib/realtime/event-bus";
@@ -1259,20 +1261,33 @@ function GuestContent() {
     }
   };
 
-  const handleCancelRequest = async (requestId: string) => {
-    if (!confirm("¿Deseas cancelar esta solicitud de canción?")) return;
+  const handleCancelRequest = async (requestId: string, status?: string) => {
+    let confirmMsg = "¿Deseas cancelar esta solicitud de canción?";
+    if (status === "ACCEPTED") {
+      confirmMsg = "¿Deseas cancelar tu turno y quitar tu canción de la cola? Se liberará el cupo de tu mesa de inmediato.";
+    } else if (status === "PLAYING") {
+      confirmMsg = "¿Deseas cancelar este turno al aire? Si el video de YouTube o enlace falló, esto liberará tu mesa y pasará automáticamente al siguiente turno.";
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    setActionLoadingId(requestId);
     try {
       const res = await fetch(`/api/v1/requests/${requestId}`, {
         method: "DELETE",
       });
+      const data = await res.json();
       if (res.ok) {
+        setSuccessMessage(data.message || "Turno cancelado exitosamente");
+        setTimeout(() => setSuccessMessage(null), 4000);
         await loadSessionAndRequests();
       } else {
-        const data = await res.json();
         alert(data.error?.message || "No se pudo cancelar");
       }
     } catch {
       alert("Error de conexión");
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -1557,6 +1572,18 @@ function GuestContent() {
                 ? "⚠️ Tienes 5 segundos para darle al Play o tu turno pasará al siguiente de la cola."
                 : "🚀 Tienes 5 segundos para darle al Play o la cabina iniciará la reproducción automáticamente."}
             </p>
+
+            <div className="flex items-center justify-center pt-0.5">
+              <button
+                type="button"
+                onClick={() => handleCancelRequest(activeTurnCountdown.songRequestId, "ACCEPTED")}
+                disabled={actionLoadingId === activeTurnCountdown.songRequestId}
+                className="text-[11px] text-zinc-400 hover:text-red-300 flex items-center gap-1 transition-colors cursor-pointer py-1 px-2 rounded-lg hover:bg-red-950/40"
+              >
+                <Trash2 className="w-3 h-3 text-red-400" />
+                <span>Cancelar mi turno y ceder lugar</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2300,22 +2327,35 @@ function GuestContent() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2.5 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       {isMyTrack && targetId && (
-                        <button
-                          type="button"
-                          onClick={() => handleFinishRequest(targetId)}
-                          disabled={Boolean(actionLoadingId)}
-                          className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-md shadow-rose-950 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                          title="Terminar mi canción ahora para dar lugar al siguiente pedido y liberar mi cupo"
-                        >
-                          {actionLoadingId ? (
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Square className="w-3 h-3 fill-current" />
-                          )}
-                          <span>Terminar Turno</span>
-                        </button>
+                        <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap justify-end">
+                          <button
+                            type="button"
+                            onClick={() => handleCancelRequest(targetId, "PLAYING")}
+                            disabled={Boolean(actionLoadingId)}
+                            className="px-2.5 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-rose-950/80 text-zinc-300 hover:text-rose-300 border border-zinc-700/80 hover:border-rose-800 text-[10px] font-bold flex items-center gap-1 shadow-sm transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                            title="Si el video de YouTube falló, tiene pantalla negra o enlace roto, cancela aquí para pasar de inmediato a la siguiente canción y liberar tu mesa"
+                          >
+                            <SkipForward className="w-3 h-3 text-amber-400" />
+                            <span className="hidden sm:inline">¿Video roto? </span>
+                            <span>Saltar Turno</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleFinishRequest(targetId)}
+                            disabled={Boolean(actionLoadingId)}
+                            className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-md shadow-rose-950 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                            title="Terminar mi canción ahora para dar lugar al siguiente pedido y liberar mi cupo"
+                          >
+                            {actionLoadingId ? (
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Square className="w-3 h-3 fill-current" />
+                            )}
+                            <span>Terminar Turno</span>
+                          </button>
+                        </div>
                       )}
                       <div className="flex items-center gap-0.5 shrink-0 pl-1">
                         <span className="w-1 h-3 bg-purple-400 rounded-full animate-pulse" />
@@ -2859,11 +2899,21 @@ function GuestContent() {
                           )
                         )}
                         {req.status === "PLAYING" && (
-                          <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap justify-end">
                             <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-600 font-black flex items-center gap-1 animate-pulse">
                               <Radio className="w-3 h-3 text-purple-400" />
                               <span>¡AL AIRE!</span>
                             </span>
+                            <button
+                              type="button"
+                              onClick={() => handleCancelRequest(req.id, "PLAYING")}
+                              disabled={actionLoadingId === req.id}
+                              className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-rose-950/80 text-zinc-300 hover:text-rose-300 border border-zinc-700 hover:border-rose-800 font-bold text-[10px] flex items-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                              title="Cancelar y saltar canción si el video o audio de YouTube no funciona"
+                            >
+                              <SkipForward className="w-3 h-3 text-amber-400" />
+                              <span>Saltar (Video roto)</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleFinishRequest(req.id)}
@@ -2880,12 +2930,27 @@ function GuestContent() {
                             </button>
                           </div>
                         )}
+                        {req.status === "ACCEPTED" && (
+                          <button
+                            type="button"
+                            onClick={() => handleCancelRequest(req.id, "ACCEPTED")}
+                            disabled={actionLoadingId === req.id}
+                            className="text-[10px] text-amber-400 hover:text-amber-300 font-medium px-2 py-1 rounded-lg bg-amber-950/40 hover:bg-amber-950/70 border border-amber-900/60 transition-colors cursor-pointer flex items-center gap-1 active:scale-95 disabled:opacity-50"
+                            title="Quitar esta canción de la cola y liberar cupo de mi mesa"
+                          >
+                            <Trash2 className="w-3 h-3 text-amber-400" />
+                            <span>Cancelar Turno</span>
+                          </button>
+                        )}
                         {req.status === "PENDING" && (
                           <button
-                            onClick={() => handleCancelRequest(req.id)}
-                            className="text-[10px] text-red-400 hover:text-red-300 font-medium px-2 py-0.5 rounded bg-red-950/50 border border-red-900/60 cursor-pointer"
+                            type="button"
+                            onClick={() => handleCancelRequest(req.id, "PENDING")}
+                            disabled={actionLoadingId === req.id}
+                            className="text-[10px] text-red-400 hover:text-red-300 font-medium px-2 py-1 rounded-lg bg-red-950/40 hover:bg-red-950/70 border border-red-900/60 transition-colors cursor-pointer flex items-center gap-1 active:scale-95 disabled:opacity-50"
                           >
-                            Cancelar
+                            <Trash2 className="w-3 h-3 text-red-400" />
+                            <span>Cancelar</span>
                           </button>
                         )}
                       </div>
