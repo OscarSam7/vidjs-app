@@ -1844,7 +1844,7 @@ export default function VirtualDjConsole({
       }
     } else {
       unlockAudioA();
-      if (deckTrackA || trackA) {
+      if (isAutoPlayMode && (deckTrackA || trackA)) {
         startPlaybackWatchdogA(deckTrackA || trackA!, videoIdA);
       }
       if (iframeRefA.current) {
@@ -1913,7 +1913,7 @@ export default function VirtualDjConsole({
       }
     } else {
       unlockAudioB();
-      if (deckTrackB || trackB) {
+      if (isAutoPlayMode && (deckTrackB || trackB)) {
         startPlaybackWatchdogB(deckTrackB || trackB!, videoIdB);
       }
       if (iframeRefB.current) {
@@ -2199,8 +2199,15 @@ export default function VirtualDjConsole({
   const handleClearDeckARef = useRef<(isAuto?: boolean) => void>(() => {});
   const handleClearDeckBRef = useRef<(isAuto?: boolean) => void>(() => {});
 
-  // Helper para saltar tema automáticamente si el video no reproduce o tiene restricciones
+  // Helper para saltar tema automáticamente si el video no reproduce o tiene restricciones (Solo en modo Auto-Play)
   const triggerAutoSkipOnStall = useCallback((deckId: "A" | "B", trackTitle: string, trackId: string, reasonText?: string) => {
+    // Si NO está en modo Auto-Play, NUNCA borrar la pista de la cabina (el DJ tiene control manual)
+    if (!isAutoPlayMode) {
+      console.warn(`[DJ Watchdog] Deck ${deckId}: "${trackTitle}" ${reasonText || "aviso"}. Modo manual activo, no se borra la pista.`);
+      showFeedbackRef.current("error", `⚠️ "${trackTitle}": ${reasonText || "Error en YouTube"}`);
+      return;
+    }
+
     if (lastSkippedTrackIdRef.current === trackId) return;
     lastSkippedTrackIdRef.current = trackId;
 
@@ -2236,39 +2243,45 @@ export default function VirtualDjConsole({
         lastSkippedTrackIdRef.current = null;
       }
     }, 2500);
-  }, []);
+  }, [isAutoPlayMode]);
 
   // Iniciar watchdog al solicitar reproducción en Deck A
   const startPlaybackWatchdogA = useCallback((track: SongRequestData, vid: string | null) => {
+    if (!isAutoPlayMode) return;
     hasPlaybackStartedARef.current = false;
     if (watchdogTimerARef.current) {
       clearTimeout(watchdogTimerARef.current);
+      watchdogTimerARef.current = null;
     }
     const trackId = track.id || vid || "track-a";
     const title = track.song?.title || track.customTitle || "Canción";
 
+    // Dar tiempo suficiente (15 segundos) para que YouTube resuelva DNS, SSL, buffering y anuncios sin falsos positivos
     watchdogTimerARef.current = setTimeout(() => {
-      if (isPlayingARef.current && !hasPlaybackStartedARef.current) {
-        triggerAutoSkipOnStall("A", title, trackId, "no inició reproducción de audio tras el tiempo límite");
+      if (isAutoPlayMode && isPlayingARef.current && !hasPlaybackStartedARef.current) {
+        triggerAutoSkipOnStall("A", title, trackId, "no inició reproducción tras el tiempo límite");
       }
-    }, 5500);
-  }, [triggerAutoSkipOnStall]);
+    }, 15000);
+  }, [triggerAutoSkipOnStall, isAutoPlayMode]);
 
   // Iniciar watchdog al solicitar reproducción en Deck B
   const startPlaybackWatchdogB = useCallback((track: SongRequestData, vid: string | null) => {
+    if (!isAutoPlayMode) return;
     hasPlaybackStartedBRef.current = false;
     if (watchdogTimerBRef.current) {
       clearTimeout(watchdogTimerBRef.current);
+      watchdogTimerBRef.current = null;
     }
     const trackId = track.id || vid || "track-b";
     const title = track.song?.title || track.customTitle || "Canción";
 
+    // Dar tiempo suficiente (15 segundos) para que YouTube resuelva DNS, SSL, buffering y anuncios sin falsos positivos
     watchdogTimerBRef.current = setTimeout(() => {
-      if (isPlayingBRef.current && !hasPlaybackStartedBRef.current) {
-        triggerAutoSkipOnStall("B", title, trackId, "no inició reproducción de audio tras el tiempo límite");
+      if (isAutoPlayMode && isPlayingBRef.current && !hasPlaybackStartedBRef.current) {
+        triggerAutoSkipOnStall("B", title, trackId, "no inició reproducción tras el tiempo límite");
       }
-    }, 5500);
-  }, [triggerAutoSkipOnStall]);
+    }, 15000);
+  }, [triggerAutoSkipOnStall, isAutoPlayMode]);
 
   // Cleanup de timers al desmontar
   useEffect(() => {
@@ -2350,6 +2363,13 @@ export default function VirtualDjConsole({
     setDeckTrackA(track);
     setManualTrackA(track);
 
+    // Cancelar cualquier watchdog previo en esta bandeja para proteger la nueva pista
+    if (watchdogTimerARef.current) {
+      clearTimeout(watchdogTimerARef.current);
+      watchdogTimerARef.current = null;
+    }
+    hasPlaybackStartedARef.current = false;
+
     // Determinamos si es seguro hacer autoPlay (no interrumpe Deck B que esté sonando)
     const canAutoPlay = Boolean(autoPlay && !isPlayingBRef.current && !isPlayingB);
 
@@ -2374,6 +2394,7 @@ export default function VirtualDjConsole({
         });
         showFeedback("success", `▶ ¡Reproduciendo en vivo en Deck A! "${track.song?.title || track.customTitle}"`);
       } else {
+        isPlayingARef.current = false;
         setIsPlayingA(false);
         loadVideoIntoIframe(iframeRefA.current, directId, effectiveVolA, false, "A");
         showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A (Listo para Play)`);
@@ -2422,6 +2443,7 @@ export default function VirtualDjConsole({
             });
             showFeedback("success", `▶ ¡Reproduciendo en vivo en Deck A! "${track.song?.title || track.customTitle}"`);
           } else {
+            isPlayingARef.current = false;
             setIsPlayingA(false);
             loadVideoIntoIframe(iframeRefA.current, resolvedId, effectiveVolA, false, "A");
             showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck A (Listo para Play)`);
@@ -2527,6 +2549,13 @@ export default function VirtualDjConsole({
       setManualTrackB(track);
     }
 
+    // Cancelar cualquier watchdog previo en esta bandeja para proteger la nueva pista
+    if (watchdogTimerBRef.current) {
+      clearTimeout(watchdogTimerBRef.current);
+      watchdogTimerBRef.current = null;
+    }
+    hasPlaybackStartedBRef.current = false;
+
     const canAutoPlay = Boolean(autoPlay && !isPlayingARef.current && !isPlayingA);
 
     if (directId) {
@@ -2550,6 +2579,7 @@ export default function VirtualDjConsole({
         });
         showFeedback("success", `▶ ¡Reproduciendo en vivo en Deck B! "${track.song?.title || track.customTitle}"`);
       } else {
+        isPlayingBRef.current = false;
         setIsPlayingB(false);
         loadVideoIntoIframe(iframeRefB.current, directId, effectiveVolB, false, "B");
         showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B (Listo para Play)`);
@@ -2598,6 +2628,7 @@ export default function VirtualDjConsole({
             });
             showFeedback("success", `▶ ¡Reproduciendo en vivo en Deck B! "${track.song?.title || track.customTitle}"`);
           } else {
+            isPlayingBRef.current = false;
             setIsPlayingB(false);
             loadVideoIntoIframe(iframeRefB.current, resolvedId, effectiveVolB, false, "B");
             showFeedback("success", `🎬 Cargado "${track.song?.title || track.customTitle}" en Deck B (Listo para Play)`);
@@ -2638,6 +2669,10 @@ export default function VirtualDjConsole({
 
     searchRequestIdA.current++;
     isPlayingARef.current = false;
+    if (watchdogTimerARef.current) {
+      clearTimeout(watchdogTimerARef.current);
+      watchdogTimerARef.current = null;
+    }
 
     // Silenciar, pausar y rebobinar el iframe persistente sin destruir su nodo en el DOM
     if (iframeRefA.current) {
@@ -2695,6 +2730,10 @@ export default function VirtualDjConsole({
 
     searchRequestIdB.current++;
     isPlayingBRef.current = false;
+    if (watchdogTimerBRef.current) {
+      clearTimeout(watchdogTimerBRef.current);
+      watchdogTimerBRef.current = null;
+    }
 
     // Silenciar, pausar y rebobinar el iframe persistente sin destruir su nodo en el DOM
     if (iframeRefB.current) {
@@ -2887,9 +2926,9 @@ export default function VirtualDjConsole({
         deck = "A";
       } else if (winB && event.source === winB) {
         deck = "B";
-      } else if (data.id === 1) {
+      } else if (data.id === 1 || data.id === "1" || data.widgetid === 1 || data.widgetid === "1") {
         deck = "A";
-      } else if (data.id === 2) {
+      } else if (data.id === 2 || data.id === "2" || data.widgetid === 2 || data.widgetid === "2") {
         deck = "B";
       }
 
@@ -2920,24 +2959,28 @@ export default function VirtualDjConsole({
         playerState = data.info.playerState;
       }
 
-      // Confirmación de que el video está reproduciendo realmente (playerState === 1)
-      if (playerState === 1) {
+      // Confirmación de que el video está reproduciendo o cargando chunks (playerState === 1 jugando, playerState === 3 buffering)
+      if (playerState === 1 || playerState === 3) {
         if (deck === "A") {
           hasPlaybackStartedARef.current = true;
           if (watchdogTimerARef.current) {
             clearTimeout(watchdogTimerARef.current);
             watchdogTimerARef.current = null;
           }
-          sendPlayerCommand(iframeRefA.current, "unMute");
-          sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolARef.current || 80]);
+          if (playerState === 1) {
+            sendPlayerCommand(iframeRefA.current, "unMute");
+            sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolARef.current || 80]);
+          }
         } else {
           hasPlaybackStartedBRef.current = true;
           if (watchdogTimerBRef.current) {
             clearTimeout(watchdogTimerBRef.current);
             watchdogTimerBRef.current = null;
           }
-          sendPlayerCommand(iframeRefB.current, "unMute");
-          sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolBRef.current || 80]);
+          if (playerState === 1) {
+            sendPlayerCommand(iframeRefB.current, "unMute");
+            sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolBRef.current || 80]);
+          }
         }
       }
 
