@@ -38,7 +38,10 @@ export async function POST(req: NextRequest) {
 
       const targetEntry = await prisma.queueEntry.findFirst({
         where: { id: data.queueEntryId, tenantId },
-        include: { songRequest: { include: { song: true, table: true } } },
+        include: {
+          event: { select: { code: true } },
+          songRequest: { include: { song: true, table: true } },
+        },
       });
 
       if (!targetEntry) throw new NotFoundError("Entrada de cola no encontrada");
@@ -113,6 +116,18 @@ export async function POST(req: NextRequest) {
       realtimeBus.broadcast(targetEntry.eventId, "QUEUE_UPDATE", {
         action: "PLAY",
       });
+
+      // Cancelar cualquier cuenta regresiva pendiente de turno
+      realtimeBus.broadcast(targetEntry.eventId, "NEXT_TURN_CANCELLED", {
+        queueEntryId: targetEntry.id,
+        reason: "PLAY_STARTED",
+      });
+      if (targetEntry.event?.code) {
+        realtimeBus.broadcast(targetEntry.event.code, "NEXT_TURN_CANCELLED", {
+          queueEntryId: targetEntry.id,
+          reason: "PLAY_STARTED",
+        });
+      }
 
       // Desbloquear slots ("Canta y Libera") para las mesas que terminaron de sonar
       for (const p of prevPlaying) {
@@ -226,6 +241,12 @@ export async function POST(req: NextRequest) {
 
       realtimeBus.broadcast(data.eventId, "QUEUE_UPDATE", {
         action: "NEXT",
+      });
+
+      // Cancelar cualquier cuenta regresiva pendiente de turno
+      realtimeBus.broadcast(data.eventId, "NEXT_TURN_CANCELLED", {
+        queueEntryId: nextEntry.id,
+        reason: "NEXT_PLAYED",
       });
 
       for (const p of prevPlaying) {
@@ -452,6 +473,19 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           success: true,
           message: "La canción ya fue reproducida o modificada previamente",
+        });
+      }
+
+      // Salvaguarda: Verificar si ya hay una canción en reproducción activa (CURRENT) en el evento
+      const activeCurrent = await prisma.queueEntry.findFirst({
+        where: { tenantId, eventId, status: "CURRENT" },
+      });
+
+      // Si la pista actual que está sonando es la misma targetEntry, abortar timeout sin interrumpir
+      if (activeCurrent && activeCurrent.id === targetEntry.id) {
+        return NextResponse.json({
+          success: true,
+          message: "La canción ya está en reproducción activa",
         });
       }
 

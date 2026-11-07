@@ -939,6 +939,12 @@ export default function DjBoothPage() {
       (Boolean(queuePolicy.autoPlayRequests) && !isPlaying && !data?.currentPlaying);
     setPendingDeckLoad({ entry, targetDeck, timestamp: Date.now(), autoPlay: autoPlayEffective });
 
+    // Si había una cuenta regresiva activa para este turno o para auto-play, cancelarla de inmediato
+    if (activeTurnCountdown && (activeTurnCountdown.queueEntryId === entry.id || autoPlayEffective)) {
+      setActiveTurnCountdown(null);
+      handleCancelNextTurnCountdown();
+    }
+
     // Si el DJ seleccionó explícitamente cargar en Bandeja A o B ("◀ A" o "B ▶"),
     // o si ya hay una reproducción activa sonando en cabina, NO llamamos al backend con action: "PLAY"
     // porque eso marcaría prematuramente la pista actual como COMPLETED y desincronizaría las bandejas.
@@ -968,6 +974,10 @@ export default function DjBoothPage() {
   // Reproducir un tema de la cola (compatibilidad)
   const handlePlayQueueEntry = async (queueEntryId: string) => {
     try {
+      if (activeTurnCountdown) {
+        setActiveTurnCountdown(null);
+        handleCancelNextTurnCountdown();
+      }
       const entry = data?.queue?.find((q) => q.id === queueEntryId);
       if (entry) {
         setPendingDeckLoad({ entry, targetDeck: "AUTO", timestamp: Date.now(), autoPlay: true });
@@ -991,6 +1001,12 @@ export default function DjBoothPage() {
   useEffect(() => {
     if (!activeTurnCountdown) {
       setTurnCountdownSeconds(0);
+      return;
+    }
+    // Si la cabina ya está sonando en vivo, cancelar la cuenta regresiva de inmediato para no cortar la música
+    if (isPlaying) {
+      setActiveTurnCountdown(null);
+      handleCancelNextTurnCountdown();
       return;
     }
     const updateCountdown = () => {
@@ -1226,7 +1242,13 @@ export default function DjBoothPage() {
       isVideo?: boolean;
     }
   ) => {
-    if (action === "PLAY") setIsPlaying(true);
+    if (action === "PLAY") {
+      setIsPlaying(true);
+      if (activeTurnCountdown) {
+        setActiveTurnCountdown(null);
+        handleCancelNextTurnCountdown();
+      }
+    }
     if (action === "PAUSE" || action === "ENDED") setIsPlaying(false); if (action === "ENDED" && (selectedEventId || data?.event?.id)) { fetch("/api/v1/dj/queue", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "FINISH_CURRENT", eventId: selectedEventId || data?.event?.id }) }).then(() => fetchDjState()).catch(() => {}); }
 
     const eventId = selectedEventId || data?.event?.id;
