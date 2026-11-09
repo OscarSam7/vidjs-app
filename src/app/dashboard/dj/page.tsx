@@ -1691,7 +1691,7 @@ export default function DjBoothPage() {
               <span className="hidden md:inline">Turno:</span> 5s Play:
             </span>
             <button
-              onClick={() => handleUpdatePolicy({ nextTurnMode: "DISABLED" })}
+              onClick={() => handleUpdatePolicy({ nextTurnMode: "DISABLED", autoPlayRequests: false })}
               disabled={policyLoading}
               className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer ${
                 (!queuePolicy.nextTurnMode || queuePolicy.nextTurnMode === "DISABLED")
@@ -1703,7 +1703,7 @@ export default function DjBoothPage() {
               Manual
             </button>
             <button
-              onClick={() => handleUpdatePolicy({ nextTurnMode: "SKIP_ON_TIMEOUT" })}
+              onClick={() => handleUpdatePolicy({ nextTurnMode: "SKIP_ON_TIMEOUT", autoPlayRequests: true })}
               disabled={policyLoading}
               className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer flex items-center gap-1 ${
                 queuePolicy.nextTurnMode === "SKIP_ON_TIMEOUT"
@@ -1716,7 +1716,7 @@ export default function DjBoothPage() {
               <span>5s ➔ Skip</span>
             </button>
             <button
-              onClick={() => handleUpdatePolicy({ nextTurnMode: "AUTOPLAY_ON_TIMEOUT" })}
+              onClick={() => handleUpdatePolicy({ nextTurnMode: "AUTOPLAY_ON_TIMEOUT", autoPlayRequests: true })}
               disabled={policyLoading}
               className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer flex items-center gap-1 ${
                 queuePolicy.nextTurnMode === "AUTOPLAY_ON_TIMEOUT"
@@ -2576,6 +2576,7 @@ export default function DjBoothPage() {
         onDeckLoaded={() => setPendingDeckLoad(null)}
         onPlaybackControl={handlePlaybackControl}
         isAutoPlayMode={Boolean(queuePolicy.autoPlayRequests || queuePolicy.nextTurnMode === "AUTOPLAY_ON_TIMEOUT")}
+        nextTurnMode={queuePolicy.nextTurnMode}
       />
 
       {/* 2.5 SOUNDBOARD FX LAUNCHPAD PARA DJ */}

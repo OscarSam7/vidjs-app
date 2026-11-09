@@ -19,6 +19,7 @@ const queueActionSchema = z.object({
     "CANCEL_NEXT_TURN_COUNTDOWN",
   ]),
   eventId: z.string().optional(),
+  eventCode: z.string().optional(),
   queueEntryId: z.string().optional(),
   newOrder: z.array(z.string()).optional(), // Array de queueEntryId en nuevo orden
   timeoutAction: z.enum(["SKIP", "AUTOPLAY"]).optional(),
@@ -288,6 +289,11 @@ export async function POST(req: NextRequest) {
         }),
       ]);
 
+      const eventObj = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { id: true, code: true, settings: true },
+      });
+
       realtimeBus.broadcast(eventId, "TRACK_CHANGE", {
         currentEntryId: null,
       });
@@ -296,25 +302,43 @@ export async function POST(req: NextRequest) {
         action: "FINISH_CURRENT",
       });
 
+      if (eventObj?.code) {
+        realtimeBus.broadcast(eventObj.code, "TRACK_CHANGE", {
+          currentEntryId: null,
+        });
+        realtimeBus.broadcast(eventObj.code, "QUEUE_UPDATE", {
+          action: "FINISH_CURRENT",
+        });
+      }
+
       for (const p of prevPlaying) {
         realtimeBus.broadcast(eventId, "QUEUE_SLOT_UNLOCKED", {
           tableId: p.tableId,
           tableLabel: p.table.label,
           songTitle: p.song?.title || p.customTitle || "Canción",
         });
+        if (eventObj?.code) {
+          realtimeBus.broadcast(eventObj.code, "QUEUE_SLOT_UNLOCKED", {
+            tableId: p.tableId,
+            tableLabel: p.table.label,
+            songTitle: p.song?.title || p.customTitle || "Canción",
+          });
+        }
       }
 
       realtimeBus.setPlaybackState(eventId, {
         action: "PAUSE",
         updatedAt: now.toISOString(),
       });
+      if (eventObj?.code) {
+        realtimeBus.setPlaybackState(eventObj.code, {
+          action: "PAUSE",
+          updatedAt: now.toISOString(),
+        });
+      }
 
       // Si el evento tiene activada la opción de otorgar 5s al siguiente turno para dar Play
       try {
-        const eventObj = await prisma.event.findUnique({
-          where: { id: eventId },
-          select: { id: true, code: true, settings: true },
-        });
         const policy = parseQueuePolicy(eventObj?.settings);
 
         if (policy.nextTurnMode && policy.nextTurnMode !== "DISABLED") {
@@ -517,11 +541,21 @@ export async function POST(req: NextRequest) {
         }
 
         realtimeBus.broadcast(eventId, "QUEUE_UPDATE", { action: "SKIP" });
+        if (event.code) {
+          realtimeBus.broadcast(event.code, "QUEUE_UPDATE", { action: "SKIP" });
+        }
         realtimeBus.broadcast(eventId, "QUEUE_SLOT_UNLOCKED", {
           tableId: targetEntry.songRequest.tableId,
           tableLabel: targetEntry.songRequest.table.label,
           songTitle: targetEntry.songRequest.song?.title || targetEntry.songRequest.customTitle || "Canción",
         });
+        if (event.code) {
+          realtimeBus.broadcast(event.code, "QUEUE_SLOT_UNLOCKED", {
+            tableId: targetEntry.songRequest.tableId,
+            tableLabel: targetEntry.songRequest.table.label,
+            songTitle: targetEntry.songRequest.song?.title || targetEntry.songRequest.customTitle || "Canción",
+          });
+        }
 
         // Si la política sigue activa y hay más temas en cola, otorgar automáticamente 5s al siguiente en cola
         if (policy.nextTurnMode && policy.nextTurnMode !== "DISABLED") {
@@ -608,6 +642,12 @@ export async function POST(req: NextRequest) {
           currentEntryId: targetEntry.id,
         });
         realtimeBus.broadcast(eventId, "QUEUE_UPDATE", { action: "PLAY" });
+        if (event.code) {
+          realtimeBus.broadcast(event.code, "TRACK_CHANGE", {
+            currentEntryId: targetEntry.id,
+          });
+          realtimeBus.broadcast(event.code, "QUEUE_UPDATE", { action: "PLAY" });
+        }
 
         return NextResponse.json({
           success: true,
@@ -625,6 +665,23 @@ export async function POST(req: NextRequest) {
         queueEntryId: data.queueEntryId || null,
         reason: "DJ_CANCELLED",
       });
+      if (data.eventCode) {
+        realtimeBus.broadcast(data.eventCode, "NEXT_TURN_CANCELLED", {
+          queueEntryId: data.queueEntryId || null,
+          reason: "DJ_CANCELLED",
+        });
+      } else {
+        const ev = await prisma.event.findUnique({
+          where: { id: eventId },
+          select: { code: true },
+        });
+        if (ev?.code) {
+          realtimeBus.broadcast(ev.code, "NEXT_TURN_CANCELLED", {
+            queueEntryId: data.queueEntryId || null,
+            reason: "DJ_CANCELLED",
+          });
+        }
+      }
       return NextResponse.json({
         success: true,
         message: "Cuenta regresiva de turno cancelada",

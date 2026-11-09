@@ -118,6 +118,7 @@ interface VirtualDjConsoleProps {
     details?: PlaybackSyncDetails
   ) => void;
   isAutoPlayMode?: boolean;
+  nextTurnMode?: "DISABLED" | "SKIP_ON_TIMEOUT" | "AUTOPLAY_ON_TIMEOUT";
 }
 
 interface DeckPlayerProps {
@@ -433,6 +434,7 @@ export default function VirtualDjConsole({
   onDeckLoaded,
   onPlaybackControl,
   isAutoPlayMode = false,
+  nextTurnMode = "DISABLED",
 }: VirtualDjConsoleProps) {
   // ==================== MASTER AUDIO CABINA STATE ====================
   const [isMasterMuted, setIsMasterMuted] = useState(false);
@@ -2841,7 +2843,11 @@ export default function VirtualDjConsole({
     if (isAutoPlayMode) {
       handleClearDeckA(true);
       if (!isPlayingB && !isPlayingBRef.current) {
-        onNextTrackRef.current?.();
+        // Si hay una política de cuenta regresiva de 5 segundos activa, dejamos que FINISH_CURRENT gestione el turno de 5s.
+        // Solo llamamos onNextTrack de inmediato si no hay modo de turno de 5s configurado (DISABLED).
+        if (!nextTurnMode || nextTurnMode === "DISABLED") {
+          onNextTrackRef.current?.();
+        }
       }
     }
   }, [
@@ -2851,6 +2857,7 @@ export default function VirtualDjConsole({
     getDeckSyncDetails,
     showFeedback,
     isAutoPlayMode,
+    nextTurnMode,
     handleClearDeckA,
   ]);
 
@@ -2886,7 +2893,11 @@ export default function VirtualDjConsole({
     if (isAutoPlayMode) {
       handleClearDeckB(true);
       if (!isPlayingA && !isPlayingARef.current) {
-        onNextTrackRef.current?.();
+        // Si hay una política de cuenta regresiva de 5 segundos activa, dejamos que FINISH_CURRENT gestione el turno de 5s.
+        // Solo llamamos onNextTrack de inmediato si no hay modo de turno de 5s configurado (DISABLED).
+        if (!nextTurnMode || nextTurnMode === "DISABLED") {
+          onNextTrackRef.current?.();
+        }
       }
     }
   }, [
@@ -2896,6 +2907,7 @@ export default function VirtualDjConsole({
     getDeckSyncDetails,
     showFeedback,
     isAutoPlayMode,
+    nextTurnMode,
     handleClearDeckB,
   ]);
 

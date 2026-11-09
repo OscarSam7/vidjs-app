@@ -119,7 +119,11 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Crear la solicitud de canción (con auto-play si la opción está activada por el DJ)
-    const isAutoPlay = Boolean(policy.autoPlayRequests);
+    const isAutoPlay = Boolean(
+      policy.autoPlayRequests ||
+      policy.nextTurnMode === "AUTOPLAY_ON_TIMEOUT" ||
+      policy.nextTurnMode === "SKIP_ON_TIMEOUT"
+    );
     let initialStatus: "PENDING" | "ACCEPTED" | "PLAYING" = "PENDING";
     let queueEntryStatus: "CURRENT" | "QUEUED" | null = null;
     let playedAt: Date | null = null;
