@@ -13,6 +13,9 @@ const tableOperationSchema = z.object({
   action: z.enum([
     "CREATE_SECTOR",
     "CREATE_TABLE",
+    "EDIT_TABLE",
+    "DELETE_TABLE",
+    "REGENERATE_QR",
     "UPDATE_TABLE_STATUS",
     "UPDATE_TABLE_POSITION",
     "TRANSFER_TABLE_SESSION",
@@ -31,6 +34,8 @@ const tableOperationSchema = z.object({
   label: z.string().optional(),
   capacity: z.coerce.number().int().optional(),
   sectorId: z.string().optional(),
+  active: z.boolean().optional(),
+  regenerateQr: z.boolean().optional(),
   tableStatus: z
     .enum(["AVAILABLE", "OCCUPIED", "RESERVED", "PENDING_PAYMENT", "CLEANING", "BLOCKED"])
     .optional(),
@@ -51,7 +56,7 @@ export async function GET(req: NextRequest) {
     await ensureGastronomySeeded(tenantId);
     const origin = getRequestOrigin(req);
 
-    const [sectors, tables] = await Promise.all([
+    const [sectors, tables, activeEvent] = await Promise.all([
       prisma.gastroSector.findMany({
         where: { tenantId },
         orderBy: { orderIndex: "asc" },
@@ -75,16 +80,48 @@ export async function GET(req: NextRequest) {
         },
         orderBy: { number: "asc" },
       }),
+      prisma.event.findFirst({
+        where: { tenantId, status: "ACTIVE" },
+        select: { id: true, name: true, code: true, venueId: true },
+        orderBy: { createdAt: "desc" },
+      }),
     ]);
+
+    const defaultSector = sectors[0] || null;
 
     const enrichedTables = await Promise.all(
       tables.map(async (t) => {
+        // Si alguna mesa existente no tenía sectorId asignado, vincularla automáticamente al sector principal
+        let effectiveSector = t.sector;
+        let effectiveSectorId = t.sectorId;
+        if (!effectiveSectorId && defaultSector) {
+          effectiveSectorId = defaultSector.id;
+          effectiveSector = {
+            id: defaultSector.id,
+            name: defaultSector.name,
+            code: defaultSector.code,
+            colorHex: defaultSector.colorHex,
+          };
+          await prisma.table
+            .update({
+              where: { id: t.id },
+              data: { sectorId: defaultSector.id },
+            })
+            .catch(() => null);
+        }
+
+        const scanUrl = `${origin}/qr/${t.qrToken}`;
         const menuUrl = `${origin}/menu?qrToken=${t.qrToken}`;
-        const qrDataUrl = await generateQrDataUrl(menuUrl);
+        const qrDataUrl = await generateQrDataUrl(scanUrl);
+        const menuQrDataUrl = await generateQrDataUrl(menuUrl);
         return {
           ...t,
+          sectorId: effectiveSectorId,
+          sector: effectiveSector,
+          scanUrl,
           menuUrl,
           qrDataUrl,
+          menuQrDataUrl,
           activeSession: t.gastroTableSessions[0] || null,
         };
       })
@@ -94,6 +131,7 @@ export async function GET(req: NextRequest) {
       success: true,
       sectors,
       tables: enrichedTables,
+      activeEvent,
     });
   } catch (error) {
     return handleApiError(error);
@@ -165,6 +203,12 @@ export async function POST(req: NextRequest) {
       const nextNum = data.number || countTables + 1;
       const qrToken = `qr_gastro_m${nextNum}_${Math.random().toString(36).slice(2, 8)}`;
 
+      let sectorZone = "MAIN";
+      if (data.sectorId) {
+        const sec = await prisma.gastroSector.findUnique({ where: { id: data.sectorId } });
+        if (sec) sectorZone = sec.name;
+      }
+
       const created = await prisma.table.create({
         data: {
           tenantId,
@@ -173,6 +217,7 @@ export async function POST(req: NextRequest) {
           label: data.label || `Mesa ${nextNum}`,
           capacity: data.capacity || 4,
           sectorId: data.sectorId || null,
+          zone: sectorZone,
           tableStatus: "AVAILABLE",
           qrToken,
           posX: data.posX ?? (countTables % 4) * 220 + 40,
@@ -185,6 +230,83 @@ export async function POST(req: NextRequest) {
       });
 
       return NextResponse.json({ success: true, table: created });
+    }
+
+    // 2B. EDITAR MESA UNIFICADA (Nombre, Número, Capacidad, Sector y Regeneración de QR)
+    if (data.action === "EDIT_TABLE" && data.tableId) {
+      const existing = await prisma.table.findFirst({ where: { id: data.tableId, tenantId } });
+      if (!existing) {
+        return NextResponse.json(
+          { error: { code: "NOT_FOUND", message: "Mesa no encontrada" } },
+          { status: 404 }
+        );
+      }
+
+      let updatedZone = existing.zone;
+      if (data.sectorId) {
+        const sec = await prisma.gastroSector.findUnique({ where: { id: data.sectorId } });
+        if (sec) updatedZone = sec.name;
+      }
+
+      const newQrToken = data.regenerateQr
+        ? `qr_gastro_m${data.number || existing.number}_${Math.random().toString(36).slice(2, 8)}`
+        : existing.qrToken;
+
+      const updated = await prisma.table.update({
+        where: { id: existing.id },
+        data: {
+          ...(data.number !== undefined ? { number: data.number } : {}),
+          ...(data.label !== undefined ? { label: data.label } : {}),
+          ...(data.capacity !== undefined ? { capacity: data.capacity } : {}),
+          ...(data.sectorId !== undefined ? { sectorId: data.sectorId, zone: updatedZone } : {}),
+          ...(data.active !== undefined ? { active: data.active } : {}),
+          qrToken: newQrToken,
+        },
+        include: {
+          sector: { select: { id: true, name: true, code: true, colorHex: true } },
+        },
+      });
+
+      return NextResponse.json({ success: true, table: updated });
+    }
+
+    // 2C. REGENERAR TOKEN QR DE LA MESA
+    if (data.action === "REGENERATE_QR" && data.tableId) {
+      const existing = await prisma.table.findFirst({ where: { id: data.tableId, tenantId } });
+      if (!existing) {
+        return NextResponse.json(
+          { error: { code: "NOT_FOUND", message: "Mesa no encontrada" } },
+          { status: 404 }
+        );
+      }
+      const newQrToken = `qr_gastro_m${existing.number}_${Math.random().toString(36).slice(2, 8)}`;
+      const updated = await prisma.table.update({
+        where: { id: existing.id },
+        data: { qrToken: newQrToken },
+      });
+      return NextResponse.json({ success: true, table: updated });
+    }
+
+    // 2D. ELIMINAR MESA (O desactivar si posee historial)
+    if (data.action === "DELETE_TABLE" && data.tableId) {
+      const existing = await prisma.table.findFirst({ where: { id: data.tableId, tenantId } });
+      if (!existing) {
+        return NextResponse.json(
+          { error: { code: "NOT_FOUND", message: "Mesa no encontrada" } },
+          { status: 404 }
+        );
+      }
+      try {
+        await prisma.table.delete({ where: { id: existing.id } });
+        return NextResponse.json({ success: true, deleted: true });
+      } catch {
+        // Si tiene pedidos/solicitudes históricas, se desactiva preservando trazabilidad
+        const deactivated = await prisma.table.update({
+          where: { id: existing.id },
+          data: { active: false, tableStatus: "BLOCKED" },
+        });
+        return NextResponse.json({ success: true, deleted: false, table: deactivated });
+      }
     }
 
     // 3. CAMBIAR ESTADO DE MESA (Disponible, Ocupada, Reservada, Pendiente de pago, En limpieza, Bloqueada)

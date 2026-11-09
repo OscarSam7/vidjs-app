@@ -139,10 +139,13 @@ export function Sidebar({
           active: pathname.startsWith("/dashboard/gastronomy/products"),
         },
         {
-          name: "Mesas y sectores",
+          name: "Mesas, sectores y QR",
           icon: LayoutGrid,
           href: "/dashboard/gastronomy/tables",
-          active: pathname.startsWith("/dashboard/gastronomy/tables"),
+          active:
+            pathname.startsWith("/dashboard/gastronomy/tables") ||
+            pathname.startsWith("/dashboard/tables"),
+          tag: "QR",
         },
         {
           name: "Barra",
@@ -326,12 +329,6 @@ export function Sidebar({
           icon: CalendarCheck2,
           href: "/dashboard/events",
           active: pathname === "/dashboard/events",
-        },
-        {
-          name: "Mesas & Códigos QR",
-          icon: QrCode,
-          href: "/dashboard/tables",
-          active: pathname === "/dashboard/tables",
         },
         {
           name: "Reservas & Camarotes",
