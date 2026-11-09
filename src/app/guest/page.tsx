@@ -348,6 +348,16 @@ function GuestContent() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  const myRequestsRef = useRef(myRequests);
+  useEffect(() => {
+    myRequestsRef.current = myRequests;
+  }, [myRequests]);
+
   // Modal de Subida de Fotos y Marcos
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -492,10 +502,12 @@ function GuestContent() {
     }
   };
 
-  // Cargar sesión inicial
-  const loadSessionAndRequests = async () => {
+  // Cargar sesión inicial o actualizar en segundo plano sin interrumpir al usuario
+  const loadSessionAndRequests = async (silent: boolean = false) => {
     try {
-      setLoadingSession(true);
+      if (!silent && !session && !sessionRef.current) {
+        setLoadingSession(true);
+      }
       const res = await fetch("/api/v1/requests");
       if (res.ok) {
         const data = await res.json();
@@ -513,25 +525,26 @@ function GuestContent() {
           const nightMode = data.data.tableAllowance.nightMode;
           const tableZone = data.data.tableAllowance.zone;
 
-          // Solo forzar modo si la noche o la mesa son exclusivamente DJ o Karaoke
-          if (nightMode === "DJ_ONLY" || tableZone === "DJ") {
-            setActiveMode("DJ");
-          } else if (nightMode === "KARAOKE_ONLY" || tableZone === "KARAOKE") {
-            setActiveMode("KARAOKE");
-          } else if (!userModeChoiceRef.current && !modeParam) {
-            // Noche híbrida: si el usuario no ha elegido manualmente, chequear si había preferencia en sessionStorage
-            if (typeof window !== "undefined") {
-              try {
-                const saved = sessionStorage.getItem("vidjs_guest_active_mode");
-                if (saved === "DJ" || saved === "KARAOKE") {
-                  setActiveMode(saved as "DJ" | "KARAOKE");
-                }
-              } catch {}
+          // Solo forzar modo en carga inicial si la noche o la mesa son exclusivamente DJ o Karaoke
+          if (!activeMode) {
+            if (nightMode === "DJ_ONLY" || tableZone === "DJ") {
+              setActiveMode("DJ");
+            } else if (nightMode === "KARAOKE_ONLY" || tableZone === "KARAOKE") {
+              setActiveMode("KARAOKE");
+            } else if (!userModeChoiceRef.current && !modeParam) {
+              if (typeof window !== "undefined") {
+                try {
+                  const saved = sessionStorage.getItem("vidjs_guest_active_mode");
+                  if (saved === "DJ" || saved === "KARAOKE") {
+                    setActiveMode(saved as "DJ" | "KARAOKE");
+                  }
+                } catch {}
+              }
             }
           }
         }
         if (data.data.session?.guestName) {
-          setGuestName(data.data.session.guestName);
+          setGuestName((prev) => prev || data.data.session.guestName);
           setApplicationForm((prev) => ({
             ...prev,
             name: prev.name || data.data.session.guestName,
@@ -700,25 +713,34 @@ function GuestContent() {
       } else if (type === "APPLAUSE_END") {
         setActiveApplause(null);
       } else if (type === "QUEUE_SLOT_UNLOCKED") {
-        // Desbloqueo en tiempo real: avisar al comensal si es su mesa
-        await loadSessionAndRequests();
-        if (!payload?.tableId || (session && payload.tableId === session.table.id)) {
+        // Desbloqueo en tiempo real: avisar al comensal ÚNICAMENTE si es su propia mesa
+        const currentTableId = sessionRef.current?.table?.id || session?.table?.id;
+        if (payload?.tableId && currentTableId && payload.tableId === currentTableId) {
+          await loadSessionAndRequests(true);
           setSuccessMessage(
             `🎉 ¡Tu mesa completó su turno! Cupo desbloqueado para pedir tu siguiente canción.`
           );
           setTimeout(() => setSuccessMessage(null), 7000);
         }
       } else if (type === "NEXT_TURN_COUNTDOWN") {
-        setActiveTurnCountdown(payload);
+        // Mostrar la cuenta regresiva SOLO a los dispositivos de la mesa a la que le corresponde el turno
+        const currentTableId = sessionRef.current?.table?.id || session?.table?.id;
+        if (!payload?.tableId || (currentTableId && payload.tableId === currentTableId)) {
+          setActiveTurnCountdown(payload);
+        }
       } else if (type === "NEXT_TURN_CANCELLED") {
         setActiveTurnCountdown(null);
       } else if (type === "QUEUE_POLICY_UPDATED") {
-        await loadSessionAndRequests();
-      } else if (
-        type === "TRACK_CHANGE" ||
-        type === "QUEUE_UPDATE" ||
-        type === "REQUEST_NEW"
-      ) {
+        await loadSessionAndRequests(true);
+      } else if (type === "TRACK_CHANGE" || type === "QUEUE_UPDATE") {
+        // Si es QUEUE_UPDATE con acción ACCEPT de otra canción/mesa, no molestar a los demás comensales
+        if (type === "QUEUE_UPDATE" && payload?.action === "ACCEPT") {
+          const myRequestIds = myRequestsRef.current?.map((r) => r.id) || [];
+          if (payload?.requestId && !myRequestIds.includes(payload.requestId)) {
+            return;
+          }
+        }
+        // Actualizar datos en segundo plano sin interrumpir lo que el cliente escribe o busca
         try {
           const res = await fetch("/api/v1/requests");
           if (res.ok) {
@@ -757,7 +779,7 @@ function GuestContent() {
         }
 
         if (type === "CONTEST_STAGE_CHANGE") {
-          await loadSessionAndRequests();
+          await loadSessionAndRequests(true);
           return;
         }
 
@@ -1106,7 +1128,7 @@ function GuestContent() {
       );
       setTimeout(() => setSuccessMessage(null), 4000);
 
-      await loadSessionAndRequests();
+      await loadSessionAndRequests(true);
       setActiveTab("my-requests");
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -1132,7 +1154,7 @@ function GuestContent() {
       if (res.ok) {
         setSuccessMessage(data.message || "🎉 ¡Tu canción está sonando al aire ahora mismo!");
         setTimeout(() => setSuccessMessage(null), 4000);
-        await loadSessionAndRequests();
+        await loadSessionAndRequests(true);
       } else {
         alert(data.error?.message || "No se pudo reproducir la canción");
       }
@@ -1163,7 +1185,7 @@ function GuestContent() {
       if (res.ok) {
         setSuccessMessage(data.message || "🎉 ¡Turno finalizado! Dando lugar al siguiente tema.");
         setTimeout(() => setSuccessMessage(null), 4000);
-        await loadSessionAndRequests();
+        await loadSessionAndRequests(true);
       } else {
         alert(data.error?.message || "No se pudo finalizar la reproducción");
       }
@@ -1280,7 +1302,7 @@ function GuestContent() {
       if (res.ok) {
         setSuccessMessage(data.message || "Turno cancelado exitosamente");
         setTimeout(() => setSuccessMessage(null), 4000);
-        await loadSessionAndRequests();
+        await loadSessionAndRequests(true);
       } else {
         alert(data.error?.message || "No se pudo cancelar");
       }
