@@ -93,8 +93,15 @@ export async function POST(req: NextRequest) {
     }
 
     const pendingConsumptionBalanceCents = Math.max(0, estimated - finalDepositAmount);
-    const countDeposits = await prisma.gastroCustomerDeposit.count({ where: { tenantId } });
-    const receiptNumber = `SEN-${String(countDeposits + 101).padStart(5, "0")}`;
+    const existingDeposits = await prisma.gastroCustomerDeposit.findMany({
+      select: { receiptNumber: true },
+    });
+    const maxDepositNum = existingDeposits.reduce((max, d) => {
+      const m = d.receiptNumber.match(/(\d+)$/);
+      const n = m ? parseInt(m[1], 10) : 0;
+      return n > max ? n : max;
+    }, 100);
+    const receiptNumber = `SEN-${String(maxDepositNum + 1).padStart(5, "0")}`;
 
     const deposit = await prisma.$transaction(async (tx) => {
       const created = await tx.gastroCustomerDeposit.create({
@@ -283,12 +290,21 @@ export async function PATCH(req: NextRequest) {
       // Si quedó 100% cubierto al aplicar la seña, generar la venta pendiente de facturación sin duplicar ingreso
       if (isNowFullyCovered) {
         const sourceUniqueId = `SRC-GASTRO-${order.tenantId.slice(-6)}-${order.id}`;
-        const existingSale = await tx.gastroPendingInvoiceSale.findUnique({
-          where: { sourceUniqueId },
+        const existingSale = await tx.gastroPendingInvoiceSale.findFirst({
+          where: {
+            OR: [{ sourceUniqueId }, { orderId: order.id }],
+          },
         });
         if (!existingSale) {
-          const countSales = await tx.gastroPendingInvoiceSale.count({ where: { tenantId } });
-          const saleNumber = `VTA-${String(countSales + 1001).padStart(6, "0")}`;
+          const existingSales = await tx.gastroPendingInvoiceSale.findMany({
+            select: { saleNumber: true },
+          });
+          const maxSaleNum = existingSales.reduce((max, s) => {
+            const m = s.saleNumber.match(/(\d+)$/);
+            const n = m ? parseInt(m[1], 10) : 0;
+            return n > max ? n : max;
+          }, 1000);
+          const saleNumber = `VTA-${String(maxSaleNum + 1).padStart(6, "0")}`;
 
           await tx.gastroPendingInvoiceSale.create({
             data: {

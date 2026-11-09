@@ -168,10 +168,21 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, shift: existingOpen });
       }
 
-      const countShifts = await prisma.gastroCashRegisterShift.count({ where: { tenantId } });
+      const existingShifts = await prisma.gastroCashRegisterShift.findMany({
+        select: { shiftCode: true },
+      });
+      const maxShiftNum = existingShifts.reduce((max, s) => {
+        const m = s.shiftCode.match(/(\d+)$/);
+        const n = m ? parseInt(m[1], 10) : 0;
+        return n > max ? n : max;
+      }, 0);
       const shiftCode = `TURNO-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${String(
-        countShifts + 1
+        maxShiftNum + 1
       ).padStart(2, "0")}`;
+
+      const validUser = session.sub
+        ? await prisma.user.findUnique({ where: { id: session.sub }, select: { id: true } })
+        : null;
 
       const shift = await prisma.gastroCashRegisterShift.create({
         data: {
@@ -190,7 +201,7 @@ export async function POST(req: NextRequest) {
       await prisma.auditLog.create({
         data: {
           tenantId,
-          userId: session.sub,
+          userId: validUser?.id || null,
           action: "GASTRO_CASH_SHIFT_OPENED",
           resource: "GASTRO_CASH_SHIFT",
           resourceId: shift.id,
@@ -561,13 +572,22 @@ export async function POST(req: NextRequest) {
         let pendingInvoiceSale = null;
         if (isOrderFullyPaid) {
           const sourceUniqueId = `SRC-GASTRO-${targetOrder.tenantId.slice(-6)}-${targetOrder.id}`;
-          const existingSale = await tx.gastroPendingInvoiceSale.findUnique({
-            where: { sourceUniqueId },
+          const existingSale = await tx.gastroPendingInvoiceSale.findFirst({
+            where: {
+              OR: [{ sourceUniqueId }, { orderId: targetOrder.id }],
+            },
           });
 
           if (!existingSale) {
-            const countSales = await tx.gastroPendingInvoiceSale.count({ where: { tenantId } });
-            const saleNumber = `VTA-${String(countSales + 1001).padStart(6, "0")}`;
+            const existingSales = await tx.gastroPendingInvoiceSale.findMany({
+              select: { saleNumber: true },
+            });
+            const maxSaleNum = existingSales.reduce((max, s) => {
+              const m = s.saleNumber.match(/(\d+)$/);
+              const n = m ? parseInt(m[1], 10) : 0;
+              return n > max ? n : max;
+            }, 1000);
+            const saleNumber = `VTA-${String(maxSaleNum + 1).padStart(6, "0")}`;
 
             pendingInvoiceSale = await tx.gastroPendingInvoiceSale.create({
               data: {
@@ -608,10 +628,14 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        const validUser = session.sub
+          ? await tx.user.findUnique({ where: { id: session.sub }, select: { id: true } })
+          : null;
+
         await tx.auditLog.create({
           data: {
             tenantId,
-            userId: session.sub,
+            userId: validUser?.id || null,
             action: "GASTRO_PAYMENT_CONFIRMED",
             resource: "GASTRO_PAYMENT",
             resourceId: confirmedPayment.id,

@@ -516,9 +516,17 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Generar número único de pedido (ej: PED-000101)
-      const countOrders = await tx.gastroOrder.count({ where: { tenantId } });
-      const orderNumber = `PED-${String(countOrders + 101).padStart(6, "0")}`;
+      // Generar número único de pedido (ej: PED-000112) sin colisionar aunque se hayan borrado pedidos previos
+      const existingOrders = await tx.gastroOrder.findMany({
+        where: { tenantId },
+        select: { orderNumber: true },
+      });
+      const maxOrderNum = existingOrders.reduce((max, o) => {
+        const m = o.orderNumber.match(/(\d+)$/);
+        const n = m ? parseInt(m[1], 10) : 0;
+        return n > max ? n : max;
+      }, 100);
+      const orderNumber = `PED-${String(maxOrderNum + 1).padStart(6, "0")}`;
 
       // Determinar estados iniciales según si quedó cubierto 100% por seña o requiere caja
       const isFullyPaidByDeposit = totalCents === 0 && depositAppliedCents > 0;
