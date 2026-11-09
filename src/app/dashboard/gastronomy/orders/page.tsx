@@ -40,7 +40,7 @@ export default function GastronomyOrdersPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const res = await fetch("/api/v1/gastronomy/bootstrap");
+      const res = await fetch("/api/v1/gastronomy/bootstrap", { cache: "no-store" });
       if (res.ok) {
         const json = await res.json();
         setData(json);

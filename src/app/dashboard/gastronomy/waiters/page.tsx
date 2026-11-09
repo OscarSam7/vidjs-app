@@ -19,7 +19,7 @@ export default function GastronomyWaitersPanelPage() {
   const [feedback, setFeedback] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
   const loadData = useCallback(async () => {
-    const res = await fetch("/api/v1/gastronomy/bootstrap");
+    const res = await fetch("/api/v1/gastronomy/bootstrap", { cache: "no-store" });
     if (res.ok) {
       setData(await res.json());
     }

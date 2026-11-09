@@ -16,6 +16,7 @@ import {
   INVOICE_STATUS_LABELS,
   PAYMENT_METHOD_LABELS,
 } from "@/lib/gastronomy/format";
+import { useRealtime } from "@/hooks/use-realtime";
 
 export default function GastronomyPendingInvoicingPage() {
   const [data, setData] = useState<any>(null);
@@ -42,17 +43,14 @@ export default function GastronomyPendingInvoicingPage() {
 
   useEffect(() => {
     loadData();
-    const es = new EventSource("/api/v1/realtime");
-    es.onmessage = (ev) => {
-      try {
-        const payload = JSON.parse(ev.data);
-        if (payload.type?.startsWith("GASTRO_")) loadData();
-      } catch {
-        // ignore
-      }
-    };
-    return () => es.close();
   }, [loadData]);
+
+  useRealtime({
+    eventId: "global",
+    onEvent: (type) => {
+      if (type.startsWith("GASTRO_")) loadData();
+    },
+  });
 
   const sales: any[] = data?.pendingSales || [];
   const filteredSales = sales.filter((s) =>

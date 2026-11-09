@@ -53,7 +53,7 @@ export default function GastronomyDashboardPage() {
 
   const fetchBootstrap = useCallback(async () => {
     try {
-      const res = await fetch("/api/v1/gastronomy/bootstrap");
+      const res = await fetch("/api/v1/gastronomy/bootstrap", { cache: "no-store" });
       if (res.ok) {
         const json = await res.json();
         setData(json);
@@ -73,13 +73,15 @@ export default function GastronomyDashboardPage() {
     eventId: "global",
     onEvent: (type, payload: any) => {
       if (type.startsWith("GASTRO_")) {
-        playNotificationSound();
-        setLiveAlert(
-          `${type.replace("GASTRO_", "").replace(/_/g, " ")}: ${
-            payload?.orderNumber || payload?.productName || "Actualizado"
-          }`
-        );
-        setTimeout(() => setLiveAlert(null), 5000);
+        if (!payload?.silentPoll && !payload?.focusSync) {
+          playNotificationSound();
+          setLiveAlert(
+            `${type.replace("GASTRO_", "").replace(/_/g, " ")}: ${
+              payload?.orderNumber || payload?.productName || "Actualizado"
+            }`
+          );
+          setTimeout(() => setLiveAlert(null), 5000);
+        }
         fetchBootstrap();
       }
     },

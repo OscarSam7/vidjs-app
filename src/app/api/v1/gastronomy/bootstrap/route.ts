@@ -4,6 +4,8 @@ import { requireTenantContext } from "@/lib/auth/session";
 import { handleApiError } from "@/lib/errors";
 import { ensureGastronomySeeded } from "@/lib/gastronomy/seed-defaults";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const { session, tenantId } = await requireTenantContext();

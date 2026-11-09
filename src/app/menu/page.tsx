@@ -19,6 +19,7 @@ import {
   ORDER_STATUS_LABELS,
   DELIVERY_MODE_LABELS,
 } from "@/lib/gastronomy/format";
+import { useRealtime } from "@/hooks/use-realtime";
 
 interface ExtraOption {
   id: string;
@@ -144,20 +145,14 @@ function CustomerMenuPwaContent() {
     loadPublicMenu(undefined, undefined, qrTableId || undefined);
   }, [searchParams, loadPublicMenu]);
 
-  useEffect(() => {
-    const es = new EventSource("/api/v1/realtime");
-    es.onmessage = (ev) => {
-      try {
-        const payload = JSON.parse(ev.data);
-        if (payload.type?.startsWith("GASTRO_")) {
-          loadPublicMenu();
-        }
-      } catch {
-        // ignore
+  useRealtime({
+    eventId: "global",
+    onEvent: (type) => {
+      if (type.startsWith("GASTRO_")) {
+        loadPublicMenu();
       }
-    };
-    return () => es.close();
-  }, [loadPublicMenu]);
+    },
+  });
 
   const openProductModal = (product: any) => {
     setCustomizingProduct(product);

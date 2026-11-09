@@ -8,6 +8,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import { formatGuaranies, PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/gastronomy/format";
+import { useRealtime } from "@/hooks/use-realtime";
 
 export default function GastronomyDigitalPaymentsPage() {
   const [data, setData] = useState<any>(null);
@@ -32,17 +33,14 @@ export default function GastronomyDigitalPaymentsPage() {
 
   useEffect(() => {
     loadData();
-    const es = new EventSource("/api/v1/realtime");
-    es.onmessage = (ev) => {
-      try {
-        const payload = JSON.parse(ev.data);
-        if (payload.type?.startsWith("GASTRO_")) loadData();
-      } catch {
-        // ignore
-      }
-    };
-    return () => es.close();
   }, [loadData]);
+
+  useRealtime({
+    eventId: "global",
+    onEvent: (type) => {
+      if (type.startsWith("GASTRO_")) loadData();
+    },
+  });
 
   const handleGenerateQr = async (e: React.FormEvent) => {
     e.preventDefault();

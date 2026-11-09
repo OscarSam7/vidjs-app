@@ -26,7 +26,7 @@ export default function GastronomyBarPanelPage() {
   const [filterStatus, setFilterStatus] = useState<string>("ACTIVE");
 
   const loadData = useCallback(async () => {
-    const res = await fetch("/api/v1/gastronomy/bootstrap");
+    const res = await fetch("/api/v1/gastronomy/bootstrap", { cache: "no-store" });
     if (res.ok) {
       setData(await res.json());
     }

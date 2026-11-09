@@ -13,6 +13,7 @@ import {
   PAYMENT_STATUS_LABELS,
   DELIVERY_MODE_LABELS,
 } from "@/lib/gastronomy/format";
+import { useRealtime } from "@/hooks/use-realtime";
 
 export default function GastronomyOrderHistoryPage() {
   const [data, setData] = useState<any>(null);
@@ -34,6 +35,13 @@ export default function GastronomyOrderHistoryPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useRealtime({
+    eventId: "global",
+    onEvent: (type) => {
+      if (type.startsWith("GASTRO_")) loadData();
+    },
+  });
 
   const orders: any[] = data?.orders || [];
   const filteredOrders = orders.filter((o) => {

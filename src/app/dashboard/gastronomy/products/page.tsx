@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Package, Plus, RefreshCw, Pencil } from "lucide-react";
 import { formatGuaranies, GASTRO_AVAILABILITY_LABELS } from "@/lib/gastronomy/format";
+import { useRealtime } from "@/hooks/use-realtime";
 
 export default function GastronomyProductsPage() {
   const [data, setData] = useState<any>(null);
@@ -27,7 +28,7 @@ export default function GastronomyProductsPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    const res = await fetch("/api/v1/gastronomy/bootstrap");
+    const res = await fetch("/api/v1/gastronomy/bootstrap", { cache: "no-store" });
     if (res.ok) {
       const json = await res.json();
       setData(json);
@@ -40,6 +41,13 @@ export default function GastronomyProductsPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useRealtime({
+    eventId: "global",
+    onEvent: (type) => {
+      if (type.startsWith("GASTRO_")) loadData();
+    },
+  });
 
   const openNewProduct = () => {
     setEditingProduct(null);

@@ -64,9 +64,10 @@ export function useRealtime({
       // EventSource reconectará automáticamente de forma nativa
     };
 
-    // Registrar listeners para cada tipo de evento
+    // Registrar listeners para cada tipo de evento (incluyendo todos los eventos Gastronómicos KDS)
     const eventTypes: RealtimeEventType[] = [
       "CONNECTED",
+      "BRANDING_UPDATED",
       "DUEL_UPDATE",
       "TRACK_CHANGE",
       "QUEUE_UPDATE",
@@ -95,6 +96,32 @@ export function useRealtime({
       "KARAOKE_VIDEO_UPDATE",
       "KARAOKE_PLAYBACK_CONTROL",
       "PULSE_UPDATE",
+      "CONTEST_STAGE_CHANGE",
+      "CONTEST_PERFORMANCE_UPDATE",
+      "CONTEST_VOTING_OPEN",
+      "CONTEST_VOTING_CLOSED",
+      "CONTEST_VOTE_UPDATE",
+      "CONTEST_REVEAL_SCORES",
+      "CONTEST_GOLDEN_BUZZER",
+      "CONTEST_LEADERBOARD_UPDATE",
+      "CONTEST_PARTICIPANT_REGISTERED",
+      "ACCREDITATION_REGISTERED",
+      "ACCREDITATION_STATUS_CHANGED",
+      "CHECKIN_RECORDED",
+      "GASTRO_ORDER_NEW_BAR",
+      "GASTRO_ORDER_NEW_KITCHEN",
+      "GASTRO_ORDER_UPDATED",
+      "GASTRO_PAYMENT_CONFIRMED",
+      "GASTRO_PAYMENT_REJECTED",
+      "GASTRO_ORDER_PREPARED",
+      "GASTRO_WAITER_REQUESTED",
+      "GASTRO_ORDER_ACCEPTED_BY_WAITER",
+      "GASTRO_ORDER_DELIVERED",
+      "GASTRO_PRODUCT_EXHAUSTED",
+      "GASTRO_PRODUCT_REACTIVATED",
+      "GASTRO_DELIVERY_CONFIG_UPDATED",
+      "GASTRO_TABLE_SESSION_UPDATED",
+      "GASTRO_INVOICING_UPDATED",
     ];
 
     eventTypes.forEach((type) => {
@@ -121,13 +148,59 @@ export function useRealtime({
   useEffect(() => {
     connect();
 
+    // Sincronización silenciosa adicional para pantallas KDS / Gastronomía (eventId === "global")
+    // Garantiza actualización instantánea entre pestañas (BroadcastChannel) y respaldo silencioso cada 2.5s
+    let bc: BroadcastChannel | null = null;
+    let silentInterval: ReturnType<typeof setInterval> | null = null;
+
+    if (typeof window !== "undefined" && enabled && eventId === "global") {
+      try {
+        bc = new BroadcastChannel("vidjs_gastro_kds_sync");
+        bc.onmessage = (ev) => {
+          const msgType = (ev.data?.type || "GASTRO_ORDER_UPDATED") as RealtimeEventType;
+          if (onEventRef.current) {
+            onEventRef.current(msgType, ev.data?.data || {});
+          }
+        };
+      } catch {
+        // BroadcastChannel no soportado en navegadores antiguos
+      }
+
+      silentInterval = setInterval(() => {
+        if (document.visibilityState === "visible" && onEventRef.current) {
+          onEventRef.current("GASTRO_ORDER_UPDATED", { silentPoll: true });
+        }
+      }, 2500);
+    }
+
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === "visible" && enabled && eventId === "global" && onEventRef.current) {
+        onEventRef.current("GASTRO_ORDER_UPDATED", { focusSync: true });
+      }
+    };
+
+    if (typeof window !== "undefined" && enabled && eventId === "global") {
+      window.addEventListener("focus", handleVisibilityOrFocus);
+      document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+    }
+
     return () => {
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
+      if (bc) {
+        bc.close();
+      }
+      if (silentInterval) {
+        clearInterval(silentInterval);
+      }
+      if (typeof window !== "undefined") {
+        window.removeEventListener("focus", handleVisibilityOrFocus);
+        document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+      }
     };
-  }, [connect]);
+  }, [connect, enabled, eventId]);
 
   const reconnect = useCallback(() => {
     connect();

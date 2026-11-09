@@ -207,6 +207,11 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      realtimeBus.broadcast("global", "GASTRO_TABLE_SESSION_UPDATED", {
+        action: "SECTOR_CREATED",
+        sectorId: sector.id,
+      });
+
       return NextResponse.json({ success: true, sector });
     }
 
@@ -231,6 +236,11 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      realtimeBus.broadcast("global", "GASTRO_TABLE_SESSION_UPDATED", {
+        action: "SECTOR_UPDATED",
+        sectorId: updatedSector.id,
+      });
+
       return NextResponse.json({ success: true, sector: updatedSector });
     }
 
@@ -253,6 +263,11 @@ export async function POST(req: NextRequest) {
           where: { id: data.sectorId },
           data: { active: false },
         });
+      });
+
+      realtimeBus.broadcast("global", "GASTRO_TABLE_SESSION_UPDATED", {
+        action: "SECTOR_DELETED",
+        sectorId: data.sectorId,
       });
 
       return NextResponse.json({ success: true });
@@ -282,6 +297,11 @@ export async function POST(req: NextRequest) {
         include: {
           sector: { select: { id: true, name: true, code: true, colorHex: true } },
         },
+      });
+
+      realtimeBus.broadcast("global", "GASTRO_TABLE_SESSION_UPDATED", {
+        action: "TABLE_CREATED",
+        tableId: created.id,
       });
 
       return NextResponse.json({ success: true, table: created });
@@ -325,6 +345,11 @@ export async function POST(req: NextRequest) {
           tableNumber: updated.number,
           sectorName: updated.sector?.name || "Salón principal",
         },
+      });
+
+      realtimeBus.broadcast("global", "GASTRO_TABLE_SESSION_UPDATED", {
+        action: "TABLE_UPDATED",
+        tableId: updated.id,
       });
 
       return NextResponse.json({ success: true, table: updated });
