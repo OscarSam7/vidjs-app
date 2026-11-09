@@ -254,21 +254,63 @@ export default function GastronomyTablesAndSectorsPage() {
             const countInSec = tables.filter(
               (t) => t.active !== false && t.sectorId === sec.id
             ).length;
+            const isSecActive = selectedSector === sec.id;
             return (
-              <button
-                key={sec.id}
-                onClick={() => setSelectedSector(sec.id)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 ${
-                  selectedSector === sec.id
-                    ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
-                    : "bg-[#0D1930] text-slate-300 border border-[#263858] hover:text-white"
-                }`}
-              >
-                <span>{sec.name}</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-black/30 text-[10px]">
-                  {countInSec}
-                </span>
-              </button>
+              <div key={sec.id} className="flex items-center gap-1">
+                <button
+                  onClick={() => setSelectedSector(sec.id)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 ${
+                    isSecActive
+                      ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
+                      : "bg-[#0D1930] text-slate-300 border border-[#263858] hover:text-white"
+                  }`}
+                >
+                  <span>{sec.name}</span>
+                  <span className="px-1.5 py-0.2 rounded-full bg-black/30 text-[10px]">
+                    {countInSec}
+                  </span>
+                </button>
+                {isSecActive && (
+                  <>
+                    <button
+                      onClick={async () => {
+                        const newName = window.prompt("Nuevo nombre para el sector:", sec.name);
+                        if (newName && newName.trim()) {
+                          await execTableAction(
+                            { action: "EDIT_SECTOR", sectorId: sec.id, sectorName: newName.trim() },
+                            `Sector renombrado a "${newName.trim()}"`
+                          );
+                        }
+                      }}
+                      className="p-2 rounded-xl bg-[#0D1930] border border-[#263858] text-slate-300 hover:text-white"
+                      title="Renombrar sector"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                    {sectors.length > 1 && (
+                      <button
+                        onClick={async () => {
+                          if (
+                            window.confirm(
+                              `¿Eliminar el sector "${sec.name}"? Sus mesas pasarán al sector principal.`
+                            )
+                          ) {
+                            await execTableAction(
+                              { action: "DELETE_SECTOR", sectorId: sec.id },
+                              `Sector "${sec.name}" eliminado`
+                            );
+                            setSelectedSector("ALL");
+                          }
+                        }}
+                        className="p-2 rounded-xl bg-red-950/30 border border-red-500/30 text-red-300 hover:text-red-200"
+                        title="Eliminar sector"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
             );
           })}
         </div>
@@ -353,7 +395,7 @@ export default function GastronomyTablesAndSectorsPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-purple-300">
-                        {table.sector?.name || table.zone || "Salón Principal"}
+                        {table.sector?.name || "Salón principal"}
                       </span>
                       <h3 className="text-base font-black text-white">{table.label}</h3>
                     </div>
@@ -366,7 +408,7 @@ export default function GastronomyTablesAndSectorsPage() {
 
                   <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
                     <span className="flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5" /> {table.capacity} pers.
+                      <Users className="w-3.5 h-3.5" /> #{table.number} • {table.capacity} pers.
                     </span>
                     {session ? (
                       <span className="font-black text-emerald-300">
@@ -376,6 +418,27 @@ export default function GastronomyTablesAndSectorsPage() {
                       <span className="text-[11px] text-slate-500">Sin consumo activo</span>
                     )}
                   </div>
+
+                  {table.activeOrders && table.activeOrders.length > 0 && (
+                    <div
+                      className="mt-2.5 p-2 rounded-xl bg-[#080F1F] border border-amber-500/30 flex items-center justify-between text-[11px]"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className="text-amber-300 font-bold">
+                        {table.activeOrders.length} pedido{table.activeOrders.length > 1 ? "s" : ""} activo{table.activeOrders.length > 1 ? "s" : ""}
+                      </span>
+                      {table.activeOrders.some((o: any) => o.paymentStatus === "PENDING") ? (
+                        <Link
+                          href="/dashboard/gastronomy/cashier"
+                          className="px-2 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px]"
+                        >
+                          Cobrar en Caja →
+                        </Link>
+                      ) : (
+                        <span className="text-emerald-300 font-bold text-[10px]">Pago Aprobado</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Botones rápidos de QR e Impresión en cada tarjeta */}

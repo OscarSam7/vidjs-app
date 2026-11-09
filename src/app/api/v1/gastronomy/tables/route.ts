@@ -12,6 +12,8 @@ import { ensureGastronomySeeded } from "@/lib/gastronomy/seed-defaults";
 const tableOperationSchema = z.object({
   action: z.enum([
     "CREATE_SECTOR",
+    "EDIT_SECTOR",
+    "DELETE_SECTOR",
     "CREATE_TABLE",
     "EDIT_TABLE",
     "DELETE_TABLE",
@@ -25,6 +27,7 @@ const tableOperationSchema = z.object({
   ]),
   venueId: z.string().optional(),
   // Para sector
+  sectorId: z.string().optional(),
   sectorName: z.string().optional(),
   sectorCode: z.string().optional(),
   colorHex: z.string().optional(),
@@ -33,7 +36,7 @@ const tableOperationSchema = z.object({
   number: z.coerce.number().int().optional(),
   label: z.string().optional(),
   capacity: z.coerce.number().int().optional(),
-  sectorId: z.string().optional(),
+  zone: z.string().optional(),
   active: z.boolean().optional(),
   regenerateQr: z.boolean().optional(),
   tableStatus: z
@@ -58,14 +61,20 @@ export async function GET(req: NextRequest) {
 
     const [sectors, tables, activeEvent] = await Promise.all([
       prisma.gastroSector.findMany({
-        where: { tenantId },
+        where: { tenantId, active: true },
         orderBy: { orderIndex: "asc" },
       }),
       prisma.table.findMany({
-        where: { tenantId },
+        where: { tenantId, active: true },
         include: {
           venue: { select: { id: true, name: true } },
           sector: { select: { id: true, name: true, code: true, colorHex: true } },
+          gastroOrders: {
+            where: { status: { not: "CANCELLED" } },
+            include: { items: true },
+            orderBy: { receivedAt: "desc" },
+            take: 10,
+          },
           gastroTableSessions: {
             where: { status: { in: ["OPEN", "PENDING_PAYMENT"] } },
             include: {
@@ -114,6 +123,9 @@ export async function GET(req: NextRequest) {
         const menuUrl = `${origin}/menu?qrToken=${t.qrToken}`;
         const qrDataUrl = await generateQrDataUrl(scanUrl);
         const menuQrDataUrl = await generateQrDataUrl(menuUrl);
+        const activeOrders = (t.gastroOrders || []).filter(
+          (o) => o.status !== "DELIVERED" || o.paymentStatus === "PENDING"
+        );
         return {
           ...t,
           sectorId: effectiveSectorId,
@@ -123,6 +135,7 @@ export async function GET(req: NextRequest) {
           qrDataUrl,
           menuQrDataUrl,
           activeSession: t.gastroTableSessions[0] || null,
+          activeOrders,
         };
       })
     );
@@ -197,17 +210,59 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, sector });
     }
 
+    // 1B. EDITAR SECTOR Y SINCRONIZAR PEDIDOS ASOCIADOS
+    if (data.action === "EDIT_SECTOR" && data.sectorId && data.sectorName) {
+      const updatedSector = await prisma.gastroSector.update({
+        where: { id: data.sectorId },
+        data: {
+          name: data.sectorName.trim(),
+          ...(data.colorHex ? { colorHex: data.colorHex } : {}),
+        },
+      });
+
+      const sectorTables = await prisma.table.findMany({
+        where: { tenantId, sectorId: updatedSector.id },
+        select: { id: true },
+      });
+      if (sectorTables.length > 0) {
+        await prisma.gastroOrder.updateMany({
+          where: { tableId: { in: sectorTables.map((t) => t.id) } },
+          data: { sectorName: updatedSector.name },
+        });
+      }
+
+      return NextResponse.json({ success: true, sector: updatedSector });
+    }
+
+    // 1C. ELIMINAR SECTOR (REASIGNANDO MESAS AL SECTOR PRINCIPAL)
+    if (data.action === "DELETE_SECTOR" && data.sectorId) {
+      const fallbackSector = await prisma.gastroSector.findFirst({
+        where: { tenantId, id: { not: data.sectorId }, active: true },
+        orderBy: { orderIndex: "asc" },
+      });
+
+      if (fallbackSector) {
+        await prisma.table.updateMany({
+          where: { tenantId, sectorId: data.sectorId },
+          data: { sectorId: fallbackSector.id },
+        });
+      }
+
+      await prisma.gastroSector.delete({ where: { id: data.sectorId } }).catch(async () => {
+        await prisma.gastroSector.update({
+          where: { id: data.sectorId },
+          data: { active: false },
+        });
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
     // 2. CREAR MESA CON SECTOR (Fase 9)
     if (data.action === "CREATE_TABLE") {
-      const countTables = await prisma.table.count({ where: { venueId: targetVenueId } });
+      const countTables = await prisma.table.count({ where: { tenantId, active: true } });
       const nextNum = data.number || countTables + 1;
       const qrToken = `qr_gastro_m${nextNum}_${Math.random().toString(36).slice(2, 8)}`;
-
-      let sectorZone = "MAIN";
-      if (data.sectorId) {
-        const sec = await prisma.gastroSector.findUnique({ where: { id: data.sectorId } });
-        if (sec) sectorZone = sec.name;
-      }
 
       const created = await prisma.table.create({
         data: {
@@ -217,7 +272,7 @@ export async function POST(req: NextRequest) {
           label: data.label || `Mesa ${nextNum}`,
           capacity: data.capacity || 4,
           sectorId: data.sectorId || null,
-          zone: sectorZone,
+          zone: data.zone || "DJ",
           tableStatus: "AVAILABLE",
           qrToken,
           posX: data.posX ?? (countTables % 4) * 220 + 40,
@@ -242,12 +297,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      let updatedZone = existing.zone;
-      if (data.sectorId) {
-        const sec = await prisma.gastroSector.findUnique({ where: { id: data.sectorId } });
-        if (sec) updatedZone = sec.name;
-      }
-
       const newQrToken = data.regenerateQr
         ? `qr_gastro_m${data.number || existing.number}_${Math.random().toString(36).slice(2, 8)}`
         : existing.qrToken;
@@ -258,12 +307,23 @@ export async function POST(req: NextRequest) {
           ...(data.number !== undefined ? { number: data.number } : {}),
           ...(data.label !== undefined ? { label: data.label } : {}),
           ...(data.capacity !== undefined ? { capacity: data.capacity } : {}),
-          ...(data.sectorId !== undefined ? { sectorId: data.sectorId, zone: updatedZone } : {}),
+          ...(data.sectorId !== undefined ? { sectorId: data.sectorId } : {}),
+          ...(data.zone !== undefined ? { zone: data.zone } : {}),
           ...(data.active !== undefined ? { active: data.active } : {}),
           qrToken: newQrToken,
         },
         include: {
           sector: { select: { id: true, name: true, code: true, colorHex: true } },
+        },
+      });
+
+      // Sincronizar nombre de mesa, número y sector en todos los pedidos asociados a esta mesa
+      await prisma.gastroOrder.updateMany({
+        where: { tableId: updated.id },
+        data: {
+          tableLabel: updated.label,
+          tableNumber: updated.number,
+          sectorName: updated.sector?.name || "Salón principal",
         },
       });
 

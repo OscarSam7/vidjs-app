@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { getCurrentSession } from "@/lib/auth/session";
 import { getCurrentGuestSession } from "@/lib/auth/guest-session";
 import { handleApiError } from "@/lib/errors";
 import { ensureGastronomySeeded } from "@/lib/gastronomy/seed-defaults";
@@ -8,13 +9,15 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const qrToken = searchParams.get("qrToken");
+    const tableIdParam = searchParams.get("tableId");
     const slug = searchParams.get("slug");
     const tableNumberParam = searchParams.get("table");
 
-    // 1. Intentar identificar desde sesión activa de invitado (escaneo QR previo)
+    // 1. Intentar identificar desde sesión activa de invitado o usuario staff autenticado
     const guestSession = await getCurrentGuestSession().catch(() => null);
+    const userSession = await getCurrentSession().catch(() => null);
 
-    let tenantId: string | null = guestSession?.tenant.id || null;
+    let tenantId: string | null = userSession?.tenantId || guestSession?.tenant.id || null;
     let venueId: string | null = guestSession?.table.venueId || null;
     let tableInfo: {
       id: string;
@@ -27,26 +30,26 @@ export async function GET(req: NextRequest) {
       ? `SES-M${guestSession.table.number}-${guestSession.id.slice(-4).toUpperCase()}`
       : `SES-WEB-${Date.now().toString(36).slice(-4).toUpperCase()}`;
 
-    // 2. Si viene qrToken explícito en query, resolver la mesa
-    if (qrToken) {
-      const tableByQr = await prisma.table.findUnique({
-        where: { qrToken },
+    // 2. Si viene qrToken o tableId explícito en query, resolver la mesa
+    if (qrToken || tableIdParam) {
+      const tableFound = await prisma.table.findFirst({
+        where: qrToken ? { qrToken } : { id: tableIdParam! },
         include: {
           sector: { select: { name: true } },
           venue: { select: { id: true, name: true, tenantId: true } },
         },
       });
-      if (tableByQr) {
-        tenantId = tableByQr.tenantId;
-        venueId = tableByQr.venueId;
+      if (tableFound) {
+        tenantId = tableFound.tenantId;
+        venueId = tableFound.venueId;
         tableInfo = {
-          id: tableByQr.id,
-          number: tableByQr.number,
-          label: tableByQr.label,
-          sectorName: tableByQr.sector?.name || tableByQr.zone || "Salón Principal",
-          qrToken: tableByQr.qrToken,
+          id: tableFound.id,
+          number: tableFound.number,
+          label: tableFound.label,
+          sectorName: tableFound.sector?.name || "Salón principal",
+          qrToken: tableFound.qrToken,
         };
-        sessionCode = `SES-M${tableByQr.number}-${tableByQr.qrToken.slice(-4).toUpperCase()}`;
+        sessionCode = `SES-M${tableFound.number}-${tableFound.qrToken.slice(-4).toUpperCase()}`;
       }
     }
 
@@ -55,7 +58,7 @@ export async function GET(req: NextRequest) {
       const tenantBySlug = await prisma.tenant.findUnique({
         where: { slug },
         include: {
-          venues: { where: { active: true }, take: 1 },
+          venues: { where: { active: true }, orderBy: { createdAt: "asc" }, take: 1 },
         },
       });
       if (tenantBySlug) {
@@ -64,15 +67,22 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 4. Fallback al primer tenant activo (para enlaces directos o pruebas)
+    // 4. Fallback al establecimiento principal activo (priorizando el que posee usuarios activos)
     if (!tenantId) {
-      const firstTenant = await prisma.tenant.findFirst({
-        where: { status: "ACTIVE" },
-        include: { venues: { where: { active: true }, take: 1 } },
-      });
-      if (firstTenant) {
-        tenantId = firstTenant.id;
-        venueId = firstTenant.venues[0]?.id || null;
+      const mainTenant =
+        (await prisma.tenant.findFirst({
+          where: { status: "ACTIVE", users: { some: {} } },
+          include: { venues: { where: { active: true }, orderBy: { createdAt: "asc" }, take: 1 } },
+          orderBy: { createdAt: "asc" },
+        })) ||
+        (await prisma.tenant.findFirst({
+          where: { status: "ACTIVE" },
+          include: { venues: { where: { active: true }, orderBy: { createdAt: "asc" }, take: 1 } },
+          orderBy: { createdAt: "asc" },
+        }));
+      if (mainTenant) {
+        tenantId = mainTenant.id;
+        venueId = mainTenant.venues[0]?.id || null;
       }
     }
 
@@ -87,9 +97,9 @@ export async function GET(req: NextRequest) {
     const seeded = await ensureGastronomySeeded(tenantId, venueId || undefined);
     const activeVenueId = venueId || seeded?.venueId;
 
-    // Resolver datos de la mesa si no se había resuelto por qrToken
+    // Resolver datos de la mesa si no se había resuelto por qrToken o tableId
     if (!tableInfo) {
-      if (guestSession?.table) {
+      if (guestSession?.table && guestSession.tenant.id === tenantId) {
         const dbTable = await prisma.table.findUnique({
           where: { id: guestSession.table.id },
           include: { sector: { select: { name: true } } },
@@ -99,14 +109,18 @@ export async function GET(req: NextRequest) {
             id: dbTable.id,
             number: dbTable.number,
             label: dbTable.label,
-            sectorName: dbTable.sector?.name || dbTable.zone || "Salón Principal",
+            sectorName: dbTable.sector?.name || "Salón principal",
             qrToken: dbTable.qrToken,
           };
         }
-      } else if (tableNumberParam && activeVenueId) {
-        const num = parseInt(tableNumberParam, 10);
+      } else if (tableNumberParam) {
+        const num = parseInt(tableNumberParam.replace(/\D/g, ""), 10);
         const dbTable = await prisma.table.findFirst({
-          where: { venueId: activeVenueId, ...(isNaN(num) ? {} : { number: num }) },
+          where: {
+            tenantId,
+            active: true,
+            ...(isNaN(num) ? { label: { contains: tableNumberParam, mode: "insensitive" } } : { number: num }),
+          },
           include: { sector: { select: { name: true } } },
         });
         if (dbTable) {
@@ -114,7 +128,7 @@ export async function GET(req: NextRequest) {
             id: dbTable.id,
             number: dbTable.number,
             label: dbTable.label,
-            sectorName: dbTable.sector?.name || dbTable.zone || "Salón Principal",
+            sectorName: dbTable.sector?.name || "Salón principal",
             qrToken: dbTable.qrToken,
           };
           sessionCode = `SES-M${dbTable.number}-${dbTable.id.slice(-4).toUpperCase()}`;
@@ -123,9 +137,9 @@ export async function GET(req: NextRequest) {
     }
 
     // Fallback a la primera mesa activa del local si sigue sin mesa asignada
-    if (!tableInfo && activeVenueId) {
+    if (!tableInfo) {
       const firstTable = await prisma.table.findFirst({
-        where: { venueId: activeVenueId, active: true },
+        where: { tenantId, active: true },
         include: { sector: { select: { name: true } } },
         orderBy: { number: "asc" },
       });
@@ -134,7 +148,7 @@ export async function GET(req: NextRequest) {
           id: firstTable.id,
           number: firstTable.number,
           label: firstTable.label,
-          sectorName: firstTable.sector?.name || firstTable.zone || "Salón Principal",
+          sectorName: firstTable.sector?.name || "Salón principal",
           qrToken: firstTable.qrToken,
         };
       }
@@ -184,8 +198,8 @@ export async function GET(req: NextRequest) {
           ? prisma.gastroDeliveryConfig.findUnique({ where: { venueId: activeVenueId } })
           : prisma.gastroDeliveryConfig.findFirst({ where: { tenantId } }),
         prisma.table.findMany({
-          where: { tenantId, ...(activeVenueId ? { venueId: activeVenueId } : {}), active: true },
-          include: { sector: { select: { name: true } } },
+          where: { tenantId, active: true },
+          include: { sector: { select: { id: true, name: true } } },
           orderBy: { number: "asc" },
         }),
         // Pedidos recientes de esta mesa para seguimiento en vivo
@@ -244,7 +258,7 @@ export async function GET(req: NextRequest) {
         id: t.id,
         number: t.number,
         label: t.label,
-        sectorName: t.sector?.name || t.zone || "Salón Principal",
+        sectorName: t.sector?.name || "Salón principal",
         qrToken: t.qrToken,
       })),
       deliveryConfig: deliveryConfig || {

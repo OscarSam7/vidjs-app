@@ -82,13 +82,15 @@ function CustomerMenuPwaContent() {
   const [trackedOrders, setTrackedOrders] = useState<any[]>([]);
 
   const loadPublicMenu = useCallback(
-    async (currentQrToken?: string, currentTableParam?: string) => {
+    async (currentQrToken?: string, currentTableParam?: string, explicitTableId?: string) => {
       try {
         const qs = new URLSearchParams();
         const qrT = currentQrToken || searchParams.get("qrToken") || "";
+        const tblId = explicitTableId || selectedTableId || searchParams.get("tableId") || "";
         const tbl = currentTableParam || searchParams.get("table") || "";
         const slug = searchParams.get("slug") || "";
         if (qrT) qs.set("qrToken", qrT);
+        if (tblId) qs.set("tableId", tblId);
         if (tbl) qs.set("table", tbl);
         if (slug) qs.set("slug", slug);
 
@@ -100,11 +102,11 @@ function CustomerMenuPwaContent() {
           setMenuData(json);
 
           if (json.sessionInfo?.table) {
-            setSelectedTableId((prev) => prev || json.sessionInfo.table.id);
+            setSelectedTableId((prev) => explicitTableId || prev || json.sessionInfo.table.id);
             setTableNumberText(
               json.sessionInfo.table.label || `Mesa ${json.sessionInfo.table.number}`
             );
-            setSectorName(json.sessionInfo.table.sectorName || "Salón Principal");
+            setSectorName(json.sessionInfo.table.sectorName || "Salón principal");
           }
           if (json.sessionInfo?.sessionCode) {
             setSessionCode((prev) => prev || json.sessionInfo.sessionCode);
@@ -127,7 +129,7 @@ function CustomerMenuPwaContent() {
         setLoading(false);
       }
     },
-    [searchParams, deliveryMode]
+    [searchParams, deliveryMode, selectedTableId]
   );
 
   useEffect(() => {
@@ -136,10 +138,10 @@ function CustomerMenuPwaContent() {
     const qrTableId = searchParams.get("tableId");
 
     if (qrTable) setTableNumberText(qrTable.startsWith("Mesa") ? qrTable : `Mesa ${qrTable}`);
-    if (qrSector) setSectorName(qrSector);
+    if (qrSector && qrSector !== "DJ" && qrSector !== "KARAOKE") setSectorName(qrSector);
     if (qrTableId) setSelectedTableId(qrTableId);
 
-    loadPublicMenu();
+    loadPublicMenu(undefined, undefined, qrTableId || undefined);
   }, [searchParams, loadPublicMenu]);
 
   useEffect(() => {
@@ -202,7 +204,8 @@ function CustomerMenuPwaContent() {
     const found = (menuData?.tables || []).find((t: any) => t.id === tableId);
     if (found) {
       setTableNumberText(found.label || `Mesa ${found.number}`);
-      setSectorName(found.sectorName || "Salón Principal");
+      setSectorName(found.sectorName || "Salón principal");
+      loadPublicMenu(found.qrToken, undefined, tableId);
     }
   };
 
@@ -388,12 +391,26 @@ function CustomerMenuPwaContent() {
                     <span className="font-mono font-bold text-sm text-purple-300">
                       {ord.orderNumber}
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-200 text-[11px] font-semibold border border-purple-500/30">
-                      {ORDER_STATUS_LABELS[ord.status] || ord.status}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          ord.paymentStatus === "APPROVED"
+                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                            : "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                        }`}
+                      >
+                        {ord.paymentStatus === "APPROVED" ? "Pago Confirmado" : "Pend. Pago en Caja"}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-200 text-[11px] font-semibold border border-purple-500/30">
+                        {ORDER_STATUS_LABELS[ord.status] || ord.status}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between text-xs text-zinc-400">
-                    <span>{DELIVERY_MODE_LABELS[ord.deliveryMode] || ord.deliveryMode}</span>
+                    <span>
+                      {ord.tableLabel} ({ord.sectorName}) •{" "}
+                      {DELIVERY_MODE_LABELS[ord.deliveryMode] || ord.deliveryMode}
+                    </span>
                     <span className="font-bold text-emerald-400">
                       {formatGuaranies(ord.totalCents)}
                     </span>

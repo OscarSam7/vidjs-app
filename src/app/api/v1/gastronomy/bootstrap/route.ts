@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: "asc" },
       }),
       prisma.gastroSector.findMany({
-        where: { tenantId, ...(activeVenueId ? { venueId: activeVenueId } : {}) },
+        where: { tenantId, ...(venueIdParam ? { venueId: venueIdParam } : {}) },
         orderBy: { orderIndex: "asc" },
       }),
       prisma.gastroCategory.findMany({
@@ -59,26 +59,35 @@ export async function GET(req: NextRequest) {
         ? prisma.gastroDeliveryConfig.findUnique({ where: { venueId: activeVenueId } })
         : prisma.gastroDeliveryConfig.findFirst({ where: { tenantId } }),
       prisma.gastroOrder.findMany({
-        where: { tenantId, ...(activeVenueId ? { venueId: activeVenueId } : {}) },
+        where: { tenantId, ...(venueIdParam ? { venueId: venueIdParam } : {}) },
         include: {
           items: true,
           payments: true,
+          table: {
+            select: {
+              id: true,
+              number: true,
+              label: true,
+              sectorId: true,
+              sector: { select: { id: true, name: true, code: true, colorHex: true } },
+            },
+          },
         },
         orderBy: { receivedAt: "desc" },
         take: 150,
       }),
       prisma.gastroPayment.findMany({
-        where: { tenantId, ...(activeVenueId ? { venueId: activeVenueId } : {}) },
+        where: { tenantId, ...(venueIdParam ? { venueId: venueIdParam } : {}) },
         orderBy: { createdAt: "desc" },
         take: 100,
       }),
       prisma.gastroCustomerDeposit.findMany({
-        where: { tenantId, ...(activeVenueId ? { venueId: activeVenueId } : {}) },
+        where: { tenantId, ...(venueIdParam ? { venueId: venueIdParam } : {}) },
         orderBy: { depositDate: "desc" },
         take: 50,
       }),
       prisma.gastroPendingInvoiceSale.findMany({
-        where: { tenantId, ...(activeVenueId ? { venueId: activeVenueId } : {}) },
+        where: { tenantId, ...(venueIdParam ? { venueId: venueIdParam } : {}) },
         orderBy: { saleDate: "desc" },
         take: 100,
       }),
@@ -87,7 +96,7 @@ export async function GET(req: NextRequest) {
         orderBy: { name: "asc" },
       }),
       prisma.table.findMany({
-        where: { tenantId, ...(activeVenueId ? { venueId: activeVenueId } : {}) },
+        where: { tenantId, ...(venueIdParam ? { venueId: venueIdParam } : {}), active: true },
         include: {
           sector: { select: { id: true, name: true, code: true, colorHex: true } },
           gastroTableSessions: {
@@ -111,12 +120,19 @@ export async function GET(req: NextRequest) {
       prisma.gastroCashRegisterShift.findFirst({
         where: {
           tenantId,
-          ...(activeVenueId ? { venueId: activeVenueId } : {}),
+          ...(venueIdParam ? { venueId: venueIdParam } : {}),
           status: "OPEN",
         },
         orderBy: { openedAt: "desc" },
       }),
     ]);
+
+    const normalizedOrders = orders.map((ord) => ({
+      ...ord,
+      tableLabel: ord.table?.label || ord.tableLabel,
+      tableNumber: ord.table?.number ?? ord.tableNumber,
+      sectorName: ord.table?.sector?.name || ord.sectorName || "Salón principal",
+    }));
 
     return NextResponse.json({
       success: true,
@@ -132,7 +148,7 @@ export async function GET(req: NextRequest) {
       categories,
       products,
       deliveryConfig,
-      orders,
+      orders: normalizedOrders,
       payments,
       deposits,
       pendingSales,

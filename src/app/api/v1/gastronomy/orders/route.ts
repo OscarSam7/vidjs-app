@@ -66,8 +66,12 @@ export async function GET(req: NextRequest) {
 
     let tenantId = userSession?.tenantId || guestSession?.tenant.id || searchParams.get("tenantId");
     if (!tenantId) {
-      const firstTenant = await prisma.tenant.findFirst({ where: { status: "ACTIVE" } });
-      tenantId = firstTenant?.id || null;
+      const mainTenant =
+        (await prisma.tenant.findFirst({
+          where: { status: "ACTIVE", users: { some: {} } },
+          orderBy: { createdAt: "asc" },
+        })) || (await prisma.tenant.findFirst({ where: { status: "ACTIVE" } }));
+      tenantId = mainTenant?.id || null;
     }
 
     if (!tenantId) {
@@ -105,10 +109,39 @@ export async function POST(req: NextRequest) {
     const userSession = await getCurrentSession().catch(() => null);
     const guestSession = await getCurrentGuestSession().catch(() => null);
 
+    // Resolver Mesa y Sector primero si existe tableId para garantizar consistencia de Tenant, Venue y Sector
+    let tableId = data.tableId || guestSession?.table.id || null;
+    let tableLabel = data.tableLabel || guestSession?.table.label || "Mesa 1";
+    let tableNumber: number | null = guestSession?.table.number || 1;
+    let sectorName = data.sectorName && data.sectorName !== "DJ" && data.sectorName !== "KARAOKE"
+      ? data.sectorName
+      : "Salón principal";
+    let resolvedTableTenantId: string | null = null;
+    let resolvedTableVenueId: string | null = null;
+
+    if (tableId) {
+      const dbTable = await prisma.table.findUnique({
+        where: { id: tableId },
+        include: { sector: { select: { name: true } } },
+      });
+      if (dbTable) {
+        resolvedTableTenantId = dbTable.tenantId;
+        resolvedTableVenueId = dbTable.venueId;
+        tableLabel = dbTable.label;
+        tableNumber = dbTable.number;
+        sectorName = dbTable.sector?.name || "Salón principal";
+      }
+    }
+
     // Resolver Tenant y Venue
-    let tenantId = data.tenantId || userSession?.tenantId || guestSession?.tenant.id;
+    let tenantId =
+      resolvedTableTenantId || data.tenantId || userSession?.tenantId || guestSession?.tenant.id;
     if (!tenantId) {
-      const firstTenant = await prisma.tenant.findFirst({ where: { status: "ACTIVE" } });
+      const firstTenant =
+        (await prisma.tenant.findFirst({
+          where: { status: "ACTIVE", users: { some: {} } },
+          orderBy: { createdAt: "asc" },
+        })) || (await prisma.tenant.findFirst({ where: { status: "ACTIVE" } }));
       if (!firstTenant) {
         return NextResponse.json(
           { error: { code: "NOT_FOUND", message: "No se encontró establecimiento activo" } },
@@ -118,7 +151,7 @@ export async function POST(req: NextRequest) {
       tenantId = firstTenant.id;
     }
 
-    let venueId = data.venueId || guestSession?.table.venueId;
+    let venueId = resolvedTableVenueId || data.venueId || guestSession?.table.venueId;
     if (!venueId) {
       const firstVenue = await prisma.venue.findFirst({
         where: { tenantId, active: true },
@@ -150,9 +183,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Validar configuración de modalidad de entrega (Fase 3)
-    const deliveryConfig = await prisma.gastroDeliveryConfig.findUnique({
-      where: { venueId },
-    });
+    const deliveryConfig =
+      (await prisma.gastroDeliveryConfig.findUnique({ where: { venueId } })) ||
+      (await prisma.gastroDeliveryConfig.findFirst({ where: { tenantId } }));
 
     let finalDeliveryMode = data.deliveryMode;
     if (deliveryConfig) {
@@ -185,24 +218,6 @@ export async function POST(req: NextRequest) {
             { status: 400 }
           );
         }
-      }
-    }
-
-    // Resolver Mesa y Sector
-    let tableId = data.tableId || guestSession?.table.id || null;
-    let tableLabel = data.tableLabel || guestSession?.table.label || "Mesa 1";
-    let tableNumber: number | null = guestSession?.table.number || 1;
-    let sectorName = data.sectorName || "Salón Principal";
-
-    if (tableId) {
-      const dbTable = await prisma.table.findUnique({
-        where: { id: tableId },
-        include: { sector: { select: { name: true } } },
-      });
-      if (dbTable) {
-        tableLabel = dbTable.label;
-        tableNumber = dbTable.number;
-        sectorName = dbTable.sector?.name || dbTable.zone || sectorName;
       }
     }
 

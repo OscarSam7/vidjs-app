@@ -3,7 +3,6 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import LiveOrderSimulator from "@/components/gastronomy/LiveOrderSimulator";
 import {
   UtensilsCrossed,
   ClipboardList,
@@ -21,6 +20,7 @@ import {
   History,
   FileBarChart2,
   SlidersHorizontal,
+  ExternalLink,
 } from "lucide-react";
 
 const SUBMODULES = [
@@ -72,11 +72,16 @@ export default function GastronomyLayout({ children }: { children: React.ReactNo
               </Link>
             );
           })}
+          <Link
+            href="/menu"
+            target="_blank"
+            className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-600 hover:text-white transition-all whitespace-nowrap"
+          >
+            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+            <span>Abrir App Cliente (/menu)</span>
+          </Link>
         </div>
       </div>
-
-      {/* Simulador real de pedidos en vivo + Configurador rápido Barra/Cocina */}
-      <LiveOrderSimulator />
 
       {children}
     </div>

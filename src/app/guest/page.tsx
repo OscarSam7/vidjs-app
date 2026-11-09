@@ -76,7 +76,7 @@ interface SongRequestItem {
 
 interface GuestSessionInfo {
   guestName: string | null;
-  table: { id: string; number: number; label: string; zone?: string };
+  table: { id: string; number: number; label: string; zone?: string; sector?: { id: string; name: string } | null };
   event: { id: string; name: string; code: string; status: string };
   tenant: { id: string; name: string; slug: string };
 }
@@ -1882,7 +1882,7 @@ function GuestContent() {
         )}
 
         <a
-          href={`/menu?tableId=${encodeURIComponent(session?.table?.id || "")}&table=${encodeURIComponent(session?.table?.label || `Mesa ${session?.table?.number || 1}`)}&sector=${encodeURIComponent(session?.table?.zone || "Salón Principal")}`}
+          href={`/menu?tableId=${encodeURIComponent(session?.table?.id || "")}&table=${encodeURIComponent(session?.table?.label || `Mesa ${session?.table?.number || 1}`)}&sector=${encodeURIComponent(session?.table?.sector?.name || "Salón principal")}`}
           className="flex-1 py-3 text-xs font-bold text-center border-b-2 border-transparent text-emerald-400 hover:text-emerald-200 transition-all flex items-center justify-center gap-1"
         >
           <span>🍹</span>

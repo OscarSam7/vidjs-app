@@ -24,6 +24,7 @@ import {
 export default function GastronomyCashierPage() {
   const [data, setData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<"cashier" | "deposits" | "shift">("cashier");
+  const [paymentFilter, setPaymentFilter] = useState<"PENDING" | "APPROVED" | "ALL">("ALL");
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   // Campos de cobro en caja
@@ -50,13 +51,42 @@ export default function GastronomyCashierPage() {
   const [countedCash, setCountedCash] = useState(0);
   const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
+  const selectOrderForPayment = useCallback((ord: any) => {
+    const balance = Math.max(0, ord.totalCents - ord.paidCents);
+    setSelectedOrder(ord);
+    setAmountInput(balance);
+    setReceivedCashInput(balance);
+    setCustomerName(ord.customerName || "Consumidor Final");
+    setCustomerTaxId(ord.customerTaxId || "44444401-7");
+  }, []);
+
   const loadData = useCallback(async () => {
-    const res = await fetch("/api/v1/gastronomy/bootstrap");
+    const res = await fetch("/api/v1/gastronomy/bootstrap", { cache: "no-store" });
     if (res.ok) {
       const json = await res.json();
       setData(json);
       if (!depTableId && json.tables?.length > 0) {
         setDepTableId(json.tables[0].id);
+      }
+      const pendingList = (json.orders || []).filter(
+        (o: any) =>
+          o.status !== "CANCELLED" &&
+          (o.paymentStatus === "PENDING" || o.paymentStatus === "PARTIALLY_PAID")
+      );
+      if (pendingList.length > 0) {
+        setSelectedOrder((prev: any) => {
+          if (prev) {
+            const updatedPrev = (json.orders || []).find((o: any) => o.id === prev.id);
+            if (updatedPrev && updatedPrev.paymentStatus !== "APPROVED") return updatedPrev;
+          }
+          const first = pendingList[0];
+          const balance = Math.max(0, first.totalCents - first.paidCents);
+          setAmountInput(balance);
+          setReceivedCashInput(balance);
+          setCustomerName(first.customerName || "Consumidor Final");
+          setCustomerTaxId(first.customerTaxId || "44444401-7");
+          return first;
+        });
       }
     }
   }, [depTableId]);
@@ -71,15 +101,6 @@ export default function GastronomyCashierPage() {
       if (type.startsWith("GASTRO_")) loadData();
     },
   });
-
-  const selectOrderForPayment = (ord: any) => {
-    const balance = Math.max(0, ord.totalCents - ord.paidCents);
-    setSelectedOrder(ord);
-    setAmountInput(balance);
-    setReceivedCashInput(balance);
-    setCustomerName(ord.customerName || "Consumidor Final");
-    setCustomerTaxId(ord.customerTaxId || "44444401-7");
-  };
 
   const handleConfirmPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,7 +199,30 @@ export default function GastronomyCashierPage() {
     await loadData();
   };
 
-  const orders: any[] = (data?.orders || []).filter((o: any) => o.status !== "CANCELLED");
+  const rawOrders: any[] = (data?.orders || []).filter((o: any) => o.status !== "CANCELLED");
+  // Ordenar: primero los pendientes/parciales, luego los aprobados
+  const sortedOrders = [...rawOrders].sort((a, b) => {
+    const aPend = a.paymentStatus === "PENDING" || a.paymentStatus === "PARTIALLY_PAID" ? 0 : 1;
+    const bPend = b.paymentStatus === "PENDING" || b.paymentStatus === "PARTIALLY_PAID" ? 0 : 1;
+    if (aPend !== bPend) return aPend - bPend;
+    return new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime();
+  });
+
+  const pendingOrdersCount = sortedOrders.filter(
+    (o) => o.paymentStatus === "PENDING" || o.paymentStatus === "PARTIALLY_PAID"
+  ).length;
+  const approvedOrdersCount = sortedOrders.filter((o) => o.paymentStatus === "APPROVED").length;
+
+  const orders = sortedOrders.filter((o) => {
+    if (paymentFilter === "PENDING") {
+      return o.paymentStatus === "PENDING" || o.paymentStatus === "PARTIALLY_PAID";
+    }
+    if (paymentFilter === "APPROVED") {
+      return o.paymentStatus === "APPROVED";
+    }
+    return true;
+  });
+
   const deposits: any[] = data?.deposits || [];
   const tables: any[] = data?.tables || [];
   const activeShift = data?.activeShift;
@@ -251,9 +295,48 @@ export default function GastronomyCashierPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Lista de Pedidos Pendientes y Cobrados */}
           <div className="lg:col-span-2 space-y-3">
-            <h3 className="text-sm font-bold text-white">
-              Pedidos en Caja (Pendientes de Pago y Aprobados)
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>Pedidos de Clientes en Caja</span>
+                {pendingOrdersCount > 0 && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-black text-[11px] font-black animate-pulse">
+                    {pendingOrdersCount} Pendiente{pendingOrdersCount > 1 ? "s" : ""} de Pago
+                  </span>
+                )}
+              </h3>
+              <div className="flex items-center gap-1.5 text-xs">
+                <button
+                  onClick={() => setPaymentFilter("ALL")}
+                  className={`px-3 py-1.5 rounded-xl font-bold border ${
+                    paymentFilter === "ALL"
+                      ? "bg-emerald-600 text-white border-emerald-400"
+                      : "bg-[#0D1930] text-slate-300 border-[#263858]"
+                  }`}
+                >
+                  Todos ({sortedOrders.length})
+                </button>
+                <button
+                  onClick={() => setPaymentFilter("PENDING")}
+                  className={`px-3 py-1.5 rounded-xl font-bold border ${
+                    paymentFilter === "PENDING"
+                      ? "bg-amber-500 text-black border-amber-300"
+                      : "bg-[#0D1930] text-amber-300 border-amber-500/40"
+                  }`}
+                >
+                  Pendientes de Cobro ({pendingOrdersCount})
+                </button>
+                <button
+                  onClick={() => setPaymentFilter("APPROVED")}
+                  className={`px-3 py-1.5 rounded-xl font-bold border ${
+                    paymentFilter === "APPROVED"
+                      ? "bg-emerald-600 text-white border-emerald-400"
+                      : "bg-[#0D1930] text-slate-300 border-[#263858]"
+                  }`}
+                >
+                  Cobrados ({approvedOrdersCount})
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {orders.map((ord) => {
                 const pst = GASTRO_PAYMENT_STATUS_LABELS[ord.paymentStatus] || {
@@ -261,6 +344,8 @@ export default function GastronomyCashierPage() {
                   color: "bg-zinc-800 text-zinc-300",
                 };
                 const balance = Math.max(0, ord.totalCents - ord.paidCents);
+                const isPending =
+                  ord.paymentStatus === "PENDING" || ord.paymentStatus === "PARTIALLY_PAID";
                 return (
                   <div
                     key={ord.id}
@@ -268,6 +353,8 @@ export default function GastronomyCashierPage() {
                     className={`p-4 rounded-2xl bg-[#0D1930] border transition-all cursor-pointer space-y-2.5 ${
                       selectedOrder?.id === ord.id
                         ? "border-emerald-400 ring-2 ring-emerald-500/30"
+                        : isPending
+                        ? "border-amber-500/60 hover:border-amber-400"
                         : "border-[#263858] hover:border-emerald-500/40"
                     }`}
                   >
@@ -286,6 +373,23 @@ export default function GastronomyCashierPage() {
                       </span>
                       <span className="text-slate-400">{ord.customerName}</span>
                     </div>
+
+                    {/* Detalle de productos solicitados por el cliente */}
+                    {ord.items && ord.items.length > 0 && (
+                      <div className="p-2 rounded-xl bg-[#080F1F]/80 border border-[#1E2E4A] text-[11px] text-slate-300 space-y-0.5">
+                        {ord.items.map((it: any) => (
+                          <div key={it.id} className="flex items-center justify-between">
+                            <span className="truncate">
+                              <strong className="text-white">{it.quantity}x</strong> {it.productName}
+                              {it.observations ? ` (${it.observations})` : ""}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400 ml-2 shrink-0">
+                              {it.destination === "BAR" ? "🍹 Barra" : "🍔 Cocina"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     <div className="p-2 rounded-xl bg-[#080F1F] border border-[#1E2E4A] text-xs space-y-1">
                       <div className="flex justify-between">
@@ -308,7 +412,7 @@ export default function GastronomyCashierPage() {
                       </div>
                     </div>
 
-                    {/* Acciones rápidas Rechazar o Reembolsar */}
+                    {/* Acciones rápidas Cobrar / Rechazar / Reembolsar */}
                     <div className="flex items-center justify-between pt-1 text-[11px]">
                       <span className="text-slate-400">
                         Método: {GASTRO_PAYMENT_METHOD_LABELS[ord.paymentMethodSelected] || ord.paymentMethodSelected}
@@ -336,27 +440,38 @@ export default function GastronomyCashierPage() {
                           <RotateCcw className="w-3 h-3" /> Reembolsar
                         </button>
                       ) : (
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            const reason = prompt("Motivo de rechazo del pago:");
-                            if (reason) {
-                              await fetch("/api/v1/gastronomy/payments", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                  action: "REJECT_PAYMENT",
-                                  orderId: ord.id,
-                                  reason,
-                                }),
-                              });
-                              await loadData();
-                            }
-                          }}
-                          className="text-red-400 hover:text-red-300 font-bold flex items-center gap-1"
-                        >
-                          <XCircle className="w-3 h-3" /> Rechazar Pago
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              selectOrderForPayment(ord);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                          >
+                            Cobrar en Terminal →
+                          </button>
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const reason = prompt("Motivo de rechazo del pago:");
+                              if (reason) {
+                                await fetch("/api/v1/gastronomy/payments", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                    action: "REJECT_PAYMENT",
+                                    orderId: ord.id,
+                                    reason,
+                                  }),
+                                });
+                                await loadData();
+                              }
+                            }}
+                            className="text-red-400 hover:text-red-300 font-bold flex items-center gap-1"
+                          >
+                            <XCircle className="w-3 h-3" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -366,20 +481,35 @@ export default function GastronomyCashierPage() {
           </div>
 
           {/* Terminal de Cobro de Caja */}
-          <div className="p-5 rounded-3xl bg-[#0D1930] border border-[#263858] space-y-4 h-fit">
+          <div className="p-5 rounded-3xl bg-[#0D1930] border border-[#263858] space-y-4 h-fit sticky top-20">
             {!selectedOrder ? (
               <div className="py-12 text-center text-xs text-slate-400">
                 Selecciona un pedido de la izquierda para registrar cobro en Efectivo, POS Tarjeta (Débito/Crédito), Transferencia o Pago Parcial.
               </div>
             ) : (
               <form onSubmit={handleConfirmPayment} className="space-y-3.5 text-xs">
-                <div className="border-b border-[#263858] pb-3">
+                <div className="border-b border-[#263858] pb-3 space-y-1">
                   <span className="font-mono text-xs text-purple-300 font-bold">
                     COBRANDO PEDIDO {selectedOrder.orderNumber}
                   </span>
                   <h2 className="text-lg font-black text-white">
-                    {selectedOrder.tableLabel} • {formatGuaranies(Math.max(0, selectedOrder.totalCents - selectedOrder.paidCents))}
+                    {selectedOrder.tableLabel} ({selectedOrder.sectorName}) •{" "}
+                    {formatGuaranies(Math.max(0, selectedOrder.totalCents - selectedOrder.paidCents))}
                   </h2>
+                  {selectedOrder.items && selectedOrder.items.length > 0 && (
+                    <div className="pt-1 space-y-1 text-[11px] text-slate-300">
+                      {selectedOrder.items.map((it: any) => (
+                        <div key={it.id} className="flex justify-between">
+                          <span>
+                            {it.quantity}x {it.productName}
+                          </span>
+                          <span className="font-mono text-slate-400">
+                            {formatGuaranies(it.subtotalCents)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Selector de Método */}
