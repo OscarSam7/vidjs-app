@@ -359,6 +359,45 @@ function CustomerMenuPwaContent() {
         </div>
       </header>
 
+      {/* Navegación Principal: "Mi Noche" y "Menú" uno al lado del otro */}
+      <div className="border-b border-zinc-800/90 bg-zinc-950/95 backdrop-blur-md">
+        <div className="max-w-5xl mx-auto grid grid-cols-2 gap-2.5 px-4 py-2.5">
+          <a
+            href="/guest"
+            className="relative group py-3 px-3.5 rounded-2xl border-2 border-purple-500/60 bg-gradient-to-br from-purple-950/70 via-indigo-950/50 to-zinc-950 text-white hover:border-purple-400 transition-all flex items-center justify-center gap-3 cursor-pointer active:scale-[0.98]"
+          >
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg shadow-purple-600/30 shrink-0 group-hover:scale-105 transition-transform">
+              <Sparkles className="w-6 h-6 text-white" />
+            </div>
+            <div className="text-left min-w-0 flex-1">
+              <span className="text-sm sm:text-base font-black tracking-tight text-white block truncate">
+                Mi Noche
+              </span>
+              <span className="text-[10px] font-bold text-purple-300/90 block truncate">
+                Catálogo y Mis Pedidos
+              </span>
+            </div>
+          </a>
+
+          <div className="relative py-3 px-3.5 rounded-2xl border-2 border-emerald-400 bg-gradient-to-br from-emerald-950/90 via-teal-950/80 to-zinc-950 text-white shadow-[0_0_24px_rgba(16,185,129,0.35)] flex items-center justify-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/40 shrink-0">
+              <UtensilsCrossed className="w-6 h-6 text-zinc-950 stroke-[2.5]" />
+            </div>
+            <div className="text-left min-w-0 flex-1">
+              <div className="flex items-center gap-1">
+                <span className="text-sm sm:text-base font-black tracking-tight text-emerald-300 truncate">
+                  Menú
+                </span>
+                <span className="text-sm leading-none">🍹🍔</span>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-400/90 block truncate">
+                Carta Digital Activa
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <main className="max-w-5xl mx-auto px-4 pt-4 space-y-6">
         {/* Live Order Tracker Banner */}
         {trackedOrders.length > 0 && (

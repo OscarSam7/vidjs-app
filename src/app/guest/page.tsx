@@ -43,6 +43,7 @@ import {
   Lock,
   SkipForward,
   Trash2,
+  UtensilsCrossed,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType, NextTurnCountdownPayload } from "@/lib/realtime/event-bus";
@@ -1821,72 +1822,51 @@ function GuestContent() {
         )}
       </header>
 
-      {/* 2. Tabs de Navegación "ONE QR — ONE NIGHT" */}
-      <div className="flex border-b border-zinc-800 bg-zinc-950/90 sticky top-[65px] z-10">
+      {/* 2. Navegación Principal: SOLO "Mi Noche" y "Menú" uno al lado del otro con iconos grandes y llamativos */}
+      <div className="grid grid-cols-2 gap-2.5 px-3.5 py-2.5 border-b border-zinc-800/90 bg-zinc-950/95 backdrop-blur-md sticky top-[65px] z-10 shadow-lg">
         <button
+          type="button"
           onClick={() => setActiveTab("hub")}
-          className={`flex-1 py-3 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === "hub"
-              ? "border-purple-500 text-purple-300 bg-purple-950/20"
-              : "border-transparent text-zinc-400 hover:text-zinc-200"
-          }`}
+          className="relative group py-3 px-3.5 rounded-2xl border-2 border-purple-500/80 bg-gradient-to-br from-purple-950/90 via-indigo-950/70 to-zinc-950 text-white shadow-[0_0_22px_rgba(168,85,247,0.3)] hover:border-purple-400 transition-all flex items-center justify-center gap-3 cursor-pointer active:scale-[0.98]"
         >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Mi Noche</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("catalog")}
-          className={`flex-1 py-3 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === "catalog"
-              ? "border-purple-500 text-purple-300 bg-purple-950/20"
-              : "border-transparent text-zinc-400 hover:text-zinc-200"
-          }`}
-        >
-          <Music className="w-3.5 h-3.5" />
-          <span>Catálogo</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("my-requests")}
-          className={`flex-1 py-3 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === "my-requests"
-              ? "border-purple-500 text-purple-300 bg-purple-950/20"
-              : "border-transparent text-zinc-400 hover:text-zinc-200"
-          }`}
-        >
-          <Clock className="w-3.5 h-3.5" />
-          <span>Mis Pedidos</span>
-          {myRequests.length > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-600 text-white font-bold">
-              {myRequests.length}
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg shadow-purple-600/40 shrink-0 group-hover:scale-105 transition-transform">
+            <Sparkles className="w-6 h-6 text-white animate-pulse" />
+          </div>
+          <div className="text-left min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm sm:text-base font-black tracking-tight text-white truncate">
+                Mi Noche
+              </span>
+              {myRequests.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-purple-500 text-white font-black shadow-sm">
+                  {myRequests.length}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-bold text-purple-300/90 block truncate">
+              Catálogo y Mis Pedidos
             </span>
-          )}
+          </div>
         </button>
-
-        {activeContestInfo && (
-          <button
-            onClick={() => setActiveTab("contest")}
-            className={`flex-1 py-3 text-xs font-bold text-center border-b-2 transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === "contest"
-                ? "border-amber-500 text-amber-300 bg-amber-950/30"
-                : "border-transparent text-amber-400 hover:text-amber-200"
-            }`}
-          >
-            <Trophy className="w-3.5 h-3.5 text-amber-400" />
-            <span>Concurso</span>
-            {activeContestVote && (
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-            )}
-          </button>
-        )}
 
         <a
           href={`/menu?tableId=${encodeURIComponent(session?.table?.id || "")}&table=${encodeURIComponent(session?.table?.label || `Mesa ${session?.table?.number || 1}`)}&sector=${encodeURIComponent(session?.table?.sector?.name || "Salón principal")}`}
-          className="flex-1 py-3 text-xs font-bold text-center border-b-2 border-transparent text-emerald-400 hover:text-emerald-200 transition-all flex items-center justify-center gap-1"
+          className="relative group py-3 px-3.5 rounded-2xl border-2 border-emerald-500/80 bg-gradient-to-br from-emerald-950/90 via-teal-950/70 to-zinc-950 text-white shadow-[0_0_22px_rgba(16,185,129,0.28)] hover:border-emerald-400 hover:shadow-[0_0_28px_rgba(16,185,129,0.45)] transition-all flex items-center justify-center gap-3 cursor-pointer active:scale-[0.98]"
         >
-          <span>🍹</span>
-          <span>Menú</span>
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/40 shrink-0 group-hover:scale-105 transition-transform">
+            <UtensilsCrossed className="w-6 h-6 text-zinc-950 stroke-[2.5]" />
+          </div>
+          <div className="text-left min-w-0 flex-1">
+            <div className="flex items-center gap-1">
+              <span className="text-sm sm:text-base font-black tracking-tight text-emerald-300 group-hover:text-emerald-200 truncate">
+                Menú
+              </span>
+              <span className="text-sm leading-none">🍹🍔</span>
+            </div>
+            <span className="text-[10px] font-bold text-emerald-400/90 block truncate">
+              Pedir Tragos y Comida
+            </span>
+          </div>
         </a>
       </div>
 
@@ -1913,8 +1893,79 @@ function GuestContent() {
         </div>
       )}
 
-      {/* 3. Contenido Principal */}
-      <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto w-full overflow-x-hidden">
+      {/* 3. Contenido Principal de "Mi Noche" */}
+      <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto w-full overflow-x-hidden space-y-4">
+        {/* Sub-navegación interna dentro de "Mi Noche": Inicio, Catálogo y Mis Pedidos */}
+        <div className="p-1.5 rounded-2xl bg-zinc-900/95 border border-zinc-800 flex items-center gap-1.5 shadow-inner">
+          <button
+            type="button"
+            onClick={() => setActiveTab("hub")}
+            className={`flex-1 py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === "hub"
+                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-900/50"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 shrink-0" />
+            <span>Inicio</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("catalog")}
+            className={`flex-1 py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === "catalog"
+                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-900/50"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
+            }`}
+          >
+            <Music className="w-3.5 h-3.5 shrink-0" />
+            <span>Catálogo</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("my-requests")}
+            className={`flex-1 py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === "my-requests"
+                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-900/50"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5 shrink-0" />
+            <span>Mis Pedidos</span>
+            {myRequests.length > 0 && (
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                  activeTab === "my-requests"
+                    ? "bg-white text-purple-700"
+                    : "bg-purple-600 text-white"
+                }`}
+              >
+                {myRequests.length}
+              </span>
+            )}
+          </button>
+
+          {activeContestInfo && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("contest")}
+              className={`flex-1 py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTab === "contest"
+                  ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-md shadow-amber-900/50"
+                  : "text-amber-400 hover:text-amber-200 hover:bg-amber-950/30"
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5 shrink-0" />
+              <span>Concurso</span>
+              {activeContestVote && (
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              )}
+            </button>
+          )}
+        </div>
+
         {/* PESTAÑA 1: "MI NOCHE" (WELCOME HUB) */}
         {activeTab === "hub" && (
           <div className="space-y-4 w-full">
