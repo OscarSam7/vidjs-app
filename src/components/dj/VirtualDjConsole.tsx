@@ -2197,6 +2197,8 @@ export default function VirtualDjConsole({
 
   const hasPlaybackStartedARef = useRef(false);
   const hasPlaybackStartedBRef = useRef(false);
+  const deckTrackALoadedTimeRef = useRef(0);
+  const deckTrackBLoadedTimeRef = useRef(0);
   const watchdogTimerARef = useRef<NodeJS.Timeout | null>(null);
   const watchdogTimerBRef = useRef<NodeJS.Timeout | null>(null);
   const lastSkippedTrackIdRef = useRef<string | null>(null);
@@ -2209,6 +2211,14 @@ export default function VirtualDjConsole({
     if (!isAutoPlayMode) {
       console.warn(`[DJ Watchdog] Deck ${deckId}: "${trackTitle}" ${reasonText || "aviso"}. Modo manual activo, no se borra la pista.`);
       showFeedbackRef.current("error", `⚠️ "${trackTitle}": ${reasonText || "Error en YouTube"}`);
+      return;
+    }
+
+    // Salvaguarda crítica: Si la bandeja ya está reproduciendo audio en vivo (hasStarted o segundos > 2), NUNCA borrar la pista
+    const hasStarted = deckId === "A" ? hasPlaybackStartedARef.current : hasPlaybackStartedBRef.current;
+    const currentSeconds = deckId === "A" ? playbackSecondsARef.current : playbackSecondsBRef.current;
+    if (hasStarted || currentSeconds > 2) {
+      console.warn(`[DJ Watchdog] Deck ${deckId}: "${trackTitle}" ya tiene reproducción en curso (${currentSeconds}s). Abortando auto-skip.`);
       return;
     }
 
@@ -2361,7 +2371,9 @@ export default function VirtualDjConsole({
     activeTrackReqIdARef.current = track.id;
     activeQueueEntryIdARef.current = queueEntryId || null;
     activeVideoIdARef.current = null;
+    deckTrackALoadedTimeRef.current = Date.now();
     setPlaybackSecondsA(0);
+    playbackSecondsARef.current = 0;
     setActiveLoopA(null);
     setIsEjectedA(false);
     setDeckTrackA(track);
@@ -2539,7 +2551,9 @@ export default function VirtualDjConsole({
     activeQueueEntryIdBRef.current = queueEntryId || null;
     prevTrackBKeyRef.current = trackKey;
     activeVideoIdBRef.current = null;
+    deckTrackBLoadedTimeRef.current = Date.now();
     setPlaybackSecondsB(0);
+    playbackSecondsBRef.current = 0;
     setActiveLoopB(null);
     setIsEjectedB(false);
     setDeckTrackB(track);
@@ -2704,7 +2718,9 @@ export default function VirtualDjConsole({
     setDeckTrackA(null);
     setManualTrackA(null);
     setIsPlayingA(false);
+    deckTrackALoadedTimeRef.current = Date.now();
     setPlaybackSecondsA(0);
+    playbackSecondsARef.current = 0;
     setActiveLoopA(null);
     setIsLoadingVideoA(false);
     setIsVideoA(false);
@@ -2767,7 +2783,9 @@ export default function VirtualDjConsole({
     setManualTrackB(null);
     setSelectedQueueIdB("EMPTY");
     setIsPlayingB(false);
+    deckTrackBLoadedTimeRef.current = Date.now();
     setPlaybackSecondsB(0);
+    playbackSecondsBRef.current = 0;
     setActiveLoopB(null);
     setIsLoadingVideoB(false);
     setIsVideoB(false);
@@ -3000,15 +3018,17 @@ export default function VirtualDjConsole({
 
       // 3. Detección proactiva de errores de YouTube (101/150 bloqueo de derechos, 100 no existe, 2/5 enlace inválido)
       let errorCode: number | null = null;
-      if (data.event === "onError" && typeof data.info === "number") {
-        errorCode = data.info;
-      } else if (data.info && typeof data.info.errorCode === "number") {
-        errorCode = data.info.errorCode;
-      } else if (data.info && typeof data.info.error === "number") {
-        errorCode = data.info.error;
+      if (data.event === "onError") {
+        if (typeof data.info === "number" && data.info > 0) {
+          errorCode = data.info;
+        } else if (typeof data.info?.errorCode === "number" && data.info.errorCode > 0) {
+          errorCode = data.info.errorCode;
+        } else if (typeof data.info?.error === "number" && data.info.error > 0) {
+          errorCode = data.info.error;
+        }
       }
 
-      if (errorCode !== null) {
+      if (errorCode !== null && errorCode > 0) {
         const currentTrack = deck === "A" ? (deckTrackA || trackA) : (deckTrackB || trackB);
         const title = currentTrack?.song?.title || currentTrack?.customTitle || "Canción";
         const trackKey = currentTrack?.id || (deck === "A" ? activeVideoIdARef.current : activeVideoIdBRef.current) || deck;
@@ -3052,12 +3072,14 @@ export default function VirtualDjConsole({
         if (isClearingDeckRef.current) return;
         const currentSeconds = deck === "A" ? playbackSecondsARef.current : playbackSecondsBRef.current;
         const currentDuration = deck === "A" ? Math.max(30, trackADuration) : Math.max(30, trackBDuration);
+        const loadedTime = deck === "A" ? deckTrackALoadedTimeRef.current : deckTrackBLoadedTimeRef.current;
+        const timeSinceLoaded = Date.now() - (loadedTime || 0);
 
-        // Salvaguarda: Una canción NUNCA finaliza legítimamente en menos de 20 segundos.
-        // Si YouTube envía playerState === 0 a los pocos segundos de haber iniciado (ej. terminó anuncio publicitario,
-        // o buffer inicial), forzamos playVideo para continuar con el audio real y NO cortar la pista.
-        if (currentSeconds < 20 && currentSeconds < currentDuration - 5) {
-          console.warn(`[DJ Console] Ignorando playerState === 0 prematuro a los ${currentSeconds}s en Deck ${deck}. Reanudando reproducción...`);
+        // Salvaguarda: Una canción NUNCA finaliza legítimamente en menos de 20 segundos de haber sido montada o reproducida.
+        // Si YouTube envía playerState === 0 prematuramente (fin de pre-roll publicitario, buffer inicial o handshake),
+        // forzamos playVideo para continuar con el audio real y NO cortar la pista.
+        if (timeSinceLoaded < 20000 || (currentSeconds < 20 && currentSeconds < currentDuration - 5)) {
+          console.warn(`[DJ Console] Ignorando playerState === 0 prematuro (montada hace ${Math.round(timeSinceLoaded / 1000)}s, ${currentSeconds}s de reproducción) en Deck ${deck}. Reanudando reproducción...`);
           const targetIframe = deck === "A" ? iframeRefA.current : iframeRefB.current;
           if (targetIframe) {
             sendPlayerCommand(targetIframe, "playVideo");

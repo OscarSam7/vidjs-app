@@ -500,16 +500,28 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Salvaguarda: Verificar si ya hay una canción en reproducción activa (CURRENT) en el evento
+      // Salvaguarda absoluta: Si ya hay una canción en reproducción activa (CURRENT) en el evento
+      // o la cabina ya está sonando en vivo (PLAY), NUNCA interrumpir, cortar ni saltar. Abortar timeout de inmediato.
       const activeCurrent = await prisma.queueEntry.findFirst({
         where: { tenantId, eventId, status: "CURRENT" },
       });
+      const activePlayback = realtimeBus.getPlaybackState(eventId);
+      const isBoothPlaying = activePlayback?.action === "PLAY";
 
-      // Si la pista actual que está sonando es la misma targetEntry, abortar timeout sin interrumpir
-      if (activeCurrent && activeCurrent.id === targetEntry.id) {
+      if (activeCurrent || isBoothPlaying) {
+        realtimeBus.broadcast(eventId, "NEXT_TURN_CANCELLED", {
+          queueEntryId: targetEntry.id,
+          reason: "BOOTH_PLAYING",
+        });
+        if (event.code) {
+          realtimeBus.broadcast(event.code, "NEXT_TURN_CANCELLED", {
+            queueEntryId: targetEntry.id,
+            reason: "BOOTH_PLAYING",
+          });
+        }
         return NextResponse.json({
           success: true,
-          message: "La canción ya está en reproducción activa",
+          message: "Cabina en reproducción activa. Conteo cancelado sin interrumpir la música.",
         });
       }
 

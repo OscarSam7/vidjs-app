@@ -997,6 +997,16 @@ export default function DjBoothPage() {
     }
   };
 
+  // Ref sincrónico para saber en milisegundos si la cabina está sonando y evitar cortes de 5s
+  const isPlayingRef = useRef(isPlaying);
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+    if (isPlaying && activeTurnCountdown) {
+      setActiveTurnCountdown(null);
+      handleCancelNextTurnCountdown();
+    }
+  }, [isPlaying, activeTurnCountdown]);
+
   // Temporizador para cuenta regresiva de siguiente turno (5 segundos para dar Play)
   useEffect(() => {
     if (!activeTurnCountdown) {
@@ -1004,15 +1014,25 @@ export default function DjBoothPage() {
       return;
     }
     // Si la cabina ya está sonando en vivo, cancelar la cuenta regresiva de inmediato para no cortar la música
-    if (isPlaying) {
+    if (isPlaying || isPlayingRef.current) {
       setActiveTurnCountdown(null);
       handleCancelNextTurnCountdown();
       return;
     }
     const updateCountdown = () => {
+      // Abortar si la música empezó a sonar mientras el temporizador contaba
+      if (isPlayingRef.current || isPlaying) {
+        setActiveTurnCountdown(null);
+        handleCancelNextTurnCountdown();
+        return;
+      }
       const remaining = Math.max(0, Math.ceil((activeTurnCountdown.expiresAt - Date.now()) / 1000));
       setTurnCountdownSeconds(remaining);
       if (remaining <= 0) {
+        if (isPlayingRef.current || isPlaying) {
+          setActiveTurnCountdown(null);
+          return;
+        }
         const evId = selectedEventId || data?.event?.id;
         if (evId) {
           fetch("/api/v1/dj/queue", {
@@ -1034,7 +1054,7 @@ export default function DjBoothPage() {
     updateCountdown();
     const timer = setInterval(updateCountdown, 250);
     return () => clearInterval(timer);
-  }, [activeTurnCountdown, selectedEventId, data?.event?.id]);
+  }, [activeTurnCountdown, isPlaying, selectedEventId, data?.event?.id]);
 
   const handleStartNextTurnCountdown = async (queueEntryId?: string) => {
     const evId = selectedEventId || data?.event?.id;
