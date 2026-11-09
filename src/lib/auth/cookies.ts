@@ -20,7 +20,14 @@ export async function clearSessionCookie() {
 }
 
 export async function getSessionTokenFromCookies(): Promise<string | null> {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get(env.COOKIE_NAME);
-  return sessionCookie ? sessionCookie.value : null;
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get(env.COOKIE_NAME);
+    return sessionCookie ? sessionCookie.value : null;
+  } catch {
+    if (process.env.NODE_ENV !== "production" && process.env.__VIDJS_CLI_TEST_TOKEN) {
+      return process.env.__VIDJS_CLI_TEST_TOKEN;
+    }
+    return null;
+  }
 }

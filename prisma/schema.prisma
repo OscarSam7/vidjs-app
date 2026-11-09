@@ -40,6 +40,20 @@ model Tenant {
   reservationPackages   ReservationPackage[]
   tableReservations     TableReservation[]
 
+  // Relaciones Módulo Gestión Gastronómica
+  gastroSectors         GastroSector[]
+  gastroCategories      GastroCategory[]
+  gastroProducts        GastroProduct[]
+  gastroInventoryItems  GastroInventoryItem[]
+  gastroMovements       GastroInventoryMovement[]
+  gastroDeliveryConfigs GastroDeliveryConfig[]
+  gastroTableSessions   GastroTableSession[]
+  gastroOrders          GastroOrder[]
+  gastroPayments        GastroPayment[]
+  gastroDeposits        GastroCustomerDeposit[]
+  gastroCashShifts      GastroCashRegisterShift[]
+  gastroPendingSales    GastroPendingInvoiceSale[]
+
   @@index([status])
   @@index([slug])
 }
@@ -94,6 +108,20 @@ model Venue {
   tables              Table[]
   reservationPackages ReservationPackage[]
   tableReservations   TableReservation[]
+
+  // Relaciones Módulo Gestión Gastronómica
+  gastroSectors         GastroSector[]
+  gastroCategories      GastroCategory[]
+  gastroProducts        GastroProduct[]
+  gastroInventoryItems  GastroInventoryItem[]
+  gastroMovements       GastroInventoryMovement[]
+  gastroDeliveryConfig  GastroDeliveryConfig?
+  gastroTableSessions   GastroTableSession[]
+  gastroOrders          GastroOrder[]
+  gastroPayments        GastroPayment[]
+  gastroDeposits        GastroCustomerDeposit[]
+  gastroCashShifts      GastroCashRegisterShift[]
+  gastroPendingSales    GastroPendingInvoiceSale[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -166,20 +194,30 @@ model Table {
   qrCodeUrl   String?        // URL de la imagen generada del QR
   capacity    Int            @default(4)
   zone        String         @default("MAIN") // MAIN, DJ, KARAOKE
+  sectorId    String?
+  sector      GastroSector?  @relation(fields: [sectorId], references: [id], onDelete: SetNull)
+  tableStatus String         @default("AVAILABLE") // AVAILABLE, OCCUPIED, RESERVED, PENDING_PAYMENT, CLEANING, BLOCKED
+  posX        Int            @default(0)
+  posY        Int            @default(0)
   active      Boolean        @default(true)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  guestSessions GuestSession[]
-  songRequests  SongRequest[]
-  photoPosts    PhotoPost[]
-  reservations  TableReservation[]
+  guestSessions       GuestSession[]
+  songRequests        SongRequest[]
+  photoPosts          PhotoPost[]
+  reservations        TableReservation[]
+  gastroTableSessions GastroTableSession[]
+  gastroOrders        GastroOrder[]
+  gastroDeposits      GastroCustomerDeposit[]
 
   @@unique([venueId, number])
   @@index([tenantId])
   @@index([venueId])
   @@index([qrToken])
   @@index([zone])
+  @@index([sectorId])
+  @@index([tableStatus])
 }
 
 // 6. GuestSession (Sesión del cliente tras escanear el QR)
@@ -1042,6 +1080,632 @@ model ReservationGuest {
   @@index([reservationId])
   @@index([qrToken])
 }
+
+// =================================================================
+// MÓDULO INTEGRAL: GESTIÓN GASTRONÓMICA, POS, KDS (BARRA / COCINA / MOZOS),
+// CAJA, SEÑAS, INVENTARIO Y BANDEJA CENTRAL DE FACTURACIÓN
+// =================================================================
+
+// 38. GastroSector (Sectores físicos del establecimiento)
+model GastroSector {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId     String
+  venue       Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  name        String   // Salón principal, Barra, Terraza, VIP, Discoteca, Camarotes, Patio, Reservados
+  code        String   // SALON, BARRA, TERRAZA, VIP, DISCO, CAMAROTES, PATIO, RESERVADOS
+  description String?
+  colorHex    String   @default("#8B5CF6")
+  orderIndex  Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tables      Table[]
+
+  @@unique([venueId, code])
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([active])
+}
+
+// 39. GastroCategory (Categorías del Menú Digital)
+model GastroCategory {
+  id          String          @id @default(cuid())
+  tenantId    String
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId     String?
+  venue       Venue?          @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  name        String          // Cervezas, Bebidas, Tragos, Cócteles, Vinos, Comidas, Hamburguesas, Pizzas, Picadas, Postres, Promociones, Productos especiales
+  slug        String
+  description String?
+  iconName    String?         @default("Utensils")
+  imageUrl    String?
+  destination String          @default("BAR") // BAR, KITCHEN, BOTH
+  orderIndex  Int             @default(0)
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  products    GastroProduct[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([active])
+  @@index([orderIndex])
+}
+
+// 40. GastroProduct (Productos del Menú vinculados al Inventario)
+model GastroProduct {
+  id                 String                  @id @default(cuid())
+  tenantId           String
+  tenant             Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId            String?
+  venue              Venue?                  @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  categoryId         String
+  category           GastroCategory          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  code               String                  // Código SKU / Interno (ej: BEB-001, HAM-002)
+  name               String                  // Ej: "Cerveza Munich 500 ml", "Hamburguesa especial"
+  description        String?
+  imageUrl           String?
+  presentation       String?                 // Ej: "Botella 500 ml", "Pinta 473 ml", "Porción 350g"
+  
+  priceCents         Int                     // Precio de venta
+  costCents          Int                     @default(0) // Costo
+  currency           String                  @default("PYG") // PYG (Gs.), USD, ARS
+  
+  stockQuantity      Float                   @default(100)
+  minStockQuantity   Float                   @default(10)
+  unit               String                  @default("UN") // UN, ML, LT, GR, KG, PORCION
+  trackInventory     Boolean                 @default(true)
+  hasRecipe          Boolean                 @default(false) // Si true, descuenta de GastroProductRecipeItem
+  
+  // Destino operativo: BAR (Barra), KITCHEN (Cocina), BOTH (Ambos)
+  destination        String                  @default("BAR")
+  
+  // Estado de disponibilidad diferenciado (Fase 10):
+  // AVAILABLE, MANUAL_DISABLED, AUTO_EXHAUSTED, MISSING_INGREDIENTS, TEMPORARILY_UNAVAILABLE
+  availabilityStatus String                  @default("AVAILABLE")
+  active             Boolean                 @default(true)
+  isFeatured         Boolean                 @default(false)
+  isPromotion        Boolean                 @default(false)
+  
+  // Opciones adicionales configurables (JSON array: [{ id, name, priceCents }])
+  // Ej: [{ "id": "queso", "name": "Queso extra", "priceCents": 5000 }, { "id": "panceta", "name": "Panceta", "priceCents": 8000 }]
+  optionsJson        String?
+  
+  // Auditoría de quién desactivó o agotó el producto y cuándo
+  disabledByUserId   String?
+  disabledByName     String?
+  disabledByRole     String?
+  disabledAt         DateTime?
+  disabledReason     String?
+
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  recipeItems        GastroProductRecipeItem[]
+  orderItems         GastroOrderItem[]
+  inventoryMovements GastroInventoryMovement[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([categoryId])
+  @@index([destination])
+  @@index([availabilityStatus])
+  @@index([active])
+}
+
+// 41. GastroInventoryItem (Insumos e Ingredientes de Inventario para Recetas y Stock)
+model GastroInventoryItem {
+  id               String                    @id @default(cuid())
+  tenantId         String
+  tenant           Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId          String?
+  venue            Venue?                    @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  code             String                    // INS-PAN, INS-CARNE, INS-QUESO
+  name             String                    // Pan de Hamburguesa, Medallón de Carne 180g, Queso Cheddar, Panceta, Verduras
+  category         String                    @default("INGREDIENT") // INGREDIENT, BEVERAGE, PACKAGING, OTHER
+  unit             String                    @default("UN") // UN, GR, KG, ML, LT
+  currentStock     Float                     @default(0)
+  minStock         Float                     @default(10)
+  costPerUnitCents Int                       @default(0)
+  active           Boolean                   @default(true)
+  lastRestockedAt  DateTime?
+  lastRestockedBy  String?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+
+  recipeUsages     GastroProductRecipeItem[]
+  movements        GastroInventoryMovement[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([active])
+}
+
+// 42. GastroProductRecipeItem (Relación Receta: Producto -> Ingredientes)
+model GastroProductRecipeItem {
+  id              String              @id @default(cuid())
+  productId       String
+  product         GastroProduct       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  inventoryItemId String
+  inventoryItem   GastroInventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  quantityRequired Float              @default(1) // Cantidad que descuenta por 1 unidad vendida
+  optional        Boolean             @default(false)
+  createdAt       DateTime            @default(now())
+
+  @@unique([productId, inventoryItemId])
+  @@index([productId])
+  @@index([inventoryItemId])
+}
+
+// 43. GastroInventoryMovement (Kardex de movimientos de stock)
+model GastroInventoryMovement {
+  id              String               @id @default(cuid())
+  tenantId        String
+  tenant          Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId         String?
+  venue           Venue?               @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  productId       String?
+  product         GastroProduct?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  inventoryItemId String?
+  inventoryItem   GastroInventoryItem? @relation(fields: [inventoryItemId], references: [id], onDelete: SetNull)
+  
+  movementType    String               // SALE_DEDUCTION, RESTOCK, MANUAL_ADJUSTMENT, WASTE, CANCEL_RESTORE, STOCK_ALERT
+  quantityDelta   Float                // Negativo para descuento, positivo para reposición
+  previousStock   Float
+  newStock        Float
+  reason          String?
+  orderId         String?
+  performedById   String?
+  performedByName String?
+  performedByRole String?
+  createdAt       DateTime             @default(now())
+
+  @@index([tenantId])
+  @@index([productId])
+  @@index([inventoryItemId])
+  @@index([movementType])
+  @@index([createdAt])
+}
+
+// 44. GastroDeliveryConfig (Configuración operativa de Entrega: Retiro en Barra vs Entrega por Mozo - Fase 3)
+model GastroDeliveryConfig {
+  id                    String   @id @default(cuid())
+  tenantId              String
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId               String   @unique
+  venue                 Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  
+  barPickupEnabled      Boolean  @default(true)  // Opción 1: Retiro en barra
+  waiterDeliveryEnabled Boolean  @default(true)  // Opción 2: Entrega por mozo
+  defaultDeliveryMode   String   @default("WAITER_DELIVERY") // BAR_PICKUP, WAITER_DELIVERY
+  serviceFeeCents       Int      @default(0)     // Costo fijo de servicio o entrega por mozo
+  serviceFeePercent     Float    @default(0)     // Porcentaje opcional de servicio
+  
+  requirePaymentBeforePrep Boolean @default(true) // Si true, efectivo/tarjeta/QR debe confirmarse antes de preparar
+  allowKitchenDirectDeliveryException Boolean @default(false) // Excepción de admin para que cocina cierre sin mozo
+  currency              String   @default("PYG")
+  
+  updatedByUserId       String?
+  updatedByName         String?
+  updatedAt             DateTime @updatedAt
+  createdAt             DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([venueId])
+}
+
+// 45. GastroTableSession (Sesión de consumo / Cuenta de Mesa para transferencia, unificación y división)
+model GastroTableSession {
+  id                  String        @id @default(cuid())
+  tenantId            String
+  tenant              Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId             String
+  venue               Venue         @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  tableId             String
+  table               Table         @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  
+  sessionCode         String        @unique // Código corto visible al cliente (ej: SES-M4-8912)
+  status              String        @default("OPEN") // OPEN, PENDING_PAYMENT, CLOSED, TRANSFERRED, MERGED
+  customerName        String?
+  customerTaxId       String?       // RUC / CI para facturación
+  guestCount          Int           @default(2)
+  assignedWaiterId    String?
+  assignedWaiterName  String?
+  
+  subtotalCents       Int           @default(0)
+  discountCents       Int           @default(0)
+  serviceFeeCents     Int           @default(0)
+  depositAppliedCents Int           @default(0)
+  totalCents          Int           @default(0)
+  paidCents           Int           @default(0)
+  balanceCents        Int           @default(0)
+  
+  // División de cuentas (JSON array con subcuentas por cliente/persona si se divide)
+  splitAccountsJson   String?
+  notes               String?
+  
+  openedAt            DateTime      @default(now())
+  closedAt            DateTime?
+  updatedAt           DateTime      @updatedAt
+
+  orders              GastroOrder[]
+  payments            GastroPayment[]
+  deposits            GastroCustomerDeposit[]
+
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([tableId])
+  @@index([status])
+  @@index([sessionCode])
+}
+
+// 46. GastroOrder (Pedido Gastronómico Integral: Cliente / Mozo / Caja -> Barra & Cocina -> Mozo)
+model GastroOrder {
+  id                     String              @id @default(cuid())
+  tenantId               String
+  tenant                 Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId                String
+  venue                  Venue               @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  tableId                String?
+  table                  Table?              @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  tableSessionId         String?
+  tableSession           GastroTableSession? @relation(fields: [tableSessionId], references: [id], onDelete: SetNull)
+  guestSessionId         String?
+  
+  orderNumber            String              // Número único legible (ej: PED-000105)
+  tableNumber            Int?
+  tableLabel             String              // Ej: "Mesa 4"
+  sectorName             String              @default("Salón Principal")
+  sessionCode            String?
+  customerName           String?
+  customerPhone          String?
+  customerTaxId          String?
+  
+  // Modalidad de entrega (Fase 3): BAR_PICKUP (Retiro en barra) | WAITER_DELIVERY (Entrega por mozo)
+  deliveryMode           String              @default("WAITER_DELIVERY")
+  priority               String              @default("NORMAL") // NORMAL, HIGH, VIP
+  
+  // Banderas de ruteo según ítems solicitados
+  hasBarItems            Boolean             @default(false)
+  hasKitchenItems        Boolean             @default(false)
+  
+  // Estado general del pedido:
+  // RECEIVED, PENDING_PAYMENT, PAYMENT_CONFIRMED, PREPARING, READY, WAITING_PICKUP, WAITING_WAITER, DELIVERED, CANCELLED
+  status                 String              @default("RECEIVED")
+  
+  // Estado específico en Panel de Barra (Fase 4):
+  // NONE, RECEIVED, PENDING_PAYMENT, PAYMENT_CONFIRMED, PREPARING, READY, WAITING_PICKUP, WAITING_WAITER, DELIVERED, CANCELLED
+  barStatus              String              @default("NONE")
+  
+  // Estado específico en Panel de Cocina (Fase 5):
+  // NONE, RECEIVED, PENDING_PAYMENT, PAYMENT_CONFIRMED, PREPARING, READY, REQUESTING_WAITER, DELIVERED, CANCELLED
+  kitchenStatus          String              @default("NONE")
+  
+  // Estado de Pago (Fase 7):
+  // PENDING, PROCESSING, APPROVED, REJECTED, EXPIRED, REFUNDED, PARTIALLY_PAID
+  paymentStatus          String              @default("PENDING")
+  paymentMethodSelected  String              @default("CASH") // CASH, DEBIT_CARD, CREDIT_CARD, BANK_TRANSFER, QR_PAYMENT, PIX, DEPOSIT, PARTIAL
+  
+  // Importes
+  subtotalCents          Int                 @default(0)
+  discountCents          Int                 @default(0)
+  discountAuthorizedBy   String?
+  serviceFeeCents        Int                 @default(0)
+  depositAppliedCents    Int                 @default(0)
+  totalCents             Int                 @default(0)
+  paidCents              Int                 @default(0)
+  currency               String              @default("PYG")
+  
+  notes                  String?
+  cancelReason           String?
+  cancelledByName        String?
+  
+  // Control de Mozos y Despacho (Fase 6) - Concurrencia controlada
+  waiterRequestStatus    String              @default("NONE") // NONE, REQUESTED, ACCEPTED, PICKED_UP_BAR, PICKED_UP_KITCHEN, DELIVERED
+  assignedWaiterId       String?
+  assignedWaiterName     String?
+  waiterRequestedAt      DateTime?
+  waiterAcceptedAt       DateTime?
+  pickedUpFromBarAt      DateTime?
+  pickedUpFromKitchenAt  DateTime?
+  deliveredAt            DateTime?
+  deliveredByName        String?
+  waiterNotes            String?             // Inconvenientes o rechazos justificados
+  rejectionLogsJson      String?             // Historial de rechazos justificados por mozos
+  
+  // Timestamps de trazabilidad operativa
+  receivedAt             DateTime            @default(now())
+  paymentConfirmedAt     DateTime?
+  prepStartedAt          DateTime?
+  readyAt                DateTime?
+  cancelledAt            DateTime?
+  updatedAt              DateTime            @updatedAt
+
+  items                  GastroOrderItem[]
+  payments               GastroPayment[]
+  pendingInvoiceSale     GastroPendingInvoiceSale?
+
+  @@unique([tenantId, orderNumber])
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([tableId])
+  @@index([tableSessionId])
+  @@index([status])
+  @@index([barStatus])
+  @@index([kitchenStatus])
+  @@index([paymentStatus])
+  @@index([waiterRequestStatus])
+  @@index([assignedWaiterId])
+  @@index([receivedAt])
+}
+
+// 47. GastroOrderItem (Ítems individuales dentro de un Pedido)
+model GastroOrderItem {
+  id                  String        @id @default(cuid())
+  orderId             String
+  order               GastroOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId           String
+  product             GastroProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+  
+  productCode         String
+  productName         String
+  presentation        String?
+  destination         String        @default("BAR") // BAR, KITCHEN, BOTH
+  
+  quantity            Int           @default(1)
+  unitPriceCents      Int
+  extrasPriceCents    Int           @default(0)
+  subtotalCents       Int
+  
+  // Adicionales seleccionados (JSON array: [{ id, name, priceCents }])
+  selectedOptionsJson String?
+  // Observaciones específicas del producto (ej: "bien fría", "sin cebolla")
+  observations        String?
+  
+  itemStatus          String        @default("PENDING") // PENDING, PREPARING, READY, DELIVERED, CANCELLED
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([destination])
+}
+
+// 48. GastroPayment (Transacciones de Pago en Caja y Pagos Digitales QR / PIX / Tarjetas - Fase 7)
+model GastroPayment {
+  id                  String                   @id @default(cuid())
+  tenantId            String
+  tenant              Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId             String
+  venue               Venue                    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  orderId             String?
+  order               GastroOrder?             @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  tableSessionId      String?
+  tableSession        GastroTableSession?      @relation(fields: [tableSessionId], references: [id], onDelete: SetNull)
+  shiftId             String?
+  shift               GastroCashRegisterShift? @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  
+  transactionCode     String                   @unique // Identificador único de transacción (ej: PAY-2026-00912)
+  orderNumber         String?
+  
+  // Método: CASH, DEBIT_CARD, CREDIT_CARD, BANK_TRANSFER, QR_PAYMENT, PIX, DEPOSIT_APPLICATION
+  paymentMethod       String
+  // Modalidad: FULL (Pago total), PARTIAL (Pago parcial), DEPOSIT (Pago de seña)
+  paymentModality     String                   @default("FULL")
+  
+  amountCents         Int
+  receivedAmountCents Int?                     // Importe recibido en efectivo para cálculo de vuelto
+  changeAmountCents   Int?                     @default(0)
+  currency            String                   @default("PYG")
+  
+  // Proveedor de pago: CAJA_LOCAL, POS_BANCARD, SIPAP_QR, PIX_PROVIDER, STRIPE, MERCADOPAGO
+  provider            String                   @default("CAJA_LOCAL")
+  providerReference   String?                  // Referencia de transacción del banco / POS / QR (NUNCA guardar PAN ni CVV)
+  cardBrand           String?                  // VISA, MASTERCARD, CABAL (solo marca y últimos 4 opcional, sin PAN ni CVV)
+  cardLast4           String?
+  
+  // Datos QR / PIX interoperable
+  qrPayload           String?                  // EMVCo / QR payload generado para el pedido
+  qrImageUrl          String?
+  qrExpiresAt         DateTime?
+  webhookSignature    String?                  // Firma HMAC validada del webhook del proveedor
+  webhookVerified     Boolean                  @default(false)
+  
+  // Estados: PENDING, PROCESSING, APPROVED, REJECTED, EXPIRED, REFUNDED, PARTIALLY_PAID
+  status              String                   @default("PENDING")
+  rejectionReason     String?
+  
+  cashierUserId       String?
+  cashierName         String?
+  confirmedAt         DateTime?
+  refundedAt          DateTime?
+  refundReason        String?
+  notes               String?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([orderId])
+  @@index([tableSessionId])
+  @@index([shiftId])
+  @@index([status])
+  @@index([paymentMethod])
+  @@index([createdAt])
+}
+
+// 49. GastroCustomerDeposit (Sistema de Señas y Reservas - Fase 8)
+model GastroCustomerDeposit {
+  id                     String              @id @default(cuid())
+  tenantId               String
+  tenant                 Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId                String
+  venue                  Venue               @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  tableId                String?
+  table                  Table?              @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  tableSessionId         String?
+  tableSession           GastroTableSession? @relation(fields: [tableSessionId], references: [id], onDelete: SetNull)
+  reservationId          String?             // Vinculable a TableReservation existente
+  eventId                String?
+  
+  receiptNumber          String              @unique // Comprobante único (ej: SEN-00045)
+  customerName           String
+  customerPhone          String?
+  customerTaxId          String?
+  
+  // Cálculo de seña: porcentaje o importe fijo
+  depositType            String              @default("FIXED") // PERCENTAGE, FIXED
+  estimatedConsumptionCents Int              @default(0) // Ej: Gs. 500.000
+  depositPercentage      Float?              // Ej: 30%
+  depositAmountCents     Int                 // Ej: Gs. 150.000
+  appliedAmountCents     Int                 @default(0) // Monto ya aplicado al consumo final
+  remainingCreditCents   Int                 // Saldo de seña disponible para aplicar
+  pendingConsumptionBalanceCents Int         @default(0) // Ej: Gs. 350.000 saldo estimado pendiente
+  currency               String              @default("PYG")
+  
+  paymentMethod          String              @default("BANK_TRANSFER") // CASH, DEBIT_CARD, CREDIT_CARD, BANK_TRANSFER, QR_PAYMENT, PIX
+  paymentReference       String?
+  
+  // Estado: PENDING, CONFIRMED, PARTIALLY_APPLIED, APPLIED_TO_CONSUMPTION, REFUNDED, CANCELLED
+  status                 String              @default("CONFIRMED")
+  isDefinitiveSale       Boolean             @default(false) // Siempre false en seña pura para no duplicar ingresos al aplicar
+  
+  registeredByUserId     String?
+  registeredByName       String?
+  depositDate            DateTime            @default(now())
+  appliedAt              DateTime?
+  notes                  String?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([tableId])
+  @@index([status])
+  @@index([depositDate])
+}
+
+// 50. GastroCashRegisterShift (Cierre de Caja por Turno y Operador - Fase 15)
+model GastroCashRegisterShift {
+  id                    String          @id @default(cuid())
+  tenantId              String
+  tenant                Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId               String
+  venue                 Venue           @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  
+  shiftCode             String          @unique // Ej: TURNO-20261109-01
+  shiftName             String          @default("Turno Noche") // Turno Tarde, Turno Noche, Madrugada
+  cashierUserId         String
+  cashierName           String
+  
+  status                String          @default("OPEN") // OPEN, CLOSED
+  openingCashCents      Int             @default(0)
+  
+  // Totales acumulados durante el turno
+  cashSalesCents        Int             @default(0)
+  debitCardSalesCents   Int             @default(0)
+  creditCardSalesCents  Int             @default(0)
+  transferSalesCents    Int             @default(0)
+  qrSalesCents          Int             @default(0)
+  pixSalesCents         Int             @default(0)
+  depositsReceivedCents Int             @default(0)
+  refundsCents          Int             @default(0)
+  totalSalesCents       Int             @default(0)
+  
+  expectedCashCents     Int             @default(0)
+  countedCashCents      Int?
+  differenceCents       Int?            @default(0)
+  
+  openedAt              DateTime        @default(now())
+  closedAt              DateTime?
+  closedByName          String?
+  closingNotes          String?
+
+  payments              GastroPayment[]
+
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([cashierUserId])
+  @@index([status])
+  @@index([openedAt])
+}
+
+// 51. GastroPendingInvoiceSale (Bandeja Central: VENTAS PENDIENTES DE FACTURACIÓN - Fase 11)
+model GastroPendingInvoiceSale {
+  id                   String       @id @default(cuid())
+  tenantId             String
+  tenant               Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId              String
+  venue                Venue        @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  orderId              String       @unique
+  order                GastroOrder  @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  
+  saleNumber           String       @unique // Número de venta comercial (ej: VTA-000105)
+  sourceUniqueId       String       @unique // Identificador único inmutable de origen (idempotencia anti-duplicación)
+  orderNumber          String
+  
+  saleDate             DateTime     @default(now())
+  tableLabel           String
+  sectorName           String
+  customerName         String       @default("Consumidor Final")
+  customerTaxId        String       @default("44444401-7") // RUC / Documento para facturación fiscal
+  customerEmail        String?
+  
+  // Detalle inmutable de productos, cantidades, precios y descuentos (JSON)
+  itemsSnapshotJson    String
+  
+  subtotalCents        Int
+  discountCents        Int          @default(0)
+  serviceFeeCents      Int          @default(0)
+  depositAppliedCents  Int          @default(0)
+  totalCents           Int
+  currency             String       @default("PYG")
+  
+  paymentMethod        String
+  paymentReference     String?
+  
+  // Estados obligatorios (Fase 11):
+  // PENDING_INVOICING (Pendiente de facturación)
+  // SENT_TO_MAIN_SYSTEM (Enviado al sistema principal)
+  // INVOICED (Facturado)
+  // INTEGRATION_ERROR (Error de integración)
+  // VOIDED (Anulado)
+  invoicingStatus      String       @default("PENDING_INVOICING")
+  
+  // Trazabilidad de integración con el Sistema Principal / Fiscal
+  batchGroupId         String?      // Si se facturó de forma agrupada
+  externalInvoiceId    String?      // ID devuelto por el ERP / Sistema Principal
+  fiscalDocumentNumber String?      // Ej: "001-001-0045892"
+  syncAttempts         Int          @default(0)
+  lastSyncAt           DateTime?
+  lastErrorLog         String?
+  syncHistoryJson      String?      // Historial inmutable de envíos, respuestas y conciliación
+  
+  invoicedByUserId     String?
+  invoicedByName       String?
+  invoicedAt           DateTime?
+  voidedReason         String?
+  voidedByName         String?
+  voidedAt             DateTime?
+  
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([invoicingStatus])
+  @@index([saleDate])
+  @@index([batchGroupId])
+}
+
 
 
 
