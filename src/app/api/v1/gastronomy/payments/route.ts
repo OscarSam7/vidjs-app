@@ -55,7 +55,7 @@ const paymentOperationSchema = z.object({
   closingNotes: z.string().optional(),
 });
 
-export function computeWebhookHmac(transactionCode: string, amountCents: number): string {
+function computeWebhookHmac(transactionCode: string, amountCents: number): string {
   const secret = process.env.JWT_SECRET || "vidjs_gastro_webhook_secret_key";
   return crypto
     .createHmac("sha256", secret)

@@ -16,7 +16,7 @@ import { POST as postProducts, PATCH as patchProducts } from "../src/app/api/v1/
 import { GET as getPublicMenu } from "../src/app/api/v1/gastronomy/public/menu/route";
 import { POST as postOrders } from "../src/app/api/v1/gastronomy/orders/route";
 import { PATCH as patchOrderAction } from "../src/app/api/v1/gastronomy/orders/action/route";
-import { POST as postPayments, computeWebhookHmac } from "../src/app/api/v1/gastronomy/payments/route";
+import { POST as postPayments } from "../src/app/api/v1/gastronomy/payments/route";
 import { POST as postDeposits } from "../src/app/api/v1/gastronomy/deposits/route";
 import { POST as postTables } from "../src/app/api/v1/gastronomy/tables/route";
 import { POST as postInventory } from "../src/app/api/v1/gastronomy/inventory/route";
