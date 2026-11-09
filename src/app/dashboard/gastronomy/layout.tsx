@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import LiveOrderSimulator from "@/components/gastronomy/LiveOrderSimulator";
 import {
   UtensilsCrossed,
   ClipboardList,
@@ -28,7 +29,7 @@ const SUBMODULES = [
   { name: "Menú digital", href: "/dashboard/gastronomy/menu", icon: BookOpen },
   { name: "Categorías", href: "/dashboard/gastronomy/categories", icon: Layers },
   { name: "Productos", href: "/dashboard/gastronomy/products", icon: Package },
-  { name: "Mesas y sectores", href: "/dashboard/gastronomy/tables", icon: LayoutGrid },
+  { name: "Mesas, sectores y QR", href: "/dashboard/gastronomy/tables", icon: LayoutGrid },
   { name: "Barra", href: "/dashboard/gastronomy/bar", icon: Wine },
   { name: "Cocina", href: "/dashboard/gastronomy/kitchen", icon: ChefHat },
   { name: "Mozos", href: "/dashboard/gastronomy/waiters", icon: ConciergeBell },
@@ -73,6 +74,9 @@ export default function GastronomyLayout({ children }: { children: React.ReactNo
           })}
         </div>
       </div>
+
+      {/* Simulador real de pedidos en vivo + Configurador rápido Barra/Cocina */}
+      <LiveOrderSimulator />
 
       {children}
     </div>
