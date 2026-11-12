@@ -43,6 +43,7 @@ import {
   UserX,
   Radio,
 } from "lucide-react";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType } from "@/lib/realtime/event-bus";
 
@@ -3531,15 +3532,40 @@ export default function ContestDashboardPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-zinc-300 mb-1">Modo de Puntuación</label>
-                  <select
+                  <VipSelectModal
                     value={newContestForm.scoringMode}
-                    onChange={(e) => setNewContestForm({ ...newContestForm, scoringMode: e.target.value })}
-                    className="w-full p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-bold outline-none"
-                  >
-                    <option value="AVERAGE">Promedio Simple</option>
-                    <option value="OLYMPIC">Olímpico (Descarta max y min)</option>
-                    <option value="SUM">Suma Total de Puntos</option>
-                  </select>
+                    onChange={(val) => setNewContestForm({ ...newContestForm, scoringMode: val })}
+                    options={[
+                      {
+                        value: "AVERAGE",
+                        label: "Promedio Simple",
+                        subtitle: "Promedia las calificaciones de todos los jurados",
+                        badge: "PROMEDIO",
+                        badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+                        icon: Star,
+                      },
+                      {
+                        value: "OLYMPIC",
+                        label: "Olímpico (Descarta max y min)",
+                        subtitle: "Elimina la nota más alta y la más baja antes de promediar",
+                        badge: "OLÍMPICO",
+                        badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+                        icon: Award,
+                      },
+                      {
+                        value: "SUM",
+                        label: "Suma Total de Puntos",
+                        subtitle: "Acumula todos los puntos otorgados por la mesa evaluadora",
+                        badge: "SUMA",
+                        badgeTone: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+                        icon: Trophy,
+                      },
+                    ]}
+                    title="Modo de Puntuación"
+                    subtitle="Selecciona cómo el motor calcula el ranking de participantes"
+                    placeholder="Modo de puntuación..."
+                    icon={Trophy}
+                  />
                 </div>
 
                 <div>

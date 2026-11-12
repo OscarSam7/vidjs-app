@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { formatGuaranies } from "@/lib/gastronomy/format";
 import { useRealtime } from "@/hooks/use-realtime";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 
 export default function GastronomyInventoryPage() {
   const [data, setData] = useState<any>(null);
@@ -218,18 +219,22 @@ export default function GastronomyInventoryPage() {
               onChange={(e) => setNewCode(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-white/10 text-xs text-white"
             />
-            <select
+            <VipSelectModal
               value={newUnit}
-              onChange={(e) => setNewUnit(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-white/10 text-xs text-white"
-            >
-              <option value="UN">Unidad</option>
-              <option value="PORCION">Porción</option>
-              <option value="FETA">Feta</option>
-              <option value="ML">Mililitros (ml)</option>
-              <option value="GR">Gramos (gr)</option>
-              <option value="BOTELLA">Botella</option>
-            </select>
+              onChange={(val) => setNewUnit(val)}
+              options={[
+                { value: "UN", label: "Unidad (UN)", subtitle: "Piezas individuales o ítems unitarios", badge: "UN" },
+                { value: "PORCION", label: "Porción", subtitle: "Raciones fraccionadas de preparación", badge: "PORCIÓN" },
+                { value: "FETA", label: "Feta", subtitle: "Láminas de queso o fiambre", badge: "FETA" },
+                { value: "ML", label: "Mililitros (ml)", subtitle: "Líquidos, jugos y bebidas alcohólicas", badge: "ML" },
+                { value: "GR", label: "Gramos (gr)", subtitle: "Pesos sólidos e ingredientes secos", badge: "GR" },
+                { value: "BOTELLA", label: "Botella", subtitle: "Botellas selladas de vino, destilados o agua", badge: "BOTELLA" },
+              ]}
+              title="Unidad de Medida"
+              subtitle="Elige cómo se fracciona o cuenta este insumo"
+              placeholder="Unidad de medida..."
+              icon={Boxes}
+            />
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div>
@@ -278,19 +283,26 @@ export default function GastronomyInventoryPage() {
             <ArrowUpCircle className="w-4 h-4 text-blue-400" />
             Reposición de Stock (Kardex Entrada)
           </h2>
-          <select
-            required
+          <VipSelectModal
             value={restockItemId}
-            onChange={(e) => setRestockItemId(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-white/10 text-xs text-white"
-          >
-            <option value="">-- Seleccionar insumo --</option>
-            {inventoryItems.map((item: any) => (
-              <option key={item.id} value={item.id}>
-                {item.name} (Actual: {item.currentStock} {item.unit})
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setRestockItemId(val)}
+            options={[
+              { value: "", label: "-- Seleccionar insumo --", subtitle: "Elige el ingrediente para sumar stock" },
+              ...inventoryItems.map((item: any) => ({
+                value: item.id,
+                label: item.name,
+                subtitle: `Stock actual: ${item.currentStock} ${item.unit} | Mínimo: ${item.minStockAlert}`,
+                badge: `${item.currentStock} ${item.unit}`,
+                badgeTone: item.currentStock <= item.minStockAlert ? "bg-rose-500/20 text-rose-300 border-rose-500/40" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                icon: Boxes,
+              })),
+            ]}
+            title="Seleccionar Insumo"
+            subtitle="Insumo al que se aplicará la entrada de Kardex"
+            placeholder="Seleccionar insumo..."
+            icon={Boxes}
+            showSearch={inventoryItems.length > 5}
+          />
           <div className="grid grid-cols-2 gap-2">
             <input
               type="number"
@@ -326,33 +338,47 @@ export default function GastronomyInventoryPage() {
             <Utensils className="w-4 h-4 text-purple-400" />
             Vincular Ingrediente a Receta
           </h2>
-          <select
-            required
+          <VipSelectModal
             value={recipeProductId}
-            onChange={(e) => setRecipeProductId(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-white/10 text-xs text-white"
-          >
-            <option value="">-- Producto del Menú --</option>
-            {products.map((p: any) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setRecipeProductId(val)}
+            options={[
+              { value: "", label: "-- Producto del Menú --", subtitle: "Plato, trago o producto de la carta" },
+              ...products.map((p: any) => ({
+                value: p.id,
+                label: p.name,
+                subtitle: p.categoryName || "Carta Gastronómica",
+                badge: p.code || "PRODUCTO",
+                icon: Utensils,
+              })),
+            ]}
+            title="Producto del Menú"
+            subtitle="Elige el producto que consume este ingrediente al venderse"
+            placeholder="Producto del Menú..."
+            icon={Utensils}
+            showSearch={products.length > 5}
+          />
           <div className="grid grid-cols-3 gap-2">
-            <select
-              required
-              value={recipeItemId}
-              onChange={(e) => setRecipeItemId(e.target.value)}
-              className="col-span-2 w-full px-3 py-2 rounded-xl bg-zinc-950 border border-white/10 text-xs text-white"
-            >
-              <option value="">-- Insumo --</option>
-              {inventoryItems.map((i: any) => (
-                <option key={i.id} value={i.id}>
-                  {i.name} ({i.unit})
-                </option>
-              ))}
-            </select>
+            <div className="col-span-2">
+              <VipSelectModal
+                value={recipeItemId}
+                onChange={(val) => setRecipeItemId(val)}
+                options={[
+                  { value: "", label: "-- Insumo --", subtitle: "Materia prima que se descontará" },
+                  ...inventoryItems.map((i: any) => ({
+                    value: i.id,
+                    label: i.name,
+                    subtitle: `Unidad: ${i.unit} (Stock actual: ${i.currentStock})`,
+                    badge: i.unit,
+                    icon: Boxes,
+                  })),
+                ]}
+                title="Seleccionar Insumo para Receta"
+                subtitle="Ingrediente a descontar por cada venta del producto"
+                placeholder="Insumo..."
+                icon={Boxes}
+                showSearch={inventoryItems.length > 5}
+              />
+            </div>
             <input
               type="number"
               step="0.1"

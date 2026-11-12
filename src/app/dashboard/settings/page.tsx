@@ -25,6 +25,7 @@ import {
   Monitor,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 
 interface ClubSettings {
   general: {
@@ -285,25 +286,86 @@ export default function SettingsPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-zinc-300">Zona Horaria Oficial</label>
-                <select
+                <VipSelectModal
                   value={settings.general.timezone}
-                  onChange={(e) =>
+                  onChange={(val) =>
                     setSettings({
                       ...settings,
-                      general: { ...settings.general, timezone: e.target.value },
+                      general: { ...settings.general, timezone: val },
                     })
                   }
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 cursor-pointer"
-                >
-                  <option value="America/Asuncion">América / Asunción - Paraguay (UTC-3 / UTC-4)</option>
-                  <option value="America/Montevideo">América / Montevideo (UTC-3)</option>
-                  <option value="America/Buenos_Aires">América / Buenos Aires (UTC-3)</option>
-                  <option value="America/Santiago">América / Santiago (UTC-3 / UTC-4)</option>
-                  <option value="America/Bogota">América / Bogotá (UTC-5)</option>
-                  <option value="America/Mexico_City">América / Ciudad de México (UTC-6)</option>
-                  <option value="America/New_York">América / Nueva York (UTC-5 / UTC-4)</option>
-                  <option value="Europe/Madrid">Europa / Madrid (UTC+1 / UTC+2)</option>
-                </select>
+                  options={[
+                    {
+                      value: "America/Asuncion",
+                      label: "América / Asunción - Paraguay (UTC-3 / UTC-4)",
+                      subtitle: "Hora estándar y de verano oficial de la República del Paraguay",
+                      badge: "PARAGUAY",
+                      badgeTone: "bg-red-500/20 text-red-300 border-red-500/40",
+                      icon: Clock,
+                    },
+                    {
+                      value: "America/Montevideo",
+                      label: "América / Montevideo (UTC-3)",
+                      subtitle: "Uruguay",
+                      badge: "URUGUAY",
+                      badgeTone: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+                      icon: Clock,
+                    },
+                    {
+                      value: "America/Buenos_Aires",
+                      label: "América / Buenos Aires (UTC-3)",
+                      subtitle: "Argentina",
+                      badge: "ARGENTINA",
+                      badgeTone: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
+                      icon: Clock,
+                    },
+                    {
+                      value: "America/Santiago",
+                      label: "América / Santiago (UTC-3 / UTC-4)",
+                      subtitle: "Chile Continental",
+                      badge: "CHILE",
+                      badgeTone: "bg-indigo-500/20 text-indigo-300 border-indigo-500/40",
+                      icon: Clock,
+                    },
+                    {
+                      value: "America/Bogota",
+                      label: "América / Bogotá (UTC-5)",
+                      subtitle: "Colombia",
+                      badge: "COLOMBIA",
+                      badgeTone: "bg-yellow-500/20 text-yellow-300 border-yellow-500/40",
+                      icon: Clock,
+                    },
+                    {
+                      value: "America/Mexico_City",
+                      label: "América / Ciudad de México (UTC-6)",
+                      subtitle: "México Centro",
+                      badge: "MÉXICO",
+                      badgeTone: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                      icon: Clock,
+                    },
+                    {
+                      value: "America/New_York",
+                      label: "América / Nueva York (UTC-5 / UTC-4)",
+                      subtitle: "Estados Unidos Este (EST/EDT)",
+                      badge: "USA",
+                      badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+                      icon: Clock,
+                    },
+                    {
+                      value: "Europe/Madrid",
+                      label: "Europa / Madrid (UTC+1 / UTC+2)",
+                      subtitle: "España Peninsular (CET/CEST)",
+                      badge: "ESPAÑA",
+                      badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+                      icon: Clock,
+                    },
+                  ]}
+                  title="Zona Horaria Oficial"
+                  subtitle="Configura el huso horario para turnos, comandas y reportes"
+                  placeholder="Seleccionar zona horaria..."
+                  icon={Clock}
+                  showSearch={true}
+                />
               </div>
 
               <div className="space-y-1.5">

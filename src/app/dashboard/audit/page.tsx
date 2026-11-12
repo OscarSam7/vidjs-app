@@ -22,6 +22,7 @@ import {
   Lock,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 
 interface AuditItem {
   id: string;
@@ -232,24 +233,77 @@ export default function AuditPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter className="w-3.5 h-3.5 text-zinc-400" />
-          <select
+        <div className="w-full sm:w-72">
+          <VipSelectModal
             value={selectedAction}
-            onChange={(e) => {
-              setSelectedAction(e.target.value);
+            onChange={(val) => {
+              setSelectedAction(val);
               setPage(1);
             }}
-            className="w-full sm:w-auto bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-300 focus:outline-none focus:border-purple-500/60 cursor-pointer"
-          >
-            <option value="ALL">Todas las acciones</option>
-            <option value="AUTH_LOGIN">Inicios de sesión (AUTH_LOGIN)</option>
-            <option value="DJ_QUEUE_POLICY_UPDATED">Políticas de DJ & Cola</option>
-            <option value="VENUE_BRANDING_UPDATED">Personalización de Marca</option>
-            <option value="SUBSCRIPTION_PLAN_CHANGED">Cambios de Suscripción</option>
-            <option value="TABLE_DELETE">Eliminación de Mesas</option>
-            <option value="PHOTO_DELETE">Moderación de Fotos</option>
-          </select>
+            options={[
+              {
+                value: "ALL",
+                label: "Todas las acciones",
+                subtitle: "Mostrar todos los eventos de auditoría del sistema",
+                badge: "TODAS",
+                badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+                icon: ShieldCheck,
+              },
+              {
+                value: "AUTH_LOGIN",
+                label: "Inicios de sesión (AUTH_LOGIN)",
+                subtitle: "Autenticación de personal y accesos administrativos",
+                badge: "LOGIN",
+                badgeTone: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+                icon: KeyRound,
+              },
+              {
+                value: "DJ_QUEUE_POLICY_UPDATED",
+                label: "Políticas de DJ & Cola",
+                subtitle: "Cambios en reglas de reproducción y prioridades",
+                badge: "DJ POLÍTICA",
+                badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+                icon: Sliders,
+              },
+              {
+                value: "VENUE_BRANDING_UPDATED",
+                label: "Personalización de Marca",
+                subtitle: "Logos, colores y configuración visual del club",
+                badge: "BRANDING",
+                badgeTone: "bg-pink-500/20 text-pink-300 border-pink-500/40",
+                icon: ShieldCheck,
+              },
+              {
+                value: "SUBSCRIPTION_PLAN_CHANGED",
+                label: "Cambios de Suscripción",
+                subtitle: "Modificaciones al plan SaaS y módulos contratados",
+                badge: "PLAN",
+                badgeTone: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                icon: Database,
+              },
+              {
+                value: "TABLE_DELETE",
+                label: "Eliminación de Mesas",
+                subtitle: "Baja de ubicaciones o sectores del plano",
+                badge: "MESAS",
+                badgeTone: "bg-rose-500/20 text-rose-300 border-rose-500/40",
+                icon: ShieldCheck,
+              },
+              {
+                value: "PHOTO_DELETE",
+                label: "Moderación de Fotos",
+                subtitle: "Eliminación de imágenes en pantalla o muro social",
+                badge: "FOTOS",
+                badgeTone: "bg-rose-500/20 text-rose-300 border-rose-500/40",
+                icon: ShieldCheck,
+              },
+            ]}
+            title="Filtrar por Acción"
+            subtitle="Selecciona el tipo de evento registrado en el log"
+            placeholder="Todas las acciones..."
+            icon={Filter}
+            showSearch={true}
+          />
         </div>
       </div>
 

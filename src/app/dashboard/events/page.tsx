@@ -31,6 +31,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 
 interface VenueItem {
   id: string;
@@ -480,18 +481,26 @@ export default function EventsManagementPage() {
         <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
           {/* Selector de Sede */}
           {venues.length > 1 && (
-            <select
-              value={venueFilter}
-              onChange={(e) => setVenueFilter(e.target.value)}
-              className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-300 focus:outline-none focus:border-purple-500 cursor-pointer shrink-0"
-            >
-              <option value="ALL">Todas las Sedes</option>
-              {venues.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name}
-                </option>
-              ))}
-            </select>
+            <div className="shrink-0 w-48">
+              <VipSelectModal
+                value={venueFilter}
+                onChange={(val) => setVenueFilter(val)}
+                options={[
+                  { value: "ALL", label: "Todas las Sedes", subtitle: "Ver eventos de todas las sucursales" },
+                  ...venues.map((v) => ({
+                    value: v.id,
+                    label: v.name,
+                    subtitle: v.address || undefined,
+                    badge: "SEDE",
+                    icon: Building2,
+                  })),
+                ]}
+                title="Filtrar por Sede"
+                subtitle="Elige la sucursal o local físico"
+                placeholder="Todas las sedes..."
+                icon={Building2}
+              />
+            </div>
           )}
 
           {/* Filtro de Estado */}
@@ -777,18 +786,23 @@ export default function EventsManagementPage() {
               {/* Sede / Local */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-zinc-300">Sede / Local Físico *</label>
-                <select
-                  required
+                <VipSelectModal
                   value={formData.venueId}
-                  onChange={(e) => setFormData({ ...formData, venueId: e.target.value })}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500 cursor-pointer"
-                >
-                  {venues.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} {v.address ? `(${v.address})` : ""}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setFormData({ ...formData, venueId: val })}
+                  options={venues.map((v) => ({
+                    value: v.id,
+                    label: v.name,
+                    subtitle: v.address || "Local físico habilitado",
+                    badge: "SEDE",
+                    badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+                    icon: Building2,
+                  }))}
+                  title="Sede / Local Físico"
+                  subtitle="Selecciona la sede o sucursal donde ocurrirá el evento"
+                  placeholder="Seleccionar sede..."
+                  icon={Building2}
+                  showSearch={venues.length > 5}
+                />
               </div>
 
               {/* Código de Acceso */}
@@ -863,17 +877,40 @@ export default function EventsManagementPage() {
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-zinc-300">Estado Inicial</label>
-                  <select
+                  <VipSelectModal
                     value={formData.status}
-                    onChange={(e) =>
-                      setFormData({ ...formData, status: e.target.value as any })
-                    }
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500 cursor-pointer"
-                  >
-                    <option value="ACTIVE">Activo / En Vivo</option>
-                    <option value="DRAFT">Borrador (Planificado)</option>
-                    <option value="PAUSED">En Pausa</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, status: val as any })}
+                    options={[
+                      {
+                        value: "ACTIVE",
+                        label: "Activo / En Vivo",
+                        subtitle: "Visible de inmediato para clientes, QR y pantallas",
+                        badge: "EN VIVO",
+                        badgeTone: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                        icon: Sparkles,
+                      },
+                      {
+                        value: "DRAFT",
+                        label: "Borrador (Planificado)",
+                        subtitle: "Solo visible para administradores y organizadores",
+                        badge: "BORRADOR",
+                        badgeTone: "bg-zinc-500/20 text-zinc-300 border-zinc-500/40",
+                        icon: Layers,
+                      },
+                      {
+                        value: "PAUSED",
+                        label: "En Pausa",
+                        subtitle: "Temporalmente inhabilitado para pedidos y cola DJ",
+                        badge: "PAUSA",
+                        badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+                        icon: Pause,
+                      },
+                    ]}
+                    title="Estado Inicial del Evento"
+                    subtitle="Define el estado operativo con el que se registrará"
+                    placeholder="Estado inicial..."
+                    icon={CalendarCheck2}
+                  />
                 </div>
               </div>
 
@@ -948,17 +985,23 @@ export default function EventsManagementPage() {
               {/* Sede / Local */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-zinc-300">Sede / Local Físico</label>
-                <select
+                <VipSelectModal
                   value={formData.venueId}
-                  onChange={(e) => setFormData({ ...formData, venueId: e.target.value })}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500 cursor-pointer"
-                >
-                  {venues.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} {v.address ? `(${v.address})` : ""}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setFormData({ ...formData, venueId: val })}
+                  options={venues.map((v) => ({
+                    value: v.id,
+                    label: v.name,
+                    subtitle: v.address || "Local físico habilitado",
+                    badge: "SEDE",
+                    badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+                    icon: Building2,
+                  }))}
+                  title="Sede / Local Físico"
+                  subtitle="Cambiar la sede asociada al evento"
+                  placeholder="Seleccionar sede..."
+                  icon={Building2}
+                  showSearch={venues.length > 5}
+                />
               </div>
 
               {/* Código de Acceso */}
@@ -1018,18 +1061,48 @@ export default function EventsManagementPage() {
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-zinc-300">Estado del Evento</label>
-                  <select
+                  <VipSelectModal
                     value={formData.status}
-                    onChange={(e) =>
-                      setFormData({ ...formData, status: e.target.value as any })
-                    }
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500 cursor-pointer"
-                  >
-                    <option value="ACTIVE">Activo / En Vivo</option>
-                    <option value="PAUSED">En Pausa</option>
-                    <option value="DRAFT">Borrador (Planificado)</option>
-                    <option value="FINISHED">Finalizado (Cerrado)</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, status: val as any })}
+                    options={[
+                      {
+                        value: "ACTIVE",
+                        label: "Activo / En Vivo",
+                        subtitle: "Visible de inmediato para clientes, QR y pantallas",
+                        badge: "EN VIVO",
+                        badgeTone: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                        icon: Sparkles,
+                      },
+                      {
+                        value: "PAUSED",
+                        label: "En Pausa",
+                        subtitle: "Temporalmente inhabilitado para pedidos y cola DJ",
+                        badge: "PAUSA",
+                        badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+                        icon: Pause,
+                      },
+                      {
+                        value: "DRAFT",
+                        label: "Borrador (Planificado)",
+                        subtitle: "Solo visible para administradores y organizadores",
+                        badge: "BORRADOR",
+                        badgeTone: "bg-zinc-500/20 text-zinc-300 border-zinc-500/40",
+                        icon: Layers,
+                      },
+                      {
+                        value: "FINISHED",
+                        label: "Finalizado (Cerrado)",
+                        subtitle: "Noche concluida, métricas archivadas",
+                        badge: "CERRADO",
+                        badgeTone: "bg-rose-500/20 text-rose-300 border-rose-500/40",
+                        icon: CheckCircle2,
+                      },
+                    ]}
+                    title="Estado del Evento"
+                    subtitle="Actualiza el ciclo de vida del evento"
+                    placeholder="Estado del evento..."
+                    icon={CalendarCheck2}
+                  />
                 </div>
               </div>
 

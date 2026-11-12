@@ -33,6 +33,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
@@ -1246,15 +1247,40 @@ export default function ReservationsDashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-[#0A1322] border border-[#263858] p-3 rounded-xl">
                 <div>
                   <label className="text-xs font-semibold text-slate-300 block mb-1">Modalidad de Cobro</label>
-                  <select
+                  <VipSelectModal
                     value={pricingType}
-                    onChange={(e: any) => setPricingType(e.target.value)}
-                    className="w-full bg-[#0F1E36] border border-[#263858] text-white text-xs rounded-lg p-2"
-                  >
-                    <option value="FIXED_COMBO">Combo Cerrado (Bebidas incluidas)</option>
-                    <option value="CLEAN_FEE">Reserva Limpia (Alquiler de Espacio)</option>
-                    <option value="CREDIT_CONSUMPTION">100% Consumo Acreditable (Saldo)</option>
-                  </select>
+                    onChange={(val) => setPricingType(val as any)}
+                    options={[
+                      {
+                        value: "FIXED_COMBO",
+                        label: "Combo Cerrado (Bebidas incluidas)",
+                        subtitle: "Incluye botellas, picadas y servicio VIP cerrado",
+                        badge: "COMBO",
+                        badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+                        icon: PartyPopper,
+                      },
+                      {
+                        value: "CLEAN_FEE",
+                        label: "Reserva Limpia (Alquiler de Espacio)",
+                        subtitle: "Cobro exclusivo por la locación / living VIP",
+                        badge: "ALQUILER",
+                        badgeTone: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+                        icon: Building2,
+                      },
+                      {
+                        value: "CREDIT_CONSUMPTION",
+                        label: "100% Consumo Acreditable (Saldo)",
+                        subtitle: "El monto pagado se convierte en saldo libre para la carta",
+                        badge: "SALDO",
+                        badgeTone: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                        icon: DollarSign,
+                      },
+                    ]}
+                    title="Modalidad de Cobro"
+                    subtitle="Selecciona cómo se liquida o acredita la reserva"
+                    placeholder="Modalidad de cobro..."
+                    icon={DollarSign}
+                  />
                 </div>
 
                 <div>

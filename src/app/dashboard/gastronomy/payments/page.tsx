@@ -6,9 +6,13 @@ import {
   RefreshCw,
   ShieldCheck,
   Smartphone,
+  CreditCard,
+  Building2,
+  Zap,
 } from "lucide-react";
 import { formatGuaranies, PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/gastronomy/format";
 import { useRealtime } from "@/hooks/use-realtime";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 
 export default function GastronomyDigitalPaymentsPage() {
   const [data, setData] = useState<any>(null);
@@ -154,35 +158,71 @@ export default function GastronomyDigitalPaymentsPage() {
           </h2>
           <form onSubmit={handleGenerateQr} className="space-y-3">
             <div>
-              <label className="text-xs text-zinc-400 block mb-1">Seleccionar Pedido Pendiente</label>
-              <select
-                required
+              <label className="text-xs text-zinc-400 block mb-1">Seleccionar Pedido Pendiente *</label>
+              <VipSelectModal
                 value={selectedOrderId}
-                onChange={(e) => setSelectedOrderId(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl bg-zinc-950 border border-white/10 text-sm text-white"
-              >
-                <option value="">-- Elegir pedido --</option>
-                {unpaidOrders.map((o: any) => (
-                  <option key={o.id} value={o.id}>
-                    {o.orderNumber} — {o.tableLabel || "Barra"} (
-                    {formatGuaranies(Math.max(0, (o.totalCents || 0) - (o.paidAmountCents || 0)))}
-                    )
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSelectedOrderId(val)}
+                options={[
+                  { value: "", label: "-- Elegir pedido --", subtitle: "Selecciona el pedido a cobrar por QR" },
+                  ...unpaidOrders.map((o: any) => ({
+                    value: o.id,
+                    label: `${o.orderNumber} — ${o.tableLabel || "Barra"}`,
+                    subtitle: `Saldo: ${formatGuaranies(Math.max(0, (o.totalCents || 0) - (o.paidAmountCents || 0)))}`,
+                    badge: o.tableLabel || "BARRA",
+                    icon: QrCode,
+                  })),
+                ]}
+                title="Seleccionar Pedido Pendiente"
+                subtitle="Elige la comanda que pagará con QR/PIX"
+                placeholder="Elegir pedido..."
+                icon={QrCode}
+                showSearch={unpaidOrders.length > 5}
+              />
             </div>
             <div>
-              <label className="text-xs text-zinc-400 block mb-1">Proveedor / Red Interoperable</label>
-              <select
+              <label className="text-xs text-zinc-400 block mb-1">Proveedor / Red Interoperable *</label>
+              <VipSelectModal
                 value={qrProvider}
-                onChange={(e) => setQrProvider(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl bg-zinc-950 border border-white/10 text-sm text-white"
-              >
-                <option value="BANCARD_QR_PY">QR Interoperable Local (Bancard / Infonet PY)</option>
-                <option value="SIPAP_SPI_TRANSFER">Transferencia Bancaria SIPAP / SPI</option>
-                <option value="PIX_BRASIL_GATEWAY">PIX Instantáneo (Turistas / Frontera)</option>
-                <option value="PAGOPAR_GATEWAY">Pasarela Pagopar / Dinelco</option>
-              </select>
+                onChange={(val) => setQrProvider(val)}
+                options={[
+                  {
+                    value: "BANCARD_QR_PY",
+                    label: "QR Interoperable Local (Bancard / Infonet PY)",
+                    subtitle: "Billeteras Zimple, bancos locales y tarjetas paraguayas",
+                    badge: "BANCARD",
+                    badgeTone: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                    icon: QrCode,
+                  },
+                  {
+                    value: "SIPAP_SPI_TRANSFER",
+                    label: "Transferencia Bancaria SIPAP / SPI",
+                    subtitle: "Acreditación instantánea banco a banco BCP",
+                    badge: "SIPAP",
+                    badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+                    icon: Building2,
+                  },
+                  {
+                    value: "PIX_BRASIL_GATEWAY",
+                    label: "PIX Instantáneo (Turistas / Frontera)",
+                    subtitle: "Bancos de Brasil y turistas extranjeros en reales/guaraníes",
+                    badge: "PIX BRASIL",
+                    badgeTone: "bg-teal-500/20 text-teal-300 border-teal-500/40",
+                    icon: Zap,
+                  },
+                  {
+                    value: "PAGOPAR_GATEWAY",
+                    label: "Pasarela Pagopar / Dinelco",
+                    subtitle: "Cobros con tarjetas y billeteras Dinelco",
+                    badge: "DINELCO",
+                    badgeTone: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+                    icon: CreditCard,
+                  },
+                ]}
+                title="Proveedor / Red Interoperable"
+                subtitle="Selecciona la red de procesamiento QR o bancaria"
+                placeholder="Seleccionar proveedor..."
+                icon={Smartphone}
+              />
             </div>
             <button
               type="submit"

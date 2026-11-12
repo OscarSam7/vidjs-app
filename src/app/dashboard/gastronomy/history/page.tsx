@@ -6,6 +6,7 @@ import {
   Search,
   RefreshCw,
   User,
+  Filter,
 } from "lucide-react";
 import {
   formatGuaranies,
@@ -14,6 +15,7 @@ import {
   DELIVERY_MODE_LABELS,
 } from "@/lib/gastronomy/format";
 import { useRealtime } from "@/hooks/use-realtime";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 
 export default function GastronomyOrderHistoryPage() {
   const [data, setData] = useState<any>(null);
@@ -96,18 +98,40 @@ export default function GastronomyOrderHistoryPage() {
             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white"
           />
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white"
-        >
-          <option value="ALL">Todos los estados ({orders.length})</option>
-          {Object.entries(ORDER_STATUS_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
-        </select>
+        <div className="w-full sm:w-64">
+          <VipSelectModal
+            value={statusFilter}
+            onChange={(val) => setStatusFilter(val)}
+            options={[
+              {
+                value: "ALL",
+                label: `Todos los estados (${orders.length})`,
+                subtitle: "Visualizar todas las comandas históricas",
+                badge: `${orders.length}`,
+                badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+              },
+              ...Object.entries(ORDER_STATUS_LABELS).map(([k, v]) => ({
+                value: k,
+                label: v as string,
+                subtitle: `Filtrar solo pedidos con estado ${v}`,
+                badge: k,
+                badgeTone:
+                  k === "DELIVERED"
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                    : k === "CANCELLED"
+                    ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                    : k === "PREPARING" || k === "READY"
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                    : "bg-zinc-500/20 text-zinc-300 border-zinc-500/40",
+              })),
+            ]}
+            title="Filtrar por Estado de Pedido"
+            subtitle="Selecciona el estado operativo de los pedidos a auditar"
+            placeholder="Todos los estados..."
+            icon={Filter}
+            showSearch={Object.keys(ORDER_STATUS_LABELS).length > 5}
+          />
+        </div>
       </div>
 
       {/* History List */}
