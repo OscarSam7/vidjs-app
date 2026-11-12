@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { cn } from "@/lib/utils";
 
 export default function ParticipantsPage() {
@@ -407,57 +408,78 @@ export default function ParticipantsPage() {
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {/* Category Filter */}
-          <select
-            value={selectedType}
-            onChange={(e) => {
-              setSelectedType(e.target.value);
-              setPage(1);
-            }}
-            className="bg-[#0A1322] border border-[#263858] rounded-xl px-3 py-2 text-xs text-white focus:outline-none cursor-pointer"
-          >
-            <option value="ALL">Todas las Categorías</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} ({c.code})
-              </option>
-            ))}
-          </select>
+          <div className="w-full sm:w-48">
+            <VipSelectModal
+              value={selectedType}
+              onChange={(val) => {
+                setSelectedType(val);
+                setPage(1);
+              }}
+              options={[
+                { value: "ALL", label: "Todas las Categorías", badge: "TODAS" },
+                ...categories.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                  subtitle: `Código: ${c.code}`,
+                  badge: c.code,
+                })),
+              ]}
+              title="Filtrar por Categoría"
+              subtitle="Selecciona la categoría de participante"
+              placeholder="Todas las Categorías"
+              icon={Users}
+            />
+          </div>
 
           {/* Status Filter */}
-          <select
-            value={selectedStatus}
-            onChange={(e) => {
-              setSelectedStatus(e.target.value);
-              setPage(1);
-            }}
-            className="bg-[#0A1322] border border-[#263858] rounded-xl px-3 py-2 text-xs text-white focus:outline-none cursor-pointer"
-          >
-            <option value="ALL">Todos los Estados</option>
-            <option value="APPROVED">Aprobado</option>
-            <option value="ACCREDITED">Acreditado (Con Credencial)</option>
-            <option value="CHECKED_IN">Ingresado en Sala</option>
-            <option value="PENDING">Pendiente</option>
-            <option value="BLOCKED">Bloqueado</option>
-            <option value="CANCELLED">Cancelado</option>
-          </select>
+          <div className="w-full sm:w-44">
+            <VipSelectModal
+              value={selectedStatus}
+              onChange={(val) => {
+                setSelectedStatus(val);
+                setPage(1);
+              }}
+              options={[
+                { value: "ALL", label: "Todos los Estados", badge: "TODOS", badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40" },
+                { value: "APPROVED", label: "Aprobado", badge: "LISTO", badgeTone: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" },
+                { value: "ACCREDITED", label: "Acreditado (Con Credencial)", badge: "IMPRESO", badgeTone: "bg-blue-500/20 text-blue-300 border-blue-500/40" },
+                { value: "CHECKED_IN", label: "Ingresado en Sala", badge: "EN SALA", badgeTone: "bg-teal-500/20 text-teal-300 border-teal-500/40" },
+                { value: "PENDING", label: "Pendiente", badge: "ESPERA", badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40" },
+                { value: "BLOCKED", label: "Bloqueado", badge: "BLOQUEO", badgeTone: "bg-rose-500/20 text-rose-300 border-rose-500/40" },
+                { value: "CANCELLED", label: "Cancelado", badge: "BAJA", badgeTone: "bg-zinc-800 text-zinc-400 border-zinc-700" },
+              ]}
+              title="Filtrar por Estado"
+              subtitle="Filtra participantes según su estado de acceso"
+              placeholder="Todos los Estados"
+              icon={CheckCircle2}
+            />
+          </div>
 
           {/* Organization Filter */}
           {organizations.length > 0 && (
-            <select
-              value={selectedOrg}
-              onChange={(e) => {
-                setSelectedOrg(e.target.value);
-                setPage(1);
-              }}
-              className="bg-[#0A1322] border border-[#263858] rounded-xl px-3 py-2 text-xs text-white focus:outline-none cursor-pointer"
-            >
-              <option value="ALL">Todas las Empresas</option>
-              {organizations.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </select>
+            <div className="w-full sm:w-44">
+              <VipSelectModal
+                value={selectedOrg}
+                onChange={(val) => {
+                  setSelectedOrg(val);
+                  setPage(1);
+                }}
+                options={[
+                  { value: "ALL", label: "Todas las Empresas", badge: "TODAS" },
+                  ...organizations.map((org) => ({
+                    value: org.id,
+                    label: org.name,
+                    subtitle: org.taxId ? `RUC: ${org.taxId}` : undefined,
+                    badge: "EMPRESA",
+                    icon: Building,
+                  })),
+                ]}
+                title="Filtrar por Empresa / Delegación"
+                subtitle="Selecciona la organización de procedencia"
+                placeholder="Todas las Empresas"
+                icon={Building}
+              />
+            </div>
           )}
         </div>
       </div>

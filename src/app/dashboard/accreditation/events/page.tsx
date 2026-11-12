@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { cn } from "@/lib/utils";
 
 const EVENT_TYPES = [
@@ -152,26 +153,41 @@ export default function EventsManagementPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <Select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            options={EVENT_TYPES}
-            className="bg-[#0A1322] border-[#263858] text-white text-xs min-w-[160px]"
-          />
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full md:w-auto">
+          <div className="w-full sm:w-48">
+            <VipSelectModal
+              value={selectedType}
+              onChange={(val) => setSelectedType(val)}
+              options={EVENT_TYPES.map((t) => ({
+                value: t.value,
+                label: t.label,
+                badge: t.value === "ALL" ? "TODOS" : t.value,
+                icon: Calendar,
+              }))}
+              title="Filtrar por Tipo de Evento"
+              subtitle="Selecciona la modalidad para refinar la lista"
+              placeholder="Todos los tipos"
+              icon={Calendar}
+            />
+          </div>
 
-          <Select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            options={[
-              { value: "ALL", label: "Todos los estados" },
-              { value: "ACTIVE", label: "Activo" },
-              { value: "DRAFT", label: "Borrador" },
-              { value: "FINISHED", label: "Finalizado" },
-              { value: "CANCELLED", label: "Cancelado" },
-            ]}
-            className="bg-[#0A1322] border-[#263858] text-white text-xs min-w-[140px]"
-          />
+          <div className="w-full sm:w-44">
+            <VipSelectModal
+              value={selectedStatus}
+              onChange={(val) => setSelectedStatus(val)}
+              options={[
+                { value: "ALL", label: "Todos los estados", badge: "TODOS", badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40" },
+                { value: "ACTIVE", label: "Activo", badge: "EN VIVO", badgeTone: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" },
+                { value: "DRAFT", label: "Borrador", badge: "EDICIÓN", badgeTone: "bg-zinc-800 text-zinc-300 border-zinc-700" },
+                { value: "FINISHED", label: "Finalizado", badge: "CERRADO", badgeTone: "bg-blue-500/20 text-blue-300 border-blue-500/40" },
+                { value: "CANCELLED", label: "Cancelado", badge: "ANULADO", badgeTone: "bg-rose-500/20 text-rose-300 border-rose-500/40" },
+              ]}
+              title="Filtrar por Estado"
+              subtitle="Filtra eventos según su ciclo de vida"
+              placeholder="Todos los estados"
+              icon={CheckCircle2}
+            />
+          </div>
         </div>
       </div>
 

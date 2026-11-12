@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { cn } from "@/lib/utils";
 
 function QuickCreateEventModal({
@@ -327,32 +328,29 @@ function AccreditationHeader() {
               )}
             </div>
 
-            {/* Event Selector Dropdown */}
-            <div className="flex items-center gap-2 bg-[#0F1E36] border border-[#263858] rounded-xl px-3 py-1.5 shadow-sm">
-              <Calendar className="w-4 h-4 text-purple-400 shrink-0" />
-              <div className="flex flex-col">
-                <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">
-                  Evento Activo
-                </span>
-                <select
-                  value={activeEventId || ""}
-                  onChange={(e) => setActiveEventId(e.target.value || null)}
-                  className="bg-transparent text-xs font-semibold text-white focus:outline-none cursor-pointer pr-4"
-                  disabled={isLoading || events.length === 0}
-                >
-                  {events.length === 0 ? (
-                    <option value="" className="bg-[#0F1E36] text-slate-400">
-                      Sin eventos creados
-                    </option>
-                  ) : (
-                    events.map((evt) => (
-                      <option key={evt.id} value={evt.id} className="bg-[#0F1E36] text-white">
-                        {evt.name} ({evt.code})
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
+            {/* Selector VIP Elegante de Evento Activo */}
+            <div className="min-w-[190px] max-w-[260px]">
+              <VipSelectModal
+                value={activeEventId || ""}
+                onChange={(val) => setActiveEventId(val || null)}
+                options={
+                  events.length === 0
+                    ? [{ value: "", label: "Sin eventos creados", subtitle: "Crea tu primer evento" }]
+                    : events.map((evt) => ({
+                        value: evt.id,
+                        label: evt.name,
+                        subtitle: `${evt.code} • ${evt.status || "Activo"}`,
+                        badge: evt.eventType || "EVENTO",
+                        icon: Calendar,
+                      }))
+                }
+                title="Selecciona el Evento Activo"
+                subtitle="Elige el evento para gestionar credenciales, acreditados y aforo"
+                placeholder="Seleccionar Evento..."
+                icon={Calendar}
+                disabled={isLoading || events.length === 0}
+                showSearch={events.length > 4}
+              />
             </div>
 
             {/* Button New Event */}

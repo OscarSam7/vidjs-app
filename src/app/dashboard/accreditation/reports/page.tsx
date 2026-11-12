@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { cn } from "@/lib/utils";
 
 export default function AccreditationReportsPage() {
@@ -169,28 +170,28 @@ export default function AccreditationReportsPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <div className="bg-[#0F1E36] border border-[#263858] rounded-xl p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="bg-[#0F1E36] border border-[#263858] rounded-2xl p-4 shadow-sm flex flex-col justify-between">
           <span className="text-xs text-slate-400 block font-semibold mb-1">Total Registrados</span>
-          <div className="text-2xl font-bold text-white">{metrics?.totalParticipants ?? 0}</div>
+          <div className="text-2xl font-bold text-white font-mono">{metrics?.totalParticipants ?? 0}</div>
         </div>
 
-        <div className="bg-[#0F1E36] border border-[#263858] rounded-xl p-4">
+        <div className="bg-[#0F1E36] border border-[#263858] rounded-2xl p-4 shadow-sm flex flex-col justify-between">
           <span className="text-xs text-slate-400 block font-semibold mb-1">Acreditaciones Listas</span>
-          <div className="text-2xl font-bold text-blue-400">{metrics?.totalAccredited ?? 0}</div>
+          <div className="text-2xl font-bold text-blue-400 font-mono">{metrics?.totalAccredited ?? 0}</div>
         </div>
 
-        <div className="bg-[#0F1E36] border border-emerald-900/60 rounded-xl p-4 bg-gradient-to-br from-[#0F1E36] to-emerald-950/20">
+        <div className="bg-[#0F1E36] border border-emerald-900/60 rounded-2xl p-4 bg-gradient-to-br from-[#0F1E36] to-emerald-950/20 shadow-sm flex flex-col justify-between">
           <span className="text-xs text-emerald-300 block font-semibold mb-1">Participantes Presentes</span>
-          <div className="text-2xl font-bold text-emerald-400">{metrics?.totalCheckedIn ?? 0}</div>
+          <div className="text-2xl font-bold text-emerald-400 font-mono">{metrics?.totalCheckedIn ?? 0}</div>
           <div className="text-[11px] text-emerald-300/80 font-mono mt-0.5">
             {metrics?.attendanceRate ?? 0}% Asistencia Real
           </div>
         </div>
 
-        <div className="bg-[#0F1E36] border border-[#263858] rounded-xl p-4">
+        <div className="bg-[#0F1E36] border border-[#263858] rounded-2xl p-4 shadow-sm flex flex-col justify-between">
           <span className="text-xs text-slate-400 block font-semibold mb-1">Participantes Ausentes</span>
-          <div className="text-2xl font-bold text-amber-400">
+          <div className="text-2xl font-bold text-amber-400 font-mono">
             {Math.max(0, (metrics?.totalParticipants ?? 0) - (metrics?.totalCheckedIn ?? 0))}
           </div>
         </div>
@@ -265,25 +266,31 @@ export default function AccreditationReportsPage() {
             <h3 className="text-sm font-bold text-white">Libro de Asistencia & Auditoría en Vivo</h3>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <Input
               type="text"
               placeholder="Buscar por participante, documento o puerta..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-[#0A1322] border-[#263858] text-white text-xs w-64"
+              className="bg-[#0A1322] border-[#263858] text-white text-xs w-full sm:w-64"
             />
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-[#0A1322] border border-[#263858] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
-            >
-              <option value="ALL">Todos los Estados</option>
-              <option value="APPROVED">Autorizado</option>
-              <option value="DUPLICATE">Duplicado</option>
-              <option value="REJECTED">Rechazado</option>
-            </select>
+            <div className="w-full sm:w-44">
+              <VipSelectModal
+                value={statusFilter}
+                onChange={(val) => setStatusFilter(val)}
+                options={[
+                  { value: "ALL", label: "Todos los Estados", badge: "TODOS", badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40" },
+                  { value: "APPROVED", label: "Autorizado", badge: "OK", badgeTone: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40", icon: CheckCircle2 },
+                  { value: "DUPLICATE", label: "Duplicado", badge: "ALERTA", badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40", icon: AlertTriangle },
+                  { value: "REJECTED", label: "Rechazado", badge: "DENEGADO", badgeTone: "bg-rose-500/20 text-rose-300 border-rose-500/40", icon: XCircle },
+                ]}
+                title="Filtrar Auditoría por Resultado"
+                subtitle="Filtra los intentos de ingreso al evento"
+                placeholder="Todos los Estados"
+                icon={CheckCircle2}
+              />
+            </div>
           </div>
         </div>
 

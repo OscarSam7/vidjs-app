@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { cn } from "@/lib/utils";
 
 type BadgeFormat = "VERTICAL_A6" | "HORIZONTAL_CARD" | "PVC_CR80" | "THERMAL_LABEL" | "WRISTBAND";
@@ -240,18 +241,23 @@ export default function BadgeDesignerPage() {
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Filtrar por Categoría
               </h4>
-              <select
+              <VipSelectModal
                 value={selectedCategoryId}
-                onChange={(e) => setSelectedCategoryId(e.target.value)}
-                className="w-full bg-[#0A1322] border border-[#263858] rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-              >
-                <option value="ALL">Todas las Categorías</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.code})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSelectedCategoryId(val)}
+                options={[
+                  { value: "ALL", label: "Todas las Categorías", badge: "TODAS" },
+                  ...categories.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                    subtitle: `Código: ${c.code}`,
+                    badge: c.code,
+                  })),
+                ]}
+                title="Filtrar Credenciales por Categoría"
+                subtitle="Elige qué grupo de participantes imprimir"
+                placeholder="Todas las Categorías"
+                icon={Users}
+              />
             </div>
           </div>
 
