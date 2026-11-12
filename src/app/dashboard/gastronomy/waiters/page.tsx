@@ -24,9 +24,11 @@ import {
   Check,
   ArrowRight,
   ShieldCheck,
+  MapPin,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { formatGuaranies } from "@/lib/gastronomy/format";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 
 export default function GastronomyWaitersPanelPage() {
   const [data, setData] = useState<any>(null);
@@ -411,26 +413,33 @@ export default function GastronomyWaitersPanelPage() {
 
                     {/* Asignación Manual por Supervisor/Admin */}
                     {waiters.length > 0 && (
-                      <select
-                        value={ord.assignedWaiterId || ""}
-                        onChange={(e) => {
-                          const w = waiters.find((u) => u.id === e.target.value);
-                          if (w) {
-                            handleWaiterAction(ord.id, "ASSIGN_WAITER_MANUAL", {
-                              waiterId: w.id,
-                              waiterName: w.name,
-                            });
-                          }
-                        }}
-                        className="bg-[#0D1930] border border-[#263858] rounded-lg px-2 py-1 text-[10px] text-slate-300"
-                      >
-                        <option value="">Asignar manual...</option>
-                        {waiters.map((w) => (
-                          <option key={w.id} value={w.id}>
-                            {w.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="w-36">
+                        <VipSelectModal
+                          value={ord.assignedWaiterId || ""}
+                          onChange={(val) => {
+                            const w = waiters.find((u) => u.id === val);
+                            if (w) {
+                              handleWaiterAction(ord.id, "ASSIGN_WAITER_MANUAL", {
+                                waiterId: w.id,
+                                waiterName: w.name,
+                              });
+                            }
+                          }}
+                          options={[
+                            { value: "", label: "Asignar manual...", subtitle: "Selecciona el mozo" },
+                            ...waiters.map((w) => ({
+                              value: w.id,
+                              label: w.name,
+                              badge: "MOZO",
+                              icon: UserCheck,
+                            })),
+                          ]}
+                          title="Asignar Mozo al Pedido"
+                          subtitle={`${ord.tableLabel} • ${ord.orderNumber}`}
+                          placeholder="Asignar..."
+                          icon={UserCheck}
+                        />
+                      </div>
                     )}
                   </div>
 
@@ -585,20 +594,25 @@ export default function GastronomyWaitersPanelPage() {
               </div>
 
               {/* Formulario rápido Mesa y Cliente */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs items-end">
                 <div>
                   <label className="text-[11px] font-bold text-zinc-300 block mb-1">Mesa Destino *</label>
-                  <select
+                  <VipSelectModal
                     value={newOrderTableId}
-                    onChange={(e) => setNewOrderTableId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-emerald-500/40 text-white font-bold"
-                  >
-                    {tables.map((t: any) => (
-                      <option key={t.id} value={t.id}>
-                        {t.label || `Mesa ${t.number}`} ({t.sector?.name || t.sectorName || "Salón"})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setNewOrderTableId(val)}
+                    options={tables.map((t: any) => ({
+                      value: t.id,
+                      label: t.label || `Mesa ${t.number}`,
+                      subtitle: `Sector: ${t.sector?.name || t.sectorName || "Salón"}`,
+                      badge: `#${t.number}`,
+                      icon: MapPin,
+                    }))}
+                    title="Mesa de Destino de la Comanda"
+                    subtitle="Selecciona la mesa que está ordenando"
+                    placeholder="Mesa Destino..."
+                    icon={MapPin}
+                    showSearch={tables.length > 5}
+                  />
                 </div>
 
                 <div>
@@ -614,18 +628,22 @@ export default function GastronomyWaitersPanelPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-zinc-300 block mb-1">Medio Pago Inicial</label>
-                  <select
+                  <VipSelectModal
                     value={newOrderPaymentMethod}
-                    onChange={(e) => setNewOrderPaymentMethod(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white"
-                  >
-                    <option value="CASH">Efectivo</option>
-                    <option value="QR_PAYMENT">QR Interoperable</option>
-                    <option value="DEBIT_CARD">Tarjeta Débito</option>
-                    <option value="CREDIT_CARD">Tarjeta Crédito</option>
-                    <option value="BANK_TRANSFER">Transferencia SIPAP</option>
-                    <option value="PIX">PIX</option>
-                  </select>
+                    onChange={(val) => setNewOrderPaymentMethod(val)}
+                    options={[
+                      { value: "CASH", label: "Efectivo", subtitle: "Pagar en caja o al mozo", badge: "EFECTIVO", icon: Banknote },
+                      { value: "QR_PAYMENT", label: "QR Interoperable", subtitle: "Billeteras electrónicas", badge: "QR", icon: QrCode },
+                      { value: "DEBIT_CARD", label: "Tarjeta Débito (POS)", subtitle: "POS inalámbrico", badge: "DÉBITO", icon: CreditCard },
+                      { value: "CREDIT_CARD", label: "Tarjeta Crédito (POS)", subtitle: "POS inalámbrico", badge: "CRÉDITO", icon: CreditCard },
+                      { value: "BANK_TRANSFER", label: "Transferencia SIPAP", subtitle: "Inmediata", badge: "SIPAP", icon: ArrowRight },
+                      { value: "PIX", label: "PIX Instantáneo", subtitle: "Recepción 24/7", badge: "PIX", icon: Zap },
+                    ]}
+                    title="Medio de Pago Inicial"
+                    subtitle="Forma en que el cliente espera abonar"
+                    placeholder="Medio Pago..."
+                    icon={CreditCard}
+                  />
                 </div>
               </div>
 

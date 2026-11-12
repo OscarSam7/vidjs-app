@@ -13,6 +13,7 @@ import {
   Lock,
   Unlock,
   ShieldCheck,
+  MapPin,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import {
@@ -20,6 +21,7 @@ import {
   GASTRO_PAYMENT_STATUS_LABELS,
   GASTRO_PAYMENT_METHOD_LABELS,
 } from "@/lib/gastronomy/format";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 
 export default function GastronomyCashierPage() {
   const [data, setData] = useState<any>(null);
@@ -670,17 +672,25 @@ export default function GastronomyCashierPage() {
 
             <div>
               <label className="text-slate-300 font-semibold block mb-1">Asociar a Mesa</label>
-              <select
+              <VipSelectModal
                 value={depTableId}
-                onChange={(e) => setDepTableId(e.target.value)}
-                className="w-full p-2.5 rounded-xl bg-[#080F1F] border border-[#263858] text-white"
-              >
-                {tables.map((t: any) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label} ({t.sector?.name || t.zone})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setDepTableId(val)}
+                options={[
+                  { value: "", label: "Sin mesa fija (Reserva general)", subtitle: "Asignar al llegar" },
+                  ...tables.map((t: any) => ({
+                    value: t.id,
+                    label: t.label || `Mesa ${t.number}`,
+                    subtitle: `Sector: ${t.sector?.name || t.zone || "Salón"}`,
+                    badge: `#${t.number}`,
+                    icon: MapPin,
+                  })),
+                ]}
+                title="Asociar Seña a Mesa"
+                subtitle="Selecciona la mesa asignada para esta reserva o seña"
+                placeholder="Seleccionar Mesa..."
+                icon={MapPin}
+                showSearch={tables.length > 5}
+              />
             </div>
 
             <div>

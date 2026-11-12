@@ -12,7 +12,13 @@ import {
   Wine,
   ChefHat,
   ConciergeBell,
+  Flame,
+  CreditCard,
+  Banknote,
+  MapPin,
+  Clock,
 } from "lucide-react";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { useRealtime } from "@/hooks/use-realtime";
 import {
   formatGuaranies,
@@ -322,17 +328,23 @@ export default function GastronomyOrdersPage() {
 
                   {ord.status !== "CANCELLED" && ord.status !== "DELIVERED" && (
                     <div className="flex items-center gap-2">
-                      <select
-                        value={ord.priority}
-                        onChange={(e) =>
-                          handleOrderAction(ord.id, "CHANGE_PRIORITY", { priority: e.target.value })
-                        }
-                        className="flex-1 px-2.5 py-1.5 rounded-xl bg-[#080F1F] border border-[#263858] text-[11px] text-white"
-                      >
-                        <option value="NORMAL">Prioridad Normal</option>
-                        <option value="HIGH">Prioridad Alta</option>
-                        <option value="VIP">Prioridad VIP</option>
-                      </select>
+                      <div className="flex-1">
+                        <VipSelectModal
+                          value={ord.priority || "NORMAL"}
+                          onChange={(val) =>
+                            handleOrderAction(ord.id, "CHANGE_PRIORITY", { priority: val })
+                          }
+                          options={[
+                            { value: "NORMAL", label: "Prioridad Normal", badge: "ESTÁNDAR", badgeTone: "bg-zinc-800 text-zinc-300 border-zinc-700" },
+                            { value: "HIGH", label: "Prioridad Alta", badge: "ALTA", badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40", icon: Flame },
+                            { value: "VIP", label: "Prioridad VIP", badge: "URGENTE VIP", badgeTone: "bg-rose-500/20 text-rose-300 border-rose-500/40", icon: Flame },
+                          ]}
+                          title="Cambiar Prioridad del Pedido"
+                          subtitle={`${ord.tableLabel} • ${ord.orderNumber}`}
+                          placeholder="Prioridad..."
+                          icon={Flame}
+                        />
+                      </div>
 
                       <button
                         onClick={() => {
@@ -370,20 +382,25 @@ export default function GastronomyOrdersPage() {
             </div>
 
             <form onSubmit={handleCreateManualOrder} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Mesa de destino</label>
-                  <select
+                  <label className="text-slate-300 font-semibold block mb-1">Mesa de destino *</label>
+                  <VipSelectModal
                     value={selectedTableId}
-                    onChange={(e) => setSelectedTableId(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-[#080F1F] border border-[#263858] text-white"
-                  >
-                    {tables.map((t: any) => (
-                      <option key={t.id} value={t.id}>
-                        {t.label} ({t.sector?.name || t.zone})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setSelectedTableId(val)}
+                    options={tables.map((t: any) => ({
+                      value: t.id,
+                      label: t.label || `Mesa ${t.number}`,
+                      subtitle: `Sector: ${t.sector?.name || t.zone || "Salón"}`,
+                      badge: `#${t.number}`,
+                      icon: MapPin,
+                    }))}
+                    title="Selecciona la Mesa de Destino"
+                    subtitle="Elige la mesa donde se entregará o cargará la comanda"
+                    placeholder="Mesa de destino..."
+                    icon={MapPin}
+                    showSearch={tables.length > 5}
+                  />
                 </div>
                 <div>
                   <label className="text-slate-300 font-semibold block mb-1">Nombre del Cliente</label>
@@ -396,30 +413,52 @@ export default function GastronomyOrdersPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Modalidad de Entrega</label>
-                  <select
+                  <label className="text-slate-300 font-semibold block mb-1">Modalidad de Entrega *</label>
+                  <VipSelectModal
                     value={deliveryMode}
-                    onChange={(e) => setDeliveryMode(e.target.value as any)}
-                    className="w-full p-2.5 rounded-xl bg-[#080F1F] border border-[#263858] text-white"
-                  >
-                    <option value="WAITER_DELIVERY">Entrega por Mozo en Mesa</option>
-                    <option value="BAR_PICKUP">Retiro en Barra</option>
-                  </select>
+                    onChange={(val) => setDeliveryMode(val as any)}
+                    options={[
+                      {
+                        value: "WAITER_DELIVERY",
+                        label: "Entrega por Mozo en Mesa",
+                        subtitle: "Despacho por staff con confirmación en mesa",
+                        badge: "MOZO",
+                        badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+                        icon: ConciergeBell,
+                      },
+                      {
+                        value: "BAR_PICKUP",
+                        label: "Retiro en Barra",
+                        subtitle: "El cliente retira personalmente en barra",
+                        badge: "BARRA",
+                        badgeTone: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
+                        icon: Wine,
+                      },
+                    ]}
+                    title="Modalidad de Entrega"
+                    subtitle="Selecciona cómo se despachará este pedido"
+                    placeholder="Modalidad de Entrega..."
+                    icon={ConciergeBell}
+                  />
                 </div>
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Método de Pago</label>
-                  <select
+                  <label className="text-slate-300 font-semibold block mb-1">Método de Pago *</label>
+                  <VipSelectModal
                     value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-[#080F1F] border border-[#263858] text-white"
-                  >
-                    <option value="CASH">Efectivo</option>
-                    <option value="DEBIT_CARD">Tarjeta de Débito</option>
-                    <option value="CREDIT_CARD">Tarjeta de Crédito</option>
-                    <option value="BANK_TRANSFER">Transferencia Bancaria</option>
-                    <option value="QR_PAYMENT">QR de Pago</option>
-                    <option value="PIX">PIX</option>
-                  </select>
+                    onChange={(val) => setPaymentMethod(val)}
+                    options={[
+                      { value: "CASH", label: "Efectivo", subtitle: "Pagar en caja o al mozo", badge: "EFECTIVO", icon: Banknote },
+                      { value: "DEBIT_CARD", label: "Tarjeta de Débito (POS)", subtitle: "POS inalámbrico", badge: "DÉBITO", icon: CreditCard },
+                      { value: "CREDIT_CARD", label: "Tarjeta de Crédito (POS)", subtitle: "POS inalámbrico", badge: "CRÉDITO", icon: CreditCard },
+                      { value: "BANK_TRANSFER", label: "Transferencia Bancaria", subtitle: "SIPAP inmediata", badge: "SIPAP", icon: Banknote },
+                      { value: "QR_PAYMENT", label: "QR Interoperable", subtitle: "Billeteras electrónicas", badge: "QR", icon: CreditCard },
+                      { value: "PIX", label: "PIX Instantáneo", subtitle: "Recepción 24/7", badge: "PIX", icon: CreditCard },
+                    ]}
+                    title="Método de Pago"
+                    subtitle="Selecciona el medio de pago preferido para este pedido"
+                    placeholder="Método de Pago..."
+                    icon={CreditCard}
+                  />
                 </div>
               </div>
 

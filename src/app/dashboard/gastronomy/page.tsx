@@ -19,7 +19,9 @@ import {
   AlertCircle,
   DollarSign,
   ArrowUpRight,
+  MapPin,
 } from "lucide-react";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { useRealtime } from "@/hooks/use-realtime";
 import {
   formatGuaranies,
@@ -228,22 +230,24 @@ export default function GastronomyDashboardPage() {
           </div>
 
           {/* Filtro Sector */}
-          <div className="flex items-center gap-1.5 bg-[#080F1F] border border-[#263858] rounded-xl px-3 py-1.5 text-xs">
-            <Filter className="w-3.5 h-3.5 text-purple-400" />
-            <select
+          <div className="w-full sm:w-52">
+            <VipSelectModal
               value={selectedSector}
-              onChange={(e) => setSelectedSector(e.target.value)}
-              className="bg-transparent text-white font-semibold focus:outline-none"
-            >
-              <option value="ALL" className="bg-[#080F1F]">
-                Todos los sectores
-              </option>
-              {sectors.map((s) => (
-                <option key={s.id} value={s.name} className="bg-[#080F1F]">
-                  {s.name}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedSector(val)}
+              options={[
+                { value: "ALL", label: "Todos los sectores", badge: "TODOS" },
+                ...sectors.map((s) => ({
+                  value: s.name,
+                  label: s.name,
+                  badge: s.code || "SECTOR",
+                  icon: MapPin,
+                })),
+              ]}
+              title="Filtrar por Sector Gastronómico"
+              subtitle="Filtra ventas y comandas según el salón o sector"
+              placeholder="Todos los sectores"
+              icon={MapPin}
+            />
           </div>
 
           {/* Sonido Tiempo Real */}

@@ -23,7 +23,9 @@ import {
   RotateCcw,
   UtensilsCrossed,
   X,
+  MapPin,
 } from "lucide-react";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { useRealtime } from "@/hooks/use-realtime";
 import { formatGuaranies, GASTRO_TABLE_STATUS_LABELS } from "@/lib/gastronomy/format";
 import ManualRequestModal from "@/components/dj/ManualRequestModal";
@@ -347,17 +349,22 @@ export default function GastronomyTablesAndSectorsPage() {
             className="px-2 py-1.5 rounded-lg bg-[#080F1F] border border-[#263858] text-white w-16"
             title="Capacidad de personas"
           />
-          <select
-            value={newTableSectorId}
-            onChange={(e) => setNewTableSectorId(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg bg-[#080F1F] border border-[#263858] text-white"
-          >
-            {sectors.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <div className="w-48">
+            <VipSelectModal
+              value={newTableSectorId}
+              onChange={(val) => setNewTableSectorId(val)}
+              options={sectors.map((s) => ({
+                value: s.id,
+                label: s.name,
+                badge: s.code || "SECTOR",
+                icon: MapPin,
+              }))}
+              title="Sector de la Nueva Mesa"
+              subtitle="Asigna a qué área del local pertenecerá"
+              placeholder="Sector..."
+              icon={MapPin}
+            />
+          </div>
           <button
             type="submit"
             className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center gap-1"
@@ -639,20 +646,27 @@ export default function GastronomyTablesAndSectorsPage() {
                 <label className="block text-[11px] font-bold text-slate-300">
                   Cambiar de Mesa / Unificar Cuenta con otra Mesa
                 </label>
-                <select
+                <VipSelectModal
                   value={targetTableId}
-                  onChange={(e) => setTargetTableId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#080F1F] border border-[#263858] text-xs text-white"
-                >
-                  <option value="">Seleccionar mesa destino...</option>
-                  {tables
-                    .filter((t) => t.id !== activeTable.id && t.active !== false)
-                    .map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.label} ({t.sector?.name || "Salón"})
-                      </option>
-                    ))}
-                </select>
+                  onChange={(val) => setTargetTableId(val)}
+                  options={[
+                    { value: "", label: "Seleccionar mesa destino...", subtitle: "Elige dónde transferir o unificar" },
+                    ...tables
+                      .filter((t) => t.id !== activeTable.id && t.active !== false)
+                      .map((t) => ({
+                        value: t.id,
+                        label: t.label || `Mesa ${t.number}`,
+                        subtitle: `Sector: ${t.sector?.name || "Salón"} • Capacidad: ${t.capacity || 4}p`,
+                        badge: `#${t.number}`,
+                        icon: MapPin,
+                      })),
+                  ]}
+                  title="Mesa de Destino para Transferencia / Fusión"
+                  subtitle={`Mesa origen actual: ${activeTable.label}`}
+                  placeholder="Seleccionar mesa destino..."
+                  icon={MapPin}
+                  showSearch={tables.length > 5}
+                />
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     disabled={!targetTableId}
@@ -839,18 +853,21 @@ export default function GastronomyTablesAndSectorsPage() {
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Sector Gastronómico</label>
-              <select
+              <label className="text-xs text-slate-400 block mb-1">Sector Gastronómico *</label>
+              <VipSelectModal
                 value={editSectorId}
-                onChange={(e) => setEditSectorId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-[#080F1F] border border-[#263858] text-xs text-white"
-              >
-                {sectors.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setEditSectorId(val)}
+                options={sectors.map((s) => ({
+                  value: s.id,
+                  label: s.name,
+                  badge: s.code || "SECTOR",
+                  icon: MapPin,
+                }))}
+                title="Editar Sector Gastronómico"
+                subtitle="Reubica esta mesa en otro sector o salón"
+                placeholder="Sector..."
+                icon={MapPin}
+              />
             </div>
 
             <label className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 cursor-pointer">

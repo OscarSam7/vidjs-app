@@ -26,7 +26,9 @@ import {
   Upload,
   Video,
   Loader2,
+  Gauge,
 } from "lucide-react";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 
 export interface Artist {
   id: string;
@@ -813,48 +815,65 @@ export function MusicLibraryView({
 
         {/* Dropdown Género */}
         <div>
-          <select
+          <VipSelectModal
             value={selectedGenre}
-            onChange={(e) => setSelectedGenre(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-300 focus:outline-none focus:border-purple-500 transition-colors cursor-pointer"
-          >
-            <option value="ALL">Todos los Géneros</option>
-            {genres.map((g) => (
-              <option key={g.name} value={g.name}>
-                {g.name} ({g.count})
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedGenre(val)}
+            options={[
+              { value: "ALL", label: "Todos los Géneros", badge: "TODOS" },
+              ...genres.map((g) => ({
+                value: g.name,
+                label: g.name,
+                subtitle: `${g.count} canciones disponibles`,
+                badge: `${g.count}`,
+                icon: Tag,
+              })),
+            ]}
+            title="Filtrar por Género Musical"
+            subtitle="Selecciona el estilo o ritmo deseado"
+            placeholder="Todos los Géneros"
+            icon={Tag}
+            showSearch={genres.length > 5}
+          />
         </div>
 
         {/* Dropdown Artista */}
         <div>
-          <select
+          <VipSelectModal
             value={selectedArtist}
-            onChange={(e) => setSelectedArtist(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-300 focus:outline-none focus:border-purple-500 transition-colors cursor-pointer"
-          >
-            <option value="ALL">Todos los Artistas</option>
-            {artists.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedArtist(val)}
+            options={[
+              { value: "ALL", label: "Todos los Artistas", badge: "TODOS" },
+              ...artists.map((a) => ({
+                value: a.id,
+                label: a.name,
+                badge: a._count?.songs ? `${a._count.songs} temas` : "ARTISTA",
+                icon: Users,
+              })),
+            ]}
+            title="Filtrar por Artista / Banda"
+            subtitle="Busca temas de tu cantante o grupo favorito"
+            placeholder="Todos los Artistas"
+            icon={Users}
+            showSearch={artists.length > 5}
+          />
         </div>
 
         {/* Dropdown BPM */}
         <div>
-          <select
+          <VipSelectModal
             value={selectedBpmRange}
-            onChange={(e) => setSelectedBpmRange(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-300 focus:outline-none focus:border-purple-500 transition-colors cursor-pointer"
-          >
-            <option value="ALL">Cualquier BPM</option>
-            <option value="SLOW">BPM Lento (&lt; 100)</option>
-            <option value="MID">BPM Medio (100 - 125)</option>
-            <option value="FAST">BPM Boliche (125+)</option>
-          </select>
+            onChange={(val) => setSelectedBpmRange(val)}
+            options={[
+              { value: "ALL", label: "Cualquier BPM", badge: "LIBRE", badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40" },
+              { value: "SLOW", label: "BPM Lento (< 100)", subtitle: "Baladas, lentos y acústicos", badge: "< 100", badgeTone: "bg-blue-500/20 text-blue-300 border-blue-500/40" },
+              { value: "MID", label: "BPM Medio (100 - 125)", subtitle: "Pop, reggaetón y ritmo bailable", badge: "100-125", badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40" },
+              { value: "FAST", label: "BPM Boliche (125+)", subtitle: "Electrónica, cumbia y pogo", badge: "125+", badgeTone: "bg-rose-500/20 text-rose-300 border-rose-500/40" },
+            ]}
+            title="Filtrar por Tempo (BPM)"
+            subtitle="Filtra por la velocidad y energía de la pista"
+            placeholder="Cualquier BPM"
+            icon={Gauge}
+          />
         </div>
       </div>
 

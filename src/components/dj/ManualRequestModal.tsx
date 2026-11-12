@@ -12,7 +12,9 @@ import {
   Mic,
   Disc3,
   Layers,
+  MapPin,
 } from "lucide-react";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 
 interface TableItem {
   id: string;
@@ -337,22 +339,35 @@ export default function ManualRequestModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
             {/* Mesa Solicitante */}
             <div className="space-y-1">
               <label className="text-xs font-bold text-zinc-300">Mesa Asignada:</label>
-              <select
+              <VipSelectModal
                 value={tableId}
-                onChange={(e) => setTableId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs focus:outline-none focus:border-purple-500 transition-colors"
-              >
-                <option value="">🍸 Cabina DJ / Barra (Sin mesa fija)</option>
-                {tables.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label} {t.zone ? `(Sector ${t.zone})` : ""}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setTableId(val)}
+                options={[
+                  {
+                    value: "",
+                    label: "🍸 Cabina DJ / Barra",
+                    subtitle: "Sin mesa fija (solicitud general)",
+                    badge: "BARRA",
+                    badgeTone: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
+                  },
+                  ...tables.map((t) => ({
+                    value: t.id,
+                    label: t.label || `Mesa #${t.number}`,
+                    subtitle: t.zone ? `Sector: ${t.zone}` : undefined,
+                    badge: `#${t.number}`,
+                    icon: MapPin,
+                  })),
+                ]}
+                title="Selecciona la Mesa Asignada"
+                subtitle="Elige la mesa o ubica el pedido en barra"
+                placeholder="Seleccionar Mesa..."
+                icon={MapPin}
+                showSearch={tables.length > 5}
+              />
             </div>
 
             {/* Nombre del Cantante / Comensal */}

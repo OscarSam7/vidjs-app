@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Layers, Plus, Trash2, CheckCircle2, XCircle } from "lucide-react";
+import { Layers, Plus, Trash2, CheckCircle2, XCircle, Wine, ChefHat, Sparkles } from "lucide-react";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 
 export default function GastronomyCategoriesPage() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -97,16 +98,41 @@ export default function GastronomyCategoriesPage() {
           />
         </div>
         <div>
-          <label className="text-slate-300 font-semibold block mb-1">Destino Operativo</label>
-          <select
+          <label className="text-slate-300 font-semibold block mb-1">Destino Operativo *</label>
+          <VipSelectModal
             value={destination}
-            onChange={(e) => setDestination(e.target.value as any)}
-            className="w-full p-2.5 rounded-xl bg-[#080F1F] border border-[#263858] text-white"
-          >
-            <option value="BAR">Barra (Bebidas)</option>
-            <option value="KITCHEN">Cocina (Comidas)</option>
-            <option value="BOTH">Ambos (Promos / Combos)</option>
-          </select>
+            onChange={(val) => setDestination(val as any)}
+            options={[
+              {
+                value: "BAR",
+                label: "Barra (Bebidas)",
+                subtitle: "KDS y estación de cócteles",
+                badge: "BARRA",
+                badgeTone: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
+                icon: Wine,
+              },
+              {
+                value: "KITCHEN",
+                label: "Cocina (Comidas)",
+                subtitle: "KDS y comandas calientes",
+                badge: "COCINA",
+                badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+                icon: ChefHat,
+              },
+              {
+                value: "BOTH",
+                label: "Ambos (Promos / Combos)",
+                subtitle: "Despacho mixto barra y cocina",
+                badge: "MIXTO",
+                badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+                icon: Sparkles,
+              },
+            ]}
+            title="Destino Operativo de la Categoría"
+            subtitle="Indica a qué KDS o área se despachan estos productos"
+            placeholder="Destino..."
+            icon={Layers}
+          />
         </div>
         <div>
           <label className="text-slate-300 font-semibold block mb-1">Orden Visual</label>

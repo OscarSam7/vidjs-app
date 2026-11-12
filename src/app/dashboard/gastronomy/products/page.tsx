@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Package, Plus, RefreshCw, Pencil } from "lucide-react";
+import { Package, Plus, RefreshCw, Pencil, Wine, ChefHat, Sparkles, CheckCircle2, AlertTriangle, Layers } from "lucide-react";
 import { formatGuaranies, GASTRO_AVAILABILITY_LABELS } from "@/lib/gastronomy/format";
 import { useRealtime } from "@/hooks/use-realtime";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 
 export default function GastronomyProductsPage() {
   const [data, setData] = useState<any>(null);
@@ -299,20 +300,24 @@ export default function GastronomyProductsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Categoría</label>
-                  <select
+                  <label className="text-slate-300 font-semibold block mb-1">Categoría *</label>
+                  <VipSelectModal
                     value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-[#080F1F] border border-[#263858] text-white"
-                  >
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setCategoryId(val)}
+                    options={categories.map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                      badge: c.destination === "BAR" ? "BARRA" : c.destination === "KITCHEN" ? "COCINA" : "MIXTO",
+                      icon: Layers,
+                    }))}
+                    title="Selecciona la Categoría"
+                    subtitle="Clasificación del producto en la carta"
+                    placeholder="Categoría..."
+                    icon={Layers}
+                    showSearch={categories.length > 5}
+                  />
                 </div>
                 <div>
                   <label className="text-slate-300 font-semibold block mb-1">Presentación</label>
@@ -325,16 +330,41 @@ export default function GastronomyProductsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Destino Operativo</label>
-                  <select
+                  <label className="text-slate-300 font-semibold block mb-1">Destino Operativo *</label>
+                  <VipSelectModal
                     value={destination}
-                    onChange={(e) => setDestination(e.target.value as any)}
-                    className="w-full p-2.5 rounded-xl bg-[#080F1F] border border-[#263858] text-white"
-                  >
-                    <option value="BAR">Barra</option>
-                    <option value="KITCHEN">Cocina</option>
-                    <option value="BOTH">Ambos</option>
-                  </select>
+                    onChange={(val) => setDestination(val as any)}
+                    options={[
+                      {
+                        value: "BAR",
+                        label: "Barra (Bebidas)",
+                        subtitle: "Despacho a monitor de barra",
+                        badge: "BARRA",
+                        badgeTone: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
+                        icon: Wine,
+                      },
+                      {
+                        value: "KITCHEN",
+                        label: "Cocina (Comidas)",
+                        subtitle: "Despacho a comandas de cocina",
+                        badge: "COCINA",
+                        badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+                        icon: ChefHat,
+                      },
+                      {
+                        value: "BOTH",
+                        label: "Ambos (Mixto)",
+                        subtitle: "Requiere parte barra y cocina",
+                        badge: "MIXTO",
+                        badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+                        icon: Sparkles,
+                      },
+                    ]}
+                    title="Destino Operativo del Producto"
+                    subtitle="Estación KDS donde sonará y se preparará el ítem"
+                    placeholder="Destino..."
+                    icon={Wine}
+                  />
                 </div>
               </div>
 
@@ -388,20 +418,59 @@ export default function GastronomyProductsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Estado Disponibilidad</label>
-                  <select
+                  <label className="text-slate-300 font-semibold block mb-1">Estado Disponibilidad *</label>
+                  <VipSelectModal
                     value={availabilityStatus}
-                    onChange={(e) => setAvailabilityStatus(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-[#080F1F] border border-[#263858] text-white"
-                  >
-                    <option value="AVAILABLE">Disponible</option>
-                    <option value="MANUAL_DISABLED">Desactivado manualmente</option>
-                    <option value="AUTO_EXHAUSTED">Agotado automáticamente</option>
-                    <option value="MISSING_INGREDIENTS">Sin ingredientes suficientes</option>
-                    <option value="TEMPORARILY_UNAVAILABLE">Temporalmente no disponible</option>
-                  </select>
+                    onChange={(val) => setAvailabilityStatus(val)}
+                    options={[
+                      {
+                        value: "AVAILABLE",
+                        label: "Disponible",
+                        subtitle: "Activo para pedidos de clientes y mozos",
+                        badge: "DISPONIBLE",
+                        badgeTone: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                        icon: CheckCircle2,
+                      },
+                      {
+                        value: "MANUAL_DISABLED",
+                        label: "Desactivado manualmente",
+                        subtitle: "Oculto deliberadamente por administración",
+                        badge: "PAUSADO",
+                        badgeTone: "bg-zinc-800 text-zinc-300 border-zinc-700",
+                        icon: AlertTriangle,
+                      },
+                      {
+                        value: "AUTO_EXHAUSTED",
+                        label: "Agotado automáticamente",
+                        subtitle: "Stock llegó a 0 en inventario",
+                        badge: "AGOTADO",
+                        badgeTone: "bg-rose-500/20 text-rose-300 border-rose-500/40",
+                        icon: AlertTriangle,
+                      },
+                      {
+                        value: "MISSING_INGREDIENTS",
+                        label: "Sin ingredientes suficientes",
+                        subtitle: "Falta insumo crítico en cocina/barra",
+                        badge: "SIN INSUMO",
+                        badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+                        icon: AlertTriangle,
+                      },
+                      {
+                        value: "TEMPORARILY_UNAVAILABLE",
+                        label: "Temporalmente no disponible",
+                        subtitle: "Pausa operativa transitoria",
+                        badge: "NO DISPONIBLE",
+                        badgeTone: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+                        icon: AlertTriangle,
+                      },
+                    ]}
+                    title="Estado de Disponibilidad del Producto"
+                    subtitle="Controla la visibilidad y venta del producto en tiempo real"
+                    placeholder="Disponibilidad..."
+                    icon={CheckCircle2}
+                  />
                 </div>
                 <div>
                   <label className="text-slate-300 font-semibold block mb-1">
