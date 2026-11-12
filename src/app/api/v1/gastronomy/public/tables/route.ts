@@ -101,9 +101,12 @@ export async function GET(req: NextRequest) {
       sectorColor: t.sector?.colorHex || defaultSector?.colorHex || "#8B5CF6",
     }));
 
+    const usedSectorIds = new Set(normalizedTables.map((t) => t.sectorId).filter(Boolean));
+    const populatedSectors = sectors.filter((s) => usedSectorIds.has(s.id));
+
     return NextResponse.json({
       success: true,
-      sectors,
+      sectors: populatedSectors,
       tables: normalizedTables,
       activeEvent: activeEvent || null,
     });
