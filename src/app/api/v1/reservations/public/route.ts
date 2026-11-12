@@ -26,18 +26,37 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Si no se pasó slug o no se encontró, tomar la primera sede activa
+    // Si no se pasó slug o no se encontró, tomar la primera sede activa del establecimiento principal
     if (!venue) {
-      venue = await prisma.venue.findFirst({
-        include: {
-          tenant: { select: { id: true, name: true, slug: true, logoUrl: true } },
-          tables: {
-            where: { active: true },
-            select: { id: true, number: true, label: true, capacity: true, zone: true },
-            orderBy: { number: "asc" },
+      venue =
+        (await prisma.venue.findFirst({
+          where: {
+            active: true,
+            tenant: { status: "ACTIVE", users: { some: {} } },
+            tables: { some: { active: true, number: { lt: 90 } } },
           },
-        },
-      });
+          include: {
+            tenant: { select: { id: true, name: true, slug: true, logoUrl: true } },
+            tables: {
+              where: { active: true, number: { lt: 90 } },
+              select: { id: true, number: true, label: true, capacity: true, zone: true, tableStatus: true },
+              orderBy: { number: "asc" },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        })) ||
+        (await prisma.venue.findFirst({
+          where: { active: true },
+          include: {
+            tenant: { select: { id: true, name: true, slug: true, logoUrl: true } },
+            tables: {
+              where: { active: true, number: { lt: 90 } },
+              select: { id: true, number: true, label: true, capacity: true, zone: true, tableStatus: true },
+              orderBy: { number: "asc" },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        }));
     }
 
     if (!venue) {

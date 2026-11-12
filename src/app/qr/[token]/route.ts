@@ -29,14 +29,22 @@ export async function GET(
     return NextResponse.redirect(sanitizePublicUrl(`${baseUrl}/guest?error=tenant_inactive`, req));
   }
 
-  // 2. Buscar evento activo en esta sede
-  const activeEvent = await prisma.event.findFirst({
-    where: {
-      venueId: table.venueId,
-      status: "ACTIVE",
-    },
-    orderBy: { startsAt: "desc" },
-  });
+  // 2. Buscar evento activo en esta sede (o en cualquier sede activa del establecimiento unificado)
+  const activeEvent =
+    (await prisma.event.findFirst({
+      where: {
+        venueId: table.venueId,
+        status: "ACTIVE",
+      },
+      orderBy: { startsAt: "desc" },
+    })) ||
+    (await prisma.event.findFirst({
+      where: {
+        tenantId: table.tenantId,
+        status: "ACTIVE",
+      },
+      orderBy: { startsAt: "desc" },
+    }));
 
   if (!activeEvent) {
     // Redirigir a vista informando que no hay evento activo

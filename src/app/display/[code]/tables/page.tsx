@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db/prisma";
 import { notFound } from "next/navigation";
-import { QrCode, Sparkles, Building2, Users, ArrowRight, Headphones, Mic } from "lucide-react";
+import { QrCode, Users, ArrowRight, Headphones, Mic, CheckCircle2, MapPin } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 export default async function TablePickerFromTvPage({
   params,
@@ -31,12 +33,15 @@ export default async function TablePickerFromTvPage({
       venue: {
         include: {
           tables: {
-            where: { active: true },
+            where: { active: true, number: { lt: 90 } },
+            include: {
+              sector: { select: { id: true, name: true, colorHex: true } },
+            },
             orderBy: { number: "asc" },
           },
         },
       },
-      tenant: { select: { name: true } },
+      tenant: { select: { id: true, name: true } },
     },
   });
 
@@ -47,17 +52,42 @@ export default async function TablePickerFromTvPage({
         venue: {
           include: {
             tables: {
-              where: { active: true },
+              where: { active: true, number: { lt: 90 } },
+              include: {
+                sector: { select: { id: true, name: true, colorHex: true } },
+              },
               orderBy: { number: "asc" },
             },
           },
         },
-        tenant: { select: { name: true } },
+        tenant: { select: { id: true, name: true } },
       },
     });
   }
 
   if (!event) notFound();
+
+  // Si el local fue unificado y las mesas viven en la sede principal del establecimiento, mostrar todas las mesas activas del tenant
+  let unifiedTables = event.venue.tables;
+  if (unifiedTables.length === 0) {
+    unifiedTables = await prisma.table.findMany({
+      where: { tenantId: event.tenantId, active: true, number: { lt: 90 } },
+      include: {
+        sector: { select: { id: true, name: true, colorHex: true } },
+      },
+      orderBy: { number: "asc" },
+    });
+  }
+
+  // Ordenar mostrando primero las mesas disponibles
+  const sortedTables = [...unifiedTables].sort((a, b) => {
+    const aAvail = a.tableStatus === "AVAILABLE" ? 0 : 1;
+    const bAvail = b.tableStatus === "AVAILABLE" ? 0 : 1;
+    if (aAvail !== bAvail) return aAvail - bAvail;
+    return a.number - b.number;
+  });
+
+  const availableCount = sortedTables.filter((t) => t.tableStatus === "AVAILABLE").length;
 
   return (
     <div className="min-h-screen bg-[#070709] text-zinc-100 flex flex-col justify-center items-center p-4">
@@ -107,44 +137,65 @@ export default async function TablePickerFromTvPage({
               ? "Selecciona tu mesa para pedir pistas con letra sincronizada y cantar en el escenario."
               : "Selecciona tu mesa para comenzar a pedir canciones y participar del entretenimiento."}
           </p>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            <span>
+              {availableCount} mesas disponibles de {sortedTables.length}
+            </span>
+          </div>
         </div>
 
         {/* Grid de Mesas para seleccionar */}
         <div className="grid grid-cols-2 gap-2.5">
-          {event.venue.tables.map((table) => {
+          {sortedTables.map((table) => {
             const tableHref = targetMode
               ? `/qr/${table.qrToken}?mode=${targetMode}`
               : `/qr/${table.qrToken}`;
+            const isAvailable = table.tableStatus === "AVAILABLE";
 
             return (
               <a
                 key={table.id}
                 href={tableHref}
-                className="p-3.5 rounded-xl bg-zinc-900/90 hover:bg-purple-950/40 border border-zinc-800 hover:border-purple-500/60 transition-all flex flex-col justify-between group"
+                className={`p-3.5 rounded-xl border transition-all flex flex-col justify-between group ${
+                  isAvailable
+                    ? "bg-zinc-900/90 hover:bg-purple-950/40 border-emerald-500/40 hover:border-purple-400"
+                    : "bg-zinc-950/70 hover:bg-zinc-900 border-zinc-800/80 opacity-80"
+                }`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono font-bold text-purple-300 px-1.5 py-0.2 rounded bg-zinc-950 border border-zinc-800">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-xs font-mono font-bold text-purple-300 px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800">
                     #{table.number}
                   </span>
-                  <span className="text-[10px] text-zinc-500 flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    {table.capacity}p
+                  <span
+                    className={`text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wide ${
+                      isAvailable
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                        : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                    }`}
+                  >
+                    {isAvailable ? "Disponible" : "Ocupada"}
                   </span>
                 </div>
 
-                <div className="mt-2">
+                <div className="mt-2 space-y-1">
                   <div className="text-xs font-bold text-white group-hover:text-purple-300 transition-colors truncate">
                     {table.label}
                   </div>
-                  {table.zone && table.zone !== "MAIN" && (
-                    <span className="text-[9px] text-zinc-400 font-mono">
-                      Zona {table.zone}
+                  <div className="flex items-center justify-between text-[10px] text-zinc-400">
+                    <span className="inline-flex items-center gap-1 truncate">
+                      <MapPin className="w-2.5 h-2.5 text-purple-400 shrink-0" />
+                      <span className="truncate">{table.sector?.name || "Salón principal"}</span>
                     </span>
-                  )}
+                    <span className="inline-flex items-center gap-0.5 shrink-0 text-zinc-500">
+                      <Users className="w-2.5 h-2.5" />
+                      {table.capacity}p
+                    </span>
+                  </div>
                 </div>
 
-                <div className="mt-2 text-[10px] text-purple-400 flex items-center gap-1 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span>Ingresar</span>
+                <div className="mt-2 text-[10px] text-purple-400 flex items-center gap-1 font-semibold opacity-80 group-hover:opacity-100 transition-opacity">
+                  <span>{isAvailable ? "Ocupar mesa" : "Unirse a mesa"}</span>
                   <ArrowRight className="w-3 h-3" />
                 </div>
               </a>

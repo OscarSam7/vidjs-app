@@ -198,7 +198,7 @@ export async function GET(req: NextRequest) {
           ? prisma.gastroDeliveryConfig.findUnique({ where: { venueId: activeVenueId } })
           : prisma.gastroDeliveryConfig.findFirst({ where: { tenantId } }),
         prisma.table.findMany({
-          where: { tenantId, active: true },
+          where: { tenantId, active: true, number: { lt: 90 } },
           include: { sector: { select: { id: true, name: true } } },
           orderBy: { number: "asc" },
         }),
@@ -258,6 +258,9 @@ export async function GET(req: NextRequest) {
         id: t.id,
         number: t.number,
         label: t.label,
+        capacity: t.capacity,
+        tableStatus: t.tableStatus,
+        isAvailable: t.tableStatus === "AVAILABLE",
         sectorName: t.sector?.name || "Salón principal",
         qrToken: t.qrToken,
       })),

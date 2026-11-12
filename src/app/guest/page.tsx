@@ -44,6 +44,8 @@ import {
   SkipForward,
   Trash2,
   UtensilsCrossed,
+  MapPin,
+  Users,
 } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType, NextTurnCountdownPayload } from "@/lib/realtime/event-bus";
@@ -385,6 +387,47 @@ function GuestContent() {
   const [leavingTable, setLeavingTable] = useState(false);
   const [switchBanner, setSwitchBanner] = useState<string | null>(null);
 
+  // Mesas unificadas disponibles en el local
+  const [publicTables, setPublicTables] = useState<
+    Array<{
+      id: string;
+      number: number;
+      label: string;
+      capacity: number;
+      zone: string;
+      qrToken: string;
+      tableStatus: string;
+      isAvailable: boolean;
+      sectorId: string | null;
+      sectorName: string;
+      sectorColor: string;
+    }>
+  >([]);
+  const [publicSectors, setPublicSectors] = useState<Array<{ id: string; name: string; colorHex: string }>>([]);
+  const [selectedTableSector, setSelectedTableSector] = useState<string>("ALL");
+  const [loadingPublicTables, setLoadingPublicTables] = useState(false);
+
+  const loadPublicTables = async () => {
+    setLoadingPublicTables(true);
+    try {
+      const qs = new URLSearchParams();
+      if (eventParam) qs.set("code", eventParam);
+      if (venueParam) qs.set("slug", venueParam);
+      const res = await fetch(`/api/v1/gastronomy/public/tables?${qs.toString()}`, {
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setPublicTables(json.tables || []);
+        setPublicSectors(json.sectors || []);
+      }
+    } catch {
+      // Silencioso
+    } finally {
+      setLoadingPublicTables(false);
+    }
+  };
+
   const [dismissConnectScreen, setDismissConnectScreen] = useState(() => {
     if (typeof window !== "undefined") {
       try {
@@ -658,7 +701,14 @@ function GuestContent() {
 
   useEffect(() => {
     loadSessionAndRequests();
+    loadPublicTables();
   }, []);
+
+  useEffect(() => {
+    if (isManageTableOpen || !session) {
+      loadPublicTables();
+    }
+  }, [isManageTableOpen, session]);
 
   useEffect(() => {
     if (session?.table?.label && (activeContestInfo?.id || activeContestVote?.contestId)) {
@@ -733,6 +783,12 @@ function GuestContent() {
         setActiveTurnCountdown(null);
       } else if (type === "QUEUE_POLICY_UPDATED") {
         await loadSessionAndRequests(true);
+      } else if (
+        type === "TABLE_RELEASED" ||
+        type.startsWith("GASTRO_TABLE_") ||
+        type === "GASTRO_ORDER_UPDATED"
+      ) {
+        await loadPublicTables();
       } else if (type === "TRACK_CHANGE" || type === "QUEUE_UPDATE") {
         // Si es QUEUE_UPDATE con acción ACCEPT de otra canción/mesa, no molestar a los demás comensales
         if (type === "QUEUE_UPDATE" && payload?.action === "ACCEPT") {
@@ -1414,8 +1470,13 @@ function GuestContent() {
   }
 
   if (!loadingSession && !session && !dismissConnectScreen) {
+    const filteredTables = publicTables.filter(
+      (t) => selectedTableSector === "ALL" || t.sectorId === selectedTableSector || t.sectorName === selectedTableSector
+    );
+    const availableCount = filteredTables.filter((t) => t.isAvailable).length;
+
     return (
-      <div className="p-6 text-center my-auto space-y-6 max-w-sm mx-auto w-full">
+      <div className="p-5 text-center my-auto space-y-5 max-w-md mx-auto w-full">
         {/* Barra superior con botón Volver */}
         <div className="w-full flex items-center justify-start">
           <button
@@ -1429,20 +1490,120 @@ function GuestContent() {
           </button>
         </div>
 
-        <div className="w-16 h-16 rounded-2xl bg-purple-600/10 border border-purple-500/30 text-purple-400 mx-auto flex items-center justify-center glow-purple">
-          <QrCode className="w-8 h-8" />
+        <div className="w-14 h-14 rounded-2xl bg-purple-600/10 border border-purple-500/30 text-purple-400 mx-auto flex items-center justify-center glow-purple">
+          <QrCode className="w-7 h-7" />
         </div>
         <div>
           <h2 className="text-xl font-black text-white">¡Conéctate a tu Mesa!</h2>
           <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
-            Apunta la cámara de tu teléfono al código QR de tu mesa, o ingresa el código del evento que ves en la pantalla gigante de TV.
+            Selecciona tu mesa disponible directamente aquí, escanea el QR físico o ingresa el código de la TV.
           </p>
+        </div>
+
+        {/* Selector en vivo de Mesas Unificadas Disponibles */}
+        <div className="pt-2 border-t border-zinc-800/80 text-left space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-bold text-white flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>Mesas Disponibles ({availableCount})</span>
+            </span>
+            <button
+              type="button"
+              onClick={loadPublicTables}
+              className="text-[11px] text-purple-300 hover:text-white flex items-center gap-1 cursor-pointer"
+            >
+              <RefreshCw className={`w-3 h-3 ${loadingPublicTables ? "animate-spin" : ""}`} />
+              <span>Actualizar</span>
+            </button>
+          </div>
+
+          {publicSectors.length > 0 && (
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              <button
+                type="button"
+                onClick={() => setSelectedTableSector("ALL")}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 border transition-all cursor-pointer ${
+                  selectedTableSector === "ALL"
+                    ? "bg-purple-600 text-white border-purple-500"
+                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                }`}
+              >
+                Todos ({publicTables.length})
+              </button>
+              {publicSectors.map((sec) => (
+                <button
+                  key={sec.id}
+                  type="button"
+                  onClick={() => setSelectedTableSector(sec.id)}
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 border transition-all cursor-pointer ${
+                    selectedTableSector === sec.id
+                      ? "bg-purple-600 text-white border-purple-500"
+                      : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                  }`}
+                >
+                  {sec.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {loadingPublicTables && publicTables.length === 0 ? (
+            <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center text-xs text-zinc-400">
+              Cargando mesas disponibles...
+            </div>
+          ) : filteredTables.length === 0 ? (
+            <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center text-xs text-zinc-400">
+              No hay mesas activas registradas en este sector.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-0.5">
+              {[...filteredTables]
+                .sort((a, b) => (a.isAvailable === b.isAvailable ? a.number - b.number : a.isAvailable ? -1 : 1))
+                .map((tbl) => (
+                  <a
+                    key={tbl.id}
+                    href={`/qr/${tbl.qrToken}`}
+                    className={`p-2.5 rounded-xl border transition-all flex flex-col justify-between text-left ${
+                      tbl.isAvailable
+                        ? "bg-zinc-900/90 hover:bg-purple-950/40 border-emerald-500/40 hover:border-purple-400"
+                        : "bg-zinc-950/70 hover:bg-zinc-900 border-zinc-800/80 opacity-75"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-[10px] font-mono font-bold text-purple-300 px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800">
+                        #{tbl.number}
+                      </span>
+                      <span
+                        className={`text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase ${
+                          tbl.isAvailable
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                            : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                        }`}
+                      >
+                        {tbl.isAvailable ? "Disponible" : "Ocupada"}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 text-xs font-bold text-white truncate">{tbl.label}</div>
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-zinc-400">
+                      <span className="inline-flex items-center gap-1 truncate">
+                        <MapPin className="w-2.5 h-2.5 text-purple-400 shrink-0" />
+                        <span className="truncate">{tbl.sectorName}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-0.5 shrink-0 text-zinc-500">
+                        <Users className="w-2.5 h-2.5" />
+                        {tbl.capacity}p
+                      </span>
+                    </div>
+                  </a>
+                ))}
+            </div>
+          )}
         </div>
 
         {/* Input de Código de Evento */}
         <form onSubmit={handleJoinByCode} className="space-y-2 text-left bg-zinc-900/60 p-3.5 rounded-xl border border-zinc-800">
           <label className="text-[11px] font-bold text-zinc-300 block">
-            Código de la Noche / Pantalla TV:
+            ¿Prefieres ingresar por Código de Pantalla TV?
           </label>
           <div className="flex gap-2">
             <input
@@ -1460,24 +1621,6 @@ function GuestContent() {
             </button>
           </div>
         </form>
-
-        <div className="pt-2 border-t border-zinc-800/80 text-left">
-          <div className="text-[11px] text-zinc-400 mb-2 font-medium">O prueba en modo demostración (1-clic):</div>
-          <a
-            href="/qr/qr_centro_m2"
-            className="block p-3 rounded-xl bg-zinc-900 hover:bg-purple-950/40 border border-zinc-800 hover:border-purple-600/50 transition-all"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-white">Simular Mesa 2 (Pista)</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-purple-900/60 text-purple-300 font-mono">
-                Sede Centro
-              </span>
-            </div>
-            <p className="text-[11px] text-zinc-500 mt-1">
-              Retro Bar &bull; Viernes de Karaoke Pop & Clásicos
-            </p>
-          </a>
-        </div>
 
         {/* Botón inferior para volver a la pantalla principal */}
         <div className="pt-2 border-t border-zinc-800/80">
@@ -4011,7 +4154,7 @@ function GuestContent() {
       {/* Modal de Gestión de Mesa & Cambio de Sector */}
       {isManageTableOpen && session && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl relative">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-5 space-y-4 shadow-2xl relative">
             <button
               onClick={() => setIsManageTableOpen(false)}
               className="absolute top-4 right-4 text-zinc-400 hover:text-white p-1 cursor-pointer"
@@ -4079,23 +4222,52 @@ function GuestContent() {
                     : "Para mudarte a cantar al karaoke, apunta tu cámara al código QR de tu mesa en el salón de karaoke. Tu mesa actual se liberará y tu app activará el catálogo de letras y turnos para el escenario sin perder tu nombre."}
                 </p>
 
-                {/* Acceso directo 1-clic según sector actual */}
-                <div className="pt-1">
-                  {session.table.zone === "KARAOKE" ? (
-                    <a
-                      href="/qr/qr_centro_m1"
-                      className="block p-2 rounded-lg bg-zinc-950 hover:bg-purple-950/40 border border-zinc-800 hover:border-purple-600/50 text-[11px] font-semibold text-purple-300 transition-all text-center"
+                {/* Lista en vivo de mesas disponibles para mudarse con 1 toque */}
+                <div className="pt-1 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-emerald-300">
+                      Mesas disponibles ({publicTables.filter((t) => t.id !== session.table.id && t.isAvailable).length}):
+                    </span>
+                    <button
+                      type="button"
+                      onClick={loadPublicTables}
+                      className="text-[10px] text-purple-300 hover:text-white flex items-center gap-1 cursor-pointer"
                     >
-                      ⇄ Simular mudanza a Mesa 1 (Sector DJ / Pista)
-                    </a>
-                  ) : (
-                    <a
-                      href="/qr/qr_centro_m4"
-                      className="block p-2 rounded-lg bg-zinc-950 hover:bg-pink-950/40 border border-zinc-800 hover:border-pink-600/50 text-[11px] font-semibold text-pink-300 transition-all text-center"
-                    >
-                      🎤 Simular mudanza a Mesa 4 (Sector Karaoke)
-                    </a>
-                  )}
+                      <RefreshCw className={`w-3 h-3 ${loadingPublicTables ? "animate-spin" : ""}`} />
+                      <span>Actualizar</span>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 max-h-44 overflow-y-auto pr-0.5">
+                    {publicTables
+                      .filter((t) => t.id !== session.table.id)
+                      .sort((a, b) => (a.isAvailable === b.isAvailable ? a.number - b.number : a.isAvailable ? -1 : 1))
+                      .map((tbl) => (
+                        <a
+                          key={tbl.id}
+                          href={`/qr/${tbl.qrToken}`}
+                          className={`p-2 rounded-lg border text-left transition-all flex flex-col justify-between ${
+                            tbl.isAvailable
+                              ? "bg-zinc-950 hover:bg-purple-950/40 border-emerald-500/40 hover:border-purple-400"
+                              : "bg-zinc-950/60 hover:bg-zinc-900 border-zinc-800 opacity-75"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[10px] font-mono font-bold text-purple-300">#{tbl.number}</span>
+                            <span
+                              className={`text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase ${
+                                tbl.isAvailable
+                                  ? "bg-emerald-500/20 text-emerald-300"
+                                  : "bg-amber-500/15 text-amber-300"
+                              }`}
+                            >
+                              {tbl.isAvailable ? "Disponible" : "Ocupada"}
+                            </span>
+                          </div>
+                          <div className="text-[11px] font-bold text-white truncate mt-0.5">{tbl.label}</div>
+                          <div className="text-[9px] text-zinc-400 truncate">{tbl.sectorName}</div>
+                        </a>
+                      ))}
+                  </div>
                 </div>
 
                 <form onSubmit={handleJoinByCode} className="flex gap-2 pt-1">

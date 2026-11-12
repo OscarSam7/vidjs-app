@@ -337,7 +337,8 @@ function CustomerMenuPwaContent() {
                 <option value="">{tableNumberText}</option>
                 {menuData.tables.map((t: any) => (
                   <option key={t.id} value={t.id}>
-                    {t.label || `Mesa ${t.number}`} — {t.sectorName}
+                    {t.label || `Mesa ${t.number}`} — {t.sectorName}{" "}
+                    {t.tableStatus === "AVAILABLE" ? "(Disponible)" : "(Ocupada)"}
                   </option>
                 ))}
               </select>
