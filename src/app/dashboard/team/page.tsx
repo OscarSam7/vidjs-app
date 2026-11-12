@@ -406,7 +406,7 @@ export default function TeamRolesPermissionsPage() {
       case "OPERATOR":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/50">
-            🛡️ STAFF
+            🤵 STAFF / MOZO
           </span>
         );
       default:
@@ -525,11 +525,11 @@ export default function TeamRolesPermissionsPage() {
         </div>
 
         <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30">
-          <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider block">Staff / Operadores</span>
+          <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider block">Staff / Mozos</span>
           <span className="text-2xl font-black text-emerald-200 mt-1 block">
             {users.filter((u) => u.role === "OPERATOR").length}
           </span>
-          <span className="text-[10px] text-emerald-400">Atención y mesas</span>
+          <span className="text-[10px] text-emerald-400">Atención, mesas y cobro móvil</span>
         </div>
       </div>
 
@@ -1037,7 +1037,7 @@ export default function TeamRolesPermissionsPage() {
                   {[
                     { id: "MANAGER" as Role, name: "Manager", color: "purple", icon: "👔" },
                     { id: "DJ" as Role, name: "DJ Cabina", color: "cyan", icon: "🎧" },
-                    { id: "OPERATOR" as Role, name: "Staff / Mesas", color: "emerald", icon: "🛡️" },
+                    { id: "OPERATOR" as Role, name: "Staff / Mozo", color: "emerald", icon: "🤵" },
                   ].map((r) => (
                     <button
                       key={r.id}
@@ -1148,7 +1148,7 @@ export default function TeamRolesPermissionsPage() {
                   {[
                     { id: "MANAGER" as Role, name: "Manager" },
                     { id: "DJ" as Role, name: "DJ Cabina" },
-                    { id: "OPERATOR" as Role, name: "Staff" },
+                    { id: "OPERATOR" as Role, name: "Staff / Mozo" },
                   ].map((r) => (
                     <button
                       key={r.id}
