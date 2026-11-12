@@ -161,7 +161,7 @@ const VuMeterBar = memo(function VuMeterBar({
   const activeCount = Math.min(segments, Math.round(Math.max(peak, rms) * segments));
 
   return (
-    <div className="flex flex-col-reverse gap-0.5 h-20 w-2.5 bg-zinc-950 p-0.5 rounded border border-zinc-800 shadow-inner">
+    <div className="flex flex-col-reverse gap-0.5 h-14 w-2.5 bg-zinc-950 p-0.5 rounded border border-zinc-800 shadow-inner">
       {Array.from({ length: segments }).map((_, idx) => {
         const isActive = idx < activeCount;
         let colorClass = "bg-zinc-800/40";
@@ -270,7 +270,7 @@ const DeckPlayer = memo(
 
     return (
       <div
-        className={`relative aspect-video max-h-36 w-full rounded-xl overflow-hidden border ${borderColor} bg-black shadow-inner`}
+        className={`relative aspect-video h-28 sm:h-32 w-full rounded-xl overflow-hidden border ${borderColor} bg-black shadow-inner`}
       >
         {/* Elemento de Video / Audio Nativo Web Media & Web Audio API (Siempre montado para preservar grafo) */}
         {mediaRef && (
@@ -440,6 +440,9 @@ export default function VirtualDjConsole({
   const [isMasterMuted, setIsMasterMuted] = useState(false);
   const [masterVolume, setMasterVolume] = useState(100);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [isCockpitLocked, setIsCockpitLocked] = useState(false);
+  const [deckControlTabA, setDeckControlTabA] = useState<"MIX" | "PADS">("MIX");
+  const [deckControlTabB, setDeckControlTabB] = useState<"MIX" | "PADS">("MIX");
 
   // ==================== DECK A STATE ====================
   const [isEjectedA, setIsEjectedA] = useState(false);
@@ -4252,11 +4255,18 @@ export default function VirtualDjConsole({
   const isBeatMatched = Math.abs(effectiveBpmA - effectiveBpmB) <= 0.3;
 
   return (
-    <div translate="no" className="notranslate space-y-4 select-none">
+    <div
+      translate="no"
+      className={`notranslate select-none transition-all ${
+        isCockpitLocked
+          ? "fixed inset-0 z-40 bg-[#050811]/98 backdrop-blur-xl p-2 sm:p-3 flex flex-col justify-between gap-2 overflow-y-auto lg:overflow-hidden"
+          : "space-y-3"
+      }`}
+    >
       {/* ========================================================================= */}
-      {/* 0. CABINA MASTER AUDIO STATUS & QUICK GAIN BAR                            */}
+      {/* 0. CABINA MASTER AUDIO STATUS & COCKPIT ESTÁTICO BAR                      */}
       {/* ========================================================================= */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-zinc-950 border border-zinc-800 shadow-lg">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-2xl bg-zinc-950 border border-zinc-800 shadow-lg shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Headphones className="w-5 h-5 text-purple-400 animate-pulse" />
@@ -4285,8 +4295,26 @@ export default function VirtualDjConsole({
           </button>
         </div>
 
-        {/* Acceso a Biblioteca Musical Integrada (Cero pausa / Cero interrupción) */}
-        <div className="flex items-center gap-2">
+        {/* Acceso a Biblioteca Musical Integrada & Modo Cabina Fija en Pantalla */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setIsCockpitLocked((prev) => !prev)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-md border ${
+              isCockpitLocked
+                ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-black border-emerald-300 shadow-emerald-500/30"
+                : "bg-gradient-to-r from-purple-900/70 to-indigo-900/70 hover:from-purple-800 hover:to-indigo-800 text-purple-100 border-purple-500/50"
+            }`}
+            title="Fija las 2 bandejas y el mixer dentro de tu pantalla sin desplazamiento (Cockpit Estático)"
+          >
+            {isCockpitLocked ? (
+              <Minimize2 className="w-3.5 h-3.5 shrink-0" />
+            ) : (
+              <Maximize2 className="w-3.5 h-3.5 shrink-0" />
+            )}
+            <span>{isCockpitLocked ? "✕ Soltar Cabina" : "📌 Fijar Cabina en Pantalla"}</span>
+          </button>
+
           <button
             type="button"
             onClick={() => {
@@ -4301,8 +4329,8 @@ export default function VirtualDjConsole({
             title="Abrir/Cerrar Biblioteca Musical sin detener la música en vivo (Atajo de teclado: B)"
           >
             <ListMusic className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>{isLibraryOpen ? "OCULTAR BIBLIOTECA [B]" : "📚 BIBLIOTECA MUSICAL [B]"}</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30 font-mono">
+            <span>{isLibraryOpen ? "OCULTAR BIBLIOTECA [B]" : "📚 BIBLIOTECA [B]"}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30 font-mono hidden sm:inline">
               EN VIVO
             </span>
           </button>
@@ -4407,9 +4435,9 @@ export default function VirtualDjConsole({
       {/* ========================================================================= */}
       {/* 1. DUAL BEAT-WAVEFORM & PHASE METER (BPM & BEAT MATCHING GRID)            */}
       {/* ========================================================================= */}
-      <div className="p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800 shadow-2xl relative overflow-hidden">
+      <div className="p-2.5 rounded-2xl bg-zinc-950 border border-zinc-800 shadow-2xl relative overflow-hidden shrink-0">
         {/* Barra superior de métricas de fase */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pb-2 mb-2 border-b border-zinc-900 text-xs font-mono text-center">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-1.5 pb-1.5 mb-1.5 border-b border-zinc-900 text-xs font-mono text-center">
           <div className="flex items-center justify-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse" />
             <span className="font-bold text-purple-300">DECK A:</span>
@@ -4470,7 +4498,7 @@ export default function VirtualDjConsole({
               }
               onPlaybackControl?.("SEEK", "A", { ...getDeckSyncDetails("A"), currentTime: targetSec });
             }}
-            className="h-12 bg-gradient-to-r from-purple-950/40 via-purple-900/30 to-zinc-950 rounded-xl border border-purple-900/50 relative overflow-hidden flex items-center px-2 cursor-pointer hover:border-purple-500/70 transition-all select-none"
+            className="h-9 bg-gradient-to-r from-purple-950/40 via-purple-900/30 to-zinc-950 rounded-xl border border-purple-900/50 relative overflow-hidden flex items-center px-2 cursor-pointer hover:border-purple-500/70 transition-all select-none"
             title="Click para saltar a esta posición en la pista (Seek)"
           >
             {/* Playhead vertical */}
@@ -4525,7 +4553,7 @@ export default function VirtualDjConsole({
               }
               onPlaybackControl?.("SEEK", "B", { ...getDeckSyncDetails("B"), currentTime: targetSec });
             }}
-            className="h-12 bg-gradient-to-r from-cyan-950/40 via-cyan-900/30 to-zinc-950 rounded-xl border border-cyan-900/50 relative overflow-hidden flex items-center px-2 cursor-pointer hover:border-cyan-500/70 transition-all select-none"
+            className="h-9 bg-gradient-to-r from-cyan-950/40 via-cyan-900/30 to-zinc-950 rounded-xl border border-cyan-900/50 relative overflow-hidden flex items-center px-2 cursor-pointer hover:border-cyan-500/70 transition-all select-none"
             title="Click para saltar a esta posición en la pista (Seek)"
           >
             {/* Playhead vertical */}
@@ -4568,13 +4596,17 @@ export default function VirtualDjConsole({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. DUAL CONSOLE: DECK A (Col 5) | MIXER & ENGANCHE (Col 2) | DECK B (Col 5) */}
+      {/* 2. DUAL CONSOLE: DECK A | MIXER & ENGANCHE | DECK B (COMPACT COCKPIT FIT) */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_290px_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_320px_minmax(0,1fr)] gap-4 items-start">
+      <div
+        className={`grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_275px_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_300px_minmax(0,1fr)] gap-3 items-stretch ${
+          isCockpitLocked ? "lg:flex-1 lg:min-h-0" : ""
+        }`}
+      >
         {/* ========================================== */}
         {/* DECK A (Canal 1 - Violeta / Púrpura)       */}
         {/* ========================================== */}
-        <div id="deck-a" className="p-3 sm:p-4 xl:p-5 rounded-2xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-purple-950/30 border-2 border-purple-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative w-full max-w-full overflow-hidden scroll-mt-24 transition-all duration-300">
+        <div id="deck-a" className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-purple-950/30 border-2 border-purple-500/40 shadow-2xl flex flex-col justify-between space-y-2.5 relative w-full max-w-full overflow-hidden scroll-mt-24 transition-all duration-300">
           {/* Header de Deck A */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-wrap">
@@ -4868,167 +4900,164 @@ export default function VirtualDjConsole({
             </div>
           </div>
 
-          {/* Información del Track A con altura estable */}
-          <div className="min-h-[64px] flex flex-col justify-center">
+          {/* Información del Track A compacta */}
+          <div className="min-h-[42px] flex flex-col justify-center">
             {trackA ? (
-              <div className="space-y-0.5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-black text-white truncate">
-                      {trackA.song?.title || trackA.customTitle}
-                    </h3>
-                    <p className="text-xs font-semibold text-purple-300 truncate">
-                      {trackA.song?.artist?.name || trackA.customArtist}
-                    </p>
-                  </div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-xs sm:text-sm font-black text-white truncate">
+                    {trackA.song?.title || trackA.customTitle}
+                  </h3>
+                  <p className="text-[11px] font-semibold text-purple-300 truncate">
+                    {trackA.song?.artist?.name || trackA.customArtist}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-zinc-400">
-                  <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
-                    KEY: {trackA.song?.key || "8A / Am"}
+                <div className="flex flex-col items-end gap-0.5 text-[9.5px] font-mono text-zinc-400 shrink-0">
+                  <span className="px-1.5 py-0.2 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
+                    {trackA.song?.key || "8A/Am"}
                   </span>
-                  <span>Dur: {formatTime(trackADuration)}</span>
                   <span className="text-purple-400 font-bold">
-                    {formatRemaining(playbackSecondsA, trackADuration)}
+                    {formatTime(trackADuration)} &bull; {formatRemaining(playbackSecondsA, trackADuration)}
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="py-2.5 px-3 rounded-xl bg-zinc-950/60 border border-dashed border-purple-900/40 text-center text-zinc-400 text-xs">
-                <span className="font-bold text-zinc-300">Bandeja A vacía</span>
-                <p className="text-[10px] text-zinc-500 mt-0.5">Usa &quot;Cargar Pista&quot; para subir un tema o buscar en YouTube</p>
+              <div className="py-2 px-3 rounded-xl bg-zinc-950/60 border border-dashed border-purple-900/40 text-center text-zinc-400 text-xs">
+                <span className="font-bold text-zinc-300">Bandeja A vacía</span>{" "}
+                <span className="text-[10px] text-zinc-500">&bull; Toca &quot;Cargar Pista&quot;</span>
               </div>
             )}
           </div>
 
-          {/* Monitor de Video & Audio YouTube Deck A (Memoized & Totalmente Aislado) */}
-          <DeckPlayer
-            key="deck-player-deck-a"
-            deckId="A"
-            videoId={videoIdA}
-            isPlaying={isPlayingA}
-            effectiveVol={effectiveVolA}
-            pitch={pitchA}
-            isLoading={isLoadingVideoA}
-            isEjected={isEjectedA}
-            deckMode={deckModeA}
-            localFileName={localAudioNameA}
-            iframeRef={iframeRefA}
-            mediaRef={audioRefA}
-            isVideo={isVideoA}
-            onTimeUpdate={() => {
-              if (audioRefA.current && deckModeA === "native") {
-                setPlaybackSecondsA(Math.floor(audioRefA.current.currentTime));
-              }
-            }}
-            onEnded={() => {
-              if (isPlayingARef.current || isPlayingA) {
-                handleDeckAEndedRef.current?.();
-              }
-            }}
-            onClearVideo={handleClearVideoOnlyA}
-          />
+          {/* COCKPIT LADO A LADO: Monitor Video YouTube + Plato de Vinilo + Pitch */}
+          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2.5 items-center w-full">
+            {/* Monitor de Video & Audio YouTube Deck A (Memoized & Totalmente Aislado) */}
+            <div className="min-w-0 w-full">
+              <DeckPlayer
+                key="deck-player-deck-a"
+                deckId="A"
+                videoId={videoIdA}
+                isPlaying={isPlayingA}
+                effectiveVol={effectiveVolA}
+                pitch={pitchA}
+                isLoading={isLoadingVideoA}
+                isEjected={isEjectedA}
+                deckMode={deckModeA}
+                localFileName={localAudioNameA}
+                iframeRef={iframeRefA}
+                mediaRef={audioRefA}
+                isVideo={isVideoA}
+                onTimeUpdate={() => {
+                  if (audioRefA.current && deckModeA === "native") {
+                    setPlaybackSecondsA(Math.floor(audioRefA.current.currentTime));
+                  }
+                }}
+                onEnded={() => {
+                  if (isPlayingARef.current || isPlayingA) {
+                    handleDeckAEndedRef.current?.();
+                  }
+                }}
+                onClearVideo={handleClearVideoOnlyA}
+              />
+            </div>
 
-          {/* Fila 1: Platter / Jogwheel Deck A & Pitch Fader lado a lado */}
-          <div className="flex items-center justify-between gap-1.5 sm:gap-2 xl:gap-3 py-1 w-full notranslate" translate="no">
-            {/* Jogwheel Giratorio con soporte Drag & Drop */}
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setIsDraggingA(true);
-              }}
-              onDragLeave={() => setIsDraggingA(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setIsDraggingA(false);
-                const file = e.dataTransfer.files?.[0];
-                if (file) handleLoadLocalFileA(file);
-              }}
-              className="relative shrink-0 flex items-center justify-center"
-            >
+            {/* Fila 1: Platter / Jogwheel Deck A & Pitch Fader compactos */}
+            <div className="flex items-center justify-center sm:justify-end gap-1.5 py-0.5 shrink-0 notranslate" translate="no">
+              {/* Jogwheel Giratorio con soporte Drag & Drop */}
               <div
-                ref={platterRefA}
-                onPointerDown={handlePlatterPointerDownA}
-                onPointerMove={handlePlatterPointerMoveA}
-                onPointerUp={handlePlatterPointerUpA}
-                onPointerCancel={handlePlatterPointerUpA}
-                className={`w-28 h-28 sm:w-32 sm:h-32 xl:w-36 xl:h-36 rounded-full bg-gradient-to-tr from-zinc-950 via-zinc-900 to-zinc-950 border-4 ${
-                  isDraggingA
-                    ? "border-purple-400 scale-105"
-                    : vinylActionA === "SPINBACK"
-                    ? "border-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.5)] scale-102"
-                    : vinylActionA === "REWIND"
-                    ? "border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.5)]"
-                    : vinylActionA === "FORWARD"
-                    ? "border-purple-400 shadow-[0_0_25px_rgba(168,85,247,0.5)]"
-                    : vinylActionA === "SCRATCH"
-                    ? "border-purple-300 shadow-[0_0_25px_rgba(192,132,252,0.6)]"
-                    : "border-zinc-800"
-                } shadow-[0_0_25px_rgba(168,85,247,0.2)] flex items-center justify-center relative cursor-grab active:cursor-grabbing select-none transition-colors`}
-                title="Plato de Vinilo Deck A - Arrastra para scratch o retroceder como un disco real"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDraggingA(true);
+                }}
+                onDragLeave={() => setIsDraggingA(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDraggingA(false);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) handleLoadLocalFileA(file);
+                }}
+                className="relative shrink-0 flex items-center justify-center"
               >
-                {/* Ranuras de vinilo auténticas (micro-grooves concéntricos) */}
-                <div className="absolute inset-1.5 rounded-full border border-zinc-800/80 pointer-events-none" />
-                <div className="absolute inset-3 rounded-full border border-zinc-700/40 pointer-events-none" />
-                <div className="absolute inset-5 rounded-full border border-zinc-800/60 pointer-events-none" />
-                <div className="absolute inset-7 rounded-full border border-zinc-700/30 pointer-events-none" />
+                <div
+                  ref={platterRefA}
+                  onPointerDown={handlePlatterPointerDownA}
+                  onPointerMove={handlePlatterPointerMoveA}
+                  onPointerUp={handlePlatterPointerUpA}
+                  onPointerCancel={handlePlatterPointerUpA}
+                  className={`w-24 h-24 xl:w-28 xl:h-28 rounded-full bg-gradient-to-tr from-zinc-950 via-zinc-900 to-zinc-950 border-4 ${
+                    isDraggingA
+                      ? "border-purple-400 scale-105"
+                      : vinylActionA === "SPINBACK"
+                      ? "border-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.5)] scale-102"
+                      : vinylActionA === "REWIND"
+                      ? "border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.5)]"
+                      : vinylActionA === "FORWARD"
+                      ? "border-purple-400 shadow-[0_0_25px_rgba(168,85,247,0.5)]"
+                      : vinylActionA === "SCRATCH"
+                      ? "border-purple-300 shadow-[0_0_25px_rgba(192,132,252,0.6)]"
+                      : "border-zinc-800"
+                  } shadow-[0_0_20px_rgba(168,85,247,0.2)] flex items-center justify-center relative cursor-grab active:cursor-grabbing select-none transition-colors`}
+                  title="Plato de Vinilo Deck A - Arrastra para scratch o retroceder como un disco real"
+                >
+                  {/* Ranuras de vinilo auténticas */}
+                  <div className="absolute inset-1.5 rounded-full border border-zinc-800/80 pointer-events-none" />
+                  <div className="absolute inset-3 rounded-full border border-zinc-700/40 pointer-events-none" />
+                  <div className="absolute inset-5 rounded-full border border-zinc-800/60 pointer-events-none" />
 
-                {/* Marcador de Vinilo / Stripe Blanca de Posición (Estilo Slipmat de Torna) */}
-                <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-5 sm:h-6 rounded-full bg-gradient-to-b from-white via-purple-200 to-transparent shadow-[0_0_8px_rgba(255,255,255,0.9)] pointer-events-none z-10" />
+                  {/* Marcador de Vinilo */}
+                  <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-4 rounded-full bg-gradient-to-b from-white via-purple-200 to-transparent shadow-[0_0_8px_rgba(255,255,255,0.9)] pointer-events-none z-10" />
 
-                {/* Ranuras de vinilo intermedias */}
-                <div className="w-20 h-20 sm:w-24 sm:h-24 xl:w-28 xl:h-28 rounded-full border border-zinc-800 flex items-center justify-center pointer-events-none">
-                  <div className="w-15 h-15 sm:w-18 sm:h-18 xl:w-20 xl:h-20 rounded-full border border-zinc-700/60 flex items-center justify-center">
-                    {/* Centro HUD de Jogwheel (Spindle / Record Label con botón Play/Pause táctil) */}
+                  <div className="w-16 h-16 xl:w-20 xl:h-20 rounded-full border border-zinc-800 flex items-center justify-center pointer-events-none">
+                    {/* Centro HUD de Jogwheel */}
                     <div
                       data-spindle="true"
                       onClick={(e) => {
                         e.stopPropagation();
                         togglePlayA();
                       }}
-                      className="w-11 h-11 sm:w-13 sm:h-13 xl:w-14 xl:h-14 rounded-full bg-gradient-to-tr from-purple-700 to-indigo-600 border-2 border-white flex flex-col items-center justify-center text-white shadow-lg pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                      className="w-10 h-10 xl:w-12 xl:h-12 rounded-full bg-gradient-to-tr from-purple-700 to-indigo-600 border-2 border-white flex flex-col items-center justify-center text-white shadow-lg pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-transform"
                       title="Click en centro: Play / Pausa"
                     >
                       {vinylActionA === "REWIND" ? (
                         <div className="flex flex-col items-center animate-pulse notranslate" translate="no">
-                          <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300" />
-                          <span className="text-[6.5px] sm:text-[7px] font-black text-amber-200 notranslate" translate="no">REWIND</span>
+                          <RotateCcw className="w-3 h-3 text-amber-300" />
+                          <span className="text-[6px] font-black text-amber-200 notranslate" translate="no">REWIND</span>
                         </div>
                       ) : vinylActionA === "FORWARD" ? (
                         <div className="flex flex-col items-center animate-pulse notranslate" translate="no">
-                          <RotateCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-200" />
-                          <span className="text-[6.5px] sm:text-[7px] font-black text-purple-100 notranslate" translate="no">PUSH</span>
+                          <RotateCw className="w-3 h-3 text-purple-200" />
+                          <span className="text-[6px] font-black text-purple-100 notranslate" translate="no">PUSH</span>
                         </div>
                       ) : vinylActionA === "SPINBACK" ? (
                         <div className="flex flex-col items-center animate-spin notranslate" translate="no">
-                          <Disc3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-300" />
-                          <span className="text-[6.5px] sm:text-[7px] font-black text-pink-200 notranslate" translate="no">SPINBACK</span>
+                          <Disc3 className="w-3 h-3 text-pink-300" />
+                          <span className="text-[6px] font-black text-pink-200 notranslate" translate="no">SPIN</span>
                         </div>
                       ) : vinylActionA === "SCRATCH" ? (
                         <div className="flex flex-col items-center notranslate" translate="no">
-                          <Disc className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-200 animate-spin [animation-duration:1s]" />
-                          <span className="text-[6.5px] sm:text-[7px] font-black text-purple-100 notranslate" translate="no">SCRATCH</span>
+                          <Disc className="w-3 h-3 text-purple-200 animate-spin [animation-duration:1s]" />
+                          <span className="text-[6px] font-black text-purple-100 notranslate" translate="no">SCRATCH</span>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center notranslate pointer-events-none select-none" translate="no">
-                          <span className="text-[10px] sm:text-[11px] font-black leading-tight notranslate" translate="no">{effectiveBpmA}</span>
-                          <span className="text-[7px] sm:text-[8px] font-bold opacity-80 uppercase notranslate" translate="no">BPM</span>
+                          <span className="text-[9.5px] font-black leading-tight notranslate" translate="no">{effectiveBpmA}</span>
+                          <span className="text-[6.5px] font-bold opacity-80 uppercase notranslate" translate="no">BPM</span>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
             {/* Contenedor Pitch Fader y Botones Subir/Bajar Tiempo Deck A */}
-            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 notranslate" translate="no">
+            <div className="flex items-center gap-1 shrink-0 notranslate" translate="no">
               {/* Botones 2-Toques Subir / Bajar Tiempo Deck A */}
-              <div className="flex flex-col justify-between h-34 sm:h-38 xl:h-40 py-0.5 gap-1 shrink-0">
+              <div className="flex flex-col justify-between h-28 sm:h-32 py-0.5 gap-1 shrink-0">
                 {/* Botón SUBIR TIEMPO (+0.5%) */}
                 <button
                   type="button"
                   onClick={handlePitchUpA}
-                  className={`w-7 sm:w-8 xl:w-9 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-0.5 sm:p-1 cursor-pointer select-none active:scale-95 border ${
+                  className={`w-7 sm:w-8 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-0.5 cursor-pointer select-none active:scale-95 border ${
                     pitchUpSuccessA
                       ? "bg-emerald-500 text-black border-emerald-400 font-black shadow-md scale-105"
                       : pitchUpArmedA
@@ -5041,12 +5070,9 @@ export default function VirtualDjConsole({
                       : "1° toque: Toca para activar subir tempo (+0.5%)"
                   }
                 >
-                  <ChevronUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                  <span className="text-[7px] sm:text-[7.5px] xl:text-[8px] font-mono font-black leading-none mt-0.5 notranslate" translate="no">
-                    {pitchUpSuccessA ? "✓" : pitchUpArmedA ? "CONFIRM" : "+0.5%"}
-                  </span>
-                  <span className="text-[5.5px] sm:text-[6px] xl:text-[6.5px] uppercase font-bold tracking-tight opacity-75 notranslate" translate="no">
-                    TEMPO
+                  <ChevronUp className="w-3 h-3 shrink-0" />
+                  <span className="text-[7px] font-mono font-black leading-none mt-0.5 notranslate" translate="no">
+                    {pitchUpSuccessA ? "✓" : pitchUpArmedA ? "OK" : "+0.5"}
                   </span>
                 </button>
 
@@ -5054,7 +5080,7 @@ export default function VirtualDjConsole({
                 <button
                   type="button"
                   onClick={handlePitchDownA}
-                  className={`w-7 sm:w-8 xl:w-9 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-0.5 sm:p-1 cursor-pointer select-none active:scale-95 border ${
+                  className={`w-7 sm:w-8 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-0.5 cursor-pointer select-none active:scale-95 border ${
                     pitchDownSuccessA
                       ? "bg-emerald-500 text-black border-emerald-400 font-black shadow-md scale-105"
                       : pitchDownArmedA
@@ -5067,18 +5093,15 @@ export default function VirtualDjConsole({
                       : "1° toque: Toca para activar bajar tempo (-0.5%)"
                   }
                 >
-                  <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                  <span className="text-[7px] sm:text-[7.5px] xl:text-[8px] font-mono font-black leading-none mt-0.5 notranslate" translate="no">
-                    {pitchDownSuccessA ? "✓" : pitchDownArmedA ? "CONFIRM" : "-0.5%"}
-                  </span>
-                  <span className="text-[5.5px] sm:text-[6px] xl:text-[6.5px] uppercase font-bold tracking-tight opacity-75 notranslate" translate="no">
-                    TEMPO
+                  <ChevronDown className="w-3 h-3 shrink-0" />
+                  <span className="text-[7px] font-mono font-black leading-none mt-0.5 notranslate" translate="no">
+                    {pitchDownSuccessA ? "✓" : pitchDownArmedA ? "OK" : "-0.5"}
                   </span>
                 </button>
               </div>
 
               {/* Pitch / Tempo Fader Vertical Deck A (2-Toques Seguridad) */}
-              <div className="flex flex-col items-center justify-between h-34 sm:h-38 xl:h-40 w-16 sm:w-18 xl:w-20 bg-zinc-950/80 p-1 sm:p-1.5 rounded-xl border border-zinc-800 touch-pan-y select-none relative">
+              <div className="flex flex-col items-center justify-between h-28 sm:h-32 w-14 sm:w-16 bg-zinc-950/80 p-1 rounded-xl border border-zinc-800 touch-pan-y select-none relative">
                 {/* Indicador de Valor y Bloqueo / Desbloqueo */}
                 <button
                   type="button"
@@ -5090,7 +5113,7 @@ export default function VirtualDjConsole({
                       handleActivatePitchA();
                     }
                   }}
-                  className={`flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-full text-[8.5px] sm:text-[9px] font-mono font-bold transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-0.5 px-1 py-0.5 rounded-full text-[8px] font-mono font-bold transition-all cursor-pointer ${
                     isPitchActiveA
                       ? "bg-purple-950 border border-purple-400 text-purple-200 shadow-sm animate-pulse"
                       : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-300"
@@ -5100,27 +5123,27 @@ export default function VirtualDjConsole({
                   {isPitchActiveA ? (
                     <>
                       <Unlock className="w-2.5 h-2.5 text-purple-400 shrink-0" />
-                      <span className="notranslate" translate="no">{pitchA >= 0 ? `+${pitchA.toFixed(1)}%` : `${pitchA.toFixed(1)}%`}</span>
+                      <span className="notranslate" translate="no">{pitchA >= 0 ? `+${pitchA.toFixed(1)}` : `${pitchA.toFixed(1)}`}</span>
                     </>
                   ) : (
                     <>
                       <Lock className="w-2.5 h-2.5 text-zinc-500 shrink-0" />
-                      <span className="notranslate" translate="no">{pitchA >= 0 ? `+${pitchA.toFixed(1)}%` : `${pitchA.toFixed(1)}%`}</span>
+                      <span className="notranslate" translate="no">{pitchA >= 0 ? `+${pitchA.toFixed(1)}` : `${pitchA.toFixed(1)}`}</span>
                     </>
                   )}
                 </button>
 
-                {/* Slider con Overlay protector para el 1er toque y libre scroll vertical */}
-                <div className="relative flex items-center justify-center my-auto w-18 sm:w-20 h-20 sm:h-24 touch-pan-y">
+                {/* Slider con Overlay protector para el 1er toque */}
+                <div className="relative flex items-center justify-center my-auto w-14 h-16 touch-pan-y">
                   {!isPitchActiveA && (
                     <div
                       onClick={handleActivatePitchA}
                       className="absolute inset-0 z-10 cursor-pointer flex flex-col items-center justify-center rounded-lg bg-zinc-950/75 border border-dashed border-purple-500/40 hover:border-purple-400 transition-all touch-pan-y select-none group"
                       title="1er toque: Toca para activar y mover el tempo"
                     >
-                      <Lock className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
-                      <span className="text-[7.5px] font-mono text-zinc-400 group-hover:text-purple-300 mt-0.5 text-center font-bold px-0.5 leading-tight notranslate" translate="no">
-                        1° toque activar
+                      <Lock className="w-3 h-3 text-purple-400 group-hover:scale-110 transition-transform" />
+                      <span className="text-[7px] font-mono text-zinc-400 group-hover:text-purple-300 mt-0.5 text-center font-bold leading-none notranslate" translate="no">
+                        TEMPO
                       </span>
                     </div>
                   )}
@@ -5137,7 +5160,7 @@ export default function VirtualDjConsole({
                       resetPitchTimerA();
                     }}
                     onPointerDown={resetPitchTimerA}
-                    className={`h-20 sm:h-24 -rotate-90 w-20 sm:w-24 accent-purple-500 appearance-none bg-zinc-800 rounded-lg transition-all ${
+                    className={`h-16 -rotate-90 w-16 accent-purple-500 appearance-none bg-zinc-800 rounded-lg transition-all ${
                       isPitchActiveA
                         ? "cursor-pointer ring-1 ring-purple-500/50 shadow-sm shadow-purple-500/20"
                         : "opacity-40 pointer-events-none cursor-not-allowed"
@@ -5149,7 +5172,7 @@ export default function VirtualDjConsole({
                 <button
                   type="button"
                   onClick={handleResetPitchA}
-                  className={`text-[8.5px] sm:text-[9px] font-mono transition-all rounded px-2 py-0.5 cursor-pointer font-bold select-none notranslate ${
+                  className={`text-[7.5px] font-mono transition-all rounded px-1.5 py-0.5 cursor-pointer font-bold select-none notranslate ${
                     resetSuccessPitchA
                       ? "bg-emerald-500 text-black font-black shadow-md scale-105"
                       : resetArmedPitchA
@@ -5163,232 +5186,237 @@ export default function VirtualDjConsole({
                       : "1° toque: Toca para activar reseteo a 0%"
                   }
                 >
-                  {resetSuccessPitchA ? "✓ 0.0%" : resetArmedPitchA ? "¿CONFIRMAR?" : "REINICIAR"}
+                  {resetSuccessPitchA ? "✓ 0%" : resetArmedPitchA ? "OK?" : "RESET"}
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* Fila 2: Controles de Vinilo: Nudge Atrás, Spinback Club, Nudge Adelante a ancho completo */}
-          <div className="grid grid-cols-3 gap-1 sm:gap-1.5 w-full pt-0.5 notranslate" translate="no">
-            {/* Nudge Atrás */}
-            <button
-              onMouseDown={() => startContinuousNudge("A", -1)}
-              onMouseUp={() => stopContinuousNudge("A")}
-              onMouseLeave={() => stopContinuousNudge("A")}
-              onTouchStart={() => startContinuousNudge("A", -1)}
-              onTouchEnd={() => stopContinuousNudge("A")}
-              onClick={() => handleNudge("A", -1)}
-              className="px-2 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-purple-950/50 active:bg-purple-900 border border-zinc-800 hover:border-purple-600/40 text-[10px] font-black text-zinc-300 hover:text-purple-300 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm select-none"
-              title="Clic: Empujar vinilo atrás (-0.5s) | Mantener: Rebobinado continuo de vinilo"
-            >
-              <RotateCcw className="w-3 h-3 text-purple-400 shrink-0" />
-              <span className="notranslate" translate="no">&laquo; NUDGE</span>
-            </button>
-
-            {/* Botón Central: SPINBACK / RETROCESO REAL DE DISCO */}
-            <button
-              onClick={() => handleSpinback("A")}
-              className="px-2 py-1.5 rounded-lg bg-gradient-to-r from-red-600/20 via-purple-600/30 to-pink-600/20 hover:from-red-600/40 hover:to-pink-600/40 border border-purple-500/40 text-[10px] font-black text-white hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-lg shadow-purple-900/20"
-              title="Efecto Spinback: Retroceso salvaje de vinilo club (-4 segs con frenada inercial)"
-            >
-              <Disc3 className="w-3.5 h-3.5 text-pink-400 animate-spin [animation-duration:4s] shrink-0" />
-              <span className="bg-gradient-to-r from-pink-300 to-purple-200 bg-clip-text text-transparent notranslate" translate="no">SPINBACK</span>
-            </button>
-
-            {/* Nudge Adelante */}
-            <button
-              onMouseDown={() => startContinuousNudge("A", 1)}
-              onMouseUp={() => stopContinuousNudge("A")}
-              onMouseLeave={() => stopContinuousNudge("A")}
-              onTouchStart={() => startContinuousNudge("A", 1)}
-              onTouchEnd={() => stopContinuousNudge("A")}
-              onClick={() => handleNudge("A", 1)}
-              className="px-2 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-purple-950/50 active:bg-purple-900 border border-zinc-800 hover:border-purple-600/40 text-[10px] font-black text-zinc-300 hover:text-purple-300 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm select-none"
-              title="Clic: Empujar vinilo adelante (+0.5s) | Mantener: Avance continuo"
-            >
-              <span className="notranslate" translate="no">NUDGE &raquo;</span>
-              <RotateCw className="w-3 h-3 text-purple-400 shrink-0" />
-            </button>
-          </div>
-
-          {/* Performance Pads: Hot Cues & Auto Loop */}
-          <div className="space-y-2 pt-2 border-t border-zinc-800/80 notranslate" translate="no">
-            <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400">
-              <span className="notranslate" translate="no">HOT CUES</span>
-              <div className="flex gap-1.5">
-                {[1, 2, 3, 4].map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => handleHotCue("A", c)}
-                    className="w-7 h-6 rounded bg-zinc-900 hover:bg-purple-600 hover:text-white text-purple-300 font-black border border-zinc-800 text-[10px] transition-colors cursor-pointer notranslate"
-                    translate="no"
-                    title={`Saltar a Hot Cue ${c}`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400">
-              <span className="notranslate" translate="no">AUTO LOOP</span>
-              <div className="flex gap-1.5">
-                {[1, 2, 4, 8].map((beats) => (
-                  <button
-                    key={beats}
-                    onClick={() => handleToggleLoop("A", beats)}
-                    className={`px-1.5 h-6 rounded font-black border text-[9px] transition-colors cursor-pointer notranslate ${
-                      activeLoopA === beats
-                        ? "bg-amber-400 text-black border-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
-                        : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border-zinc-800"
-                    }`}
-                    translate="no"
-                  >
-                    {beats}B
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 
-          {/* Channel Strip: EQ 3-Band, Gain & Fader */}
-          <div className="p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-2 notranslate" translate="no">
-            <div className="flex items-center justify-between gap-2 text-center text-[10px] font-bold text-zinc-400">
-              <div className="flex-1">
-                <span className="notranslate" translate="no">HI</span>
-                <input
-                  type="range"
-                  min={-50}
-                  max={50}
-                  value={eqHiA}
-                  onChange={(e) => setEqHiA(Number(e.target.value))}
-                  className="w-full accent-purple-400 h-1 bg-zinc-800 rounded"
-                />
-              </div>
-              <div className="flex-1">
-                <span className="notranslate" translate="no">MID</span>
-                <input
-                  type="range"
-                  min={-50}
-                  max={50}
-                  value={eqMidA}
-                  onChange={(e) => setEqMidA(Number(e.target.value))}
-                  className="w-full accent-purple-400 h-1 bg-zinc-800 rounded"
-                />
-              </div>
-              <div className="flex-1">
-                <span className="notranslate" translate="no">LOW</span>
-                <input
-                  type="range"
-                  min={-50}
-                  max={50}
-                  value={bassKillA ? -50 : eqLowA}
-                  onChange={(e) => setEqLowA(Number(e.target.value))}
-                  disabled={bassKillA}
-                  className="w-full accent-purple-400 h-1 bg-zinc-800 rounded"
-                />
-              </div>
+          {/* Switch Compacto de Controles Deck A: EQ & Volumen vs Hot Cues / Loops / Nudge */}
+          <div className="space-y-2 notranslate" translate="no">
+            <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-950 border border-zinc-800/90">
               <button
-                onClick={() => setBassKillA(!bassKillA)}
-                className={`px-2 py-1 rounded text-[9px] font-black border transition-all cursor-pointer notranslate shrink-0 ${
-                  bassKillA
-                    ? "bg-red-600 text-white border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
-                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                type="button"
+                onClick={() => setDeckControlTabA("MIX")}
+                className={`flex-1 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  deckControlTabA === "MIX"
+                    ? "bg-purple-600/30 text-purple-200 border border-purple-500/50 shadow-sm"
+                    : "text-zinc-400 hover:text-white"
                 }`}
-                translate="no"
-                title="Kill Bass / Matar Graves en Deck A"
               >
-                BASS KILL
+                <Sliders className="w-3 h-3" />
+                <span>EQ & Volumen</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeckControlTabA("PADS")}
+                className={`flex-1 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  deckControlTabA === "PADS"
+                    ? "bg-purple-600/30 text-purple-200 border border-purple-500/50 shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <Zap className="w-3 h-3" />
+                <span>Cues · Loop · Nudge</span>
               </button>
             </div>
 
-            {/* Control de Volumen Deck A (Alzar y Bajar Volumen) */}
-            <div className="pt-2 border-t border-zinc-800/80 space-y-1.5 notranslate" translate="no">
-              {/* Fila 1: Título de Volumen + Porcentaje Numérico + Botón Mute */}
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-1.5">
-                  {channelVolA === 0 ? (
-                    <VolumeX className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                  ) : channelVolA < 50 ? (
-                    <Volume1 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                  ) : (
-                    <Volume2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                  )}
-                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-300 notranslate" translate="no">
-                    VOL DECK A
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-md bg-zinc-900 border border-purple-900/60 text-purple-200 min-w-[42px] text-center shadow-inner notranslate" translate="no">
-                    {channelVolA}%
-                  </span>
-
-                  {/* Botón MUTE / RESTORE */}
+            {deckControlTabA === "PADS" ? (
+              <div className="p-2 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-2">
+                {/* Nudge Atrás, Spinback, Nudge Adelante */}
+                <div className="grid grid-cols-3 gap-1 w-full">
                   <button
-                    type="button"
-                    onClick={() => setChannelVolA((v) => (v === 0 ? 100 : 0))}
-                    className={`h-6 px-2 rounded-md text-[8.5px] font-black border transition-all cursor-pointer select-none shrink-0 notranslate ${
-                      channelVolA === 0
-                        ? "bg-red-600 text-white border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse"
-                        : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-800"
-                    }`}
-                    translate="no"
-                    title={channelVolA === 0 ? "Desmutear (Restaurar al 100%)" : "Silenciar Deck A"}
+                    onMouseDown={() => startContinuousNudge("A", -1)}
+                    onMouseUp={() => stopContinuousNudge("A")}
+                    onMouseLeave={() => stopContinuousNudge("A")}
+                    onTouchStart={() => startContinuousNudge("A", -1)}
+                    onTouchEnd={() => stopContinuousNudge("A")}
+                    onClick={() => handleNudge("A", -1)}
+                    className="px-1.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-purple-950/50 border border-zinc-800 text-[10px] font-black text-zinc-300 hover:text-purple-300 transition-all cursor-pointer flex items-center justify-center gap-1"
                   >
-                    {channelVolA === 0 ? "MUTED" : "MUTE"}
+                    <RotateCcw className="w-3 h-3 text-purple-400 shrink-0" />
+                    <span>&laquo; NUDGE</span>
+                  </button>
+                  <button
+                    onClick={() => handleSpinback("A")}
+                    className="px-1.5 py-1.5 rounded-lg bg-gradient-to-r from-red-600/20 via-purple-600/30 to-pink-600/20 border border-purple-500/40 text-[10px] font-black text-white transition-all cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    <Disc3 className="w-3 h-3 text-pink-400 shrink-0" />
+                    <span>SPINBACK</span>
+                  </button>
+                  <button
+                    onMouseDown={() => startContinuousNudge("A", 1)}
+                    onMouseUp={() => stopContinuousNudge("A")}
+                    onMouseLeave={() => stopContinuousNudge("A")}
+                    onTouchStart={() => startContinuousNudge("A", 1)}
+                    onTouchEnd={() => stopContinuousNudge("A")}
+                    onClick={() => handleNudge("A", 1)}
+                    className="px-1.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-purple-950/50 border border-zinc-800 text-[10px] font-black text-zinc-300 hover:text-purple-300 transition-all cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    <span>NUDGE &raquo;</span>
+                    <RotateCw className="w-3 h-3 text-purple-400 shrink-0" />
                   </button>
                 </div>
+
+                {/* Hot Cues & Auto Loop en 2 filas compactas */}
+                <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400">
+                  <span>HOT CUES</span>
+                  <div className="flex gap-1.5">
+                    {[1, 2, 3, 4].map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => handleHotCue("A", c)}
+                        className="w-7 h-6 rounded bg-zinc-900 hover:bg-purple-600 hover:text-white text-purple-300 font-black border border-zinc-800 text-[10px] transition-colors cursor-pointer"
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400">
+                  <span>AUTO LOOP</span>
+                  <div className="flex gap-1.5">
+                    {[1, 2, 4, 8].map((beats) => (
+                      <button
+                        key={beats}
+                        onClick={() => handleToggleLoop("A", beats)}
+                        className={`px-1.5 h-6 rounded font-black border text-[9px] transition-colors cursor-pointer ${
+                          activeLoopA === beats
+                            ? "bg-amber-400 text-black border-amber-300"
+                            : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border-zinc-800"
+                        }`}
+                      >
+                        {beats}B
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
+            ) : (
+              /* Channel Strip: EQ 3-Band, Gain & Fader */
+              <div className="p-2 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-2">
+                <div className="flex items-center justify-between gap-2 text-center text-[10px] font-bold text-zinc-400">
+                  <div className="flex-1">
+                    <span>HI</span>
+                    <input
+                      type="range"
+                      min={-50}
+                      max={50}
+                      value={eqHiA}
+                      onChange={(e) => setEqHiA(Number(e.target.value))}
+                      className="w-full accent-purple-400 h-1 bg-zinc-800 rounded"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <span>MID</span>
+                    <input
+                      type="range"
+                      min={-50}
+                      max={50}
+                      value={eqMidA}
+                      onChange={(e) => setEqMidA(Number(e.target.value))}
+                      className="w-full accent-purple-400 h-1 bg-zinc-800 rounded"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <span>LOW</span>
+                    <input
+                      type="range"
+                      min={-50}
+                      max={50}
+                      value={bassKillA ? -50 : eqLowA}
+                      onChange={(e) => setEqLowA(Number(e.target.value))}
+                      disabled={bassKillA}
+                      className="w-full accent-purple-400 h-1 bg-zinc-800 rounded"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setBassKillA(!bassKillA)}
+                    className={`px-2 py-1 rounded text-[9px] font-black border transition-all cursor-pointer shrink-0 ${
+                      bassKillA
+                        ? "bg-red-600 text-white border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+                        : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                    }`}
+                    title="Kill Bass / Matar Graves en Deck A"
+                  >
+                    BASS KILL
+                  </button>
+                </div>
 
-              {/* Fila 2: Botón -5% + Fader Deslizante de Rango Completo + Botón +5% */}
-              <div className="flex items-center gap-2 w-full">
-                {/* Botón Bajar Volumen (-5%) */}
-                <button
-                  type="button"
-                  onClick={() => setChannelVolA((v) => Math.max(0, v - 5))}
-                  className="h-7 px-2 rounded-lg bg-zinc-900 hover:bg-purple-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-purple-500/50 flex items-center justify-center gap-0.5 text-[10px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0 notranslate"
-                  translate="no"
-                  title="Bajar volumen Deck A (-5%)"
-                >
-                  <Minus className="w-3 h-3 text-purple-400" />
-                  <span>-5%</span>
-                </button>
+                {/* Control de Volumen Deck A */}
+                <div className="pt-1.5 border-t border-zinc-800/80 space-y-1">
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-1.5">
+                      {channelVolA === 0 ? (
+                        <VolumeX className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                      ) : channelVolA < 50 ? (
+                        <Volume1 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                      ) : (
+                        <Volume2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                      )}
+                      <span className="text-[10px] font-black uppercase tracking-wider text-purple-300">
+                        VOL DECK A
+                      </span>
+                    </div>
 
-                {/* Slider / Fader de Volumen */}
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={channelVolA}
-                  onChange={(e) => setChannelVolA(Number(e.target.value))}
-                  className="flex-1 min-w-0 accent-purple-500 h-2 bg-zinc-800 rounded-lg cursor-pointer transition-all hover:bg-zinc-700 w-full"
-                  title={`Volumen Canal Deck A: ${channelVolA}%`}
-                />
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-md bg-zinc-900 border border-purple-900/60 text-purple-200 min-w-[40px] text-center">
+                        {channelVolA}%
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setChannelVolA((v) => (v === 0 ? 100 : 0))}
+                        className={`h-5 px-2 rounded text-[8.5px] font-black border transition-all cursor-pointer select-none shrink-0 ${
+                          channelVolA === 0
+                            ? "bg-red-600 text-white border-red-500 animate-pulse"
+                            : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-800"
+                        }`}
+                      >
+                        {channelVolA === 0 ? "MUTED" : "MUTE"}
+                      </button>
+                    </div>
+                  </div>
 
-                {/* Botón Alzar / Subir Volumen (+5%) */}
-                <button
-                  type="button"
-                  onClick={() => setChannelVolA((v) => Math.min(100, v + 5))}
-                  className="h-7 px-2 rounded-lg bg-zinc-900 hover:bg-purple-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-purple-500/50 flex items-center justify-center gap-0.5 text-[10px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0 notranslate"
-                  translate="no"
-                  title="Alzar / Subir volumen Deck A (+5%)"
-                >
-                  <Plus className="w-3 h-3 text-purple-400" />
-                  <span>+5%</span>
-                </button>
+                  <div className="flex items-center gap-2 w-full">
+                    <button
+                      type="button"
+                      onClick={() => setChannelVolA((v) => Math.max(0, v - 5))}
+                      className="h-6 px-2 rounded-lg bg-zinc-900 hover:bg-purple-950/80 text-zinc-300 border border-zinc-800 flex items-center justify-center gap-0.5 text-[10px] font-bold cursor-pointer shrink-0"
+                    >
+                      <Minus className="w-3 h-3 text-purple-400" />
+                      <span>-5%</span>
+                    </button>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={channelVolA}
+                      onChange={(e) => setChannelVolA(Number(e.target.value))}
+                      className="flex-1 min-w-0 accent-purple-500 h-2 bg-zinc-800 rounded-lg cursor-pointer w-full"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setChannelVolA((v) => Math.min(100, v + 5))}
+                      className="h-6 px-2 rounded-lg bg-zinc-900 hover:bg-purple-950/80 text-zinc-300 border border-zinc-800 flex items-center justify-center gap-0.5 text-[10px] font-bold cursor-pointer shrink-0"
+                    >
+                      <Plus className="w-3 h-3 text-purple-400" />
+                      <span>+5%</span>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Controles de Transporte: PLAY, CUE, SYNC */}
-          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800 notranslate" translate="no">
+          <div className="grid grid-cols-3 gap-2 pt-1.5 border-t border-zinc-800 notranslate" translate="no">
             <button
               onClick={() => handleCue("A")}
               disabled={!trackA}
-              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40 notranslate"
+              className="py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40 notranslate"
               translate="no"
             >
               CUE
@@ -5397,7 +5425,7 @@ export default function VirtualDjConsole({
               onClick={togglePlayA}
               disabled={!trackA}
               title={isPlayingA ? "Pausar Bandeja A" : "Reproducir Bandeja A"}
-              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 notranslate ${
+              className={`py-2 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 notranslate ${
                 isPlayingA
                   ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-purple-600/30"
                   : trackA
@@ -5418,7 +5446,7 @@ export default function VirtualDjConsole({
             <button
               onClick={handleSyncDeckA}
               disabled={!trackA || !trackB}
-              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-emerald-950 border border-zinc-700 hover:border-emerald-600 text-emerald-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40 notranslate"
+              className="py-2 rounded-xl bg-zinc-900 hover:bg-emerald-950 border border-zinc-700 hover:border-emerald-600 text-emerald-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40 notranslate"
               translate="no"
               title="Sincronizar BPM de Deck A con Deck B"
             >
@@ -5430,8 +5458,8 @@ export default function VirtualDjConsole({
         {/* ========================================== */}
         {/* MIXER CENTRAL & MOTOR DE ENGANCHE          */}
         {/* ========================================== */}
-        <div className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col justify-between items-center text-center space-y-4 w-full max-w-full overflow-hidden">
-          <div className="w-full pb-2 border-b border-zinc-900">
+        <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col justify-between items-center text-center space-y-2.5 w-full max-w-full overflow-hidden">
+          <div className="w-full pb-1.5 border-b border-zinc-900">
             <span className="text-[10px] uppercase font-black tracking-widest text-zinc-400 flex items-center justify-center gap-1">
               <Sliders className="w-3.5 h-3.5 text-purple-400" />
               <span>MEZCLA & ENGANCHE</span>
@@ -5868,7 +5896,7 @@ export default function VirtualDjConsole({
         {/* ========================================== */}
         {/* DECK B (Canal 2 - Cian Eléctrico)          */}
         {/* ========================================== */}
-        <div id="deck-b" className="p-3 sm:p-4 xl:p-5 rounded-2xl bg-gradient-to-bl from-zinc-950 via-zinc-900 to-cyan-950/30 border-2 border-cyan-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative w-full max-w-full overflow-hidden scroll-mt-24 transition-all duration-300">
+        <div id="deck-b" className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-bl from-zinc-950 via-zinc-900 to-cyan-950/30 border-2 border-cyan-500/40 shadow-2xl flex flex-col justify-between space-y-2.5 relative w-full max-w-full overflow-hidden scroll-mt-24 transition-all duration-300">
           {/* Header de Deck B con Selector de Pista */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-wrap">
@@ -6162,299 +6190,246 @@ export default function VirtualDjConsole({
             </div>
           </div>
 
-          {/* Información del Track B con altura estable */}
-          <div className="min-h-[64px] flex flex-col justify-center">
+          {/* Información del Track B compacta */}
+          <div className="min-h-[42px] flex flex-col justify-center">
             {trackB ? (
-              <div className="space-y-0.5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-black text-white truncate">
-                      {trackB.song?.title || trackB.customTitle}
-                    </h3>
-                    <p className="text-xs font-semibold text-cyan-300 truncate">
-                      {trackB.song?.artist?.name || trackB.customArtist}
-                    </p>
-                  </div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-xs sm:text-sm font-black text-white truncate">
+                    {trackB.song?.title || trackB.customTitle}
+                  </h3>
+                  <p className="text-[11px] font-semibold text-cyan-300 truncate">
+                    {trackB.song?.artist?.name || trackB.customArtist}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-zinc-400">
-                  <span className="px-1.5 py-0.5 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
-                    KEY: {trackB.song?.key || "9A / Em"}
+                <div className="flex flex-col items-end gap-0.5 text-[9.5px] font-mono text-zinc-400 shrink-0">
+                  <span className="px-1.5 py-0.2 rounded bg-zinc-950 text-amber-400 border border-zinc-800 font-bold">
+                    {trackB.song?.key || "9A/Em"}
                   </span>
-                  <span>Dur: {formatTime(trackBDuration)}</span>
                   <span className="text-cyan-400 font-bold">
-                    {formatRemaining(playbackSecondsB, trackBDuration)}
+                    {formatTime(trackBDuration)} &bull; {formatRemaining(playbackSecondsB, trackBDuration)}
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="py-2.5 px-3 rounded-xl bg-zinc-950/60 border border-dashed border-cyan-900/40 text-center text-zinc-400 text-xs">
-                <span className="font-bold text-zinc-300">Bandeja B vacía</span>
-                <p className="text-[10px] text-zinc-500 mt-0.5">Usa &quot;Cargar Pista&quot; para preparar el siguiente tema</p>
+              <div className="py-2 px-3 rounded-xl bg-zinc-950/60 border border-dashed border-cyan-900/40 text-center text-zinc-400 text-xs">
+                <span className="font-bold text-zinc-300">Bandeja B vacía</span>{" "}
+                <span className="text-[10px] text-zinc-500">&bull; Toca &quot;Cargar Pista&quot;</span>
               </div>
             )}
           </div>
 
-          {/* Monitor de Video & Audio YouTube Deck B (Memoized & Totalmente Aislado) */}
-          <DeckPlayer
-            key="deck-player-deck-b"
-            deckId="B"
-            videoId={videoIdB}
-            isPlaying={isPlayingB}
-            effectiveVol={effectiveVolB}
-            pitch={pitchB}
-            isLoading={isLoadingVideoB}
-            isEjected={isEjectedB}
-            deckMode={deckModeB}
-            localFileName={localAudioNameB}
-            iframeRef={iframeRefB}
-            mediaRef={audioRefB}
-            isVideo={isVideoB}
-            onTimeUpdate={() => {
-              if (audioRefB.current && deckModeB === "native") {
-                setPlaybackSecondsB(Math.floor(audioRefB.current.currentTime));
-              }
-            }}
-            onEnded={() => {
-              if (isPlayingBRef.current || isPlayingB) {
-                handleDeckBEndedRef.current?.();
-              }
-            }}
-            onClearVideo={handleClearVideoOnlyB}
-          />
-
-          {/* Fila 1: Pitch Fader & Platter / Jogwheel Deck B lado a lado */}
-          <div className="flex items-center justify-between gap-1.5 sm:gap-2 xl:gap-3 py-1 w-full notranslate" translate="no">
-            {/* Contenedor Pitch Fader y Botones Subir/Bajar Tiempo Deck B */}
-            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 notranslate" translate="no">
-              {/* Pitch / Tempo Fader Vertical Deck B (2-Toques Seguridad) */}
-              <div className="flex flex-col items-center justify-between h-34 sm:h-38 xl:h-40 w-16 sm:w-18 xl:w-20 bg-zinc-950/80 p-1 sm:p-1.5 rounded-xl border border-zinc-800 touch-pan-y select-none relative">
-                {/* Indicador de Valor y Bloqueo / Desbloqueo */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isPitchActiveB) {
-                      setIsPitchActiveB(false);
-                      if (pitchTimerBRef.current) clearTimeout(pitchTimerBRef.current);
-                    } else {
-                      handleActivatePitchB();
-                    }
-                  }}
-                  className={`flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-full text-[8.5px] sm:text-[9px] font-mono font-bold transition-all cursor-pointer ${
-                    isPitchActiveB
-                      ? "bg-cyan-950 border border-cyan-400 text-cyan-200 shadow-sm animate-pulse"
-                      : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-300"
-                  }`}
-                  title={isPitchActiveB ? "Pitch activo (toca para bloquear)" : "1° toque: Toca para activar ajuste de tempo"}
-                >
-                  {isPitchActiveB ? (
-                    <>
-                      <Unlock className="w-2.5 h-2.5 text-cyan-400 shrink-0" />
-                      <span className="notranslate" translate="no">{pitchB >= 0 ? `+${pitchB.toFixed(1)}%` : `${pitchB.toFixed(1)}%`}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-2.5 h-2.5 text-zinc-500 shrink-0" />
-                      <span className="notranslate" translate="no">{pitchB >= 0 ? `+${pitchB.toFixed(1)}%` : `${pitchB.toFixed(1)}%`}</span>
-                    </>
-                  )}
-                </button>
-
-                {/* Slider con Overlay protector para el 1er toque y libre scroll vertical */}
-                <div className="relative flex items-center justify-center my-auto w-16 sm:w-18 xl:w-20 h-20 sm:h-24 touch-pan-y">
-                  {!isPitchActiveB && (
-                    <div
-                      onClick={handleActivatePitchB}
-                      className="absolute inset-0 z-10 cursor-pointer flex flex-col items-center justify-center rounded-lg bg-zinc-950/75 border border-dashed border-cyan-500/40 hover:border-cyan-400 transition-all touch-pan-y select-none group"
-                      title="1er toque: Toca para activar y mover el tempo"
-                    >
-                      <Lock className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
-                      <span className="text-[7.5px] font-mono text-zinc-400 group-hover:text-cyan-300 mt-0.5 text-center font-bold px-0.5 leading-tight notranslate" translate="no">
-                        1° toque activar
-                      </span>
-                    </div>
-                  )}
-
-                  <input
-                    type="range"
-                    min={-8}
-                    max={8}
-                    step={0.1}
-                    disabled={!isPitchActiveB}
-                    value={pitchB}
-                    onChange={(e) => {
-                      setPitchB(Number(e.target.value));
-                      setIsSyncedB(false);
-                      resetPitchTimerB();
+          {/* COCKPIT SIMÉTRICO LADO A LADO: Pitch + Plato de Vinilo + Monitor Video YouTube */}
+          <div className="grid grid-cols-1 sm:grid-cols-[auto_minmax(0,1fr)] gap-2.5 items-center w-full">
+            {/* Fila 1: Pitch Fader & Platter / Jogwheel Deck B compactos */}
+            <div className="flex items-center justify-center sm:justify-start gap-1.5 py-0.5 shrink-0 order-2 sm:order-1 notranslate" translate="no">
+              {/* Contenedor Pitch Fader y Botones Subir/Bajar Tiempo Deck B */}
+              <div className="flex items-center gap-1 shrink-0 notranslate" translate="no">
+                {/* Pitch / Tempo Fader Vertical Deck B (2-Toques Seguridad) */}
+                <div className="flex flex-col items-center justify-between h-28 sm:h-32 w-14 sm:w-16 bg-zinc-950/80 p-1 rounded-xl border border-zinc-800 touch-pan-y select-none relative">
+                  {/* Indicador de Valor y Bloqueo / Desbloqueo */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isPitchActiveB) {
+                        setIsPitchActiveB(false);
+                        if (pitchTimerBRef.current) clearTimeout(pitchTimerBRef.current);
+                      } else {
+                        handleActivatePitchB();
+                      }
                     }}
-                    onPointerDown={resetPitchTimerB}
-                    className={`h-20 sm:h-24 -rotate-90 w-18 sm:w-20 xl:w-24 accent-cyan-400 appearance-none bg-zinc-800 rounded-lg transition-all ${
+                    className={`flex items-center justify-center gap-0.5 px-1 py-0.5 rounded-full text-[8px] font-mono font-bold transition-all cursor-pointer ${
                       isPitchActiveB
-                        ? "cursor-pointer ring-1 ring-cyan-500/50 shadow-sm shadow-cyan-500/20"
-                        : "opacity-40 pointer-events-none cursor-not-allowed"
+                        ? "bg-cyan-950 border border-cyan-400 text-cyan-200 shadow-sm animate-pulse"
+                        : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-300"
                     }`}
-                  />
+                    title={isPitchActiveB ? "Pitch activo (toca para bloquear)" : "1° toque: Toca para activar ajuste de tempo"}
+                  >
+                    {isPitchActiveB ? (
+                      <>
+                        <Unlock className="w-2.5 h-2.5 text-cyan-400 shrink-0" />
+                        <span className="notranslate" translate="no">{pitchB >= 0 ? `+${pitchB.toFixed(1)}` : `${pitchB.toFixed(1)}`}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-2.5 h-2.5 text-zinc-500 shrink-0" />
+                        <span className="notranslate" translate="no">{pitchB >= 0 ? `+${pitchB.toFixed(1)}` : `${pitchB.toFixed(1)}`}</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Slider con Overlay protector para el 1er toque */}
+                  <div className="relative flex items-center justify-center my-auto w-14 h-16 touch-pan-y">
+                    {!isPitchActiveB && (
+                      <div
+                        onClick={handleActivatePitchB}
+                        className="absolute inset-0 z-10 cursor-pointer flex flex-col items-center justify-center rounded-lg bg-zinc-950/75 border border-dashed border-cyan-500/40 hover:border-cyan-400 transition-all touch-pan-y select-none group"
+                        title="1er toque: Toca para activar y mover el tempo"
+                      >
+                        <Lock className="w-3 h-3 text-cyan-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[7px] font-mono text-zinc-400 group-hover:text-cyan-300 mt-0.5 text-center font-bold leading-none notranslate" translate="no">
+                          TEMPO
+                        </span>
+                      </div>
+                    )}
+
+                    <input
+                      type="range"
+                      min={-8}
+                      max={8}
+                      step={0.1}
+                      disabled={!isPitchActiveB}
+                      value={pitchB}
+                      onChange={(e) => {
+                        setPitchB(Number(e.target.value));
+                        setIsSyncedB(false);
+                        resetPitchTimerB();
+                      }}
+                      onPointerDown={resetPitchTimerB}
+                      className={`h-16 -rotate-90 w-16 accent-cyan-400 appearance-none bg-zinc-800 rounded-lg transition-all ${
+                        isPitchActiveB
+                          ? "cursor-pointer ring-1 ring-cyan-500/50 shadow-sm shadow-cyan-500/20"
+                          : "opacity-40 pointer-events-none cursor-not-allowed"
+                      }`}
+                    />
+                  </div>
+
+                  {/* Botón RESET con confirmación en 2 toques */}
+                  <button
+                    type="button"
+                    onClick={handleResetPitchB}
+                    className={`text-[7.5px] font-mono transition-all rounded px-1.5 py-0.5 cursor-pointer font-bold select-none notranslate ${
+                      resetSuccessPitchB
+                        ? "bg-emerald-500 text-black font-black shadow-md scale-105"
+                        : resetArmedPitchB
+                        ? "bg-amber-400 text-black font-black animate-pulse shadow-[0_0_10px_rgba(251,191,36,0.6)] scale-105"
+                        : "text-cyan-300 hover:text-white bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/60 hover:border-cyan-500"
+                    }`}
+                    translate="no"
+                    title={
+                      resetArmedPitchB
+                        ? "2° toque: Toca para resetear Pitch a 0%"
+                        : "1° toque: Toca para activar reseteo a 0%"
+                    }
+                  >
+                    {resetSuccessPitchB ? "✓ 0%" : resetArmedPitchB ? "OK?" : "RESET"}
+                  </button>
                 </div>
 
-                {/* Botón RESET con confirmación en 2 toques */}
-                <button
-                  type="button"
-                  onClick={handleResetPitchB}
-                  className={`text-[8.5px] sm:text-[9px] font-mono transition-all rounded px-2 py-0.5 cursor-pointer font-bold select-none notranslate ${
-                    resetSuccessPitchB
-                      ? "bg-emerald-500 text-black font-black shadow-md scale-105"
-                      : resetArmedPitchB
-                      ? "bg-amber-400 text-black font-black animate-pulse shadow-[0_0_10px_rgba(251,191,36,0.6)] scale-105"
-                      : "text-cyan-300 hover:text-white bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/60 hover:border-cyan-500"
-                  }`}
-                  translate="no"
-                  title={
-                    resetArmedPitchB
-                      ? "2° toque: Toca para resetear Pitch a 0%"
-                      : "1° toque: Toca para activar reseteo a 0%"
-                  }
-                >
-                  {resetSuccessPitchB ? "✓ 0.0%" : resetArmedPitchB ? "¿CONFIRMAR?" : "REINICIAR"}
-                </button>
+                {/* Botones 2-Toques Subir / Bajar Tiempo Deck B */}
+                <div className="flex flex-col justify-between h-28 sm:h-32 py-0.5 gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handlePitchUpB}
+                    className={`w-7 sm:w-8 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-0.5 cursor-pointer select-none active:scale-95 border ${
+                      pitchUpSuccessB
+                        ? "bg-emerald-500 text-black border-emerald-400 font-black shadow-md scale-105"
+                        : pitchUpArmedB
+                        ? "bg-amber-400 text-black border-amber-300 font-black animate-pulse shadow-[0_0_12px_rgba(251,191,36,0.7)] scale-105"
+                        : "bg-zinc-900/90 hover:bg-cyan-950/70 border-zinc-800 hover:border-cyan-500/50 text-cyan-300 hover:text-white"
+                    }`}
+                  >
+                    <ChevronUp className="w-3 h-3 shrink-0" />
+                    <span className="text-[7px] font-mono font-black leading-none mt-0.5 notranslate" translate="no">
+                      {pitchUpSuccessB ? "✓" : pitchUpArmedB ? "OK" : "+0.5"}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handlePitchDownB}
+                    className={`w-7 sm:w-8 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-0.5 cursor-pointer select-none active:scale-95 border ${
+                      pitchDownSuccessB
+                        ? "bg-emerald-500 text-black border-emerald-400 font-black shadow-md scale-105"
+                        : pitchDownArmedB
+                        ? "bg-amber-400 text-black border-amber-300 font-black animate-pulse shadow-[0_0_12px_rgba(251,191,36,0.7)] scale-105"
+                        : "bg-zinc-900/90 hover:bg-cyan-950/70 border-zinc-800 hover:border-cyan-500/50 text-cyan-300 hover:text-white"
+                    }`}
+                  >
+                    <ChevronDown className="w-3 h-3 shrink-0" />
+                    <span className="text-[7px] font-mono font-black leading-none mt-0.5 notranslate" translate="no">
+                      {pitchDownSuccessB ? "✓" : pitchDownArmedB ? "OK" : "-0.5"}
+                    </span>
+                  </button>
+                </div>
               </div>
 
-              {/* Botones 2-Toques Subir / Bajar Tiempo Deck B */}
-              <div className="flex flex-col justify-between h-34 sm:h-38 xl:h-40 py-0.5 gap-1 shrink-0">
-                {/* Botón SUBIR TIEMPO (+0.5%) */}
-                <button
-                  type="button"
-                  onClick={handlePitchUpB}
-                  className={`w-7 sm:w-8 xl:w-9 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-0.5 sm:p-1 cursor-pointer select-none active:scale-95 border ${
-                    pitchUpSuccessB
-                      ? "bg-emerald-500 text-black border-emerald-400 font-black shadow-md scale-105"
-                      : pitchUpArmedB
-                      ? "bg-amber-400 text-black border-amber-300 font-black animate-pulse shadow-[0_0_12px_rgba(251,191,36,0.7)] scale-105"
-                      : "bg-zinc-900/90 hover:bg-cyan-950/70 border-zinc-800 hover:border-cyan-500/50 text-cyan-300 hover:text-white"
-                  }`}
-                  title={
-                    pitchUpArmedB
-                      ? "2° toque: Toca para subir tempo +0.5%"
-                      : "1° toque: Toca para activar subir tempo (+0.5%)"
-                  }
-                >
-                  <ChevronUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                  <span className="text-[7px] sm:text-[7.5px] xl:text-[8px] font-mono font-black leading-none mt-0.5 notranslate" translate="no">
-                    {pitchUpSuccessB ? "✓" : pitchUpArmedB ? "CONFIRM" : "+0.5%"}
-                  </span>
-                  <span className="text-[5.5px] sm:text-[6px] xl:text-[6.5px] uppercase font-bold tracking-tight opacity-75 notranslate" translate="no">
-                    TEMPO
-                  </span>
-                </button>
-
-                {/* Botón BAJAR TIEMPO (-0.5%) */}
-                <button
-                  type="button"
-                  onClick={handlePitchDownB}
-                  className={`w-7 sm:w-8 xl:w-9 h-[47%] rounded-lg transition-all flex flex-col items-center justify-center p-0.5 sm:p-1 cursor-pointer select-none active:scale-95 border ${
-                    pitchDownSuccessB
-                      ? "bg-emerald-500 text-black border-emerald-400 font-black shadow-md scale-105"
-                      : pitchDownArmedB
-                      ? "bg-amber-400 text-black border-amber-300 font-black animate-pulse shadow-[0_0_12px_rgba(251,191,36,0.7)] scale-105"
-                      : "bg-zinc-900/90 hover:bg-cyan-950/70 border-zinc-800 hover:border-cyan-500/50 text-cyan-300 hover:text-white"
-                  }`}
-                  title={
-                    pitchDownArmedB
-                      ? "2° toque: Toca para bajar tempo -0.5%"
-                      : "1° toque: Toca para activar bajar tempo (-0.5%)"
-                  }
-                >
-                  <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                  <span className="text-[7px] sm:text-[7.5px] xl:text-[8px] font-mono font-black leading-none mt-0.5 notranslate" translate="no">
-                    {pitchDownSuccessB ? "✓" : pitchDownArmedB ? "CONFIRM" : "-0.5%"}
-                  </span>
-                  <span className="text-[5.5px] sm:text-[6px] xl:text-[6.5px] uppercase font-bold tracking-tight opacity-75 notranslate" translate="no">
-                    TEMPO
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Jogwheel Giratorio Deck B con soporte Drag & Drop */}
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setIsDraggingB(true);
-              }}
-              onDragLeave={() => setIsDraggingB(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setIsDraggingB(false);
-                const file = e.dataTransfer.files?.[0];
-                if (file) handleLoadLocalFileB(file);
-              }}
-              className="relative shrink-0 flex items-center justify-center"
-            >
+              {/* Jogwheel Giratorio Deck B con soporte Drag & Drop */}
               <div
-                ref={platterRefB}
-                onPointerDown={handlePlatterPointerDownB}
-                onPointerMove={handlePlatterPointerMoveB}
-                onPointerUp={handlePlatterPointerUpB}
-                onPointerCancel={handlePlatterPointerUpB}
-                className={`w-28 h-28 sm:w-32 sm:h-32 xl:w-36 xl:h-36 rounded-full bg-gradient-to-tr from-zinc-950 via-zinc-900 to-zinc-950 border-4 ${
-                  isDraggingB
-                    ? "border-cyan-400 scale-105"
-                    : vinylActionB === "SPINBACK"
-                    ? "border-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.5)] scale-102"
-                    : vinylActionB === "REWIND"
-                    ? "border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.5)]"
-                    : vinylActionB === "FORWARD"
-                    ? "border-cyan-400 shadow-[0_0_25px_rgba(6,182,212,0.5)]"
-                    : vinylActionB === "SCRATCH"
-                    ? "border-cyan-300 shadow-[0_0_25px_rgba(34,211,238,0.6)]"
-                    : "border-zinc-800"
-                } shadow-[0_0_25px_rgba(6,182,212,0.2)] flex items-center justify-center relative cursor-grab active:cursor-grabbing select-none transition-colors`}
-                title="Plato de Vinilo Deck B - Arrastra para scratch o retroceder como un disco real"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDraggingB(true);
+                }}
+                onDragLeave={() => setIsDraggingB(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDraggingB(false);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) handleLoadLocalFileB(file);
+                }}
+                className="relative shrink-0 flex items-center justify-center"
               >
-                {/* Ranuras de vinilo auténticas (micro-grooves concéntricos) */}
-                <div className="absolute inset-1.5 rounded-full border border-zinc-800/80 pointer-events-none" />
-                <div className="absolute inset-3 rounded-full border border-zinc-700/40 pointer-events-none" />
-                <div className="absolute inset-5 rounded-full border border-zinc-800/60 pointer-events-none" />
-                <div className="absolute inset-7 rounded-full border border-zinc-700/30 pointer-events-none" />
+                <div
+                  ref={platterRefB}
+                  onPointerDown={handlePlatterPointerDownB}
+                  onPointerMove={handlePlatterPointerMoveB}
+                  onPointerUp={handlePlatterPointerUpB}
+                  onPointerCancel={handlePlatterPointerUpB}
+                  className={`w-24 h-24 xl:w-28 xl:h-28 rounded-full bg-gradient-to-tr from-zinc-950 via-zinc-900 to-zinc-950 border-4 ${
+                    isDraggingB
+                      ? "border-cyan-400 scale-105"
+                      : vinylActionB === "SPINBACK"
+                      ? "border-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.5)] scale-102"
+                      : vinylActionB === "REWIND"
+                      ? "border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.5)]"
+                      : vinylActionB === "FORWARD"
+                      ? "border-cyan-400 shadow-[0_0_25px_rgba(6,182,212,0.5)]"
+                      : vinylActionB === "SCRATCH"
+                      ? "border-cyan-300 shadow-[0_0_25px_rgba(34,211,238,0.6)]"
+                      : "border-zinc-800"
+                  } shadow-[0_0_20px_rgba(6,182,212,0.2)] flex items-center justify-center relative cursor-grab active:cursor-grabbing select-none transition-colors`}
+                  title="Plato de Vinilo Deck B - Arrastra para scratch o retroceder como un disco real"
+                >
+                  <div className="absolute inset-1.5 rounded-full border border-zinc-800/80 pointer-events-none" />
+                  <div className="absolute inset-3 rounded-full border border-zinc-700/40 pointer-events-none" />
+                  <div className="absolute inset-5 rounded-full border border-zinc-800/60 pointer-events-none" />
 
-                {/* Marcador de Vinilo / Stripe Blanca de Posición */}
-                <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-5 sm:h-6 rounded-full bg-gradient-to-b from-white via-cyan-200 to-transparent shadow-[0_0_8px_rgba(255,255,255,0.9)] pointer-events-none z-10" />
+                  <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-4 rounded-full bg-gradient-to-b from-white via-cyan-200 to-transparent shadow-[0_0_8px_rgba(255,255,255,0.9)] pointer-events-none z-10" />
 
-                {/* Ranuras de vinilo intermedias */}
-                <div className="w-20 h-20 sm:w-24 sm:h-24 xl:w-28 xl:h-28 rounded-full border border-zinc-800 flex items-center justify-center pointer-events-none">
-                  <div className="w-15 h-15 sm:w-18 sm:h-18 xl:w-20 xl:h-20 rounded-full border border-zinc-700/60 flex items-center justify-center">
-                    {/* Centro HUD de Jogwheel (Spindle / Record Label con botón Play/Pause táctil) */}
+                  <div className="w-16 h-16 xl:w-20 xl:h-20 rounded-full border border-zinc-800 flex items-center justify-center pointer-events-none">
                     <div
                       data-spindle="true"
                       onClick={(e) => {
                         e.stopPropagation();
                         togglePlayB();
                       }}
-                      className="w-11 h-11 sm:w-13 sm:h-13 xl:w-14 xl:h-14 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-600 border-2 border-white flex flex-col items-center justify-center text-white shadow-lg pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                      className="w-10 h-10 xl:w-12 xl:h-12 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-600 border-2 border-white flex flex-col items-center justify-center text-white shadow-lg pointer-events-auto cursor-pointer hover:scale-105 active:scale-95 transition-transform"
                       title="Click en centro: Play / Pausa"
                     >
                       {vinylActionB === "REWIND" ? (
                         <div className="flex flex-col items-center animate-pulse notranslate" translate="no">
-                          <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300" />
-                          <span className="text-[6.5px] sm:text-[7px] font-black text-amber-200 notranslate" translate="no">REWIND</span>
+                          <RotateCcw className="w-3 h-3 text-amber-300" />
+                          <span className="text-[6px] font-black text-amber-200 notranslate" translate="no">REWIND</span>
                         </div>
                       ) : vinylActionB === "FORWARD" ? (
                         <div className="flex flex-col items-center animate-pulse notranslate" translate="no">
-                          <RotateCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-200" />
-                          <span className="text-[6.5px] sm:text-[7px] font-black text-cyan-100 notranslate" translate="no">PUSH</span>
+                          <RotateCw className="w-3 h-3 text-cyan-200" />
+                          <span className="text-[6px] font-black text-cyan-100 notranslate" translate="no">PUSH</span>
                         </div>
                       ) : vinylActionB === "SPINBACK" ? (
                         <div className="flex flex-col items-center animate-spin notranslate" translate="no">
-                          <Disc3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-300" />
-                          <span className="text-[6.5px] sm:text-[7px] font-black text-pink-200 notranslate" translate="no">SPINBACK</span>
+                          <Disc3 className="w-3 h-3 text-pink-300" />
+                          <span className="text-[6px] font-black text-pink-200 notranslate" translate="no">SPIN</span>
                         </div>
                       ) : vinylActionB === "SCRATCH" ? (
                         <div className="flex flex-col items-center notranslate" translate="no">
-                          <Disc className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-200 animate-spin [animation-duration:1s]" />
-                          <span className="text-[6.5px] sm:text-[7px] font-black text-cyan-100 notranslate" translate="no">SCRATCH</span>
+                          <Disc className="w-3 h-3 text-cyan-200 animate-spin [animation-duration:1s]" />
+                          <span className="text-[6px] font-black text-cyan-100 notranslate" translate="no">SCRATCH</span>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center notranslate pointer-events-none select-none" translate="no">
-                          <span className="text-[10px] sm:text-[11px] font-black leading-tight notranslate" translate="no">{effectiveBpmB}</span>
-                          <span className="text-[7px] sm:text-[8px] font-bold opacity-80 uppercase notranslate" translate="no">BPM</span>
+                          <span className="text-[9.5px] font-black leading-tight notranslate" translate="no">{effectiveBpmB}</span>
+                          <span className="text-[6.5px] font-bold opacity-80 uppercase notranslate" translate="no">BPM</span>
                         </div>
                       )}
                     </div>
@@ -6462,228 +6437,260 @@ export default function VirtualDjConsole({
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Fila 2: Controles de Vinilo Deck B: Nudge Atrás, Spinback Club, Nudge Adelante a ancho completo */}
-          <div className="grid grid-cols-3 gap-1 sm:gap-1.5 w-full pt-0.5 notranslate" translate="no">
-            {/* Nudge Atrás */}
-            <button
-              onMouseDown={() => startContinuousNudge("B", -1)}
-              onMouseUp={() => stopContinuousNudge("B")}
-              onMouseLeave={() => stopContinuousNudge("B")}
-              onTouchStart={() => startContinuousNudge("B", -1)}
-              onTouchEnd={() => stopContinuousNudge("B")}
-              onClick={() => handleNudge("B", -1)}
-              className="px-2 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-cyan-950/50 active:bg-cyan-900 border border-zinc-800 hover:border-cyan-600/40 text-[10px] font-black text-zinc-300 hover:text-cyan-300 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm select-none"
-              title="Clic: Empujar vinilo atrás (-0.5s) | Mantener: Rebobinado continuo de vinilo"
-            >
-              <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0" />
-              <span className="notranslate" translate="no">&laquo; NUDGE</span>
-            </button>
-
-            {/* Botón Central: SPINBACK / RETROCESO REAL DE DISCO */}
-            <button
-              onClick={() => handleSpinback("B")}
-              className="px-2 py-1.5 rounded-lg bg-gradient-to-r from-red-600/20 via-cyan-600/30 to-pink-600/20 hover:from-red-600/40 hover:to-pink-600/40 border border-cyan-500/40 text-[10px] font-black text-white hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-lg shadow-cyan-900/20"
-              title="Efecto Spinback: Retroceso salvaje de vinilo club (-4 segs con frenada inercial)"
-            >
-              <Disc3 className="w-3.5 h-3.5 text-pink-400 animate-spin [animation-duration:4s] shrink-0" />
-              <span className="bg-gradient-to-r from-pink-300 to-cyan-200 bg-clip-text text-transparent notranslate" translate="no">SPINBACK</span>
-            </button>
-
-            {/* Nudge Adelante */}
-            <button
-              onMouseDown={() => startContinuousNudge("B", 1)}
-              onMouseUp={() => stopContinuousNudge("B")}
-              onMouseLeave={() => stopContinuousNudge("B")}
-              onTouchStart={() => startContinuousNudge("B", 1)}
-              onTouchEnd={() => stopContinuousNudge("B")}
-              onClick={() => handleNudge("B", 1)}
-              className="px-2 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-cyan-950/50 active:bg-cyan-900 border border-zinc-800 hover:border-cyan-600/40 text-[10px] font-black text-zinc-300 hover:text-cyan-300 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm select-none"
-              title="Clic: Empujar vinilo adelante (+0.5s) | Mantener: Avance continuo"
-            >
-              <span className="notranslate" translate="no">NUDGE &raquo;</span>
-              <RotateCw className="w-3 h-3 text-cyan-400 shrink-0" />
-            </button>
-          </div>
-
-          {/* Performance Pads: Hot Cues & Auto Loop */}
-          <div className="space-y-2 pt-2 border-t border-zinc-800/80 notranslate" translate="no">
-            <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400">
-              <span className="notranslate" translate="no">HOT CUES</span>
-              <div className="flex gap-1.5">
-                {[1, 2, 3, 4].map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => handleHotCue("B", c)}
-                    className="w-7 h-6 rounded bg-zinc-900 hover:bg-cyan-600 hover:text-white text-cyan-300 font-black border border-zinc-800 text-[10px] transition-colors cursor-pointer notranslate"
-                    translate="no"
-                    title={`Saltar a Hot Cue ${c}`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400">
-              <span className="notranslate" translate="no">AUTO LOOP</span>
-              <div className="flex gap-1.5">
-                {[1, 2, 4, 8].map((beats) => (
-                  <button
-                    key={beats}
-                    onClick={() => handleToggleLoop("B", beats)}
-                    className={`px-1.5 h-6 rounded font-black border text-[9px] transition-colors cursor-pointer notranslate ${
-                      activeLoopB === beats
-                        ? "bg-amber-400 text-black border-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
-                        : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border-zinc-800"
-                    }`}
-                    translate="no"
-                  >
-                    {beats}B
-                  </button>
-                ))}
-              </div>
+            {/* Monitor de Video & Audio YouTube Deck B (Memoized & Totalmente Aislado) */}
+            <div className="min-w-0 w-full order-1 sm:order-2">
+              <DeckPlayer
+                key="deck-player-deck-b"
+                deckId="B"
+                videoId={videoIdB}
+                isPlaying={isPlayingB}
+                effectiveVol={effectiveVolB}
+                pitch={pitchB}
+                isLoading={isLoadingVideoB}
+                isEjected={isEjectedB}
+                deckMode={deckModeB}
+                localFileName={localAudioNameB}
+                iframeRef={iframeRefB}
+                mediaRef={audioRefB}
+                isVideo={isVideoB}
+                onTimeUpdate={() => {
+                  if (audioRefB.current && deckModeB === "native") {
+                    setPlaybackSecondsB(Math.floor(audioRefB.current.currentTime));
+                  }
+                }}
+                onEnded={() => {
+                  if (isPlayingBRef.current || isPlayingB) {
+                    handleDeckBEndedRef.current?.();
+                  }
+                }}
+                onClearVideo={handleClearVideoOnlyB}
+              />
             </div>
           </div>
 
-          {/* Channel Strip: EQ 3-Band, Gain & Fader */}
-          <div className="p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-2 notranslate" translate="no">
-            <div className="flex items-center justify-between gap-2 text-center text-[10px] font-bold text-zinc-400">
-              <div className="flex-1">
-                <span className="notranslate" translate="no">HI</span>
-                <input
-                  type="range"
-                  min={-50}
-                  max={50}
-                  value={eqHiB}
-                  onChange={(e) => setEqHiB(Number(e.target.value))}
-                  className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
-                />
-              </div>
-              <div className="flex-1">
-                <span className="notranslate" translate="no">MID</span>
-                <input
-                  type="range"
-                  min={-50}
-                  max={50}
-                  value={eqMidB}
-                  onChange={(e) => setEqMidB(Number(e.target.value))}
-                  className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
-                />
-              </div>
-              <div className="flex-1">
-                <span className="notranslate" translate="no">LOW</span>
-                <input
-                  type="range"
-                  min={-50}
-                  max={50}
-                  value={bassKillB ? -50 : eqLowB}
-                  onChange={(e) => setEqLowB(Number(e.target.value))}
-                  disabled={bassKillB}
-                  className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
-                />
-              </div>
+          {/* Switch Compacto de Controles Deck B: EQ & Volumen vs Hot Cues / Loops / Nudge */}
+          <div className="space-y-2 notranslate" translate="no">
+            <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-950 border border-zinc-800/90">
               <button
-                onClick={() => setBassKillB(!bassKillB)}
-                className={`px-2 py-1 rounded text-[9px] font-black border transition-all cursor-pointer notranslate shrink-0 ${
-                  bassKillB
-                    ? "bg-red-600 text-white border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
-                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                type="button"
+                onClick={() => setDeckControlTabB("MIX")}
+                className={`flex-1 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  deckControlTabB === "MIX"
+                    ? "bg-cyan-600/30 text-cyan-200 border border-cyan-500/50 shadow-sm"
+                    : "text-zinc-400 hover:text-white"
                 }`}
-                translate="no"
-                title="Kill Bass / Matar Graves en Deck B"
               >
-                BASS KILL
+                <Sliders className="w-3 h-3" />
+                <span>EQ & Volumen</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeckControlTabB("PADS")}
+                className={`flex-1 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  deckControlTabB === "PADS"
+                    ? "bg-cyan-600/30 text-cyan-200 border border-cyan-500/50 shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <Zap className="w-3 h-3" />
+                <span>Cues · Loop · Nudge</span>
               </button>
             </div>
 
-            {/* Control de Volumen Deck B (Alzar y Bajar Volumen) */}
-            <div className="pt-2 border-t border-zinc-800/80 space-y-1.5 notranslate" translate="no">
-              {/* Fila 1: Título de Volumen + Porcentaje Numérico + Botón Mute */}
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-1.5">
-                  {channelVolB === 0 ? (
-                    <VolumeX className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                  ) : channelVolB < 50 ? (
-                    <Volume1 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                  ) : (
-                    <Volume2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                  )}
-                  <span className="text-[10px] font-black uppercase tracking-wider text-cyan-300 notranslate" translate="no">
-                    VOL DECK B
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-md bg-zinc-900 border border-cyan-900/60 text-cyan-200 min-w-[42px] text-center shadow-inner notranslate" translate="no">
-                    {channelVolB}%
-                  </span>
-
-                  {/* Botón MUTE / RESTORE */}
+            {deckControlTabB === "PADS" ? (
+              <div className="p-2 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-2">
+                <div className="grid grid-cols-3 gap-1 w-full">
                   <button
-                    type="button"
-                    onClick={() => setChannelVolB((v) => (v === 0 ? 100 : 0))}
-                    className={`h-6 px-2 rounded-md text-[8.5px] font-black border transition-all cursor-pointer select-none shrink-0 notranslate ${
-                      channelVolB === 0
-                        ? "bg-red-600 text-white border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse"
-                        : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-800"
-                    }`}
-                    translate="no"
-                    title={channelVolB === 0 ? "Desmutear (Restaurar al 100%)" : "Silenciar Deck B"}
+                    onMouseDown={() => startContinuousNudge("B", -1)}
+                    onMouseUp={() => stopContinuousNudge("B")}
+                    onMouseLeave={() => stopContinuousNudge("B")}
+                    onTouchStart={() => startContinuousNudge("B", -1)}
+                    onTouchEnd={() => stopContinuousNudge("B")}
+                    onClick={() => handleNudge("B", -1)}
+                    className="px-1.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-cyan-950/50 border border-zinc-800 text-[10px] font-black text-zinc-300 hover:text-cyan-300 transition-all cursor-pointer flex items-center justify-center gap-1"
                   >
-                    {channelVolB === 0 ? "MUTED" : "MUTE"}
+                    <RotateCcw className="w-3 h-3 text-cyan-400 shrink-0" />
+                    <span>&laquo; NUDGE</span>
+                  </button>
+                  <button
+                    onClick={() => handleSpinback("B")}
+                    className="px-1.5 py-1.5 rounded-lg bg-gradient-to-r from-red-600/20 via-cyan-600/30 to-pink-600/20 border border-cyan-500/40 text-[10px] font-black text-white transition-all cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    <Disc3 className="w-3 h-3 text-pink-400 shrink-0" />
+                    <span>SPINBACK</span>
+                  </button>
+                  <button
+                    onMouseDown={() => startContinuousNudge("B", 1)}
+                    onMouseUp={() => stopContinuousNudge("B")}
+                    onMouseLeave={() => stopContinuousNudge("B")}
+                    onTouchStart={() => startContinuousNudge("B", 1)}
+                    onTouchEnd={() => stopContinuousNudge("B")}
+                    onClick={() => handleNudge("B", 1)}
+                    className="px-1.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-cyan-950/50 border border-zinc-800 text-[10px] font-black text-zinc-300 hover:text-cyan-300 transition-all cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    <span>NUDGE &raquo;</span>
+                    <RotateCw className="w-3 h-3 text-cyan-400 shrink-0" />
                   </button>
                 </div>
+
+                <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400">
+                  <span>HOT CUES</span>
+                  <div className="flex gap-1.5">
+                    {[1, 2, 3, 4].map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => handleHotCue("B", c)}
+                        className="w-7 h-6 rounded bg-zinc-900 hover:bg-cyan-600 hover:text-white text-cyan-300 font-black border border-zinc-800 text-[10px] transition-colors cursor-pointer"
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400">
+                  <span>AUTO LOOP</span>
+                  <div className="flex gap-1.5">
+                    {[1, 2, 4, 8].map((beats) => (
+                      <button
+                        key={beats}
+                        onClick={() => handleToggleLoop("B", beats)}
+                        className={`px-1.5 h-6 rounded font-black border text-[9px] transition-colors cursor-pointer ${
+                          activeLoopB === beats
+                            ? "bg-amber-400 text-black border-amber-300"
+                            : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border-zinc-800"
+                        }`}
+                      >
+                        {beats}B
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
+            ) : (
+              /* Channel Strip: EQ 3-Band, Gain & Fader */
+              <div className="p-2 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-2">
+                <div className="flex items-center justify-between gap-2 text-center text-[10px] font-bold text-zinc-400">
+                  <div className="flex-1">
+                    <span>HI</span>
+                    <input
+                      type="range"
+                      min={-50}
+                      max={50}
+                      value={eqHiB}
+                      onChange={(e) => setEqHiB(Number(e.target.value))}
+                      className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <span>MID</span>
+                    <input
+                      type="range"
+                      min={-50}
+                      max={50}
+                      value={eqMidB}
+                      onChange={(e) => setEqMidB(Number(e.target.value))}
+                      className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <span>LOW</span>
+                    <input
+                      type="range"
+                      min={-50}
+                      max={50}
+                      value={bassKillB ? -50 : eqLowB}
+                      onChange={(e) => setEqLowB(Number(e.target.value))}
+                      disabled={bassKillB}
+                      className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setBassKillB(!bassKillB)}
+                    className={`px-2 py-1 rounded text-[9px] font-black border transition-all cursor-pointer shrink-0 ${
+                      bassKillB
+                        ? "bg-red-600 text-white border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+                        : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                    }`}
+                    title="Kill Bass / Matar Graves en Deck B"
+                  >
+                    BASS KILL
+                  </button>
+                </div>
 
-              {/* Fila 2: Botón -5% + Fader Deslizante de Rango Completo + Botón +5% */}
-              <div className="flex items-center gap-2 w-full">
-                {/* Botón Bajar Volumen (-5%) */}
-                <button
-                  type="button"
-                  onClick={() => setChannelVolB((v) => Math.max(0, v - 5))}
-                  className="h-7 px-2 rounded-lg bg-zinc-900 hover:bg-cyan-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-cyan-500/50 flex items-center justify-center gap-0.5 text-[10px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0 notranslate"
-                  translate="no"
-                  title="Bajar volumen Deck B (-5%)"
-                >
-                  <Minus className="w-3 h-3 text-cyan-400" />
-                  <span>-5%</span>
-                </button>
+                {/* Control de Volumen Deck B */}
+                <div className="pt-1.5 border-t border-zinc-800/80 space-y-1">
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-1.5">
+                      {channelVolB === 0 ? (
+                        <VolumeX className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                      ) : channelVolB < 50 ? (
+                        <Volume1 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      ) : (
+                        <Volume2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      )}
+                      <span className="text-[10px] font-black uppercase tracking-wider text-cyan-300">
+                        VOL DECK B
+                      </span>
+                    </div>
 
-                {/* Slider / Fader de Volumen */}
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={channelVolB}
-                  onChange={(e) => setChannelVolB(Number(e.target.value))}
-                  className="flex-1 min-w-0 accent-cyan-500 h-2 bg-zinc-800 rounded-lg cursor-pointer transition-all hover:bg-zinc-700 w-full"
-                  title={`Volumen Canal Deck B: ${channelVolB}%`}
-                />
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-md bg-zinc-900 border border-cyan-900/60 text-cyan-200 min-w-[40px] text-center">
+                        {channelVolB}%
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setChannelVolB((v) => (v === 0 ? 100 : 0))}
+                        className={`h-5 px-2 rounded text-[8.5px] font-black border transition-all cursor-pointer select-none shrink-0 ${
+                          channelVolB === 0
+                            ? "bg-red-600 text-white border-red-500 animate-pulse"
+                            : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-800"
+                        }`}
+                      >
+                        {channelVolB === 0 ? "MUTED" : "MUTE"}
+                      </button>
+                    </div>
+                  </div>
 
-                {/* Botón Alzar / Subir Volumen (+5%) */}
-                <button
-                  type="button"
-                  onClick={() => setChannelVolB((v) => Math.min(100, v + 5))}
-                  className="h-7 px-2 rounded-lg bg-zinc-900 hover:bg-cyan-950/80 active:scale-95 text-zinc-300 hover:text-white border border-zinc-800 hover:border-cyan-500/50 flex items-center justify-center gap-0.5 text-[10px] font-bold cursor-pointer select-none transition-all shadow-sm shrink-0 notranslate"
-                  translate="no"
-                  title="Alzar / Subir volumen Deck B (+5%)"
-                >
-                  <Plus className="w-3 h-3 text-cyan-400" />
-                  <span>+5%</span>
-                </button>
+                  <div className="flex items-center gap-2 w-full">
+                    <button
+                      type="button"
+                      onClick={() => setChannelVolB((v) => Math.max(0, v - 5))}
+                      className="h-6 px-2 rounded-lg bg-zinc-900 hover:bg-cyan-950/80 text-zinc-300 border border-zinc-800 flex items-center justify-center gap-0.5 text-[10px] font-bold cursor-pointer shrink-0"
+                    >
+                      <Minus className="w-3 h-3 text-cyan-400" />
+                      <span>-5%</span>
+                    </button>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={channelVolB}
+                      onChange={(e) => setChannelVolB(Number(e.target.value))}
+                      className="flex-1 min-w-0 accent-cyan-500 h-2 bg-zinc-800 rounded-lg cursor-pointer w-full"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setChannelVolB((v) => Math.min(100, v + 5))}
+                      className="h-6 px-2 rounded-lg bg-zinc-900 hover:bg-cyan-950/80 text-zinc-300 border border-zinc-800 flex items-center justify-center gap-0.5 text-[10px] font-bold cursor-pointer shrink-0"
+                    >
+                      <Plus className="w-3 h-3 text-cyan-400" />
+                      <span>+5%</span>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Controles de Transporte: PLAY, CUE, SYNC */}
-          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800 notranslate" translate="no">
+          <div className="grid grid-cols-3 gap-2 pt-1.5 border-t border-zinc-800 notranslate" translate="no">
             <button
               onClick={() => handleCue("B")}
               disabled={!trackB}
-              className="py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40 notranslate"
+              className="py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-400 text-xs font-black transition-colors cursor-pointer shadow-sm active:scale-95 disabled:opacity-40 notranslate"
               translate="no"
             >
               CUE
@@ -6692,7 +6699,7 @@ export default function VirtualDjConsole({
               onClick={togglePlayB}
               disabled={!trackB}
               title={isPlayingB ? "Pausar Bandeja B" : "Reproducir Bandeja B"}
-              className={`py-2.5 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 notranslate ${
+              className={`py-2 rounded-xl text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md active:scale-95 disabled:opacity-40 notranslate ${
                 isPlayingB
                   ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-cyan-600/30"
                   : trackB
@@ -6713,7 +6720,7 @@ export default function VirtualDjConsole({
             <button
               onClick={handleSyncDeckB}
               disabled={!trackA || !trackB}
-              className={`py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95 border disabled:opacity-40 notranslate ${
+              className={`py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm active:scale-95 border disabled:opacity-40 notranslate ${
                 isSyncedB
                   ? "bg-emerald-600 text-white border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.5)]"
                   : "bg-zinc-900 hover:bg-emerald-950 border-zinc-700 hover:border-emerald-600 text-emerald-400"

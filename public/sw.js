@@ -7,7 +7,7 @@
  * - Bypass estricto para Server-Sent Events (SSE /api/v1/realtime) y mutaciones
  */
 
-const CACHE_NAME = "vidjs-pwa-v25";
+const CACHE_NAME = "vidjs-pwa-v26";
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_ASSETS = [
