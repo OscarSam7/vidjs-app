@@ -10,7 +10,10 @@ import { ensureGastronomySeeded } from "@/lib/gastronomy/seed-defaults";
 const inventoryActionSchema = z.object({
   action: z.enum([
     "CREATE_INVENTORY_ITEM",
+    "EDIT_INVENTORY_ITEM",
+    "DELETE_INVENTORY_ITEM",
     "RESTOCK_INVENTORY_ITEM",
+    "RESTOCK_OR_CREATE_ITEM",
     "ADJUST_INVENTORY_ITEM",
     "ADD_RECIPE_ITEM",
     "REMOVE_RECIPE_ITEM",
@@ -19,6 +22,8 @@ const inventoryActionSchema = z.object({
   inventoryItemId: z.string().optional(),
   code: z.string().optional(),
   name: z.string().optional(),
+  itemType: z.enum(["ARTICLE", "SUPPLY"]).optional(),
+  destination: z.enum(["BAR", "KITCHEN", "BOTH"]).optional(),
   category: z.string().optional(),
   unit: z.string().optional(),
   currentStock: z.coerce.number().optional(),
@@ -28,6 +33,7 @@ const inventoryActionSchema = z.object({
   productId: z.string().optional(),
   quantityRequired: z.coerce.number().optional(),
   reason: z.string().optional(),
+  createNewIfNotExists: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -41,7 +47,7 @@ export async function GET() {
         include: {
           recipeUsages: {
             include: {
-              product: { select: { id: true, code: true, name: true } },
+              product: { select: { id: true, code: true, name: true, destination: true } },
             },
           },
         },
@@ -54,7 +60,7 @@ export async function GET() {
           recipeItems: {
             include: {
               inventoryItem: {
-                select: { id: true, code: true, name: true, currentStock: true, unit: true },
+                select: { id: true, code: true, name: true, currentStock: true, unit: true, itemType: true, destination: true },
               },
             },
           },
@@ -65,7 +71,7 @@ export async function GET() {
         where: { tenantId },
         include: {
           product: { select: { code: true, name: true } },
-          inventoryItem: { select: { code: true, name: true } },
+          inventoryItem: { select: { code: true, name: true, unit: true, itemType: true } },
         },
         orderBy: { createdAt: "desc" },
         take: 100,
@@ -102,21 +108,26 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = inventoryActionSchema.parse(body);
 
-    // 1. CREAR INSUMO O INGREDIENTE
+    // 1. CREAR INSUMO O ARTÍCULO
     if (data.action === "CREATE_INVENTORY_ITEM") {
-      if (!data.name || !data.code) {
+      if (!data.name) {
         return NextResponse.json(
-          { error: { code: "BAD_REQUEST", message: "Código y nombre del insumo son obligatorios" } },
+          { error: { code: "BAD_REQUEST", message: "El nombre del ítem es obligatorio" } },
           { status: 400 }
         );
       }
 
+      const itemType = data.itemType || "SUPPLY";
+      const code = data.code?.trim().toUpperCase() || `${itemType === "ARTICLE" ? "ART" : "INS"}-${Date.now().toString().slice(-4)}`;
+
       const item = await prisma.gastroInventoryItem.create({
         data: {
           tenantId,
-          code: data.code.toUpperCase(),
-          name: data.name,
-          category: data.category || "INGREDIENT",
+          code,
+          name: data.name.trim(),
+          itemType,
+          destination: data.destination || "BOTH",
+          category: data.category || (itemType === "ARTICLE" ? "BEVERAGE" : "INGREDIENT"),
           unit: data.unit || "UN",
           currentStock: data.currentStock ?? 0,
           minStock: data.minStock ?? 10,
@@ -130,11 +141,101 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, inventoryItem: item });
     }
 
-    // 2. REPOSICIÓN O AJUSTE DE INGREDIENTE (Reactiva productos cuya receta dependía de este ingrediente)
+    // 1.1 EDITAR ÍTEM
+    if (data.action === "EDIT_INVENTORY_ITEM" && data.inventoryItemId) {
+      const existing = await prisma.gastroInventoryItem.findFirst({
+        where: { id: data.inventoryItemId, tenantId },
+      });
+      if (!existing) {
+        return NextResponse.json(
+          { error: { code: "NOT_FOUND", message: "Ítem no encontrado" } },
+          { status: 404 }
+        );
+      }
+
+      const updated = await prisma.gastroInventoryItem.update({
+        where: { id: existing.id },
+        data: {
+          name: data.name?.trim() || existing.name,
+          itemType: data.itemType || existing.itemType,
+          destination: data.destination || existing.destination,
+          unit: data.unit || existing.unit,
+          minStock: data.minStock !== undefined ? Number(data.minStock) : existing.minStock,
+          costPerUnitCents: data.costPerUnitCents !== undefined ? Number(data.costPerUnitCents) : existing.costPerUnitCents,
+        },
+      });
+
+      return NextResponse.json({ success: true, inventoryItem: updated });
+    }
+
+    // 1.2 ELIMINAR / DESACTIVAR ÍTEM
+    if (data.action === "DELETE_INVENTORY_ITEM" && data.inventoryItemId) {
+      await prisma.gastroInventoryItem.delete({
+        where: { id: data.inventoryItemId },
+      });
+      return NextResponse.json({ success: true });
+    }
+
+    // 2. REPOSICIÓN / COMPRA (O CREACIÓN AL VUELO SI NO EXISTE)
     if (
-      (data.action === "RESTOCK_INVENTORY_ITEM" || data.action === "ADJUST_INVENTORY_ITEM") &&
-      data.inventoryItemId
+      data.action === "RESTOCK_INVENTORY_ITEM" ||
+      data.action === "RESTOCK_OR_CREATE_ITEM"
     ) {
+      // Caso A: El usuario está registrando una compra de un artículo/insumo nuevo que no existía
+      if (data.createNewIfNotExists || (!data.inventoryItemId && data.name)) {
+        const itemType = data.itemType || "SUPPLY";
+        const code = data.code?.trim().toUpperCase() || `${itemType === "ARTICLE" ? "ART" : "INS"}-${Date.now().toString().slice(-4)}`;
+        const initialQty = Number(data.quantityDelta || 0);
+
+        const createdItem = await prisma.$transaction(async (tx) => {
+          const item = await tx.gastroInventoryItem.create({
+            data: {
+              tenantId,
+              code,
+              name: data.name!.trim(),
+              itemType,
+              destination: data.destination || "BOTH",
+              category: data.category || (itemType === "ARTICLE" ? "BEVERAGE" : "INGREDIENT"),
+              unit: data.unit || "UN",
+              currentStock: initialQty,
+              minStock: Number(data.minStock || 10),
+              costPerUnitCents: Number(data.costPerUnitCents || 0),
+              active: true,
+              lastRestockedAt: new Date(),
+              lastRestockedBy: session.name,
+            },
+          });
+
+          if (initialQty > 0) {
+            await tx.gastroInventoryMovement.create({
+              data: {
+                tenantId,
+                inventoryItemId: item.id,
+                movementType: "RESTOCK",
+                quantityDelta: initialQty,
+                previousStock: 0,
+                newStock: initialQty,
+                reason: data.reason || "Compra / Alta directa de nuevo ítem en inventario",
+                performedById: session.sub,
+                performedByName: session.name,
+                performedByRole: session.role,
+              },
+            });
+          }
+
+          return item;
+        });
+
+        return NextResponse.json({ success: true, inventoryItem: createdItem });
+      }
+
+      // Caso B: Reposición de un ítem existente
+      if (!data.inventoryItemId) {
+        return NextResponse.json(
+          { error: { code: "BAD_REQUEST", message: "Debes seleccionar un insumo o artículo para reponer" } },
+          { status: 400 }
+        );
+      }
       const existing = await prisma.gastroInventoryItem.findFirst({
         where: { id: data.inventoryItemId, tenantId },
         include: {
@@ -275,6 +376,17 @@ export async function POST(req: NextRequest) {
           },
         },
       });
+
+      const remaining = await prisma.gastroProductRecipeItem.count({
+        where: { productId: data.productId },
+      });
+      if (remaining === 0) {
+        await prisma.gastroProduct.update({
+          where: { id: data.productId },
+          data: { hasRecipe: false },
+        });
+      }
+
       return NextResponse.json({ success: true });
     }
 

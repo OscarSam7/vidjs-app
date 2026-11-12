@@ -263,8 +263,8 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Validar stock directo
-        if (product.trackInventory && product.stockQuantity < reqItem.quantity) {
+        // Validar stock directo (si no tiene receta, valida stock directo del producto)
+        if (product.trackInventory && !product.hasRecipe && product.stockQuantity < reqItem.quantity) {
           throw new Error(
             `Stock insuficiente para "${product.name}". Disponible: ${product.stockQuantity} ${product.unit}.`
           );
@@ -294,14 +294,15 @@ export async function POST(req: NextRequest) {
         // Descontar stock directo del producto
         if (product.trackInventory) {
           const newStock = Math.max(0, product.stockQuantity - reqItem.quantity);
-          const nextAvailability = newStock <= 0 ? "AUTO_EXHAUSTED" : product.availabilityStatus;
+          const nextAvailability =
+            !product.hasRecipe && newStock <= 0 ? "AUTO_EXHAUSTED" : product.availabilityStatus;
 
           await tx.gastroProduct.update({
             where: { id: product.id },
             data: {
               stockQuantity: newStock,
               availabilityStatus: nextAvailability,
-              ...(newStock <= 0
+              ...(!product.hasRecipe && newStock <= 0
                 ? {
                     disabledAt: new Date(),
                     disabledReason: "Agotado automáticamente por venta",

@@ -1209,8 +1209,10 @@ model GastroInventoryItem {
   venue            Venue?                    @relation(fields: [venueId], references: [id], onDelete: SetNull)
   code             String                    // INS-PAN, INS-CARNE, INS-QUESO
   name             String                    // Pan de Hamburguesa, Medallón de Carne 180g, Queso Cheddar, Panceta, Verduras
+  itemType         String                    @default("SUPPLY") // ARTICLE (Artículo terminado / reventa / combo), SUPPLY (Insumo / materia prima fraccionable)
+  destination      String                    @default("BOTH")   // BAR (Barra), KITCHEN (Cocina), BOTH (General / Ambos)
   category         String                    @default("INGREDIENT") // INGREDIENT, BEVERAGE, PACKAGING, OTHER
-  unit             String                    @default("UN") // UN, GR, KG, ML, LT
+  unit             String                    @default("UN") // UN, GR, KG, ML, LT, FETA, PORCION, BOTELLA, LATA
   currentStock     Float                     @default(0)
   minStock         Float                     @default(10)
   costPerUnitCents Int                       @default(0)
@@ -1226,6 +1228,8 @@ model GastroInventoryItem {
   @@unique([tenantId, code])
   @@index([tenantId])
   @@index([venueId])
+  @@index([itemType])
+  @@index([destination])
   @@index([active])
 }
 

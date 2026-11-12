@@ -157,27 +157,45 @@ export async function ensureGastronomySeeded(tenantId: string, venueId?: string)
     categoryMap[cat.slug] = created.id;
   }
 
-  // 5. Crear Insumos e Ingredientes de Inventario (Fase 10)
+  // 5. Crear Insumos e Ingredientes de Inventario (Fase 10: Insumos Fraccionables y Artículos de Reventa)
   const inventoryItemsData = [
-    { code: "INS-PAN-BRI", name: "Pan Brioche de Hamburguesa", category: "INGREDIENT", unit: "UN", currentStock: 80, minStock: 15, costPerUnitCents: 2500 },
-    { code: "INS-CARNE-180", name: "Medallón Carne Vacuna 180g", category: "INGREDIENT", unit: "UN", currentStock: 75, minStock: 15, costPerUnitCents: 11000 },
-    { code: "INS-QUESO-CHE", name: "Feta Queso Cheddar", category: "INGREDIENT", unit: "UN", currentStock: 150, minStock: 25, costPerUnitCents: 1800 },
-    { code: "INS-PANCETA", name: "Porción Panceta Ahumada", category: "INGREDIENT", unit: "PORCION", currentStock: 90, minStock: 15, costPerUnitCents: 3500 },
-    { code: "INS-VERDURAS", name: "Mix Lechuga, Tomate y Cebolla", category: "INGREDIENT", unit: "PORCION", currentStock: 100, minStock: 20, costPerUnitCents: 1500 },
-    { code: "INS-MASA-PIZ", name: "Prepizza Artesanal 8 Porciones", category: "INGREDIENT", unit: "UN", currentStock: 50, minStock: 10, costPerUnitCents: 7000 },
-    { code: "INS-MUZZA", name: "Queso Muzzarella (250g)", category: "INGREDIENT", unit: "PORCION", currentStock: 60, minStock: 12, costPerUnitCents: 9500 },
+    // Insumos de Cocina
+    { code: "INS-PAN-BRI", name: "Pan Brioche de Hamburguesa", itemType: "SUPPLY", destination: "KITCHEN", category: "INGREDIENT", unit: "UN", currentStock: 80, minStock: 15, costPerUnitCents: 2500 },
+    { code: "INS-CARNE-180", name: "Medallón Carne Vacuna 180g", itemType: "SUPPLY", destination: "KITCHEN", category: "INGREDIENT", unit: "UN", currentStock: 75, minStock: 15, costPerUnitCents: 11000 },
+    { code: "INS-QUESO-CHE", name: "Feta Queso Cheddar", itemType: "SUPPLY", destination: "KITCHEN", category: "INGREDIENT", unit: "FETA", currentStock: 150, minStock: 25, costPerUnitCents: 1800 },
+    { code: "INS-PANCETA", name: "Porción Panceta Ahumada", itemType: "SUPPLY", destination: "KITCHEN", category: "INGREDIENT", unit: "PORCION", currentStock: 90, minStock: 15, costPerUnitCents: 3500 },
+    { code: "INS-VERDURAS", name: "Mix Lechuga, Tomate y Cebolla", itemType: "SUPPLY", destination: "KITCHEN", category: "INGREDIENT", unit: "PORCION", currentStock: 100, minStock: 20, costPerUnitCents: 1500 },
+    { code: "INS-MASA-PIZ", name: "Prepizza Artesanal 8 Porciones", itemType: "SUPPLY", destination: "KITCHEN", category: "INGREDIENT", unit: "UN", currentStock: 50, minStock: 10, costPerUnitCents: 7000 },
+    { code: "INS-MUZZA", name: "Queso Muzzarella (250g)", itemType: "SUPPLY", destination: "KITCHEN", category: "INGREDIENT", unit: "PORCION", currentStock: 60, minStock: 12, costPerUnitCents: 9500 },
+    
+    // Insumos Fraccionables de Barra (Mililitros - ml)
+    { code: "INS-GIN-TAN", name: "Gin Tanqueray (Fraccionable Tragos)", itemType: "SUPPLY", destination: "BAR", category: "BEVERAGE", unit: "ML", currentStock: 3000, minStock: 500, costPerUnitCents: 120 },
+    { code: "INS-TONICA", name: "Agua Tónica Premium (Fraccionable)", itemType: "SUPPLY", destination: "BAR", category: "BEVERAGE", unit: "ML", currentStock: 8000, minStock: 1000, costPerUnitCents: 30 },
+    { code: "INS-FERNET-BRA", name: "Fernet Branca (Fraccionable Tragos)", itemType: "SUPPLY", destination: "BAR", category: "BEVERAGE", unit: "ML", currentStock: 3000, minStock: 500, costPerUnitCents: 110 },
+    { code: "INS-COCA-COLA", name: "Gaseosa Coca-Cola (Fraccionable)", itemType: "SUPPLY", destination: "BAR", category: "BEVERAGE", unit: "ML", currentStock: 10000, minStock: 2000, costPerUnitCents: 20 },
+    { code: "INS-VODKA-ABS", name: "Vodka Absolut (Fraccionable Tragos)", itemType: "SUPPLY", destination: "BAR", category: "BEVERAGE", unit: "ML", currentStock: 3000, minStock: 500, costPerUnitCents: 130 },
+    
+    // Artículos de Reventa / Unidades Cerradas (UN)
+    { code: "ART-SPEED-250", name: "Lata Speed Energy Drink 250ml", itemType: "ARTICLE", destination: "BAR", category: "BEVERAGE", unit: "UN", currentStock: 120, minStock: 24, costPerUnitCents: 7500 },
+    { code: "ART-CORONA-BOT", name: "Cerveza Corona 355ml Botella", itemType: "ARTICLE", destination: "BAR", category: "BEVERAGE", unit: "UN", currentStock: 96, minStock: 20, costPerUnitCents: 10000 },
+    { code: "INS-HIELO-BAL", name: "Balde de Hielo Cristalino", itemType: "SUPPLY", destination: "BOTH", category: "OTHER", unit: "UN", currentStock: 50, minStock: 10, costPerUnitCents: 3000 },
   ];
 
   const invMap: Record<string, string> = {};
   for (const inv of inventoryItemsData) {
     const item = await prisma.gastroInventoryItem.upsert({
       where: { tenantId_code: { tenantId, code: inv.code } },
-      update: {},
+      update: {
+        itemType: inv.itemType,
+        destination: inv.destination,
+      },
       create: {
         tenantId,
         venueId: targetVenueId,
         code: inv.code,
         name: inv.name,
+        itemType: inv.itemType,
+        destination: inv.destination,
         category: inv.category,
         unit: inv.unit,
         currentStock: inv.currentStock,
@@ -522,6 +540,66 @@ export async function ensureGastronomySeeded(tenantId: string, venueId?: string)
             inventoryItemId: invId,
             quantityRequired: r.qty,
           },
+        });
+      }
+    }
+  }
+
+  // Vincular Receta de Bar: Gin Tonic Tanqueray (Descuento en mililitros ml)
+  const ginTonicId = createdProducts["COC-001"];
+  if (ginTonicId) {
+    await prisma.gastroProduct.update({ where: { id: ginTonicId }, data: { hasRecipe: true } });
+    const ginRecipe = [
+      { invCode: "INS-GIN-TAN", qty: 50 },  // 50 ml de Gin
+      { invCode: "INS-TONICA", qty: 200 },  // 200 ml de Tónica
+    ];
+    for (const r of ginRecipe) {
+      const invId = invMap[r.invCode];
+      if (invId) {
+        await prisma.gastroProductRecipeItem.upsert({
+          where: { productId_inventoryItemId: { productId: ginTonicId, inventoryItemId: invId } },
+          update: { quantityRequired: r.qty },
+          create: { productId: ginTonicId, inventoryItemId: invId, quantityRequired: r.qty },
+        });
+      }
+    }
+  }
+
+  // Vincular Receta de Bar: Fernet con Coca (Descuento en mililitros ml)
+  const fernetId = createdProducts["TRA-001"];
+  if (fernetId) {
+    await prisma.gastroProduct.update({ where: { id: fernetId }, data: { hasRecipe: true } });
+    const fernetRecipe = [
+      { invCode: "INS-FERNET-BRA", qty: 60 },  // 60 ml de Fernet
+      { invCode: "INS-COCA-COLA", qty: 200 },  // 200 ml de Coca-Cola
+    ];
+    for (const r of fernetRecipe) {
+      const invId = invMap[r.invCode];
+      if (invId) {
+        await prisma.gastroProductRecipeItem.upsert({
+          where: { productId_inventoryItemId: { productId: fernetId, inventoryItemId: invId } },
+          update: { quantityRequired: r.qty },
+          create: { productId: fernetId, inventoryItemId: invId, quantityRequired: r.qty },
+        });
+      }
+    }
+  }
+
+  // Vincular Receta de Combo: Combo Amigos (Descuenta artículos en UN e insumos)
+  const comboId = createdProducts["PRO-001"];
+  if (comboId) {
+    await prisma.gastroProduct.update({ where: { id: comboId }, data: { hasRecipe: true } });
+    const comboRecipe = [
+      { invCode: "ART-CORONA-BOT", qty: 6 }, // 6 botellas de Corona
+      { invCode: "INS-HIELO-BAL", qty: 1 },  // 1 balde de hielo
+    ];
+    for (const r of comboRecipe) {
+      const invId = invMap[r.invCode];
+      if (invId) {
+        await prisma.gastroProductRecipeItem.upsert({
+          where: { productId_inventoryItemId: { productId: comboId, inventoryItemId: invId } },
+          update: { quantityRequired: r.qty },
+          create: { productId: comboId, inventoryItemId: invId, quantityRequired: r.qty },
         });
       }
     }
