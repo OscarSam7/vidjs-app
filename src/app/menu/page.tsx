@@ -13,6 +13,10 @@ import {
   RefreshCw,
   AlertCircle,
   Search,
+  ChevronDown,
+  Users,
+  X,
+  Check,
 } from "lucide-react";
 import {
   formatGuaranies,
@@ -81,6 +85,10 @@ function CustomerMenuPwaContent() {
 
   // Active Tracked Orders in this session
   const [trackedOrders, setTrackedOrders] = useState<any[]>([]);
+
+  // VIP Table Picker Modal (replaces native mobile <select>)
+  const [tablePickerOpen, setTablePickerOpen] = useState(false);
+  const [tableSectorFilter, setTableSectorFilter] = useState<string>("ALL");
 
   const loadPublicMenu = useCallback(
     async (currentQrToken?: string, currentTableParam?: string, explicitTableId?: string) => {
@@ -329,19 +337,16 @@ function CustomerMenuPwaContent() {
 
           <div className="flex items-center gap-2">
             {menuData?.tables?.length > 0 && (
-              <select
-                value={selectedTableId}
-                onChange={(e) => handleTableSelectChange(e.target.value)}
-                className="px-2.5 py-1.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-zinc-200"
+              <button
+                type="button"
+                onClick={() => setTablePickerOpen(true)}
+                className="px-3 py-2 rounded-xl bg-gradient-to-r from-zinc-900 to-zinc-800/90 hover:from-purple-950/60 hover:to-zinc-900 border border-purple-500/40 hover:border-purple-400 text-xs font-bold text-white flex items-center gap-2 shadow-md transition-all cursor-pointer active:scale-95 max-w-[180px] sm:max-w-[230px]"
+                title="Cambiar de mesa o sector"
               >
-                <option value="">{tableNumberText}</option>
-                {menuData.tables.map((t: any) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label || `Mesa ${t.number}`} — {t.sectorName}{" "}
-                    {t.tableStatus === "AVAILABLE" ? "(Disponible)" : "(Ocupada)"}
-                  </option>
-                ))}
-              </select>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="truncate">{tableNumberText}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-purple-300 shrink-0" />
+              </button>
             )}
 
             <button
@@ -874,6 +879,174 @@ function CustomerMenuPwaContent() {
           </div>
         </div>
       )}
+
+      {/* Modal Elegante VIP de Selección de Mesa y Sector */}
+      {tablePickerOpen && menuData?.tables?.length > 0 && (() => {
+        const tablesList: any[] = menuData.tables || [];
+        const uniqueSectors = Array.from(
+          new Set(tablesList.map((t: any) => t.sectorName || "Salón principal"))
+        );
+        const filteredTables = tablesList.filter(
+          (t: any) => tableSectorFilter === "ALL" || (t.sectorName || "Salón principal") === tableSectorFilter
+        );
+        const availableCount = tablesList.filter((t: any) => t.tableStatus === "AVAILABLE").length;
+
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setTablePickerOpen(false)}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl bg-gradient-to-b from-[#0F172A] via-[#0B1120] to-zinc-950 border-t sm:border border-purple-500/35 shadow-[0_-10px_50px_rgba(139,92,246,0.25)] max-h-[86dvh] flex flex-col overflow-hidden"
+            >
+              {/* Drag indicator mobile + Header */}
+              <div className="pt-2.5 sm:pt-4 px-5 pb-3.5 border-b border-white/10 bg-zinc-950/60 shrink-0 space-y-3">
+                <div className="w-10 h-1 rounded-full bg-zinc-700 mx-auto sm:hidden" />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-600/30 shrink-0">
+                      <MapPin className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-base font-black text-white truncate">
+                        Elige tu Mesa y Sector
+                      </h3>
+                      <p className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>
+                          {availableCount} mesas disponibles de {tablesList.length}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTablePickerOpen(false)}
+                    className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0"
+                    aria-label="Cerrar selector de mesas"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Filtros por Sector */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setTableSectorFilter("ALL")}
+                    className={`px-3 py-1.5 rounded-full text-[11px] font-bold shrink-0 border transition-all cursor-pointer ${
+                      tableSectorFilter === "ALL"
+                        ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-purple-400/50 shadow-md shadow-purple-600/25"
+                        : "bg-zinc-900/90 text-zinc-400 border-white/10 hover:text-white"
+                    }`}
+                  >
+                    Todos ({tablesList.length})
+                  </button>
+                  {uniqueSectors.map((sec) => (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={() => setTableSectorFilter(sec)}
+                      className={`px-3 py-1.5 rounded-full text-[11px] font-bold shrink-0 border transition-all cursor-pointer ${
+                        tableSectorFilter === sec
+                          ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-purple-400/50 shadow-md shadow-purple-600/25"
+                          : "bg-zinc-900/90 text-zinc-400 border-white/10 hover:text-white"
+                      }`}
+                    >
+                      {sec}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Grid elegante de tarjetas de mesas */}
+              <div className="p-4 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {[...filteredTables]
+                  .sort((a: any, b: any) => {
+                    const aAv = a.tableStatus === "AVAILABLE" ? 0 : 1;
+                    const bAv = b.tableStatus === "AVAILABLE" ? 0 : 1;
+                    if (aAv !== bAv) return aAv - bAv;
+                    return (a.number || 0) - (b.number || 0);
+                  })
+                  .map((t: any) => {
+                    const isSelected = selectedTableId === t.id;
+                    const isAvailable = t.tableStatus === "AVAILABLE";
+
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          handleTableSelectChange(t.id);
+                          setTablePickerOpen(false);
+                        }}
+                        className={`p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 cursor-pointer active:scale-[0.98] ${
+                          isSelected
+                            ? "bg-gradient-to-r from-purple-950/90 via-indigo-950/70 to-zinc-900 border-2 border-purple-400 shadow-lg shadow-purple-500/25"
+                            : isAvailable
+                            ? "bg-zinc-900/80 hover:bg-zinc-800/90 border-emerald-500/30 hover:border-emerald-400/60"
+                            : "bg-zinc-950/70 hover:bg-zinc-900/80 border-white/10 opacity-80"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center font-mono font-black text-xs shrink-0 border ${
+                              isSelected
+                                ? "bg-purple-600 text-white border-purple-300"
+                                : isAvailable
+                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40"
+                                : "bg-zinc-900 text-zinc-400 border-zinc-800"
+                            }`}
+                          >
+                            #{t.number}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-extrabold text-white truncate">
+                              {t.label || `Mesa ${t.number}`}
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] text-zinc-400 mt-0.5">
+                              <span className="inline-flex items-center gap-1 text-purple-300 font-medium truncate">
+                                <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                <span className="truncate">{t.sectorName || "Salón principal"}</span>
+                              </span>
+                              {t.capacity && (
+                                <span className="inline-flex items-center gap-0.5 text-zinc-500 shrink-0">
+                                  <Users className="w-2.5 h-2.5" />
+                                  {t.capacity}p
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <span
+                            className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border ${
+                              isAvailable
+                                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                                : "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                            }`}
+                          >
+                            {isAvailable ? "Disponible" : "Ocupada"}
+                          </span>
+                          {isSelected && (
+                            <span className="text-[10px] font-bold text-purple-300 inline-flex items-center gap-0.5">
+                              <Check className="w-3 h-3" /> Actual
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Floating Bottom Cart Bar on Mobile */}
       {cart.length > 0 && !cartOpen && (
