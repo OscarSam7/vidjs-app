@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { cn } from "@/lib/utils";
 
 const SECTOR_TYPES = [
@@ -479,16 +480,76 @@ function AccessPointModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                 Tipo de Sector
               </label>
-              <Select
+              <VipSelectModal
                 value={sectorType}
-                onChange={(e) => setSectorType(e.target.value)}
-                options={SECTOR_TYPES}
-                className="bg-[#0A1322] border-[#263858] text-white"
+                onChange={(val) => setSectorType(val)}
+                options={[
+                  {
+                    value: "MAIN",
+                    label: "Entrada Principal",
+                    subtitle: "Acceso general y público del evento",
+                    badge: "GENERAL",
+                    badgeTone: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+                    icon: DoorOpen,
+                  },
+                  {
+                    value: "VIP",
+                    label: "Acceso VIP / Exclusivo",
+                    subtitle: "Sector preferencial o salones VIP",
+                    badge: "VIP",
+                    badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+                    icon: Shield,
+                  },
+                  {
+                    value: "PRESS",
+                    label: "Prensa & Medios",
+                    subtitle: "Periodistas, fotógrafos y cronistas",
+                    badge: "PRENSA",
+                    badgeTone: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
+                    icon: DoorOpen,
+                  },
+                  {
+                    value: "BACKSTAGE",
+                    label: "Backstage / Escenario",
+                    subtitle: "Zona técnica, camerinos y producción",
+                    badge: "ESCENARIO",
+                    badgeTone: "bg-rose-500/20 text-rose-300 border-rose-500/40",
+                    icon: Lock,
+                  },
+                  {
+                    value: "STAFF",
+                    label: "Funcionarios / Staff",
+                    subtitle: "Personal operativo y colaboradores",
+                    badge: "STAFF",
+                    badgeTone: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                    icon: Users,
+                  },
+                  {
+                    value: "VENDOR",
+                    label: "Proveedores / Carga",
+                    subtitle: "Montaje, sonido, catering y logística",
+                    badge: "CARGA",
+                    badgeTone: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+                    icon: DoorOpen,
+                  },
+                  {
+                    value: "GENERAL",
+                    label: "General / Otro Sector",
+                    subtitle: "Puerta o molinete secundario",
+                    badge: "OTRO",
+                    badgeTone: "bg-zinc-800 text-zinc-300 border-zinc-700",
+                    icon: DoorOpen,
+                  },
+                ]}
+                title="Selecciona el Tipo de Sector"
+                subtitle="Define la categoría de acceso de esta puerta o molinete"
+                placeholder="Seleccionar tipo de sector..."
+                icon={DoorOpen}
               />
             </div>
 
