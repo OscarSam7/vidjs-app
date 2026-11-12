@@ -202,19 +202,20 @@ export async function GET(req: NextRequest) {
           include: { sector: { select: { id: true, name: true } } },
           orderBy: { number: "asc" },
         }),
-        // Pedidos recientes de esta mesa para seguimiento en vivo
+        // Pedidos recientes activos de esta mesa para seguimiento en vivo (sin historial cancelado)
         tableInfo
           ? prisma.gastroOrder.findMany({
               where: {
                 tenantId,
                 tableId: tableInfo.id,
+                status: { not: "CANCELLED" },
               },
               include: {
                 items: true,
                 payments: true,
               },
               orderBy: { receivedAt: "desc" },
-              take: 10,
+              take: 4,
             })
           : [],
       ]);

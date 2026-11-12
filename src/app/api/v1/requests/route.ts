@@ -264,12 +264,14 @@ export async function GET() {
       throw new UnauthorizedError("Sesión no encontrada");
     }
 
-    // 1. Consultar solicitudes de la mesa y canción en vivo
-    const [requests, currentPlayingEntry, queuedEntries] = await Promise.all([
+    // 1. Consultar solicitudes activas y recientes limpias de la mesa (evitar acumular historial basura cancelado)
+    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+    const [activeRequests, recentCompletedRequests, currentPlayingEntry, queuedEntries] = await Promise.all([
       prisma.songRequest.findMany({
         where: {
           tableId: guestSession.tableId,
           eventId: guestSession.eventId,
+          status: { in: ["PENDING", "ACCEPTED", "PLAYING"] },
         },
         include: {
           song: {
@@ -278,6 +280,22 @@ export async function GET() {
           queueEntry: true,
         },
         orderBy: { createdAt: "desc" },
+      }),
+      prisma.songRequest.findMany({
+        where: {
+          tableId: guestSession.tableId,
+          eventId: guestSession.eventId,
+          status: "PLAYED",
+          createdAt: { gte: twelveHoursAgo },
+        },
+        include: {
+          song: {
+            include: { artist: true },
+          },
+          queueEntry: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 2,
       }),
       prisma.queueEntry.findFirst({
         where: {
@@ -302,6 +320,8 @@ export async function GET() {
         orderBy: { orderIndex: "asc" },
       }),
     ]);
+
+    const requests = [...activeRequests, ...recentCompletedRequests];
 
     const policy = parseQueuePolicy(guestSession.event.settings);
 

@@ -1,13 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard,
   Building2,
   CalendarCheck2,
-  QrCode,
   ListMusic,
   CreditCard,
   ShieldCheck,
@@ -17,10 +16,8 @@ import {
   X,
   Headphones,
   Mic,
-  ChevronLeft,
+  ChevronDown,
   ChevronRight,
-  PanelLeftClose,
-  PanelLeftOpen,
   Users,
   Sparkles,
   BarChart3,
@@ -47,15 +44,23 @@ import {
   History,
   FileBarChart2,
   SlidersHorizontal,
+  Lock,
 } from "lucide-react";
-import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
+import {
+  PlanCode,
+  PLAN_LABELS,
+  isPlanAtLeast,
+  normalizePlanCode,
+} from "@/lib/billing/plan-modules";
 
 interface SidebarProps {
   currentPath?: string;
   role?: string;
   tenantName?: string;
   tenantLogo?: string | null;
+  planCode?: string;
+  planName?: string;
   isMobileOpen?: boolean;
   onClose?: () => void;
   isCollapsed?: boolean;
@@ -69,12 +74,16 @@ interface MenuItem {
   active?: boolean;
   badge?: string;
   badgeVariant?: "primary" | "dj" | "karaoke" | "neutral" | "success";
-  tag?: string;
-  external?: boolean;
+  requiredPlan: PlanCode;
 }
 
-interface NavCategory {
+interface NavGroup {
+  id: string;
   title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  requiredPlan: PlanCode;
+  href?: string; // Si es enlace directo sin submenú (ej. Dashboard)
+  active?: boolean;
   items: MenuItem[];
 }
 
@@ -82,35 +91,39 @@ export function Sidebar({
   role = "OWNER",
   tenantName = "Retro Bar",
   tenantLogo = null,
+  planCode = "PRO",
+  planName = "Plan Pro",
   isMobileOpen = false,
   onClose,
   isCollapsed = false,
-  onToggleCollapse,
 }: SidebarProps) {
   const pathname = usePathname();
+  const activePlan = normalizePlanCode(planCode);
 
-  const categories: NavCategory[] = [
+  const groups: NavGroup[] = [
     {
-      title: "Principal",
-      items: [
-        {
-          name: "Dashboard",
-          icon: LayoutDashboard,
-          href: "/dashboard",
-          active: pathname === "/dashboard",
-        },
-      ],
+      id: "dashboard",
+      title: "Dashboard",
+      icon: LayoutDashboard,
+      requiredPlan: "PERSONAL",
+      href: "/dashboard",
+      active: pathname === "/dashboard",
+      items: [],
     },
     {
+      id: "gastronomy",
       title: "Gestión Gastronómica",
+      icon: UtensilsCrossed,
+      requiredPlan: "STARTER",
       items: [
         {
-          name: "Dashboard gastronómico",
+          name: "Dashboard Gastro",
           icon: UtensilsCrossed,
           href: "/dashboard/gastronomy",
           active: pathname === "/dashboard/gastronomy",
           badge: "POS",
           badgeVariant: "primary",
+          requiredPlan: "STARTER",
         },
         {
           name: "Pedidos",
@@ -119,296 +132,369 @@ export function Sidebar({
           active: pathname.startsWith("/dashboard/gastronomy/orders"),
           badge: "Live",
           badgeVariant: "success",
+          requiredPlan: "STARTER",
         },
         {
-          name: "Menú digital",
+          name: "Menú Digital",
           icon: BookOpen,
           href: "/dashboard/gastronomy/menu",
           active: pathname.startsWith("/dashboard/gastronomy/menu"),
+          requiredPlan: "STARTER",
         },
         {
           name: "Categorías",
           icon: Layers,
           href: "/dashboard/gastronomy/categories",
           active: pathname.startsWith("/dashboard/gastronomy/categories"),
+          requiredPlan: "STARTER",
         },
         {
           name: "Productos",
           icon: Package,
           href: "/dashboard/gastronomy/products",
           active: pathname.startsWith("/dashboard/gastronomy/products"),
+          requiredPlan: "STARTER",
         },
         {
-          name: "Mesas, sectores y QR",
+          name: "Mesas, Sectores y QR",
           icon: LayoutGrid,
           href: "/dashboard/gastronomy/tables",
           active:
             pathname.startsWith("/dashboard/gastronomy/tables") ||
             pathname.startsWith("/dashboard/tables"),
-          tag: "QR",
+          requiredPlan: "STARTER",
         },
         {
-          name: "Barra",
+          name: "Barra (KDS)",
           icon: Wine,
           href: "/dashboard/gastronomy/bar",
           active: pathname.startsWith("/dashboard/gastronomy/bar"),
           badge: "KDS",
           badgeVariant: "karaoke",
+          requiredPlan: "PRO",
         },
         {
-          name: "Cocina",
+          name: "Cocina (KDS)",
           icon: ChefHat,
           href: "/dashboard/gastronomy/kitchen",
           active: pathname.startsWith("/dashboard/gastronomy/kitchen"),
           badge: "KDS",
           badgeVariant: "dj",
+          requiredPlan: "PRO",
         },
         {
           name: "Mozos",
           icon: ConciergeBell,
           href: "/dashboard/gastronomy/waiters",
           active: pathname.startsWith("/dashboard/gastronomy/waiters"),
-          tag: "APP",
+          requiredPlan: "PRO",
         },
         {
-          name: "Caja gastronómica",
+          name: "Caja Gastronómica",
           icon: Receipt,
           href: "/dashboard/gastronomy/cashier",
           active: pathname.startsWith("/dashboard/gastronomy/cashier"),
+          requiredPlan: "STARTER",
         },
         {
-          name: "Pagos digitales",
+          name: "Pagos Digitales",
           icon: SmartphoneNfc,
           href: "/dashboard/gastronomy/payments",
           active: pathname.startsWith("/dashboard/gastronomy/payments"),
-          tag: "QR/PIX",
+          requiredPlan: "PRO",
         },
         {
-          name: "Control de inventario",
+          name: "Inventario",
           icon: Boxes,
           href: "/dashboard/gastronomy/inventory",
           active: pathname.startsWith("/dashboard/gastronomy/inventory"),
+          requiredPlan: "PRO",
         },
         {
-          name: "Ventas pendientes de facturación",
+          name: "Ventas por Facturar",
           icon: FileSpreadsheet,
           href: "/dashboard/gastronomy/invoicing",
           active: pathname.startsWith("/dashboard/gastronomy/invoicing"),
           badge: "ERP",
           badgeVariant: "primary",
+          requiredPlan: "PRO",
         },
         {
-          name: "Historial de pedidos",
+          name: "Historial",
           icon: History,
           href: "/dashboard/gastronomy/history",
           active: pathname.startsWith("/dashboard/gastronomy/history"),
+          requiredPlan: "STARTER",
         },
         {
-          name: "Reportes",
+          name: "Reportes Gastro",
           icon: FileBarChart2,
           href: "/dashboard/gastronomy/reports",
           active: pathname.startsWith("/dashboard/gastronomy/reports"),
+          requiredPlan: "PRO",
         },
         {
-          name: "Configuración",
+          name: "Configuración Gastro",
           icon: SlidersHorizontal,
           href: "/dashboard/gastronomy/settings",
           active: pathname.startsWith("/dashboard/gastronomy/settings"),
+          requiredPlan: "STARTER",
         },
       ],
     },
     {
-      title: "Acreditaciones & Eventos",
+      id: "accreditation",
+      title: "Acreditación & Eventos",
+      icon: IdCard,
+      requiredPlan: "ENTERPRISE",
       items: [
         {
           name: "Dashboard Acreditación",
           icon: LayoutDashboard,
           href: "/dashboard/accreditation",
           active: pathname === "/dashboard/accreditation",
-          badge: "Live",
-          badgeVariant: "success",
+          requiredPlan: "ENTERPRISE",
         },
         {
           name: "Gestión de Eventos",
           icon: CalendarCheck2,
           href: "/dashboard/accreditation/events",
           active: pathname.startsWith("/dashboard/accreditation/events"),
+          requiredPlan: "ENTERPRISE",
         },
         {
-          name: "Participantes & Invitados",
+          name: "Participantes",
           icon: UserCheck,
           href: "/dashboard/accreditation/participants",
           active: pathname.startsWith("/dashboard/accreditation/participants"),
+          requiredPlan: "ENTERPRISE",
         },
         {
-          name: "Empresas & Delegaciones",
+          name: "Delegaciones",
           icon: Building2,
           href: "/dashboard/accreditation/organizations",
           active: pathname.startsWith("/dashboard/accreditation/organizations"),
+          requiredPlan: "ENTERPRISE",
         },
         {
           name: "Tipos de Acreditación",
           icon: Tags,
           href: "/dashboard/accreditation/types",
           active: pathname.startsWith("/dashboard/accreditation/types"),
+          requiredPlan: "ENTERPRISE",
         },
         {
-          name: "Diseñador & Credenciales",
+          name: "Credenciales",
           icon: IdCard,
           href: "/dashboard/accreditation/badges",
           active: pathname.startsWith("/dashboard/accreditation/badges"),
+          requiredPlan: "ENTERPRISE",
         },
         {
-          name: "Escáner & Control QR",
+          name: "Escáner QR",
           icon: ScanLine,
           href: "/dashboard/accreditation/scanner",
           active: pathname.startsWith("/dashboard/accreditation/scanner"),
           badge: "Scan",
           badgeVariant: "primary",
+          requiredPlan: "ENTERPRISE",
         },
         {
           name: "Puertas & Sectores",
           icon: DoorOpen,
           href: "/dashboard/accreditation/access-points",
           active: pathname.startsWith("/dashboard/accreditation/access-points"),
+          requiredPlan: "ENTERPRISE",
         },
         {
-          name: "Reportes & Auditoría",
+          name: "Reportes Acceso",
           icon: BarChart3,
           href: "/dashboard/accreditation/reports",
           active: pathname.startsWith("/dashboard/accreditation/reports"),
+          requiredPlan: "ENTERPRISE",
         },
       ],
     },
     {
+      id: "entertainment",
       title: "Entretenimiento",
+      icon: Headphones,
+      requiredPlan: "PERSONAL",
       items: [
         {
-          name: "Cabina DJ (VirtualDJ)",
+          name: "Cabina DJ",
           icon: Headphones,
           href: "/dashboard/dj",
           active: pathname === "/dashboard/dj",
           badge: "DJ",
           badgeVariant: "dj",
+          requiredPlan: "PERSONAL",
         },
         {
-          name: "Cabina Karaoke (KJ)",
+          name: "Cabina Karaoke",
           icon: Mic,
           href: "/dashboard/karaoke",
           active: pathname === "/dashboard/karaoke",
           badge: "KJ",
           badgeVariant: "karaoke",
+          requiredPlan: "PERSONAL",
         },
         {
           name: "Biblioteca Musical",
           icon: ListMusic,
           href: "/dashboard/library",
           active: pathname === "/dashboard/library",
-          tag: "HQ",
+          requiredPlan: "PERSONAL",
         },
         {
-          name: "Pantalla TV Proyección",
+          name: "Pantalla TV",
           icon: Tv,
           href: "/display/DEMO",
           active: pathname.startsWith("/display"),
-          tag: "EN VIVO",
+          badge: "TV",
+          badgeVariant: "success",
+          requiredPlan: "PERSONAL",
         },
       ],
     },
     {
+      id: "venue_management",
       title: "Gestión del Local",
+      icon: Building2,
+      requiredPlan: "PERSONAL",
       items: [
         {
           name: "Locales & Sedes",
           icon: Building2,
           href: "/dashboard#venues",
-          active: pathname === "/dashboard" && typeof window !== "undefined" && window.location.hash === "#venues",
+          active: false,
+          requiredPlan: "STARTER",
         },
         {
           name: "Eventos & Noches",
           icon: CalendarCheck2,
           href: "/dashboard/events",
           active: pathname === "/dashboard/events",
+          requiredPlan: "PERSONAL",
         },
         {
-          name: "Reservas & Camarotes",
+          name: "Reservas VIP",
           icon: Sparkles,
           href: "/dashboard/reservations",
           active: pathname.startsWith("/dashboard/reservations"),
           badge: "VIP",
           badgeVariant: "primary",
+          requiredPlan: "PRO",
         },
         {
           name: "Equipo & Roles",
           icon: Users,
           href: "/dashboard/team",
           active: pathname === "/dashboard/team",
+          requiredPlan: "STARTER",
         },
       ],
     },
     {
+      id: "analytics",
       title: "Análisis",
+      icon: BarChart3,
+      requiredPlan: "PRO",
       items: [
         {
           name: "Analítica & Reportes",
           icon: BarChart3,
           href: "/dashboard?tab=analytics",
-          active: pathname === "/dashboard" && typeof window !== "undefined" && window.location.search.includes("tab=analytics"),
+          active: false,
+          requiredPlan: "PRO",
         },
         {
-          name: "Concursos & Votaciones",
+          name: "Concursos & Votos",
           icon: Trophy,
           href: "/dashboard/contest",
           active: pathname === "/dashboard/contest",
+          requiredPlan: "PRO",
         },
         {
-          name: "Auditoría & Registros",
+          name: "Auditoría & Logs",
           icon: ShieldCheck,
           href: "/dashboard/audit",
           active: pathname === "/dashboard/audit",
+          requiredPlan: "ENTERPRISE",
         },
       ],
     },
     {
+      id: "customization",
       title: "Personalización",
+      icon: Palette,
+      requiredPlan: "PERSONAL",
       items: [
         {
           name: "Marca & White-Label",
           icon: Palette,
           href: "/dashboard/branding",
           active: pathname === "/dashboard/branding",
-          tag: "Pro",
+          requiredPlan: "PRO",
         },
         {
           name: "Configuración",
           icon: Settings,
           href: "/dashboard/settings",
           active: pathname === "/dashboard/settings",
+          requiredPlan: "PERSONAL",
         },
       ],
     },
     {
+      id: "account",
       title: "Cuenta",
+      icon: CreditCard,
+      requiredPlan: "PERSONAL",
       items: [
         {
           name: "Suscripción & Plan",
           icon: CreditCard,
           href: "/dashboard/subscription",
           active: pathname === "/dashboard/subscription",
+          requiredPlan: "PERSONAL",
         },
         {
           name: "Showcase Comercial",
           icon: Sparkles,
           href: "/showcase",
           active: pathname === "/showcase",
-          tag: "VENTAS",
+          requiredPlan: "PERSONAL",
         },
       ],
     },
   ];
 
-  const handleItemClick = (e: React.MouseEvent, item: MenuItem, isMobile = false) => {
+  // Todos los grupos ocultos/colapsados por defecto; solo se abre automáticamente el grupo activo
+  const [openGroupId, setOpenGroupId] = useState<string | null>(() => {
+    const activeGrp = groups.find((g) => g.items.some((it) => it.active));
+    return activeGrp ? activeGrp.id : null;
+  });
+
+  useEffect(() => {
+    const activeGrp = groups.find((g) => g.items.some((it) => it.active));
+    if (activeGrp) {
+      setOpenGroupId(activeGrp.id);
+    }
+  }, [pathname]);
+
+  const toggleGroup = (groupId: string) => {
+    setOpenGroupId((prev) => (prev === groupId ? null : groupId));
+  };
+
+  const handleItemClick = (
+    e: React.MouseEvent,
+    item: MenuItem,
+    isLocked: boolean,
+    isMobile = false
+  ) => {
     if (isMobile && onClose) onClose();
+    if (isLocked) return;
     if (pathname === "/dashboard/dj" && item.href === "/dashboard/library") {
       e.preventDefault();
       if (typeof window !== "undefined") {
@@ -447,7 +533,7 @@ export function Sidebar({
             )
           ) : (
             <>
-              <div className="flex items-center gap-2.5 overflow-hidden">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
                 {tenantLogo ? (
                   <div className="w-9 h-9 rounded-xl bg-purple-950/80 border border-purple-600/50 p-1 flex items-center justify-center overflow-hidden shadow-sm shrink-0">
                     <img src={tenantLogo} alt={tenantName} className="max-h-full max-w-full object-contain" />
@@ -457,12 +543,12 @@ export function Sidebar({
                     <Disc3 className="w-4 h-4 text-purple-400" />
                   </div>
                 )}
-                <div className="truncate">
+                <div className="min-w-0 flex-1">
                   <span className="font-bold text-sm tracking-wide text-[#F8FAFC] block leading-tight truncate">
-                    {tenantName || "VIDJEIS PRO"}
+                    {tenantName || "VIDJSPRO"}
                   </span>
                   <span className="text-[10px] text-purple-400 font-medium block truncate">
-                    {tenantLogo ? "White-Label Pro" : "SaaS Entertainment"}
+                    {planName}
                   </span>
                 </div>
               </div>
@@ -471,7 +557,7 @@ export function Sidebar({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800 transition-colors shrink-0"
                   aria-label="Cerrar menú"
                 >
                   <X className="w-5 h-5" />
@@ -481,146 +567,221 @@ export function Sidebar({
           )}
         </div>
 
-        {/* Tenant Isolated Indicator */}
+        {/* Active Tenant & Plan Card */}
         {collapsed ? (
-          <div
+          <Link
+            href="/dashboard/subscription"
             className="mx-auto my-3 w-10 h-10 rounded-xl bg-navy-850 border border-navy-700 shrink-0 flex items-center justify-center relative group overflow-hidden"
-            title={`Establecimiento: ${tenantName}`}
+            title={`${tenantName} • Plan ${PLAN_LABELS[activePlan]}`}
           >
-            {tenantLogo ? (
-              <img src={tenantLogo} alt={tenantName} className="w-6 h-6 object-contain" />
-            ) : (
-              <Building2 className="w-4 h-4 text-slate-400 group-hover:text-purple-300 transition-colors" />
-            )}
+            <Building2 className="w-4 h-4 text-slate-300 group-hover:text-purple-300 transition-colors" />
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse absolute top-1.5 right-1.5" />
-          </div>
+          </Link>
         ) : (
-          <div className="p-3 mx-3 my-2.5 rounded-xl bg-[#111F38] border border-[#263858] shrink-0">
-            <div className="flex items-center justify-between text-[10px] uppercase font-bold text-[#94A3B8] tracking-wider mb-1">
-              <span>Local Activo</span>
-              <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-mono">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Aislado
+          <Link
+            href="/dashboard/subscription"
+            onClick={() => isMobile && onClose?.()}
+            className="p-3 mx-3 my-2.5 rounded-xl bg-[#111F38] hover:bg-[#162747] border border-[#263858] shrink-0 transition-colors block"
+          >
+            <div className="flex items-center justify-between gap-2 text-[10px] uppercase font-bold text-[#94A3B8] tracking-wider mb-1">
+              <span className="truncate">Plan Activo</span>
+              <span className="px-1.5 py-0.5 rounded bg-purple-600/25 text-purple-300 border border-purple-500/40 font-mono text-[9px] shrink-0">
+                {PLAN_LABELS[activePlan]}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              {tenantLogo && (
-                <div className="w-5 h-5 rounded-md bg-zinc-900 border border-zinc-700 p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
-                  <img src={tenantLogo} alt={tenantName} className="max-h-full max-w-full object-contain" />
-                </div>
-              )}
-              <div className="text-xs sm:text-sm font-semibold text-[#F8FAFC] truncate">
-                {tenantName}
-              </div>
+            <div className="text-xs font-semibold text-[#F8FAFC] truncate">
+              {tenantName}
             </div>
-          </div>
+          </Link>
         )}
 
-        {/* Categorized Navigation */}
-        <nav className={cn("flex-1 overflow-y-auto space-y-4 py-2", collapsed ? "px-1.5" : "px-3")}>
-          {categories.map((category) => (
-            <div key={category.title} className="space-y-1">
-              {!collapsed ? (
-                <div className="px-2 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 select-none">
-                  {category.title}
-                </div>
-              ) : (
-                <div className="my-2 border-t border-navy-700/60" />
-              )}
+        {/* 8 Secciones Principales Colapsables con Control por Plan */}
+        <nav className={cn("flex-1 overflow-y-auto space-y-1.5 py-2", collapsed ? "px-1.5" : "px-3")}>
+          {groups.map((group) => {
+            const GroupIcon = group.icon;
+            const groupUnlocked = isPlanAtLeast(activePlan, group.requiredPlan);
+            const hasActiveChild = group.items.some((it) => it.active);
+            const isExpanded = openGroupId === group.id;
 
-              {category.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = item.active;
+            // Modo Icono Colapsado en Desktop
+            if (collapsed) {
+              const targetHref = group.href
+                ? group.href
+                : groupUnlocked
+                ? group.items[0]?.href || "/dashboard"
+                : `/dashboard/subscription?required=${group.requiredPlan}`;
 
-                if (collapsed) {
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={(e) => handleItemClick(e, item, isMobile)}
-                      title={item.name}
+              return (
+                <Link
+                  key={group.id}
+                  href={targetHref}
+                  title={`${group.title}${!groupUnlocked ? ` (Plan ${PLAN_LABELS[group.requiredPlan]})` : ""}`}
+                  className={cn(
+                    "w-10 h-10 mx-auto flex items-center justify-center rounded-xl transition-all relative group",
+                    group.active || hasActiveChild
+                      ? "bg-purple-950/60 text-purple-200 border border-purple-600/50 shadow-sm"
+                      : groupUnlocked
+                      ? "text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-navy-800 border border-transparent hover:border-navy-700"
+                      : "text-slate-600 hover:text-amber-300 border border-transparent opacity-70"
+                  )}
+                >
+                  <GroupIcon className="w-4 h-4 shrink-0" />
+                  {!groupUnlocked && (
+                    <Lock className="w-2.5 h-2.5 text-amber-400 absolute bottom-1 right-1" />
+                  )}
+                </Link>
+              );
+            }
+
+            // Enlace Directo (Dashboard)
+            if (group.href) {
+              return (
+                <Link
+                  key={group.id}
+                  href={group.href}
+                  onClick={() => isMobile && onClose?.()}
+                  className={cn(
+                    "w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs transition-all relative",
+                    group.active
+                      ? "bg-purple-600/20 text-white border border-purple-500/40 font-bold shadow-sm"
+                      : "text-slate-200 hover:text-white hover:bg-[#162747] border border-transparent font-semibold"
+                  )}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <GroupIcon
                       className={cn(
-                        "w-10 h-10 mx-auto flex items-center justify-center rounded-xl transition-all relative group",
-                        isActive
-                          ? "bg-purple-950/60 text-purple-200 border border-purple-600/50 shadow-sm"
-                          : "text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-navy-800 border border-transparent hover:border-navy-700"
+                        "w-4 h-4 shrink-0",
+                        group.active ? "text-purple-400" : "text-slate-400"
                       )}
-                    >
-                      <Icon
-                        className={cn(
-                          "w-4 h-4 shrink-0 transition-transform",
-                          isActive
-                            ? "text-purple-300"
-                            : "text-slate-400 group-hover:text-slate-200 group-hover:scale-110"
-                        )}
-                      />
-                      {item.badge && (
-                        <span className="absolute -top-1 -right-1 text-[8px] font-bold px-1 rounded-full bg-purple-600 text-white border border-purple-400">
-                          {item.badge}
-                        </span>
+                    />
+                    <span className="truncate">{group.title}</span>
+                  </div>
+                </Link>
+              );
+            }
+
+            // Grupo Acordeón Desplegable
+            return (
+              <div
+                key={group.id}
+                className={cn(
+                  "rounded-xl border transition-colors",
+                  isExpanded || hasActiveChild
+                    ? "bg-[#111F38]/70 border-[#263858]"
+                    : "bg-transparent border-transparent hover:bg-[#111F38]/40"
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.id)}
+                  className={cn(
+                    "w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs transition-all cursor-pointer text-left",
+                    hasActiveChild
+                      ? "text-white font-bold"
+                      : groupUnlocked
+                      ? "text-slate-200 hover:text-white font-semibold"
+                      : "text-slate-400 hover:text-slate-200 font-medium"
+                  )}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <GroupIcon
+                      className={cn(
+                        "w-4 h-4 shrink-0",
+                        hasActiveChild
+                          ? "text-purple-400"
+                          : groupUnlocked
+                          ? "text-slate-400"
+                          : "text-slate-500"
                       )}
-                    </Link>
-                  );
-                }
+                    />
+                    <span className="truncate leading-snug">{group.title}</span>
+                  </div>
 
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={(e) => handleItemClick(e, item, isMobile)}
-                    className={cn(
-                      "flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all relative group",
-                      isActive
-                        ? "bg-purple-950/50 text-[#F8FAFC] border border-purple-600/40 font-semibold shadow-sm"
-                        : "text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-navy-800/70 border border-transparent font-medium"
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {!groupUnlocked && (
+                      <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold uppercase">
+                        <Lock className="w-2.5 h-2.5" />
+                        <span>{PLAN_LABELS[group.requiredPlan]}</span>
+                      </span>
                     )}
-                  >
-                    {isActive && (
-                      <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-purple-500 rounded-r-full" />
+                    {isExpanded ? (
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                     )}
+                  </div>
+                </button>
 
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <Icon
-                        className={cn(
-                          "w-4 h-4 shrink-0",
-                          isActive
-                            ? "text-purple-400"
-                            : "text-[#94A3B8] group-hover:text-slate-200"
-                        )}
-                      />
-                      <span className="truncate whitespace-nowrap">{item.name}</span>
-                    </div>
+                {isExpanded && (
+                  <div className="px-2 pb-2 pt-0.5 space-y-1">
+                    {group.items.map((item) => {
+                      const ItemIcon = item.icon;
+                      const isLocked = !isPlanAtLeast(activePlan, item.requiredPlan);
+                      const targetHref = isLocked
+                        ? `/dashboard/subscription?required=${item.requiredPlan}`
+                        : item.href;
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {item.badge && (
-                        <span
+                      return (
+                        <Link
+                          key={item.name}
+                          href={targetHref}
+                          onClick={(e) => handleItemClick(e, item, isLocked, isMobile)}
                           className={cn(
-                            "text-[10px] px-2 py-0.5 rounded-md font-mono font-bold whitespace-nowrap border",
-                            item.badgeVariant === "dj"
-                              ? "bg-amber-950/70 text-amber-300 border-amber-800/60"
-                              : item.badgeVariant === "karaoke"
-                              ? "bg-cyan-950/70 text-cyan-300 border-cyan-800/60"
-                              : item.badgeVariant === "success"
-                              ? "bg-emerald-950/70 text-emerald-300 border-emerald-800/60"
-                              : item.badgeVariant === "primary"
-                              ? "bg-purple-950/70 text-purple-300 border-purple-800/60"
-                              : "bg-navy-800 text-slate-300 border-navy-700"
+                            "flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs transition-all relative",
+                            item.active && !isLocked
+                              ? "bg-purple-600/25 text-white border border-purple-500/40 font-semibold"
+                              : isLocked
+                              ? "text-slate-500 hover:text-amber-200 hover:bg-amber-950/20 border border-transparent"
+                              : "text-slate-300 hover:text-white hover:bg-[#162747] border border-transparent"
                           )}
                         >
-                          {item.badge}
-                        </span>
-                      )}
-                      {item.tag && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-800/60 font-mono font-semibold whitespace-nowrap">
-                          {item.tag}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <ItemIcon
+                              className={cn(
+                                "w-3.5 h-3.5 shrink-0",
+                                item.active && !isLocked
+                                  ? "text-purple-300"
+                                  : isLocked
+                                  ? "text-slate-600"
+                                  : "text-slate-400"
+                              )}
+                            />
+                            <span className="truncate leading-snug">{item.name}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            {isLocked ? (
+                              <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold">
+                                <Lock className="w-2.5 h-2.5" />
+                                <span>{PLAN_LABELS[item.requiredPlan]}</span>
+                              </span>
+                            ) : item.badge ? (
+                              <span
+                                className={cn(
+                                  "text-[9px] px-1.5 py-0.5 rounded font-mono font-bold whitespace-nowrap border",
+                                  item.badgeVariant === "dj"
+                                    ? "bg-amber-950/70 text-amber-300 border-amber-800/60"
+                                    : item.badgeVariant === "karaoke"
+                                    ? "bg-cyan-950/70 text-cyan-300 border-cyan-800/60"
+                                    : item.badgeVariant === "success"
+                                    ? "bg-emerald-950/70 text-emerald-300 border-emerald-800/60"
+                                    : item.badgeVariant === "primary"
+                                    ? "bg-purple-950/70 text-purple-300 border-purple-800/60"
+                                    : "bg-navy-800 text-slate-300 border-navy-700"
+                                )}
+                              >
+                                {item.badge}
+                              </span>
+                            ) : null}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         {/* Footer Session Info */}
@@ -630,11 +791,11 @@ export function Sidebar({
               <span className="text-purple-400 font-bold">v1.0</span>
             </div>
           ) : (
-            <div className="flex items-center justify-between text-[11px] text-[#94A3B8] px-1 py-1">
-              <span>
+            <div className="flex items-center justify-between gap-2 text-[11px] text-[#94A3B8] px-1 py-1">
+              <span className="truncate">
                 Rol: <strong className="text-[#F8FAFC] font-semibold">{role}</strong>
               </span>
-              <span className="text-[#94A3B8] font-mono">v1.0 SaaS</span>
+              <span className="text-[#94A3B8] font-mono shrink-0">v1.0 SaaS</span>
             </div>
           )}
         </div>

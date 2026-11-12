@@ -63,15 +63,28 @@ export default async function DashboardLayout({
     }
   }
 
-  const venues = tenantId
-    ? await prisma.venue
-        .findMany({
-          where: { tenantId, active: true },
-          select: { id: true, name: true, active: true },
-          orderBy: { name: "asc" },
-        })
-        .catch(() => [])
-    : [];
+  const [venues, subscription] = await Promise.all([
+    tenantId
+      ? prisma.venue
+          .findMany({
+            where: { tenantId, active: true },
+            select: { id: true, name: true, active: true },
+            orderBy: { name: "asc" },
+          })
+          .catch(() => [])
+      : Promise.resolve([]),
+    tenantId
+      ? prisma.subscription
+          .findUnique({
+            where: { tenantId },
+            include: { plan: { select: { code: true, name: true } } },
+          })
+          .catch(() => null)
+      : Promise.resolve(null),
+  ]);
+
+  const planCode = subscription?.plan?.code || "PRO";
+  const planName = subscription?.plan?.name || "Plan Pro";
 
   return (
     <DashboardShell
@@ -83,6 +96,8 @@ export default async function DashboardLayout({
       tenantName={tenantName}
       tenantLogo={tenantLogo}
       venues={venues}
+      planCode={planCode}
+      planName={planName}
     >
       {children}
     </DashboardShell>

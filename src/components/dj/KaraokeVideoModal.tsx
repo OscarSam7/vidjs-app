@@ -85,8 +85,8 @@ export default function KaraokeVideoModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-3xl rounded-3xl bg-zinc-950 border-2 border-cyan-500/40 shadow-2xl shadow-cyan-950/50 flex flex-col max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 pt-3 sm:pt-4 bg-black/80 backdrop-blur-md overflow-y-auto animate-fadeIn">
+      <div className="relative w-full max-w-3xl rounded-3xl bg-zinc-950 border-2 border-cyan-500/40 shadow-2xl shadow-cyan-950/50 flex flex-col max-h-[94dvh] sm:max-h-[90vh] overflow-hidden">
         {/* Header del Modal */}
         <div className="p-4 sm:p-5 border-b border-zinc-800/80 flex items-center justify-between bg-gradient-to-r from-zinc-950 via-cyan-950/20 to-zinc-950">
           <div className="flex items-center gap-2.5">
@@ -151,8 +151,9 @@ export default function KaraokeVideoModal({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={(e) => e.currentTarget.scrollIntoView({ behavior: "smooth", block: "start" })}
                 placeholder="Buscar canción, artista o versión (ej: Bohemian Rhapsody tono mujer)..."
-                className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 focus:border-cyan-500 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none"
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 focus:border-cyan-500 text-base sm:text-sm text-white placeholder-zinc-500 outline-none"
               />
             </div>
             <button

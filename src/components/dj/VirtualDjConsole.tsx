@@ -4576,8 +4576,8 @@ export default function VirtualDjConsole({
         {/* ========================================== */}
         <div id="deck-a" className="p-3 sm:p-4 xl:p-5 rounded-2xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-purple-950/30 border-2 border-purple-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative w-full max-w-full overflow-hidden scroll-mt-24 transition-all duration-300">
           {/* Header de Deck A */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
               <span className="px-2.5 py-1 rounded-md bg-purple-600 text-white text-[10px] font-black tracking-widest uppercase shadow-md shadow-purple-600/30">
                 DECK A &bull; CANAL 1
               </span>
@@ -4665,168 +4665,203 @@ export default function VirtualDjConsole({
                 </button>
 
                 {isSelectorOpenA && (
-                  <div className="absolute right-0 top-full mt-1.5 w-80 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-2.5 z-50 space-y-2 max-h-80 overflow-y-auto">
-                    {/* Botón rápido para limpiar bandeja */}
-                    {trackA && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleClearDeckA();
-                          setIsSelectorOpenA(false);
-                        }}
-                        className="w-full text-left p-1.5 rounded-lg bg-red-950/30 hover:bg-red-900/50 border border-red-900/50 text-red-300 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                        <span>⏹ Borrar pista actual de la bandeja</span>
-                      </button>
-                    )}
-
-                    {/* Botón para explorar en Biblioteca Musical */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsSelectorOpenA(false);
-                        setLibraryTargetDeckHint("A");
-                        setIsLibraryOpen(true);
-                      }}
-                      className="w-full text-left p-2 rounded-lg bg-amber-950/40 hover:bg-amber-900/60 border border-amber-800/60 text-amber-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
+                  <div
+                    role="dialog"
+                    aria-modal="true"
+                    className="fixed inset-0 z-[70] bg-black/85 backdrop-blur-md flex items-start justify-center p-2.5 sm:p-6 pt-3 sm:pt-12 overflow-y-auto"
+                    onClick={() => setIsSelectorOpenA(false)}
+                  >
+                    <div
+                      className="w-full max-w-md bg-zinc-950 border-2 border-purple-500/50 rounded-2xl shadow-2xl p-3 sm:p-4 space-y-3"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <ListMusic className="w-4 h-4 text-amber-400 shrink-0" />
-                      <div className="flex flex-col">
-                        <span>📚 Explorar en Biblioteca Musical</span>
-                        <span className="text-[10px] text-amber-400 font-normal">Playlists, géneros, karaoke y pistas guardadas</span>
-                      </div>
-                    </button>
-
-                    {/* Botón para subir archivo MP3/WAV/MP4 local */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        fileInputRefA.current?.click();
-                        setIsSelectorOpenA(false);
-                      }}
-                      className="w-full text-left p-2 rounded-lg bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/60 text-purple-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
-                    >
-                      <Upload className="w-4 h-4 text-purple-400 shrink-0" />
-                      <div className="flex flex-col">
-                        <span>📁 Subir MP4 Video / MP3 Local</span>
-                        <span className="text-[10px] text-purple-400 font-normal">Soporta Video MP4 y Audio MP3/WAV &bull; 0 Latencia</span>
-                      </div>
-                    </button>
-
-                    {/* Búsqueda directa o pegado de YouTube */}
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        handleSearchYtA(searchQueryA);
-                      }}
-                      className="flex items-center gap-1.5"
-                    >
-                      <input
-                        type="text"
-                        placeholder="Buscar en YouTube o pegar link..."
-                        value={searchQueryA}
-                        onChange={(e) => setSearchQueryA(e.target.value)}
-                        className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-hidden focus:border-purple-500"
-                      />
-                      <button
-                        type="submit"
-                        disabled={isSearchingA}
-                        className="px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
-                      >
-                        {isSearchingA ? <Disc3 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                      </button>
-                    </form>
-
-                    {/* Resultados de búsqueda de YouTube */}
-                    {searchResultsA.length > 0 && (
-                      <div className="space-y-1 border-b border-zinc-800 pb-2">
-                        <div className="text-[10px] font-black uppercase text-purple-400 px-1">
-                          🎬 Resultados de YouTube:
+                      {/* Header superior anclado arriba para que el teclado móvil nunca tape el buscador */}
+                      <div className="flex items-center justify-between gap-2 pb-2 border-b border-zinc-800">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="px-2 py-0.5 rounded bg-purple-600 text-white text-[10px] font-black uppercase">
+                            DECK A
+                          </span>
+                          <span className="text-xs sm:text-sm font-black text-white truncate">
+                            Cargar Pista o Buscar YouTube
+                          </span>
                         </div>
-                        {searchResultsA.map((yt) => (
-                          <button
-                            key={yt.id}
-                            onClick={() => {
-                              loadTrackIntoDeckA(
-                                {
-                                  id: `yt-${yt.id}`,
-                                  status: "MANUAL",
-                                  customTitle: yt.parsedTitle || yt.title,
-                                  customArtist: yt.parsedArtist || yt.channelTitle,
-                                  notes: `https://www.youtube.com/watch?v=${yt.id}`,
-                                  createdAt: new Date().toISOString(),
-                                  table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
-                                  guestSession: null,
-                                  song: {
-                                    id: `yt-${yt.id}`,
-                                    title: yt.parsedTitle || yt.title,
-                                    durationSeconds: 210,
-                                    genre: "YouTube",
-                                    bpm: 124,
-                                    key: "8A / Am",
-                                    artist: { name: yt.parsedArtist || yt.channelTitle },
-                                  },
-                                  youtubeVideoId: yt.id,
-                                },
-                                yt.id,
-                                null,
-                                true
-                              );
-                              setIsSelectorOpenA(false);
-                              setSearchResultsA([]);
-                              setSearchQueryA("");
-                            }}
-                            className="w-full text-left p-1.5 rounded-lg hover:bg-purple-950/60 transition-colors flex items-center gap-2 text-xs cursor-pointer border border-transparent hover:border-purple-800"
-                          >
-                            <Youtube className="w-4 h-4 text-red-500 shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <div className="font-bold text-white truncate text-[11px]">
-                                {yt.parsedTitle || yt.title}
-                              </div>
-                              <div className="text-[10px] text-zinc-400 truncate">
-                                {yt.parsedArtist || yt.channelTitle}
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="text-[10px] font-black uppercase text-zinc-500 px-1 pt-1">
-                      Pistas en Cola ({queue.length})
-                    </div>
-                    {queue.length === 0 ? (
-                      <div className="text-xs text-zinc-500 p-2 text-center">
-                        No hay temas en cola
-                      </div>
-                    ) : (
-                      queue.map((entry, idx) => (
                         <button
-                          key={entry.id}
+                          type="button"
+                          onClick={() => setIsSelectorOpenA(false)}
+                          className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer shrink-0"
+                          aria-label="Cerrar selector Deck A"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Búsqueda directa en YouTube (siempre arriba de la pantalla, sobre el teclado Android) */}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleSearchYtA(searchQueryA);
+                        }}
+                        className="flex items-center gap-1.5"
+                      >
+                        <input
+                          type="text"
+                          autoFocus
+                          placeholder="Buscar en YouTube o pegar link..."
+                          value={searchQueryA}
+                          onChange={(e) => setSearchQueryA(e.target.value)}
+                          onFocus={(e) => e.currentTarget.scrollIntoView({ behavior: "smooth", block: "start" })}
+                          className="flex-1 bg-zinc-900 border border-purple-500/40 rounded-xl px-3 py-2 text-base sm:text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-purple-400"
+                        />
+                        <button
+                          type="submit"
+                          disabled={isSearchingA}
+                          className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 shrink-0 flex items-center gap-1"
+                        >
+                          {isSearchingA ? <Disc3 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                          <span>Buscar</span>
+                        </button>
+                      </form>
+
+                      {/* Resultados de búsqueda de YouTube inmediatamente debajo del buscador */}
+                      {searchResultsA.length > 0 && (
+                        <div className="space-y-1 border-b border-zinc-800 pb-2.5 max-h-56 overflow-y-auto">
+                          <div className="text-[10px] font-black uppercase text-purple-400 px-1">
+                            🎬 Resultados de YouTube:
+                          </div>
+                          {searchResultsA.map((yt) => (
+                            <button
+                              key={yt.id}
+                              onClick={() => {
+                                loadTrackIntoDeckA(
+                                  {
+                                    id: `yt-${yt.id}`,
+                                    status: "MANUAL",
+                                    customTitle: yt.parsedTitle || yt.title,
+                                    customArtist: yt.parsedArtist || yt.channelTitle,
+                                    notes: `https://www.youtube.com/watch?v=${yt.id}`,
+                                    createdAt: new Date().toISOString(),
+                                    table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
+                                    guestSession: null,
+                                    song: {
+                                      id: `yt-${yt.id}`,
+                                      title: yt.parsedTitle || yt.title,
+                                      durationSeconds: 210,
+                                      genre: "YouTube",
+                                      bpm: 124,
+                                      key: "8A / Am",
+                                      artist: { name: yt.parsedArtist || yt.channelTitle },
+                                    },
+                                    youtubeVideoId: yt.id,
+                                  },
+                                  yt.id,
+                                  null,
+                                  true
+                                );
+                                setIsSelectorOpenA(false);
+                                setSearchResultsA([]);
+                                setSearchQueryA("");
+                              }}
+                              className="w-full text-left p-2 rounded-xl bg-zinc-900/60 hover:bg-purple-950/60 transition-colors flex items-center gap-2 text-xs cursor-pointer border border-zinc-800 hover:border-purple-700"
+                            >
+                              <Youtube className="w-4 h-4 text-red-500 shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <div className="font-bold text-white truncate text-xs">
+                                  {yt.parsedTitle || yt.title}
+                                </div>
+                                <div className="text-[10px] text-zinc-400 truncate">
+                                  {yt.parsedArtist || yt.channelTitle}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
+                        {/* Botón rápido para limpiar bandeja */}
+                        {trackA && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleClearDeckA();
+                              setIsSelectorOpenA(false);
+                            }}
+                            className="w-full text-left p-2 rounded-xl bg-red-950/30 hover:bg-red-900/50 border border-red-900/50 text-red-300 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                            <span>⏹ Borrar pista actual de la bandeja</span>
+                          </button>
+                        )}
+
+                        {/* Botón para explorar en Biblioteca Musical */}
+                        <button
+                          type="button"
                           onClick={() => {
-                            loadTrackIntoDeckA(entry.songRequest, entry.youtubeVideoId, entry.id, true);
+                            setIsSelectorOpenA(false);
+                            setLibraryTargetDeckHint("A");
+                            setIsLibraryOpen(true);
+                          }}
+                          className="w-full text-left p-2.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-800/60 text-amber-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
+                        >
+                          <ListMusic className="w-4 h-4 text-amber-400 shrink-0" />
+                          <div className="flex flex-col min-w-0">
+                            <span className="truncate">📚 Explorar en Biblioteca Musical</span>
+                            <span className="text-[10px] text-amber-400 font-normal truncate">Playlists, géneros, karaoke y pistas guardadas</span>
+                          </div>
+                        </button>
+
+                        {/* Botón para subir archivo MP3/WAV/MP4 local */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            fileInputRefA.current?.click();
                             setIsSelectorOpenA(false);
                           }}
-                          className="w-full text-left p-2 rounded-lg hover:bg-purple-950/60 transition-colors flex items-center justify-between gap-2 border border-transparent hover:border-purple-800 text-xs cursor-pointer"
+                          className="w-full text-left p-2.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/60 text-purple-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
                         >
-                          <div className="min-w-0">
-                            <div className="font-bold text-white truncate">
-                              #{idx + 1} {entry.songRequest.song?.title || entry.songRequest.customTitle}
-                            </div>
-                            <div className="text-[11px] text-zinc-400 truncate">
-                              {entry.songRequest.table.label} &bull;{" "}
-                              {entry.songRequest.song?.bpm ? `${entry.songRequest.song.bpm} BPM` : "124 BPM"}
-                            </div>
+                          <Upload className="w-4 h-4 text-purple-400 shrink-0" />
+                          <div className="flex flex-col min-w-0">
+                            <span className="truncate">📁 Subir MP4 Video / MP3 Local</span>
+                            <span className="text-[10px] text-purple-400 font-normal truncate">Soporta Video MP4 y Audio MP3/WAV &bull; 0 Latencia</span>
                           </div>
-                          <span className="text-[10px] font-mono text-purple-400 shrink-0 font-bold">
-                            Cargar
-                          </span>
                         </button>
-                      ))
-                    )}
+
+                        <div className="text-[10px] font-black uppercase text-zinc-500 px-1 pt-1">
+                          Pistas en Cola ({queue.length})
+                        </div>
+                        {queue.length === 0 ? (
+                          <div className="text-xs text-zinc-500 p-2 text-center">
+                            No hay temas en cola
+                          </div>
+                        ) : (
+                          queue.map((entry, idx) => (
+                            <button
+                              key={entry.id}
+                              onClick={() => {
+                                loadTrackIntoDeckA(entry.songRequest, entry.youtubeVideoId, entry.id, true);
+                                setIsSelectorOpenA(false);
+                              }}
+                              className="w-full text-left p-2 rounded-xl hover:bg-purple-950/60 transition-colors flex items-center justify-between gap-2 border border-zinc-800/60 hover:border-purple-800 text-xs cursor-pointer"
+                            >
+                              <div className="min-w-0">
+                                <div className="font-bold text-white truncate">
+                                  #{idx + 1} {entry.songRequest.song?.title || entry.songRequest.customTitle}
+                                </div>
+                                <div className="text-[11px] text-zinc-400 truncate">
+                                  {entry.songRequest.table.label} &bull;{" "}
+                                  {entry.songRequest.song?.bpm ? `${entry.songRequest.song.bpm} BPM` : "124 BPM"}
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-mono text-purple-400 shrink-0 font-bold">
+                                Cargar
+                              </span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -5835,8 +5870,8 @@ export default function VirtualDjConsole({
         {/* ========================================== */}
         <div id="deck-b" className="p-3 sm:p-4 xl:p-5 rounded-2xl bg-gradient-to-bl from-zinc-950 via-zinc-900 to-cyan-950/30 border-2 border-cyan-500/40 shadow-2xl flex flex-col justify-between space-y-4 relative w-full max-w-full overflow-hidden scroll-mt-24 transition-all duration-300">
           {/* Header de Deck B con Selector de Pista */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
               <span className="px-2.5 py-1 rounded-md bg-cyan-600 text-white text-[10px] font-black tracking-widest uppercase shadow-md shadow-cyan-600/30">
                 DECK B &bull; CANAL 2
               </span>
@@ -5924,168 +5959,203 @@ export default function VirtualDjConsole({
                 </button>
 
                 {isSelectorOpenB && (
-                  <div className="absolute right-0 top-full mt-1.5 w-80 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-2.5 z-50 space-y-2 max-h-80 overflow-y-auto">
-                    {/* Botón rápido para limpiar bandeja */}
-                    {trackB && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleClearDeckB();
-                          setIsSelectorOpenB(false);
-                        }}
-                        className="w-full text-left p-1.5 rounded-lg bg-red-950/30 hover:bg-red-900/50 border border-red-900/50 text-red-300 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                        <span>⏹ Borrar pista actual de la bandeja</span>
-                      </button>
-                    )}
-
-                    {/* Botón para explorar en Biblioteca Musical */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsSelectorOpenB(false);
-                        setLibraryTargetDeckHint("B");
-                        setIsLibraryOpen(true);
-                      }}
-                      className="w-full text-left p-2 rounded-lg bg-amber-950/40 hover:bg-amber-900/60 border border-amber-800/60 text-amber-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
+                  <div
+                    role="dialog"
+                    aria-modal="true"
+                    className="fixed inset-0 z-[70] bg-black/85 backdrop-blur-md flex items-start justify-center p-2.5 sm:p-6 pt-3 sm:pt-12 overflow-y-auto"
+                    onClick={() => setIsSelectorOpenB(false)}
+                  >
+                    <div
+                      className="w-full max-w-md bg-zinc-950 border-2 border-cyan-500/50 rounded-2xl shadow-2xl p-3 sm:p-4 space-y-3"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <ListMusic className="w-4 h-4 text-amber-400 shrink-0" />
-                      <div className="flex flex-col">
-                        <span>📚 Explorar en Biblioteca Musical</span>
-                        <span className="text-[10px] text-amber-400 font-normal">Playlists, géneros, karaoke y pistas guardadas</span>
-                      </div>
-                    </button>
-
-                    {/* Botón para subir archivo MP3/WAV/MP4 local */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        fileInputRefB.current?.click();
-                        setIsSelectorOpenB(false);
-                      }}
-                      className="w-full text-left p-2 rounded-lg bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/60 text-cyan-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer mb-1"
-                    >
-                      <Upload className="w-4 h-4 text-cyan-400 shrink-0" />
-                      <div className="flex flex-col">
-                        <span>📁 Subir MP4 Video / MP3 Local</span>
-                        <span className="text-[10px] text-cyan-400 font-normal">Soporta Video MP4 y Audio MP3/WAV &bull; 0 Latencia</span>
-                      </div>
-                    </button>
-
-                    {/* Búsqueda directa o pegado de YouTube */}
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        handleSearchYtB(searchQueryB);
-                      }}
-                      className="flex items-center gap-1.5"
-                    >
-                      <input
-                        type="text"
-                        placeholder="Buscar en YouTube o pegar link..."
-                        value={searchQueryB}
-                        onChange={(e) => setSearchQueryB(e.target.value)}
-                        className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-hidden focus:border-cyan-500"
-                      />
-                      <button
-                        type="submit"
-                        disabled={isSearchingB}
-                        className="px-2.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
-                      >
-                        {isSearchingB ? <Disc3 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                      </button>
-                    </form>
-
-                    {/* Resultados de búsqueda de YouTube */}
-                    {searchResultsB.length > 0 && (
-                      <div className="space-y-1 border-b border-zinc-800 pb-2">
-                        <div className="text-[10px] font-black uppercase text-cyan-400 px-1">
-                          🎬 Resultados de YouTube:
+                      {/* Header superior anclado arriba para que el teclado móvil nunca tape el buscador */}
+                      <div className="flex items-center justify-between gap-2 pb-2 border-b border-zinc-800">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="px-2 py-0.5 rounded bg-cyan-600 text-white text-[10px] font-black uppercase">
+                            DECK B
+                          </span>
+                          <span className="text-xs sm:text-sm font-black text-white truncate">
+                            Cargar Pista o Buscar YouTube
+                          </span>
                         </div>
-                        {searchResultsB.map((yt) => (
-                          <button
-                            key={yt.id}
-                            onClick={() => {
-                              loadTrackIntoDeckB(
-                                {
-                                  id: `yt-${yt.id}`,
-                                  status: "MANUAL",
-                                  customTitle: yt.parsedTitle || yt.title,
-                                  customArtist: yt.parsedArtist || yt.channelTitle,
-                                  notes: `https://www.youtube.com/watch?v=${yt.id}`,
-                                  createdAt: new Date().toISOString(),
-                                  table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
-                                  guestSession: null,
-                                  song: {
-                                    id: `yt-${yt.id}`,
-                                    title: yt.parsedTitle || yt.title,
-                                    durationSeconds: 210,
-                                    genre: "YouTube",
-                                    bpm: 126,
-                                    key: "9A / Em",
-                                    artist: { name: yt.parsedArtist || yt.channelTitle },
-                                  },
-                                  youtubeVideoId: yt.id,
-                                },
-                                null,
-                                yt.id,
-                                true
-                              );
-                              setIsSelectorOpenB(false);
-                              setSearchResultsB([]);
-                              setSearchQueryB("");
-                            }}
-                            className="w-full text-left p-1.5 rounded-lg hover:bg-cyan-950/60 transition-colors flex items-center gap-2 text-xs cursor-pointer border border-transparent hover:border-cyan-800"
-                          >
-                            <Youtube className="w-4 h-4 text-red-500 shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <div className="font-bold text-white truncate text-[11px]">
-                                {yt.parsedTitle || yt.title}
-                              </div>
-                              <div className="text-[10px] text-zinc-400 truncate">
-                                {yt.parsedArtist || yt.channelTitle}
-                              </div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="text-[10px] font-black uppercase text-zinc-500 px-1 pt-1">
-                      Pistas en Cola ({queue.length})
-                    </div>
-                    {queue.length === 0 ? (
-                      <div className="text-xs text-zinc-500 p-2 text-center">
-                        No hay temas en cola
-                      </div>
-                    ) : (
-                      queue.map((entry, idx) => (
                         <button
-                          key={entry.id}
+                          type="button"
+                          onClick={() => setIsSelectorOpenB(false)}
+                          className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer shrink-0"
+                          aria-label="Cerrar selector Deck B"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Búsqueda directa en YouTube */}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleSearchYtB(searchQueryB);
+                        }}
+                        className="flex items-center gap-1.5"
+                      >
+                        <input
+                          type="text"
+                          autoFocus
+                          placeholder="Buscar en YouTube o pegar link..."
+                          value={searchQueryB}
+                          onChange={(e) => setSearchQueryB(e.target.value)}
+                          onFocus={(e) => e.currentTarget.scrollIntoView({ behavior: "smooth", block: "start" })}
+                          className="flex-1 bg-zinc-900 border border-cyan-500/40 rounded-xl px-3 py-2 text-base sm:text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-cyan-400"
+                        />
+                        <button
+                          type="submit"
+                          disabled={isSearchingB}
+                          className="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 shrink-0 flex items-center gap-1"
+                        >
+                          {isSearchingB ? <Disc3 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                          <span>Buscar</span>
+                        </button>
+                      </form>
+
+                      {/* Resultados de búsqueda de YouTube */}
+                      {searchResultsB.length > 0 && (
+                        <div className="space-y-1 border-b border-zinc-800 pb-2.5 max-h-56 overflow-y-auto">
+                          <div className="text-[10px] font-black uppercase text-cyan-400 px-1">
+                            🎬 Resultados de YouTube:
+                          </div>
+                          {searchResultsB.map((yt) => (
+                            <button
+                              key={yt.id}
+                              onClick={() => {
+                                loadTrackIntoDeckB(
+                                  {
+                                    id: `yt-${yt.id}`,
+                                    status: "MANUAL",
+                                    customTitle: yt.parsedTitle || yt.title,
+                                    customArtist: yt.parsedArtist || yt.channelTitle,
+                                    notes: `https://www.youtube.com/watch?v=${yt.id}`,
+                                    createdAt: new Date().toISOString(),
+                                    table: { id: "dj-booth", number: 0, label: "Cabina DJ" },
+                                    guestSession: null,
+                                    song: {
+                                      id: `yt-${yt.id}`,
+                                      title: yt.parsedTitle || yt.title,
+                                      durationSeconds: 210,
+                                      genre: "YouTube",
+                                      bpm: 126,
+                                      key: "9A / Em",
+                                      artist: { name: yt.parsedArtist || yt.channelTitle },
+                                    },
+                                    youtubeVideoId: yt.id,
+                                  },
+                                  null,
+                                  yt.id,
+                                  true
+                                );
+                                setIsSelectorOpenB(false);
+                                setSearchResultsB([]);
+                                setSearchQueryB("");
+                              }}
+                              className="w-full text-left p-2 rounded-xl bg-zinc-900/60 hover:bg-cyan-950/60 transition-colors flex items-center gap-2 text-xs cursor-pointer border border-zinc-800 hover:border-cyan-700"
+                            >
+                              <Youtube className="w-4 h-4 text-red-500 shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <div className="font-bold text-white truncate text-xs">
+                                  {yt.parsedTitle || yt.title}
+                                </div>
+                                <div className="text-[10px] text-zinc-400 truncate">
+                                  {yt.parsedArtist || yt.channelTitle}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
+                        {/* Botón rápido para limpiar bandeja */}
+                        {trackB && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleClearDeckB();
+                              setIsSelectorOpenB(false);
+                            }}
+                            className="w-full text-left p-2 rounded-xl bg-red-950/30 hover:bg-red-900/50 border border-red-900/50 text-red-300 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                            <span>⏹ Borrar pista actual de la bandeja</span>
+                          </button>
+                        )}
+
+                        {/* Botón para explorar en Biblioteca Musical */}
+                        <button
+                          type="button"
                           onClick={() => {
-                            loadTrackIntoDeckB(entry.songRequest, entry.id, entry.youtubeVideoId, true);
+                            setIsSelectorOpenB(false);
+                            setLibraryTargetDeckHint("B");
+                            setIsLibraryOpen(true);
+                          }}
+                          className="w-full text-left p-2.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-800/60 text-amber-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
+                        >
+                          <ListMusic className="w-4 h-4 text-amber-400 shrink-0" />
+                          <div className="flex flex-col min-w-0">
+                            <span className="truncate">📚 Explorar en Biblioteca Musical</span>
+                            <span className="text-[10px] text-amber-400 font-normal truncate">Playlists, géneros, karaoke y pistas guardadas</span>
+                          </div>
+                        </button>
+
+                        {/* Botón para subir archivo MP3/WAV/MP4 local */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            fileInputRefB.current?.click();
                             setIsSelectorOpenB(false);
                           }}
-                          className="w-full text-left p-2 rounded-lg hover:bg-cyan-950/60 transition-colors flex items-center justify-between gap-2 border border-transparent hover:border-cyan-800 text-xs cursor-pointer"
+                          className="w-full text-left p-2.5 rounded-xl bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/60 text-cyan-200 text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
                         >
-                          <div className="min-w-0">
-                            <div className="font-bold text-white truncate">
-                              #{idx + 1} {entry.songRequest.song?.title || entry.songRequest.customTitle}
-                            </div>
-                            <div className="text-[11px] text-zinc-400 truncate">
-                              {entry.songRequest.table.label} &bull;{" "}
-                              {entry.songRequest.song?.bpm ? `${entry.songRequest.song.bpm} BPM` : "126 BPM"}
-                            </div>
+                          <Upload className="w-4 h-4 text-cyan-400 shrink-0" />
+                          <div className="flex flex-col min-w-0">
+                            <span className="truncate">📁 Subir MP4 Video / MP3 Local</span>
+                            <span className="text-[10px] text-cyan-400 font-normal truncate">Soporta Video MP4 y Audio MP3/WAV &bull; 0 Latencia</span>
                           </div>
-                          <span className="text-[10px] font-mono text-cyan-400 shrink-0 font-bold">
-                            Cargar
-                          </span>
                         </button>
-                      ))
-                    )}
+
+                        <div className="text-[10px] font-black uppercase text-zinc-500 px-1 pt-1">
+                          Pistas en Cola ({queue.length})
+                        </div>
+                        {queue.length === 0 ? (
+                          <div className="text-xs text-zinc-500 p-2 text-center">
+                            No hay temas en cola
+                          </div>
+                        ) : (
+                          queue.map((entry, idx) => (
+                            <button
+                              key={entry.id}
+                              onClick={() => {
+                                loadTrackIntoDeckB(entry.songRequest, entry.id, entry.youtubeVideoId, true);
+                                setIsSelectorOpenB(false);
+                              }}
+                              className="w-full text-left p-2 rounded-xl hover:bg-cyan-950/60 transition-colors flex items-center justify-between gap-2 border border-zinc-800/60 hover:border-cyan-800 text-xs cursor-pointer"
+                            >
+                              <div className="min-w-0">
+                                <div className="font-bold text-white truncate">
+                                  #{idx + 1} {entry.songRequest.song?.title || entry.songRequest.customTitle}
+                                </div>
+                                <div className="text-[11px] text-zinc-400 truncate">
+                                  {entry.songRequest.table.label} &bull;{" "}
+                                  {entry.songRequest.song?.bpm ? `${entry.songRequest.song.bpm} BPM` : "126 BPM"}
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-mono text-cyan-400 shrink-0 font-bold">
+                                Cargar
+                              </span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

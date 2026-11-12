@@ -797,8 +797,9 @@ export function MusicLibraryView({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={(e) => e.currentTarget.scrollIntoView({ behavior: "smooth", block: "start" })}
             placeholder="Buscar por título, artista, género o Key..."
-            className="w-full pl-10 pr-8 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 transition-colors"
+            className="w-full pl-10 pr-8 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-base sm:text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 transition-colors scroll-mt-4"
           />
           {searchQuery && (
             <button

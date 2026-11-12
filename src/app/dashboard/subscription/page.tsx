@@ -16,6 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { PLAN_GROUP_MATRIX } from "@/lib/billing/plan-modules";
 
 interface PlanItem {
   id: string;
@@ -117,9 +118,11 @@ export default function SubscriptionPage() {
         throw new Error(json.error?.message || "Error al cambiar de plan");
       }
 
-      setFeedback({ type: "success", text: json.message });
-      setTimeout(() => setFeedback(null), 4000);
+      setFeedback({ type: "success", text: `${json.message} Actualizando menú de módulos...` });
       await fetchBilling();
+      setTimeout(() => {
+        window.location.reload();
+      }, 600);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setFeedback({ type: "error", text: err.message });
@@ -419,6 +422,44 @@ export default function SubscriptionPage() {
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* 3.5 Matriz de Módulos del Sistema por Plan */}
+      <div className="p-5 sm:p-6 rounded-2xl bg-zinc-900/70 border border-zinc-800 space-y-4">
+        <div>
+          <h2 className="text-base font-bold text-white flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-purple-400" />
+            <span>Módulos Habilitados en el Menú Lateral por Plan</span>
+          </h2>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Al cambiar de plan, el menú lateral habilita o bloquea automáticamente cada módulo operativo.
+          </p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse min-w-[600px]">
+            <thead>
+              <tr className="border-b border-zinc-800 text-[10px] uppercase tracking-wider text-zinc-400">
+                <th className="py-2.5 pr-3">Módulo Principal</th>
+                <th className="py-2.5 px-2">Personal</th>
+                <th className="py-2.5 px-2">Starter</th>
+                <th className="py-2.5 px-2 text-purple-300">Pro</th>
+                <th className="py-2.5 pl-2 text-emerald-300">Enterprise</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-800/60">
+              {PLAN_GROUP_MATRIX.map((row) => (
+                <tr key={row.group} className="hover:bg-zinc-950/50">
+                  <td className="py-2.5 pr-3 font-semibold text-white">{row.group}</td>
+                  <td className="py-2.5 px-2 text-zinc-400">{row.plans.PERSONAL}</td>
+                  <td className="py-2.5 px-2 text-zinc-300">{row.plans.STARTER}</td>
+                  <td className="py-2.5 px-2 text-purple-200 font-medium">{row.plans.PRO}</td>
+                  <td className="py-2.5 pl-2 text-emerald-300 font-medium">{row.plans.ENTERPRISE}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
