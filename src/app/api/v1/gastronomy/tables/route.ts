@@ -9,6 +9,22 @@ import { generateQrDataUrl } from "@/lib/qr/generator";
 import { getRequestOrigin } from "@/lib/url";
 import { ensureGastronomySeeded } from "@/lib/gastronomy/seed-defaults";
 
+// Cache en memoria para URLs de QR data URL para evitar saturación de CPU y canvas
+const qrCache = new Map<string, string>();
+
+async function getCachedQrDataUrl(url: string): Promise<string> {
+  const cached = qrCache.get(url);
+  if (cached) return cached;
+  try {
+    const data = await generateQrDataUrl(url);
+    qrCache.set(url, data);
+    return data;
+  } catch (err) {
+    console.error("Error generating QR data URL:", err);
+    return "";
+  }
+}
+
 const tableOperationSchema = z.object({
   action: z.enum([
     "CREATE_SECTOR",
@@ -121,8 +137,8 @@ export async function GET(req: NextRequest) {
 
         const scanUrl = `${origin}/qr/${t.qrToken}`;
         const menuUrl = `${origin}/menu?qrToken=${t.qrToken}`;
-        const qrDataUrl = await generateQrDataUrl(scanUrl);
-        const menuQrDataUrl = await generateQrDataUrl(menuUrl);
+        const qrDataUrl = await getCachedQrDataUrl(scanUrl);
+        const menuQrDataUrl = await getCachedQrDataUrl(menuUrl);
         const activeOrders = (t.gastroOrders || []).filter(
           (o) => o.status !== "DELIVERED" || o.paymentStatus === "PENDING"
         );

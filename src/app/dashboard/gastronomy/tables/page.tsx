@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
   LayoutGrid,
@@ -35,7 +35,14 @@ export default function GastronomyTablesAndSectorsPage() {
   const [tables, setTables] = useState<any[]>([]);
   const [activeEvent, setActiveEvent] = useState<any>(null);
   const [selectedSector, setSelectedSector] = useState("ALL");
-  const [activeTable, setActiveTable] = useState<any>(null);
+  const [activeTableId, setActiveTableId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Derivar la mesa activa memoizada para evitar bucles infinitos de re-render
+  const activeTable = useMemo(() => {
+    if (!activeTableId) return null;
+    return tables.find((t) => t.id === activeTableId) || null;
+  }, [tables, activeTableId]);
 
   // Formularios rápidos de creación
   const [newSectorName, setNewSectorName] = useState("");
@@ -71,21 +78,21 @@ export default function GastronomyTablesAndSectorsPage() {
   };
 
   const loadData = useCallback(async () => {
-    const res = await fetch("/api/v1/gastronomy/tables", { cache: "no-store" });
-    if (res.ok) {
-      const json = await res.json();
-      setSectors(json.sectors || []);
-      setTables(json.tables || []);
-      if (json.activeEvent) setActiveEvent(json.activeEvent);
-      if (!newTableSectorId && json.sectors?.length > 0) {
-        setNewTableSectorId(json.sectors[0].id);
+    try {
+      const res = await fetch("/api/v1/gastronomy/tables", { cache: "no-store" });
+      if (res.ok) {
+        const json = await res.json();
+        setSectors(json.sectors || []);
+        setTables(json.tables || []);
+        if (json.activeEvent) setActiveEvent(json.activeEvent);
+        setNewTableSectorId((prev) => prev || json.sectors?.[0]?.id || "");
       }
-      if (activeTable) {
-        const updatedActive = (json.tables || []).find((t: any) => t.id === activeTable.id);
-        if (updatedActive) setActiveTable(updatedActive);
-      }
+    } catch (err) {
+      console.error("Error al cargar mesas:", err);
+    } finally {
+      setLoading(false);
     }
-  }, [newTableSectorId, activeTable]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -147,7 +154,7 @@ export default function GastronomyTablesAndSectorsPage() {
       { action: "DELETE_TABLE", tableId: t.id },
       `Mesa "${t.label}" eliminada / desactivada`
     );
-    if (activeTable?.id === t.id) setActiveTable(null);
+    if (activeTableId === t.id) setActiveTableId(null);
   };
 
   const handleCopyUrl = (url: string, id: string) => {
@@ -182,6 +189,17 @@ export default function GastronomyTablesAndSectorsPage() {
   const filteredTables = tables.filter(
     (t) => t.active !== false && (selectedSector === "ALL" || t.sectorId === selectedSector)
   );
+
+  if (loading) {
+    return (
+      <div className="p-12 flex flex-col items-center justify-center min-h-[50vh] space-y-3">
+        <div className="w-8 h-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
+        <span className="text-xs text-slate-400 font-medium">
+          Cargando Centro Unificado de Mesas y Códigos QR...
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -389,7 +407,7 @@ export default function GastronomyTablesAndSectorsPage() {
               <div
                 key={table.id}
                 onClick={() => {
-                  setActiveTable(table);
+                  setActiveTableId(table.id);
                   setSplitResult(null);
                 }}
                 className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
