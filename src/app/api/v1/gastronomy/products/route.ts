@@ -335,3 +335,115 @@ export async function PATCH(req: NextRequest) {
     return handleApiError(error);
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { session, tenantId } = await requireTenantContext();
+    const canDelete = hasAnyPermission(session.role, [
+      PERMISSIONS.GASTRO_MENU_MANAGE,
+      "ADMIN",
+      "OWNER",
+      "MANAGER",
+    ]);
+
+    if (!canDelete) {
+      throw new ForbiddenError("No tienes permisos para eliminar productos del menú");
+    }
+
+    const { searchParams } = new URL(req.url);
+    let productId = searchParams.get("id");
+
+    if (!productId) {
+      try {
+        const body = await req.json();
+        productId = body?.id;
+      } catch {
+        // no body
+      }
+    }
+
+    if (!productId) {
+      return NextResponse.json(
+        { error: { code: "BAD_REQUEST", message: "ID de producto requerido" } },
+        { status: 400 }
+      );
+    }
+
+    const existing = await prisma.gastroProduct.findFirst({
+      where: { id: productId, tenantId },
+      include: {
+        orderItems: { take: 1, select: { id: true } },
+      },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: { code: "NOT_FOUND", message: "Producto no encontrado" } },
+        { status: 404 }
+      );
+    }
+
+    let mode: "deleted" | "archived" = "deleted";
+
+    if (existing.orderItems.length > 0) {
+      // Tiene pedidos históricos asociados: archivar de forma segura
+      mode = "archived";
+      await prisma.gastroProduct.update({
+        where: { id: existing.id },
+        data: {
+          active: false,
+          availabilityStatus: "MANUAL_DISABLED",
+          disabledByUserId: session.sub,
+          disabledByName: session.name,
+          disabledByRole: session.role,
+          disabledAt: new Date(),
+          disabledReason: `Archivado/Eliminado del menú por ${session.name}`,
+        },
+      });
+    } else {
+      // Eliminar físicamente
+      await prisma.gastroProduct.delete({
+        where: { id: existing.id },
+      });
+    }
+
+    // Registrar en auditoría
+    await prisma.auditLog.create({
+      data: {
+        tenantId,
+        userId: session.sub,
+        action: mode === "deleted" ? "GASTRO_PRODUCT_DELETED" : "GASTRO_PRODUCT_ARCHIVED",
+        resource: "GASTRO_PRODUCT",
+        resourceId: existing.id,
+        metadata: JSON.stringify({
+          productName: existing.name,
+          mode,
+          performedBy: session.name,
+          role: session.role,
+        }),
+      },
+    });
+
+    // Notificar en tiempo real
+    realtimeBus.broadcast("global", "GASTRO_PRODUCT_EXHAUSTED", {
+      tenantId,
+      productId: existing.id,
+      productName: existing.name,
+      active: false,
+      availabilityStatus: "MANUAL_DISABLED",
+      deleted: true,
+      mode,
+    });
+
+    return NextResponse.json({
+      success: true,
+      mode,
+      message:
+        mode === "archived"
+          ? "El producto posee pedidos históricos asociados: ha sido archivado y retirado del menú digital y del catálogo activo."
+          : "Producto eliminado correctamente del sistema.",
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
