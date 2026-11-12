@@ -17,6 +17,12 @@ import {
   Users,
   X,
   Check,
+  Banknote,
+  QrCode,
+  CreditCard,
+  Landmark,
+  Zap,
+  Wallet,
 } from "lucide-react";
 import {
   formatGuaranies,
@@ -86,9 +92,70 @@ function CustomerMenuPwaContent() {
   // Active Tracked Orders in this session
   const [trackedOrders, setTrackedOrders] = useState<any[]>([]);
 
-  // VIP Table Picker Modal (replaces native mobile <select>)
+  // VIP Table & Payment Picker Modals (replaces native mobile <select>)
   const [tablePickerOpen, setTablePickerOpen] = useState(false);
   const [tableSectorFilter, setTableSectorFilter] = useState<string>("ALL");
+  const [paymentPickerOpen, setPaymentPickerOpen] = useState(false);
+
+  const PAYMENT_METHODS = [
+    {
+      value: "CASH",
+      label: "Efectivo",
+      subtitle: "Pagar en Caja o al Mozo",
+      badge: "Clásico",
+      icon: Banknote,
+      badgeTone: "bg-emerald-500/15 text-emerald-300 border-emerald-500/35",
+      iconTone: "bg-emerald-500/15 text-emerald-300 border-emerald-500/35",
+    },
+    {
+      value: "QR_PAYMENT",
+      label: "QR de Pago Interoperable",
+      subtitle: "Billeteras y bancos locales",
+      badge: "Rápido",
+      icon: QrCode,
+      badgeTone: "bg-cyan-500/15 text-cyan-300 border-cyan-500/35",
+      iconTone: "bg-cyan-500/15 text-cyan-300 border-cyan-500/35",
+    },
+    {
+      value: "DEBIT_CARD",
+      label: "Tarjeta de Débito (POS)",
+      subtitle: "POS inalámbrico en tu mesa",
+      badge: "POS",
+      icon: CreditCard,
+      badgeTone: "bg-purple-500/15 text-purple-300 border-purple-500/35",
+      iconTone: "bg-purple-500/15 text-purple-300 border-purple-500/35",
+    },
+    {
+      value: "CREDIT_CARD",
+      label: "Tarjeta de Crédito (POS)",
+      subtitle: "POS inalámbrico en tu mesa",
+      badge: "POS",
+      icon: CreditCard,
+      badgeTone: "bg-indigo-500/15 text-indigo-300 border-indigo-500/35",
+      iconTone: "bg-indigo-500/15 text-indigo-300 border-indigo-500/35",
+    },
+    {
+      value: "BANK_TRANSFER",
+      label: "Transferencia Bancaria",
+      subtitle: "Transferencia inmediata SIPAP",
+      badge: "SIPAP",
+      icon: Landmark,
+      badgeTone: "bg-amber-500/15 text-amber-300 border-amber-500/35",
+      iconTone: "bg-amber-500/15 text-amber-300 border-amber-500/35",
+    },
+    {
+      value: "PIX",
+      label: "PIX Instantáneo",
+      subtitle: "Acreditación inmediata 24/7",
+      badge: "Instantáneo",
+      icon: Zap,
+      badgeTone: "bg-teal-500/15 text-teal-300 border-teal-500/35",
+      iconTone: "bg-teal-500/15 text-teal-300 border-teal-500/35",
+    },
+  ] as const;
+
+  const selectedPaymentMethodObj =
+    PAYMENT_METHODS.find((m) => m.value === paymentMethodSelected) || PAYMENT_METHODS[0];
 
   const loadPublicMenu = useCallback(
     async (currentQrToken?: string, currentTableParam?: string, explicitTableId?: string) => {
@@ -824,23 +891,43 @@ function CustomerMenuPwaContent() {
                     </div>
                   </div>
 
-                  {/* Payment Method Selector */}
+                  {/* Payment Method Selector (VIP Modal Trigger) */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-zinc-300 block">
                       Medio de Pago Preferido:
                     </label>
-                    <select
-                      value={paymentMethodSelected}
-                      onChange={(e) => setPaymentMethodSelected(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl bg-zinc-950 border border-white/10 text-xs text-white"
-                    >
-                      <option value="CASH">Efectivo (Pagar en Caja / Mozo)</option>
-                      <option value="QR_PAYMENT">QR de Pago Interoperable</option>
-                      <option value="DEBIT_CARD">Tarjeta de Débito (POS)</option>
-                      <option value="CREDIT_CARD">Tarjeta de Crédito (POS)</option>
-                      <option value="BANK_TRANSFER">Transferencia Bancaria SIPAP</option>
-                      <option value="PIX">PIX Instantáneo</option>
-                    </select>
+                    {(() => {
+                      const SelectedIcon = selectedPaymentMethodObj.icon;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => setPaymentPickerOpen(true)}
+                          className="w-full p-3 rounded-2xl bg-gradient-to-r from-zinc-950 via-zinc-900/95 to-purple-950/35 hover:from-zinc-900 hover:to-purple-950/55 border border-purple-500/35 hover:border-purple-400/70 text-left flex items-center justify-between gap-3 shadow-lg shadow-black/30 transition-all cursor-pointer active:scale-[0.99]"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div
+                              className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${selectedPaymentMethodObj.iconTone}`}
+                            >
+                              <SelectedIcon className="w-5 h-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-extrabold text-white truncate">
+                                {selectedPaymentMethodObj.label}
+                              </div>
+                              <div className="text-[11px] text-zinc-400 truncate">
+                                {selectedPaymentMethodObj.subtitle}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-400/30 text-[10px] font-bold text-purple-200">
+                              Cambiar
+                            </span>
+                            <ChevronDown className="w-4 h-4 text-purple-300" />
+                          </div>
+                        </button>
+                      );
+                    })()}
                   </div>
                 </>
               )}
@@ -1047,6 +1134,106 @@ function CustomerMenuPwaContent() {
           </div>
         );
       })()}
+
+      {/* Modal Elegante VIP de Selección de Medio de Pago Preferido */}
+      {paymentPickerOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setPaymentPickerOpen(false)}
+          className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl bg-gradient-to-b from-[#0F172A] via-[#0B1120] to-zinc-950 border-t sm:border border-purple-500/35 shadow-[0_-10px_50px_rgba(139,92,246,0.25)] max-h-[86dvh] flex flex-col overflow-hidden"
+          >
+            {/* Drag indicator mobile + Header */}
+            <div className="pt-2.5 sm:pt-4 px-5 pb-3.5 border-b border-white/10 bg-zinc-950/60 shrink-0 space-y-2">
+              <div className="w-10 h-1 rounded-full bg-zinc-700 mx-auto sm:hidden" />
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-600/30 shrink-0">
+                    <Wallet className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-base font-black text-white truncate">
+                      Medio de Pago Preferido
+                    </h3>
+                    <p className="text-[11px] text-purple-300/90 font-semibold truncate">
+                      Elige cómo prefieres abonar tu pedido
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPaymentPickerOpen(false)}
+                  className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0"
+                  aria-label="Cerrar selector de medio de pago"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Grid elegante de tarjetas de medios de pago */}
+            <div className="p-4 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {PAYMENT_METHODS.map((method) => {
+                const Icon = method.icon;
+                const isSelected = paymentMethodSelected === method.value;
+
+                return (
+                  <button
+                    key={method.value}
+                    type="button"
+                    onClick={() => {
+                      setPaymentMethodSelected(method.value);
+                      setPaymentPickerOpen(false);
+                    }}
+                    className={`p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 cursor-pointer active:scale-[0.98] ${
+                      isSelected
+                        ? "bg-gradient-to-r from-purple-950/90 via-indigo-950/70 to-zinc-900 border-2 border-purple-400 shadow-lg shadow-purple-500/25"
+                        : "bg-zinc-900/80 hover:bg-zinc-800/90 border-white/10 hover:border-purple-400/40"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                          isSelected
+                            ? "bg-purple-600 text-white border-purple-300"
+                            : method.iconTone
+                        }`}
+                      >
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-extrabold text-white truncate">
+                          {method.label}
+                        </div>
+                        <div className="text-[10px] text-zinc-400 truncate mt-0.5">
+                          {method.subtitle}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span
+                        className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border ${method.badgeTone}`}
+                      >
+                        {method.badge}
+                      </span>
+                      {isSelected && (
+                        <span className="text-[10px] font-bold text-purple-300 inline-flex items-center gap-0.5">
+                          <Check className="w-3 h-3" /> Actual
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Bottom Cart Bar on Mobile */}
       {cart.length > 0 && !cartOpen && (
