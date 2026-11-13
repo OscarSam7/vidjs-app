@@ -669,20 +669,6 @@ export function MusicLibraryView({
               </p>
             </div>
           </div>
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-red-950/60 text-zinc-300 hover:text-red-200 border border-red-500/30 hover:border-red-500/60 transition-all cursor-pointer shrink-0 flex items-center gap-2 text-xs font-bold group active:scale-95"
-              title="Volver a los platos DJ (Tecla Esc o B)"
-            >
-              <X className="w-3.5 h-3.5 text-red-400 group-hover:rotate-90 transition-transform" />
-              <span>Cerrar</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-black/60 border border-red-500/30 text-[9px] font-mono font-bold text-red-300">
-                ESC
-              </kbd>
-            </button>
-          )}
         </div>
       )}
 
@@ -1298,16 +1284,10 @@ export function MusicLibraryView({
 
                           {/* Col 4: Género / Categoría */}
                           <td className="py-3 px-3.5">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEditSong(song)}
-                              className="px-2 py-0.5 rounded-md bg-zinc-800/80 hover:bg-purple-900/40 border border-zinc-700/60 hover:border-purple-500/50 text-[11px] text-zinc-300 hover:text-purple-200 transition-colors cursor-pointer inline-flex items-center gap-1 group/cat"
-                              title="Clic para cambiar la categoría de esta canción"
-                            >
+                            <span className="px-2 py-0.5 rounded-md bg-zinc-800/80 border border-zinc-700/60 text-[11px] text-zinc-300 inline-flex items-center gap-1.5">
                               <Tag className="w-3 h-3 text-cyan-400 shrink-0" />
-                              <span className="truncate max-w-[120px]">{song.genre || "Varios"}</span>
-                              <Pencil className="w-2.5 h-2.5 text-zinc-500 group-hover/cat:text-purple-300 shrink-0 transition-colors" />
-                            </button>
+                              <span className="truncate max-w-[130px]">{song.genre || "Varios"}</span>
+                            </span>
                           </td>
 
                           {/* Col 5: BPM & Key */}
