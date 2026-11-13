@@ -150,12 +150,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 5. Crear la solicitud de canción (con auto-play si la opción está activada por el DJ)
-    const isAutoPlay = Boolean(
-      policy.autoPlayRequests ||
-      policy.nextTurnMode === "AUTOPLAY_ON_TIMEOUT" ||
-      policy.nextTurnMode === "SKIP_ON_TIMEOUT"
-    );
+    // 5. Crear la solicitud de canción
+    // MODERACIÓN OBLIGATORIA: Por defecto, toda solicitud de cliente entra en "PENDING"
+    // para que el DJ la modere. Solo si el DJ activó explícitamente "autoPlayRequests === true"
+    // se procesa automáticamente a la cola o al aire.
+    const isAutoPlay = Boolean(policy.autoPlayRequests === true);
     let initialStatus: "PENDING" | "ACCEPTED" | "PLAYING" = "PENDING";
     let queueEntryStatus: "CURRENT" | "QUEUED" | null = null;
     let playedAt: Date | null = null;

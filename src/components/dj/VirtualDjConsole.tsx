@@ -2735,8 +2735,10 @@ export default function VirtualDjConsole({
       if (iframeRefB.current) {
         sendPlayerCommand(iframeRefB.current, "playVideo");
       }
+    } else if (!isAuto) {
+      onPlaybackControl?.("ENDED", "A");
     }
-  }, [deckModeA, isPlayingB]);
+  }, [deckModeA, isPlayingB, onPlaybackControl]);
 
   // Limpiar / Expulsar pista de DECK B (Aislamiento Total: Deck A NUNCA es afectada)
   const handleClearDeckB = useCallback((isAuto: boolean = false) => {
@@ -2801,8 +2803,10 @@ export default function VirtualDjConsole({
       if (iframeRefA.current) {
         sendPlayerCommand(iframeRefA.current, "playVideo");
       }
+    } else if (!isAuto) {
+      onPlaybackControl?.("ENDED", "B");
     }
-  }, [deckModeB, isPlayingA]);
+  }, [deckModeB, isPlayingA, onPlaybackControl]);
 
   useEffect(() => {
     handleClearDeckARef.current = handleClearDeckA;
@@ -2860,9 +2864,11 @@ export default function VirtualDjConsole({
       showFeedback("info", "🏁 Pista de Deck A finalizada.");
     }
 
-    // En modo Auto-Play activado: vaciar automáticamente la bandeja para dar paso a la siguiente pista de la cola
+    // Vaciar y limpiar siempre la bandeja Deck A al finalizar para que no quede estancada
+    handleClearDeckA(true);
+
+    // En modo Auto-Play activado: dar paso automáticamente a la siguiente pista de la cola
     if (isAutoPlayMode) {
-      handleClearDeckA(true);
       if (!isPlayingB && !isPlayingBRef.current) {
         // Si hay una política de cuenta regresiva de 5 segundos activa, dejamos que FINISH_CURRENT gestione el turno de 5s.
         // Solo llamamos onNextTrack de inmediato si no hay modo de turno de 5s configurado (DISABLED).
@@ -2910,9 +2916,11 @@ export default function VirtualDjConsole({
       showFeedback("info", "🏁 Pista de Deck B finalizada.");
     }
 
-    // En modo Auto-Play activado: vaciar automáticamente la bandeja para dar paso a la siguiente pista de la cola
+    // Vaciar y limpiar siempre la bandeja Deck B al finalizar para que no quede estancada
+    handleClearDeckB(true);
+
+    // En modo Auto-Play activado: dar paso automáticamente a la siguiente pista de la cola
     if (isAutoPlayMode) {
-      handleClearDeckB(true);
       if (!isPlayingA && !isPlayingARef.current) {
         // Si hay una política de cuenta regresiva de 5 segundos activa, dejamos que FINISH_CURRENT gestione el turno de 5s.
         // Solo llamamos onNextTrack de inmediato si no hay modo de turno de 5s configurado (DISABLED).

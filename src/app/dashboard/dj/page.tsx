@@ -933,42 +933,50 @@ export default function DjBoothPage() {
     targetDeck: "AUTO" | "A" | "B" = "AUTO",
     shouldAutoPlay: boolean = false
   ) => {
-    // 1. Cargar y preparar en la consola Virtual DJ en la bandeja solicitada
+    // 1. Quitar inmediatamente de la lista en pantalla (optimistic UI) para que desaparezca al montarse en bandeja
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        queue: prev.queue.filter((q) => q.id !== entry.id),
+      };
+    });
+
     const autoPlayEffective =
-      shouldAutoPlay ||
-      (Boolean(queuePolicy.autoPlayRequests) && !isPlaying && !data?.currentPlaying);
+      shouldAutoPlay || targetDeck === "AUTO" ||
+      (Boolean(queuePolicy.autoPlayRequests) && !isPlaying);
+
+    // 2. Cargar en la consola de Virtual DJ en la bandeja solicitada
     setPendingDeckLoad({ entry, targetDeck, timestamp: Date.now(), autoPlay: autoPlayEffective });
 
-    // Si había una cuenta regresiva activa para este turno o para auto-play, cancelarla de inmediato
+    // Cancelar cuenta regresiva si existía
     if (activeTurnCountdown && (activeTurnCountdown.queueEntryId === entry.id || autoPlayEffective)) {
       setActiveTurnCountdown(null);
       handleCancelNextTurnCountdown();
     }
 
-    // Si el DJ seleccionó explícitamente cargar en Bandeja A o B ("◀ A" o "B ▶"),
-    // o si ya hay una reproducción activa sonando en cabina, NO llamamos al backend con action: "PLAY"
-    // porque eso marcaría prematuramente la pista actual como COMPLETED y desincronizaría las bandejas.
-    if (targetDeck === "A" || targetDeck === "B" || isPlaying || data?.currentPlaying) {
-      const deckName = targetDeck === "A" ? "Bandeja A" : targetDeck === "B" ? "Bandeja B" : "Bandeja libre";
-      showFeedback("info", `🎧 Tema montado en ${deckName} (Listo para Play / Mezcla previa)`);
-      return;
-    }
+    // 3. Notificar al backend: si es "AUTO" o va a sonar de inmediato es "PLAY", si es "A" o "B" previa es "LOAD_TO_DECK"
+    const action = (targetDeck === "AUTO" || autoPlayEffective) ? "PLAY" : "LOAD_TO_DECK";
 
-    // 2. Si la cabina estaba totalmente silenciada/vacía y fue Play ("AUTO"), notificar al backend para iniciar
     try {
       const res = await fetch("/api/v1/dj/queue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "PLAY", queueEntryId: entry.id }),
+        body: JSON.stringify({ action, queueEntryId: entry.id }),
       });
       if (res.ok) {
-        setPlaybackSeconds(0);
-        setIsPlaying(true);
+        if (targetDeck === "AUTO" || autoPlayEffective) {
+          setPlaybackSeconds(0);
+          setIsPlaying(true);
+        }
         await fetchDjState();
       }
     } catch {
-      // Estado local ya activo
+      // Estado local ya actualizado
     }
+
+    const deckName = targetDeck === "A" ? "Bandeja A" : targetDeck === "B" ? "Bandeja B" : "Bandeja libre";
+    showFeedback("success", `🎧 Tema montado en ${deckName}`);
   };
 
   // Reproducir un tema de la cola (compatibilidad)
@@ -978,6 +986,14 @@ export default function DjBoothPage() {
         setActiveTurnCountdown(null);
         handleCancelNextTurnCountdown();
       }
+      // Quitar inmediatamente de la lista de cola en pantalla
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          queue: prev.queue.filter((q) => q.id !== queueEntryId),
+        };
+      });
       const entry = data?.queue?.find((q) => q.id === queueEntryId);
       if (entry) {
         setPendingDeckLoad({ entry, targetDeck: "AUTO", timestamp: Date.now(), autoPlay: true });
@@ -2595,7 +2611,7 @@ export default function DjBoothPage() {
         pendingDeckLoad={pendingDeckLoad}
         onDeckLoaded={() => setPendingDeckLoad(null)}
         onPlaybackControl={handlePlaybackControl}
-        isAutoPlayMode={Boolean(queuePolicy.autoPlayRequests || queuePolicy.nextTurnMode === "AUTOPLAY_ON_TIMEOUT")}
+        isAutoPlayMode={Boolean(queuePolicy.autoPlayRequests)}
         nextTurnMode={queuePolicy.nextTurnMode}
       />
 

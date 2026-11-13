@@ -17,6 +17,7 @@ const queueActionSchema = z.object({
     "START_NEXT_TURN_COUNTDOWN",
     "TIMEOUT_NEXT_TURN",
     "CANCEL_NEXT_TURN_COUNTDOWN",
+    "LOAD_TO_DECK",
   ]),
   eventId: z.string().optional(),
   eventCode: z.string().optional(),
@@ -49,11 +50,20 @@ export async function POST(req: NextRequest) {
 
       const now = new Date();
 
+      const allActiveEvents = await prisma.event.findMany({
+        where: { tenantId, status: "ACTIVE" },
+        select: { id: true, code: true },
+      });
+      const activeEventIds = allActiveEvents.map((e) => e.id);
+      if (!activeEventIds.includes(targetEntry.eventId)) {
+        activeEventIds.push(targetEntry.eventId);
+      }
+
       // Buscar canciones que estaban en PLAYING para notificar liberación de slot
       const prevPlaying = await prisma.songRequest.findMany({
         where: {
           tenantId,
-          eventId: targetEntry.eventId,
+          eventId: { in: activeEventIds },
           status: "PLAYING",
           id: { not: targetEntry.songRequestId },
         },
@@ -69,7 +79,7 @@ export async function POST(req: NextRequest) {
         prisma.queueEntry.updateMany({
           where: {
             tenantId,
-            eventId: targetEntry.eventId,
+            eventId: { in: activeEventIds },
             status: "CURRENT",
             id: { not: targetEntry.id },
           },
@@ -78,7 +88,7 @@ export async function POST(req: NextRequest) {
         prisma.songRequest.updateMany({
           where: {
             tenantId,
-            eventId: targetEntry.eventId,
+            eventId: { in: activeEventIds },
             status: "PLAYING",
             id: { not: targetEntry.songRequestId },
           },
@@ -149,9 +159,18 @@ export async function POST(req: NextRequest) {
     if (data.action === "NEXT") {
       if (!data.eventId) throw new AppError("eventId es obligatorio para NEXT");
 
+      const allActiveEvents = await prisma.event.findMany({
+        where: { tenantId, status: "ACTIVE" },
+        select: { id: true, code: true },
+      });
+      const activeEventIds = allActiveEvents.map((e) => e.id);
+      if (!activeEventIds.includes(data.eventId)) {
+        activeEventIds.push(data.eventId);
+      }
+
       // Buscar canciones que estaban en PLAYING para desbloquear slot
       const prevPlaying = await prisma.songRequest.findMany({
-        where: { tenantId, eventId: data.eventId, status: "PLAYING" },
+        where: { tenantId, eventId: { in: activeEventIds }, status: "PLAYING" },
         include: {
           table: { select: { id: true, label: true } },
           song: { select: { title: true } },
@@ -162,7 +181,7 @@ export async function POST(req: NextRequest) {
       const nextEntry = await prisma.queueEntry.findFirst({
         where: {
           tenantId,
-          eventId: data.eventId,
+          eventId: { in: activeEventIds },
           status: "QUEUED",
         },
         include: { songRequest: { include: { song: true, table: true } } },
@@ -175,11 +194,11 @@ export async function POST(req: NextRequest) {
         // Si no hay más temas, simplemente finalizar la actual
         await prisma.$transaction([
           prisma.queueEntry.updateMany({
-            where: { tenantId, eventId: data.eventId, status: "CURRENT" },
+            where: { tenantId, eventId: { in: activeEventIds }, status: "CURRENT" },
             data: { status: "COMPLETED" },
           }),
           prisma.songRequest.updateMany({
-            where: { tenantId, eventId: data.eventId, status: "PLAYING" },
+            where: { tenantId, eventId: { in: activeEventIds }, status: "PLAYING" },
             data: { status: "PLAYED", playedAt: now },
           }),
         ]);
@@ -211,7 +230,7 @@ export async function POST(req: NextRequest) {
         prisma.queueEntry.updateMany({
           where: {
             tenantId,
-            eventId: data.eventId,
+            eventId: { in: activeEventIds },
             status: "CURRENT",
             id: { not: nextEntry.id },
           },
@@ -220,7 +239,7 @@ export async function POST(req: NextRequest) {
         prisma.songRequest.updateMany({
           where: {
             tenantId,
-            eventId: data.eventId,
+            eventId: { in: activeEventIds },
             status: "PLAYING",
             id: { not: nextEntry.songRequestId },
           },
@@ -264,13 +283,22 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2.1 Acción: FINISH_CURRENT (marcar la pista que estaba al aire como finalizada, liberando turno)
+    // 2.1 Acción: FINISH_CURRENT (marcar la pista que estaba al aire como finalizada, liberando turno y limpiando bandejas)
     if (data.action === "FINISH_CURRENT") {
       const eventId = data.eventId;
       if (!eventId) throw new AppError("eventId es obligatorio para FINISH_CURRENT");
 
+      const allActiveEvents = await prisma.event.findMany({
+        where: { tenantId, status: "ACTIVE" },
+        select: { id: true, code: true, settings: true },
+      });
+      const activeEventIds = allActiveEvents.map((e) => e.id);
+      if (eventId && !activeEventIds.includes(eventId)) {
+        activeEventIds.push(eventId);
+      }
+
       const prevPlaying = await prisma.songRequest.findMany({
-        where: { tenantId, eventId, status: "PLAYING" },
+        where: { tenantId, eventId: { in: activeEventIds }, status: "PLAYING" },
         include: {
           table: { select: { id: true, label: true } },
           song: { select: { title: true } },
@@ -280,11 +308,11 @@ export async function POST(req: NextRequest) {
       const now = new Date();
       await prisma.$transaction([
         prisma.queueEntry.updateMany({
-          where: { tenantId, eventId, status: "CURRENT" },
+          where: { tenantId, eventId: { in: activeEventIds }, status: "CURRENT" },
           data: { status: "COMPLETED" },
         }),
         prisma.songRequest.updateMany({
-          where: { tenantId, eventId, status: "PLAYING" },
+          where: { tenantId, eventId: { in: activeEventIds }, status: "PLAYING" },
           data: { status: "PLAYED", playedAt: now },
         }),
       ]);
@@ -294,22 +322,17 @@ export async function POST(req: NextRequest) {
         select: { id: true, code: true, settings: true },
       });
 
-      realtimeBus.broadcast(eventId, "TRACK_CHANGE", {
-        currentEntryId: null,
-      });
-
-      realtimeBus.broadcast(eventId, "QUEUE_UPDATE", {
-        action: "FINISH_CURRENT",
-      });
-
-      if (eventObj?.code) {
-        realtimeBus.broadcast(eventObj.code, "TRACK_CHANGE", {
-          currentEntryId: null,
-        });
-        realtimeBus.broadcast(eventObj.code, "QUEUE_UPDATE", {
-          action: "FINISH_CURRENT",
-        });
+      // Notificar a todos los canales que no hay tema sonando en este momento
+      for (const ev of allActiveEvents) {
+        realtimeBus.broadcast(ev.id, "TRACK_CHANGE", { currentEntryId: null });
+        realtimeBus.broadcast(ev.id, "QUEUE_UPDATE", { action: "FINISH_CURRENT" });
+        if (ev.code) {
+          realtimeBus.broadcast(ev.code, "TRACK_CHANGE", { currentEntryId: null });
+          realtimeBus.broadcast(ev.code, "QUEUE_UPDATE", { action: "FINISH_CURRENT" });
+        }
       }
+      realtimeBus.broadcast("global", "TRACK_CHANGE", { currentEntryId: null });
+      realtimeBus.broadcast("global", "QUEUE_UPDATE", { action: "FINISH_CURRENT" });
 
       for (const p of prevPlaying) {
         realtimeBus.broadcast(eventId, "QUEUE_SLOT_UNLOCKED", {
@@ -337,62 +360,70 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Si el evento tiene activada la opción de otorgar 5s al siguiente turno para dar Play
-      try {
-        const policy = parseQueuePolicy(eventObj?.settings);
-
-        if (policy.nextTurnMode && policy.nextTurnMode !== "DISABLED") {
-          const nextInLine = await prisma.queueEntry.findFirst({
-            where: { tenantId, eventId, status: "QUEUED" },
-            orderBy: { orderIndex: "asc" },
-            include: {
-              songRequest: {
-                include: {
-                  song: { include: { artist: true } },
-                  table: { select: { id: true, label: true } },
-                  guestSession: { select: { guestName: true } },
-                },
-              },
-            },
-          });
-
-          if (nextInLine) {
-            const seconds = policy.nextTurnCountdownSeconds || 5;
-            const startedAt = Date.now();
-            const expiresAt = startedAt + seconds * 1000;
-            const timeoutAction = policy.nextTurnMode === "SKIP_ON_TIMEOUT" ? "SKIP" : "AUTOPLAY";
-
-            const countdownPayload = {
-              queueEntryId: nextInLine.id,
-              songRequestId: nextInLine.songRequestId,
-              tableId: nextInLine.songRequest.tableId,
-              tableLabel: nextInLine.songRequest.table.label,
-              guestName: nextInLine.songRequest.guestSession?.guestName || null,
-              songTitle: nextInLine.songRequest.song?.title || nextInLine.songRequest.customTitle || "Canción",
-              artist: nextInLine.songRequest.song?.artist?.name || nextInLine.songRequest.customArtist || null,
-              seconds,
-              startedAt,
-              expiresAt,
-              timeoutAction,
-            };
-
-            realtimeBus.broadcast(eventId, "NEXT_TURN_COUNTDOWN", countdownPayload);
-            if (eventObj?.code) {
-              realtimeBus.broadcast(eventObj.code, "NEXT_TURN_COUNTDOWN", countdownPayload);
-            }
-          }
-        }
-      } catch (countdownErr) {
-        console.warn("No se pudo iniciar cuenta regresiva de siguiente turno en FINISH_CURRENT:", countdownErr);
-      }
-
       return NextResponse.json({
         success: true,
-        message: "Pista marcada como finalizada y cupo liberado",
+        message: "Reproducción finalizada y bandejas limpiadas",
       });
     }
 
-    // 2.2 Acción: START_NEXT_TURN_COUNTDOWN (otorgar 5 segundos para que el siguiente turno le dé al Play)
+    // 2.2 Acción: LOAD_TO_DECK (montar tema en una bandeja de la cabina y sacarlo de la cola de espera)
+    if (data.action === "LOAD_TO_DECK") {
+      if (!data.queueEntryId) throw new AppError("queueEntryId es obligatorio para LOAD_TO_DECK");
+
+      const targetEntry = await prisma.queueEntry.findFirst({
+        where: { id: data.queueEntryId, tenantId },
+        include: {
+          event: { select: { code: true } },
+          songRequest: { include: { song: true, table: true } },
+        },
+      });
+
+      if (!targetEntry) throw new NotFoundError("Entrada de cola no encontrada");
+
+      const now = new Date();
+
+      // Al cargarse en bandeja, se pasa de "QUEUED" a "CURRENT" para salir inmediatamente de la lista de cola
+      await prisma.$transaction([
+        prisma.queueEntry.update({
+          where: { id: targetEntry.id },
+          data: { status: "CURRENT" },
+        }),
+        prisma.songRequest.update({
+          where: { id: targetEntry.songRequestId },
+          data: { status: "PLAYING", playedAt: now },
+        }),
+      ]);
+
+      realtimeBus.broadcast(targetEntry.eventId, "TRACK_CHANGE", {
+        currentEntryId: targetEntry.id,
+      });
+
+      realtimeBus.broadcast(targetEntry.eventId, "QUEUE_UPDATE", {
+        action: "LOAD_TO_DECK",
+        queueEntryId: targetEntry.id,
+      });
+
+      if (targetEntry.event?.code) {
+        realtimeBus.broadcast(targetEntry.event.code, "TRACK_CHANGE", {
+          currentEntryId: targetEntry.id,
+        });
+        realtimeBus.broadcast(targetEntry.event.code, "QUEUE_UPDATE", {
+          action: "LOAD_TO_DECK",
+          queueEntryId: targetEntry.id,
+        });
+      }
+      realtimeBus.broadcast("global", "QUEUE_UPDATE", {
+        action: "LOAD_TO_DECK",
+        queueEntryId: targetEntry.id,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Tema cargado en bandeja y removido de la cola",
+      });
+    }
+
+    // 2.3 Acción: START_NEXT_TURN_COUNTDOWN (otorgar 5 segundos para que el siguiente turno le dé al Play)
     if (data.action === "START_NEXT_TURN_COUNTDOWN") {
       const eventId = data.eventId;
       if (!eventId) throw new AppError("eventId es obligatorio para START_NEXT_TURN_COUNTDOWN");
