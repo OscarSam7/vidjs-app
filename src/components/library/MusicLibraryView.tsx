@@ -27,6 +27,7 @@ import {
   Video,
   Loader2,
   Gauge,
+  Pencil,
 } from "lucide-react";
 import { VipSelectModal } from "@/components/ui/VipSelectModal";
 
@@ -126,6 +127,24 @@ export function MusicLibraryView({
   const [songToDelete, setSongToDelete] = useState<Song | null>(null);
   const [deletingSongId, setDeletingSongId] = useState<string | null>(null);
   const [actionSuccessNotice, setActionSuccessNotice] = useState<string | null>(null);
+
+  // Estados para Edición de Canción y Cambio de Categoría
+  const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const [editSongForm, setEditSongForm] = useState({
+    title: "",
+    genre: "Varios",
+    newCustomGenre: "",
+    bpm: 120,
+    key: "",
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Estados para Gestión de Categorías / Géneros
+  const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
   // Subida de archivos MP4 / Audio
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
@@ -480,6 +499,128 @@ export function MusicLibraryView({
     }
   };
 
+  // Abrir modal para editar pista y cambiar de categoría
+  const handleOpenEditSong = (song: Song) => {
+    setEditingSong(song);
+    setEditSongForm({
+      title: song.title,
+      genre: song.genre || "Varios",
+      newCustomGenre: "",
+      bpm: song.bpm || 120,
+      key: song.key || "",
+    });
+  };
+
+  // Guardar cambios de edición de la pista y categoría
+  const handleSaveEditSong = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSong) return;
+
+    try {
+      setIsSavingEdit(true);
+      const chosenGenre = editSongForm.newCustomGenre.trim() || editSongForm.genre.trim() || "Varios";
+
+      const res = await fetch("/api/v1/library", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingSong.id,
+          title: editSongForm.title.trim() || editingSong.title,
+          genre: chosenGenre,
+          bpm: editSongForm.bpm ? Number(editSongForm.bpm) : null,
+          key: editSongForm.key.trim() || null,
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success && json.data) {
+        setSongs((prev) =>
+          prev.map((s) => (s.id === editingSong.id ? { ...s, ...json.data } : s))
+        );
+        // Actualizar lista de géneros en memoria si es nuevo
+        setGenres((prev) => {
+          const exists = prev.find((g) => g.name.toLowerCase() === chosenGenre.toLowerCase());
+          if (exists) {
+            return prev;
+          }
+          return [...prev, { name: chosenGenre, count: 1 }].sort((a, b) => b.count - a.count);
+        });
+        showNotice(`✅ ¡Pista "${json.data.title}" actualizada a categoría "${chosenGenre}"!`);
+        setEditingSong(null);
+      } else {
+        alert(json.error?.message || json.error || "No se pudo actualizar la pista");
+      }
+    } catch (err) {
+      console.error("Error al actualizar pista:", err);
+      alert("Error de conexión al guardar cambios.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // Agregar nueva categoría
+  const handleAddCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = newCategoryName.trim();
+    if (!cleanName) return;
+
+    try {
+      setIsSavingCategory(true);
+      const res = await fetch("/api/v1/library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "CREATE_CATEGORY", name: cleanName }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setGenres((prev) => {
+          if (prev.some((g) => g.name.toLowerCase() === cleanName.toLowerCase())) return prev;
+          return [...prev, { name: cleanName, count: 0 }].sort((a, b) => b.count - a.count);
+        });
+        setNewCategoryName("");
+        setIsAddCategoryModalOpen(false);
+        showNotice(`✅ ¡Categoría "${cleanName}" creada exitosamente!`);
+      } else {
+        alert(json.error?.message || json.error || "No se pudo crear la categoría");
+      }
+    } catch (err) {
+      console.error("Error al crear categoría:", err);
+      alert("Error de conexión al crear categoría.");
+    } finally {
+      setIsSavingCategory(false);
+    }
+  };
+
+  // Eliminar categoría
+  const handleDeleteCategoryConfirm = async () => {
+    if (!categoryToDelete) return;
+    try {
+      setIsDeletingCategory(true);
+      const res = await fetch(`/api/v1/library?category=${encodeURIComponent(categoryToDelete)}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (json.success) {
+        setGenres((prev) => prev.filter((g) => g.name !== categoryToDelete));
+        setSongs((prev) =>
+          prev.map((s) => (s.genre === categoryToDelete ? { ...s, genre: "Varios" } : s))
+        );
+        if (selectedGenre === categoryToDelete) {
+          setSelectedGenre("ALL");
+        }
+        showNotice(`🗑️ Categoría "${categoryToDelete}" eliminada. Canciones reasignadas a "Varios".`);
+        setCategoryToDelete(null);
+      } else {
+        alert(json.error?.message || json.error || "No se pudo eliminar la categoría");
+      }
+    } catch (err) {
+      console.error("Error al eliminar categoría:", err);
+      alert("Error de conexión al eliminar categoría.");
+    } finally {
+      setIsDeletingCategory(false);
+    }
+  };
+
   // Formato mm:ss
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -532,11 +673,14 @@ export function MusicLibraryView({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 text-xs font-bold"
+              className="px-3 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-red-950/60 text-zinc-300 hover:text-red-200 border border-red-500/30 hover:border-red-500/60 transition-all cursor-pointer shrink-0 flex items-center gap-2 text-xs font-bold group active:scale-95"
               title="Volver a los platos DJ (Tecla Esc o B)"
             >
-              <X className="w-4 h-4 text-purple-400" />
-              <span className="hidden sm:inline">Cerrar</span>
+              <X className="w-3.5 h-3.5 text-red-400 group-hover:rotate-90 transition-transform" />
+              <span>Cerrar</span>
+              <kbd className="px-1.5 py-0.5 rounded bg-black/60 border border-red-500/30 text-[9px] font-mono font-bold text-red-300">
+                ESC
+              </kbd>
             </button>
           )}
         </div>
@@ -976,39 +1120,79 @@ export function MusicLibraryView({
         </div>
       )}
 
-      {/* VISTA 3: GÉNEROS */}
+      {/* VISTA 3: GÉNEROS / CATEGORÍAS */}
       {activeTab === "GENRES" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Tag className="w-4 h-4 text-cyan-400" />
-              Explorador por Género Musical
-            </h2>
-            <span className="text-xs text-zinc-400">{genres.length} géneros disponibles</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800">
+            <div>
+              <h2 className="text-base font-black text-white flex items-center gap-2">
+                <Tag className="w-4 h-4 text-cyan-400" />
+                Gestor de Categorías & Géneros Musicales
+              </h2>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Organiza tu catálogo musical. Agrega nuevas categorías o elimina existentes ({genres.length} disponibles).
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsAddCategoryModalOpen(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-cyan-900/30 transition-all cursor-pointer active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Nueva Categoría</span>
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {genres.map((g) => (
-              <button
+              <div
                 key={g.name}
-                onClick={() => {
-                  setSelectedGenre(g.name);
-                  setActiveTab("ALL");
-                }}
-                className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-cyan-500/50 transition-all text-left group cursor-pointer flex items-center justify-between"
+                className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-cyan-500/40 transition-all text-left group flex flex-col justify-between gap-3 shadow-md"
               >
-                <div>
-                  <div className="font-extrabold text-sm text-white group-hover:text-cyan-300 transition-colors">
-                    {g.name}
+                <div
+                  onClick={() => {
+                    setSelectedGenre(g.name);
+                    setActiveTab("ALL");
+                  }}
+                  className="cursor-pointer"
+                >
+                  <div className="font-extrabold text-sm text-white group-hover:text-cyan-300 transition-colors flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span className="truncate">{g.name}</span>
                   </div>
-                  <div className="text-xs text-zinc-400 mt-0.5">
-                    {g.count} {g.count === 1 ? "canción" : "canciones"}
+                  <div className="text-xs text-zinc-400 mt-1 flex items-center gap-1.5">
+                    <Music className="w-3 h-3 text-zinc-500" />
+                    <span>{g.count} {g.count === 1 ? "canción" : "canciones"}</span>
                   </div>
                 </div>
-                <span className="p-2 rounded-xl bg-cyan-600/10 text-cyan-400 group-hover:bg-cyan-600/20 transition-colors">
-                  <ArrowRight className="w-4 h-4" />
-                </span>
-              </button>
+
+                <div className="flex items-center justify-between pt-2.5 border-t border-zinc-800/70 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedGenre(g.name);
+                      setActiveTab("ALL");
+                    }}
+                    className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Ver Pistas</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+
+                  {/* Botón Eliminar Categoría */}
+                  <button
+                    type="button"
+                    onClick={() => setCategoryToDelete(g.name)}
+                    className="px-2 py-1 rounded-lg bg-red-950/40 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1"
+                    title={`Eliminar categoría "${g.name}"`}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Eliminar</span>
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -1112,11 +1296,18 @@ export function MusicLibraryView({
                             {song.artist?.name || "—"}
                           </td>
 
-                          {/* Col 4: Género */}
+                          {/* Col 4: Género / Categoría */}
                           <td className="py-3 px-3.5">
-                            <span className="px-2 py-0.5 rounded-md bg-zinc-800/80 border border-zinc-700/60 text-[11px] text-zinc-300">
-                              {song.genre || "Varios"}
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditSong(song)}
+                              className="px-2 py-0.5 rounded-md bg-zinc-800/80 hover:bg-purple-900/40 border border-zinc-700/60 hover:border-purple-500/50 text-[11px] text-zinc-300 hover:text-purple-200 transition-colors cursor-pointer inline-flex items-center gap-1 group/cat"
+                              title="Clic para cambiar la categoría de esta canción"
+                            >
+                              <Tag className="w-3 h-3 text-cyan-400 shrink-0" />
+                              <span className="truncate max-w-[120px]">{song.genre || "Varios"}</span>
+                              <Pencil className="w-2.5 h-2.5 text-zinc-500 group-hover/cat:text-purple-300 shrink-0 transition-colors" />
+                            </button>
                           </td>
 
                           {/* Col 5: BPM & Key */}
@@ -1211,6 +1402,15 @@ export function MusicLibraryView({
                               >
                                 <Mic className="w-3 h-3" />
                                 Karaoke
+                              </button>
+
+                              {/* Botón Editar Pista & Cambiar Categoría */}
+                              <button
+                                onClick={() => handleOpenEditSong(song)}
+                                className="p-1.5 rounded-lg bg-zinc-800/80 hover:bg-purple-600 text-zinc-400 hover:text-white border border-zinc-700/60 hover:border-purple-500 text-[10px] transition-all cursor-pointer shadow-sm"
+                                title="Editar pista y cambiar categoría"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
                               </button>
 
                               {/* Botón Eliminar Pista */}
@@ -1637,6 +1837,241 @@ export function MusicLibraryView({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDITAR PISTA Y CAMBIAR CATEGORÍA */}
+      {editingSong && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-600/20 border border-purple-500/30 text-purple-400 flex items-center justify-center">
+                  <Pencil className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Editar Pista & Categoría</h3>
+                  <p className="text-xs text-zinc-400">Modifica la categoría y detalles de la canción</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingSong(null)}
+                className="text-zinc-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditSong} className="space-y-4">
+              <div>
+                <label className="text-[11px] font-bold text-zinc-300 block mb-1">Título de la Canción *</label>
+                <input
+                  type="text"
+                  required
+                  value={editSongForm.title}
+                  onChange={(e) => setEditSongForm({ ...editSongForm, title: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              {/* Categoría / Género Actual */}
+              <div>
+                <label className="text-[11px] font-bold text-zinc-300 block mb-1.5 flex items-center justify-between">
+                  <span>Categoría / Género *</span>
+                  <span className="text-[10px] text-purple-400 font-normal">Elige o escribe una nueva abajo</span>
+                </label>
+                <VipSelectModal
+                  value={editSongForm.genre}
+                  onChange={(val) => setEditSongForm({ ...editSongForm, genre: val, newCustomGenre: "" })}
+                  options={genres.map((g) => ({
+                    value: g.name,
+                    label: g.name,
+                    subtitle: `${g.count} pistas en biblioteca`,
+                    badge: `${g.count}`,
+                    icon: Tag,
+                  }))}
+                  title="Seleccionar Categoría"
+                  placeholder="Elige una categoría existente"
+                  icon={Tag}
+                  showSearch={genres.length > 5}
+                />
+              </div>
+
+              {/* O ingresar nueva categoría personalizada */}
+              <div className="pt-1">
+                <label className="text-[10px] text-zinc-400 block mb-1 font-semibold">
+                  ...o escribir un nombre de Nueva Categoría:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Electro Latino / Hits 2026..."
+                  value={editSongForm.newCustomGenre}
+                  onChange={(e) => setEditSongForm({ ...editSongForm, newCustomGenre: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-purple-200 placeholder-zinc-600 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="text-[11px] font-bold text-zinc-300 block mb-1">BPM (Velocidad)</label>
+                  <input
+                    type="number"
+                    min="40"
+                    max="240"
+                    value={editSongForm.bpm || ""}
+                    onChange={(e) => setEditSongForm({ ...editSongForm, bpm: Number(e.target.value) || 120 })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-zinc-300 block mb-1">Tonalidad / Key</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Am, C, 8A"
+                    value={editSongForm.key}
+                    onChange={(e) => setEditSongForm({ ...editSongForm, key: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingSong(null)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isSavingEdit ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <span>Guardar Cambios</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: AGREGAR NUEVA CATEGORÍA */}
+      {isAddCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl max-w-sm w-full p-6 space-y-5 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyan-600/20 border border-cyan-500/30 text-cyan-400 flex items-center justify-center">
+                  <Tag className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Nueva Categoría</h3>
+                  <p className="text-xs text-zinc-400">Crea un género para clasificar canciones</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddCategoryModalOpen(false)}
+                className="text-zinc-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddCategorySubmit} className="space-y-4">
+              <div>
+                <label className="text-[11px] font-bold text-zinc-300 block mb-1">Nombre de la Categoría *</label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="Ej: Cachengue, Bachata, Reggaeton VIP..."
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAddCategoryModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingCategory}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs shadow-lg shadow-cyan-600/30 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isSavingCategory ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Creando...</span>
+                    </>
+                  ) : (
+                    <span>Crear Categoría</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CONFIRMAR ELIMINACIÓN DE CATEGORÍA */}
+      {categoryToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/30 text-red-400 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white">¿Eliminar Categoría?</h3>
+                <p className="text-xs text-zinc-400">Se eliminará "{categoryToDelete}"</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-zinc-300 leading-relaxed bg-zinc-950 p-3 rounded-xl border border-zinc-800">
+              Las pistas que pertenezcan a esta categoría <strong>no serán eliminadas</strong>, sino que se reasignarán automáticamente a la categoría general <strong>"Varios"</strong>.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setCategoryToDelete(null)}
+                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingCategory}
+                onClick={handleDeleteCategoryConfirm}
+                className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/30 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isDeletingCategory ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Eliminando...</span>
+                  </>
+                ) : (
+                  <span>Sí, Eliminar</span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

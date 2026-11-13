@@ -4328,17 +4328,29 @@ export default function VirtualDjConsole({
               setIsLibraryOpen((prev) => !prev);
               setLibraryTargetDeckHint(null);
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer shadow-md ${
+            className={`px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer shadow-lg active:scale-95 group ${
               isLibraryOpen
-                ? "bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/40 ring-2 ring-amber-300"
-                : "bg-zinc-900 hover:bg-zinc-800 text-amber-300 hover:text-amber-200 border border-amber-500/40"
+                ? "bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 text-zinc-950 shadow-amber-500/30 ring-2 ring-amber-300/80 font-black"
+                : "bg-zinc-900/90 hover:bg-zinc-800/90 text-amber-300 hover:text-amber-200 border border-amber-500/40 hover:border-amber-400/70 shadow-black/60"
             }`}
             title="Abrir/Cerrar Biblioteca Musical sin detener la música en vivo (Atajo de teclado: B)"
           >
-            <ListMusic className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>{isLibraryOpen ? "OCULTAR BIBLIOTECA [B]" : "📚 BIBLIOTECA [B]"}</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30 font-mono hidden sm:inline">
-              EN VIVO
+            <div className={`p-1 rounded-lg ${isLibraryOpen ? "bg-black/20 text-zinc-950" : "bg-amber-500/20 text-amber-400 group-hover:scale-110"} transition-transform`}>
+              <ListMusic className="w-4 h-4 shrink-0" />
+            </div>
+            <span className="tracking-wide">
+              {isLibraryOpen ? "Ocultar Biblioteca" : "Biblioteca Musical"}
+            </span>
+            <kbd className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-black ${
+              isLibraryOpen
+                ? "bg-black/30 text-zinc-900 border border-black/20"
+                : "bg-black/60 text-amber-300/90 border border-amber-500/30"
+            }`}>
+              B
+            </kbd>
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold font-mono hidden sm:inline-flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              LIVE
             </span>
           </button>
 
@@ -6780,11 +6792,14 @@ export default function VirtualDjConsole({
               <button
                 type="button"
                 onClick={() => setIsLibraryOpen(false)}
-                className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-red-950/50 text-zinc-400 hover:text-red-300 border border-zinc-750 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                className="px-3 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-red-950/60 text-zinc-300 hover:text-red-200 border border-red-500/30 hover:border-red-500/60 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer group shadow-sm active:scale-95"
                 title="Cerrar biblioteca (Atajo: Esc o B)"
               >
-                <X className="w-4 h-4 text-red-400" />
-                <span>Cerrar [Esc]</span>
+                <X className="w-3.5 h-3.5 text-red-400 group-hover:rotate-90 transition-transform" />
+                <span>Cerrar</span>
+                <kbd className="px-1.5 py-0.5 rounded bg-black/60 border border-red-500/30 text-[9px] font-mono font-bold text-red-300">
+                  ESC
+                </kbd>
               </button>
             </div>
           </div>
@@ -6904,11 +6919,14 @@ export default function VirtualDjConsole({
               <button
                 type="button"
                 onClick={() => setIsLibraryOpen(false)}
-                className="px-3 py-1.5 rounded-xl bg-red-600/90 hover:bg-red-500 text-white text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-red-950/80 via-zinc-900 to-zinc-900 hover:from-red-900/90 hover:to-red-950 text-red-200 hover:text-white border border-red-500/50 hover:border-red-400 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-red-950/40 group active:scale-95"
                 title="Cerrar biblioteca y volver a la cabina completa (Atajo: Esc o B)"
               >
-                <X className="w-4 h-4" />
-                <span>CERRAR [ESC]</span>
+                <X className="w-3.5 h-3.5 text-red-400 group-hover:rotate-90 transition-transform" />
+                <span className="font-extrabold tracking-wide">Cerrar</span>
+                <kbd className="px-1.5 py-0.5 rounded bg-black/70 border border-red-500/40 text-[9px] font-mono font-bold text-red-300 shadow-inner">
+                  ESC
+                </kbd>
               </button>
             </div>
 

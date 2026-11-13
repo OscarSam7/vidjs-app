@@ -126,21 +126,9 @@ export async function GET(req: NextRequest) {
       orderBy: [{ title: "asc" }],
     });
 
-    // 3. Extraer y estructurar géneros únicos
-    const genreMap = new Map<string, number>();
-    songs.forEach((song) => {
-      const g = song.genre?.trim();
-      if (g) {
-        genreMap.set(g, (genreMap.get(g) || 0) + 1);
-      }
-    });
-
-    const genresList = Array.from(genreMap.entries())
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count);
-
-    // 4. Cargar Playlists del Tenant guardadas en settings + Playlists del sistema
+    // 3. Cargar Playlists y Categorías personalizadas del Tenant
     let customPlaylists: any[] = [];
+    let customGenres: string[] = [];
     if (session.tenantId) {
       const tenant = await prisma.tenant.findUnique({
         where: { id: session.tenantId },
@@ -152,9 +140,33 @@ export async function GET(req: NextRequest) {
           if (Array.isArray(parsed.customPlaylists)) {
             customPlaylists = parsed.customPlaylists;
           }
+          if (Array.isArray(parsed.customGenres)) {
+            customGenres = parsed.customGenres;
+          }
         } catch {}
       }
     }
+
+    // 4. Extraer y estructurar géneros / categorías únicos
+    const genreMap = new Map<string, number>();
+    songs.forEach((song) => {
+      const g = song.genre?.trim();
+      if (g) {
+        genreMap.set(g, (genreMap.get(g) || 0) + 1);
+      }
+    });
+
+    // Asegurar que las categorías creadas por el usuario aparezcan aunque tengan 0 canciones
+    customGenres.forEach((cg) => {
+      const trimmed = cg?.trim();
+      if (trimmed && !genreMap.has(trimmed)) {
+        genreMap.set(trimmed, 0);
+      }
+    });
+
+    const genresList = Array.from(genreMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
 
     // Resolver canciones para las playlists predeterminadas
     const enrichedDefaultPlaylists = DEFAULT_PLAYLISTS.map((pl) => {
@@ -327,6 +339,50 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (action === "CREATE_CATEGORY") {
+      const name = sanitizeText(body.name || "").trim();
+      if (!name) {
+        throw new BadRequestError("El nombre de la categoría es requerido.");
+      }
+
+      let targetTenantId = session.tenantId;
+      if (!targetTenantId) {
+        const firstTenant = await prisma.tenant.findFirst({ select: { id: true } });
+        targetTenantId = firstTenant?.id || null;
+      }
+
+      if (targetTenantId) {
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: targetTenantId },
+          select: { settings: true },
+        });
+
+        let currentSettings: any = {};
+        try {
+          if (tenant?.settings) currentSettings = JSON.parse(tenant.settings);
+        } catch {}
+
+        const existingGenres: string[] = Array.isArray(currentSettings.customGenres)
+          ? currentSettings.customGenres
+          : [];
+
+        if (!existingGenres.includes(name)) {
+          existingGenres.push(name);
+          currentSettings.customGenres = existingGenres;
+          await prisma.tenant.update({
+            where: { id: targetTenantId },
+            data: { settings: JSON.stringify(currentSettings) },
+          });
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Categoría "${name}" creada exitosamente.`,
+        data: { name, count: 0 },
+      });
+    }
+
     // Acción por defecto: CREAR CANCIÓN / PISTA
     const data = newSongSchema.parse(body);
     const cleanTitle = sanitizeText(data.title);
@@ -413,6 +469,87 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await getCurrentSession();
+    if (!session) {
+      throw new UnauthorizedError("Debes iniciar sesión con rol de DJ, Staff o Administrador.");
+    }
+
+    const body = await req.json();
+    const songId = body.id || body.songId;
+
+    if (!songId) {
+      throw new BadRequestError("Se requiere el identificador de la pista a actualizar.");
+    }
+
+    const existingSong = await prisma.song.findUnique({
+      where: { id: songId },
+      include: { artist: true },
+    });
+
+    if (!existingSong) {
+      throw new BadRequestError("La canción seleccionada no existe.");
+    }
+
+    const updateData: any = {};
+    if (body.genre !== undefined) {
+      updateData.genre = body.genre ? sanitizeText(body.genre).trim() : "Varios";
+    }
+    if (body.title !== undefined && body.title.trim()) {
+      updateData.title = sanitizeText(body.title).trim();
+    }
+    if (body.bpm !== undefined) {
+      updateData.bpm = body.bpm ? Number(body.bpm) : null;
+    }
+    if (body.key !== undefined) {
+      updateData.key = body.key ? body.key.trim() : null;
+    }
+    if (body.durationSeconds !== undefined) {
+      updateData.durationSeconds = Number(body.durationSeconds) || existingSong.durationSeconds;
+    }
+
+    const updatedSong = await prisma.song.update({
+      where: { id: songId },
+      data: updateData,
+      include: {
+        artist: { select: { id: true, name: true, imageUrl: true } },
+      },
+    });
+
+    // Si el género asignado es nuevo, guardarlo también en customGenres del tenant
+    if (updateData.genre && updateData.genre !== "Varios" && session.tenantId) {
+      try {
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: session.tenantId },
+          select: { settings: true },
+        });
+        let currentSettings: any = {};
+        if (tenant?.settings) currentSettings = JSON.parse(tenant.settings);
+        const existingGenres: string[] = Array.isArray(currentSettings.customGenres)
+          ? currentSettings.customGenres
+          : [];
+        if (!existingGenres.includes(updateData.genre)) {
+          existingGenres.push(updateData.genre);
+          currentSettings.customGenres = existingGenres;
+          await prisma.tenant.update({
+            where: { id: session.tenantId },
+            data: { settings: JSON.stringify(currentSettings) },
+          });
+        }
+      } catch {}
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Pista "${updatedSong.title}" actualizada exitosamente.`,
+      data: updatedSong,
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getCurrentSession();
@@ -423,8 +560,52 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const songId = searchParams.get("id");
     const playlistId = searchParams.get("playlistId");
+    const categoryName = searchParams.get("category");
 
-    // Caso 1: Eliminar una playlist personalizada
+    // Caso 1: Eliminar una categoría completa de canciones
+    if (categoryName) {
+      const cleanCat = decodeURIComponent(categoryName).trim();
+      if (!cleanCat) {
+        throw new BadRequestError("El nombre de la categoría es inválido.");
+      }
+
+      // Reasignar canciones que pertenezcan a esta categoría a "Varios"
+      await prisma.song.updateMany({
+        where: {
+          genre: cleanCat,
+          ...(session.tenantId ? { tenantId: session.tenantId } : {}),
+        },
+        data: { genre: "Varios" },
+      });
+
+      // Si estaba guardada en customGenres de tenant settings, quitarla
+      if (session.tenantId) {
+        try {
+          const tenant = await prisma.tenant.findUnique({
+            where: { id: session.tenantId },
+            select: { settings: true },
+          });
+          let currentSettings: any = {};
+          if (tenant?.settings) currentSettings = JSON.parse(tenant.settings);
+          if (Array.isArray(currentSettings.customGenres)) {
+            currentSettings.customGenres = currentSettings.customGenres.filter(
+              (g: string) => g !== cleanCat
+            );
+            await prisma.tenant.update({
+              where: { id: session.tenantId },
+              data: { settings: JSON.stringify(currentSettings) },
+            });
+          }
+        } catch {}
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Categoría "${cleanCat}" eliminada exitosamente. Las pistas asociadas fueron reasignadas a "Varios".`,
+      });
+    }
+
+    // Caso 2: Eliminar una playlist personalizada
     if (playlistId) {
       if (!session.tenantId) {
         throw new BadRequestError("Se requiere un establecimiento para gestionar playlists.");
