@@ -7,6 +7,8 @@ import {
   RefreshCw,
   User,
   Filter,
+  RotateCcw,
+  XCircle,
 } from "lucide-react";
 import {
   formatGuaranies,
@@ -16,12 +18,16 @@ import {
 } from "@/lib/gastronomy/format";
 import { useRealtime } from "@/hooks/use-realtime";
 import { VipSelectModal } from "@/components/ui/VipSelectModal";
+import { AnnulSaleModal } from "@/components/gastronomy/AnnulSaleModal";
+import { CancelUnpaidOrderModal } from "@/components/gastronomy/CancelUnpaidOrderModal";
 
 export default function GastronomyOrderHistoryPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [annulOrderTarget, setAnnulOrderTarget] = useState<any | null>(null);
+  const [cancelOrderTarget, setCancelOrderTarget] = useState<any | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -146,12 +152,13 @@ export default function GastronomyOrderHistoryPage() {
               <th className="py-2.5 px-3">Pago</th>
               <th className="py-2.5 px-3">Total Gs.</th>
               <th className="py-2.5 px-3">Estado</th>
+              <th className="py-2.5 px-3 text-right">Acción</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5 text-xs">
             {filteredOrders.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-zinc-500">
+                <td colSpan={8} className="py-10 text-center text-zinc-500">
                   No se encontraron pedidos con los filtros seleccionados.
                 </td>
               </tr>
@@ -199,6 +206,8 @@ export default function GastronomyOrderHistoryPage() {
                       className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                         o.paymentStatus === "APPROVED"
                           ? "bg-emerald-500/15 text-emerald-400"
+                          : o.paymentStatus === "REFUNDED"
+                          ? "bg-red-500/15 text-red-400"
                           : "bg-amber-500/15 text-amber-300"
                       }`}
                     >
@@ -221,9 +230,36 @@ export default function GastronomyOrderHistoryPage() {
                       {ORDER_STATUS_LABELS[o.status] || o.status}
                     </span>
                     {o.cancelReason && (
-                      <div className="text-[10px] text-red-400 mt-1">
-                        Motivo: {o.cancelReason}
+                      <div className="text-[10px] text-red-400 mt-1 max-w-xs break-words">
+                        {o.cancelReason}
                       </div>
+                    )}
+                  </td>
+                  <td className="py-3 px-3 text-right">
+                    {o.status !== "CANCELLED" ? (
+                      o.paymentStatus === "APPROVED" || (o.paidCents || 0) > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => setAnnulOrderTarget(o)}
+                          className="px-2 py-1 rounded-lg bg-red-950/60 hover:bg-red-900/80 border border-red-700/50 text-red-300 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                          title="Anular venta cobrada"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Anular</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setCancelOrderTarget(o)}
+                          className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-amber-950/70 border border-white/10 hover:border-amber-500/40 text-slate-300 hover:text-amber-300 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                          title="Cancelar comanda no pagada"
+                        >
+                          <XCircle className="w-3 h-3 text-amber-400" />
+                          <span>Cancelar</span>
+                        </button>
+                      )
+                    ) : (
+                      <span className="text-[10px] text-zinc-500 font-semibold italic">Anulado</span>
                     )}
                   </td>
                 </tr>
@@ -232,6 +268,21 @@ export default function GastronomyOrderHistoryPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Modales de Anulación y Cancelación */}
+      <AnnulSaleModal
+        isOpen={Boolean(annulOrderTarget)}
+        onClose={() => setAnnulOrderTarget(null)}
+        onSuccess={loadData}
+        order={annulOrderTarget}
+      />
+
+      <CancelUnpaidOrderModal
+        isOpen={Boolean(cancelOrderTarget)}
+        onClose={() => setCancelOrderTarget(null)}
+        onSuccess={loadData}
+        order={cancelOrderTarget}
+      />
     </div>
   );
 }

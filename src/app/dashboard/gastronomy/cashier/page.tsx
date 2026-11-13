@@ -22,6 +22,8 @@ import {
   GASTRO_PAYMENT_METHOD_LABELS,
 } from "@/lib/gastronomy/format";
 import { VipSelectModal } from "@/components/ui/VipSelectModal";
+import { AnnulSaleModal } from "@/components/gastronomy/AnnulSaleModal";
+import { CancelUnpaidOrderModal } from "@/components/gastronomy/CancelUnpaidOrderModal";
 
 export default function GastronomyCashierPage() {
   const [data, setData] = useState<any>(null);
@@ -52,6 +54,10 @@ export default function GastronomyCashierPage() {
   const [openingCash, setOpeningCash] = useState(500000);
   const [countedCash, setCountedCash] = useState(0);
   const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
+
+  // Modales de Anulación y Cancelación
+  const [annulOrderTarget, setAnnulOrderTarget] = useState<any | null>(null);
+  const [cancelOrderTarget, setCancelOrderTarget] = useState<any | null>(null);
 
   const selectOrderForPayment = useCallback((ord: any) => {
     const balance = Math.max(0, ord.totalCents - ord.paidCents);
@@ -414,64 +420,47 @@ export default function GastronomyCashierPage() {
                       </div>
                     </div>
 
-                    {/* Acciones rápidas Cobrar / Rechazar / Reembolsar */}
-                    <div className="flex items-center justify-between pt-1 text-[11px]">
+                    {/* Acciones rápidas Cobrar / Anular Venta / Cancelar Pedido */}
+                    <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[11px]">
                       <span className="text-slate-400">
                         Método: {GASTRO_PAYMENT_METHOD_LABELS[ord.paymentMethodSelected] || ord.paymentMethodSelected}
                       </span>
                       {ord.paymentStatus === "APPROVED" ? (
                         <button
-                          onClick={async (e) => {
+                          type="button"
+                          onClick={(e) => {
                             e.stopPropagation();
-                            const reason = prompt("Motivo del reembolso:");
-                            if (reason) {
-                              await fetch("/api/v1/gastronomy/payments", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                  action: "REFUND_PAYMENT",
-                                  orderId: ord.id,
-                                  reason,
-                                }),
-                              });
-                              await loadData();
-                            }
+                            setAnnulOrderTarget(ord);
                           }}
-                          className="text-purple-300 hover:text-purple-200 font-bold flex items-center gap-1"
+                          className="px-2.5 py-1 rounded-lg bg-red-950/60 hover:bg-red-900/70 border border-red-700/50 text-red-300 font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Anular venta cobrada en caja y reintegrar stock"
                         >
-                          <RotateCcw className="w-3 h-3" /> Reembolsar
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Anular Venta</span>
                         </button>
                       ) : (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               selectOrderForPayment(ord);
                             }}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold cursor-pointer"
                           >
-                            Cobrar en Terminal →
+                            Cobrar →
                           </button>
                           <button
-                            onClick={async (e) => {
+                            type="button"
+                            onClick={(e) => {
                               e.stopPropagation();
-                              const reason = prompt("Motivo de rechazo del pago:");
-                              if (reason) {
-                                await fetch("/api/v1/gastronomy/payments", {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({
-                                    action: "REJECT_PAYMENT",
-                                    orderId: ord.id,
-                                    reason,
-                                  }),
-                                });
-                                await loadData();
-                              }
+                              setCancelOrderTarget(ord);
                             }}
-                            className="text-red-400 hover:text-red-300 font-bold flex items-center gap-1"
+                            className="px-2 py-1 rounded-lg bg-zinc-900 hover:bg-red-950/70 border border-white/10 hover:border-red-500/50 text-slate-400 hover:text-red-300 font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                            title="Cancelar o borrar pedido no pagado"
                           >
-                            <XCircle className="w-3 h-3" />
+                            <XCircle className="w-3.5 h-3.5 text-red-400" />
+                            <span>Descartar</span>
                           </button>
                         </div>
                       )}
@@ -1000,6 +989,22 @@ export default function GastronomyCashierPage() {
           )}
         </div>
       )}
+
+      {/* Modal para Anular Venta Cobrada en Caja */}
+      <AnnulSaleModal
+        isOpen={Boolean(annulOrderTarget)}
+        onClose={() => setAnnulOrderTarget(null)}
+        onSuccess={loadData}
+        order={annulOrderTarget}
+      />
+
+      {/* Modal para Cancelar o Borrar Pedido No Pagado */}
+      <CancelUnpaidOrderModal
+        isOpen={Boolean(cancelOrderTarget)}
+        onClose={() => setCancelOrderTarget(null)}
+        onSuccess={loadData}
+        order={cancelOrderTarget}
+      />
     </div>
   );
 }

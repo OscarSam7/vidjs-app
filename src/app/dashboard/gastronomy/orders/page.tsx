@@ -17,8 +17,11 @@ import {
   Banknote,
   MapPin,
   Clock,
+  RotateCcw,
 } from "lucide-react";
 import { VipSelectModal } from "@/components/ui/VipSelectModal";
+import { AnnulSaleModal } from "@/components/gastronomy/AnnulSaleModal";
+import { CancelUnpaidOrderModal } from "@/components/gastronomy/CancelUnpaidOrderModal";
 import { useRealtime } from "@/hooks/use-realtime";
 import {
   formatGuaranies,
@@ -33,6 +36,8 @@ export default function GastronomyOrdersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [annulOrderTarget, setAnnulOrderTarget] = useState<any | null>(null);
+  const [cancelOrderTarget, setCancelOrderTarget] = useState<any | null>(null);
 
   // Estado para pedido manual
   const [selectedTableId, setSelectedTableId] = useState("");
@@ -326,38 +331,49 @@ export default function GastronomyOrdersPage() {
                     </span>
                   </div>
 
-                  {ord.status !== "CANCELLED" && ord.status !== "DELIVERED" && (
+                  {ord.status !== "CANCELLED" && (
                     <div className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <VipSelectModal
-                          value={ord.priority || "NORMAL"}
-                          onChange={(val) =>
-                            handleOrderAction(ord.id, "CHANGE_PRIORITY", { priority: val })
-                          }
-                          options={[
-                            { value: "NORMAL", label: "Prioridad Normal", badge: "ESTÁNDAR", badgeTone: "bg-zinc-800 text-zinc-300 border-zinc-700" },
-                            { value: "HIGH", label: "Prioridad Alta", badge: "ALTA", badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40", icon: Flame },
-                            { value: "VIP", label: "Prioridad VIP", badge: "URGENTE VIP", badgeTone: "bg-rose-500/20 text-rose-300 border-rose-500/40", icon: Flame },
-                          ]}
-                          title="Cambiar Prioridad del Pedido"
-                          subtitle={`${ord.tableLabel} • ${ord.orderNumber}`}
-                          placeholder="Prioridad..."
-                          icon={Flame}
-                        />
-                      </div>
+                      {ord.status !== "DELIVERED" && (
+                        <div className="flex-1">
+                          <VipSelectModal
+                            value={ord.priority || "NORMAL"}
+                            onChange={(val) =>
+                              handleOrderAction(ord.id, "CHANGE_PRIORITY", { priority: val })
+                            }
+                            options={[
+                              { value: "NORMAL", label: "Prioridad Normal", badge: "ESTÁNDAR", badgeTone: "bg-zinc-800 text-zinc-300 border-zinc-700" },
+                              { value: "HIGH", label: "Prioridad Alta", badge: "ALTA", badgeTone: "bg-amber-500/20 text-amber-300 border-amber-500/40", icon: Flame },
+                              { value: "VIP", label: "Prioridad VIP", badge: "URGENTE VIP", badgeTone: "bg-rose-500/20 text-rose-300 border-rose-500/40", icon: Flame },
+                            ]}
+                            title="Cambiar Prioridad del Pedido"
+                            subtitle={`${ord.tableLabel} • ${ord.orderNumber}`}
+                            placeholder="Prioridad..."
+                            icon={Flame}
+                          />
+                        </div>
+                      )}
 
-                      <button
-                        onClick={() => {
-                          const reason = prompt("Motivo de cancelación del pedido:");
-                          if (reason) {
-                            handleOrderAction(ord.id, "CANCEL_ORDER", { reason });
-                          }
-                        }}
-                        className="px-2.5 py-1.5 rounded-xl bg-red-950/60 hover:bg-red-900/70 text-red-300 border border-red-700/50 text-[11px] font-bold flex items-center gap-1"
-                      >
-                        <XCircle className="w-3.5 h-3.5" />
-                        <span>Cancelar</span>
-                      </button>
+                      {ord.paymentStatus === "APPROVED" || (ord.paidCents || 0) > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => setAnnulOrderTarget(ord)}
+                          className="px-2.5 py-1.5 rounded-xl bg-red-950/60 hover:bg-red-900/70 text-red-300 border border-red-700/50 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Anular venta cobrada en caja"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Anular Venta</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setCancelOrderTarget(ord)}
+                          className="px-2.5 py-1.5 rounded-xl bg-amber-950/60 hover:bg-amber-900/70 text-amber-300 border border-amber-700/50 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Cancelar o descartar pedido no pagado"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Cancelar</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -555,6 +571,22 @@ export default function GastronomyOrdersPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Anular Venta Cobrada */}
+      <AnnulSaleModal
+        isOpen={Boolean(annulOrderTarget)}
+        onClose={() => setAnnulOrderTarget(null)}
+        onSuccess={loadData}
+        order={annulOrderTarget}
+      />
+
+      {/* Modal Cancelar / Borrar Pedido No Pagado */}
+      <CancelUnpaidOrderModal
+        isOpen={Boolean(cancelOrderTarget)}
+        onClose={() => setCancelOrderTarget(null)}
+        onSuccess={loadData}
+        order={cancelOrderTarget}
+      />
     </div>
   );
 }
