@@ -34,6 +34,7 @@ import {
   Wifi,
   Disc3,
   Play,
+  LayoutGrid,
 } from "lucide-react";
 import NightPulseBadge from "@/components/dashboard/NightPulseBadge";
 import RoomMapMini, { RoomTableItem } from "@/components/dashboard/RoomMapMini";
@@ -1072,12 +1073,21 @@ export default function NightControlDashboard({
                 <Building2 className="w-4 h-4 text-purple-400" />
                 <span>Locales Registrados</span>
               </h3>
-              <Link
-                href="/dashboard/events"
-                className="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
-              >
-                <span>Administrar Eventos &rarr;</span>
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/dashboard/gastronomy/tables"
+                  className="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Centro de Mesas & QR &rarr;</span>
+                </Link>
+                <Link
+                  href="/dashboard/events"
+                  className="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+                >
+                  <span>Eventos &rarr;</span>
+                </Link>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

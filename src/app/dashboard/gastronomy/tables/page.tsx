@@ -203,6 +203,17 @@ export default function GastronomyTablesAndSectorsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb de Navegación */}
+      <div className="flex items-center gap-2 text-xs text-slate-400">
+        <Link href="/dashboard" className="hover:text-purple-300 transition-colors">
+          Gestión del Local
+        </Link>
+        <span>&bull;</span>
+        <span className="text-purple-300 font-semibold">
+          Centro Unificado de Mesas, Sectores, Cuentas y Códigos QR
+        </span>
+      </div>
+
       {toast && (
         <div className="p-3.5 rounded-2xl bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 text-xs font-bold flex items-center justify-between shadow-lg">
           <span>✓ {toast}</span>
@@ -219,7 +230,7 @@ export default function GastronomyTablesAndSectorsPage() {
               <span>Centro Unificado de Mesas, Sectores, Cuentas y Códigos QR</span>
             </h1>
             <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 text-[10px] font-bold">
-              Gastronomía + DJ/Karaoke QR
+              Gestión del Local • Mesas & QR
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">

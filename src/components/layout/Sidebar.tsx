@@ -156,15 +156,6 @@ export function Sidebar({
           requiredPlan: "STARTER",
         },
         {
-          name: "Mesas, Sectores y QR",
-          icon: LayoutGrid,
-          href: "/dashboard/gastronomy/tables",
-          active:
-            pathname.startsWith("/dashboard/gastronomy/tables") ||
-            pathname.startsWith("/dashboard/tables"),
-          requiredPlan: "STARTER",
-        },
-        {
           name: "Barra (KDS)",
           icon: Wine,
           href: "/dashboard/gastronomy/bar",
@@ -368,6 +359,17 @@ export function Sidebar({
           icon: Building2,
           href: "/dashboard#venues",
           active: false,
+          requiredPlan: "STARTER",
+        },
+        {
+          name: "Centro Unificado de Mesas",
+          icon: LayoutGrid,
+          href: "/dashboard/gastronomy/tables",
+          active:
+            pathname.startsWith("/dashboard/gastronomy/tables") ||
+            pathname.startsWith("/dashboard/tables"),
+          badge: "QR",
+          badgeVariant: "primary",
           requiredPlan: "STARTER",
         },
         {
