@@ -2334,8 +2334,8 @@ function GuestContent() {
           )}
         </div>
 
-        {/* 🏆 Banner destacado de Concurso en Vivo o Inscripciones Abiertas */}
-        {activeContestInfo && activeTab !== "contest" && (
+        {/* 🏆 Banner recordatorio de Concurso cuando estás navegando en Catálogo o Mis Pedidos */}
+        {activeContestInfo && activeTab !== "contest" && activeTab !== "hub" && (
           <div
             onClick={() => setActiveTab("contest")}
             className="w-full p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/90 via-zinc-950 to-amber-950/90 border-2 border-amber-500/70 flex items-center justify-between gap-3 cursor-pointer shadow-xl hover:border-amber-400 transition-all active:scale-[0.99] animate-pulse text-left"
