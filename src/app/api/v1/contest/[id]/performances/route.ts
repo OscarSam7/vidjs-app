@@ -332,3 +332,46 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     return handleApiError(error);
   }
 }
+
+/**
+ * DELETE /api/v1/contest/[id]/performances?performanceId=...
+ * Elimina una actuación o turno de la gala
+ */
+export async function DELETE(req: NextRequest, { params }: RouteParams) {
+  try {
+    const { id } = await params;
+    const session = await getCurrentSession();
+    if (!session?.tenantId) throw new UnauthorizedError("No autorizado");
+
+    const { searchParams } = new URL(req.url);
+    const performanceId = searchParams.get("performanceId");
+    if (!performanceId) {
+      return NextResponse.json({ success: false, error: "performanceId requerido" }, { status: 400 });
+    }
+
+    const perf = await prisma.contestPerformance.findUnique({
+      where: { id: performanceId },
+      include: { participant: true },
+    });
+
+    if (!perf) {
+      throw new NotFoundError("Actuación no encontrada");
+    }
+
+    await prisma.contestPerformance.delete({
+      where: { id: performanceId },
+    });
+
+    const targetEventId = id;
+    broadcastContestEvent(id, targetEventId, "CONTEST_PERFORMANCE_UPDATE", {
+      deletedPerformanceId: performanceId,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Actuación de "${perf.participant?.name || "cantante"}" retirada de la gala`,
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}

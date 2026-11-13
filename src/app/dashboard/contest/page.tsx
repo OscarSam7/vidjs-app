@@ -28,6 +28,7 @@ import {
   Copy,
   Check,
   ChevronRight,
+  ChevronDown,
   Disc3,
   Flame,
   Crown,
@@ -41,6 +42,7 @@ import {
   EyeOff,
   UserCheck,
   UserX,
+  UserMinus,
   Radio,
   CreditCard,
 } from "lucide-react";
@@ -204,6 +206,10 @@ export default function ContestDashboardPage() {
   const [tableStatusFilter, setTableStatusFilter] = useState<"ALL" | "PENDING" | "VERIFIED" | "SUPER_VOTE">("ALL");
 
   const [showPublicVotesModal, setShowPublicVotesModal] = useState(false);
+
+  // Dropdown moderno de selección de certámenes
+  const [contestDropdownOpen, setContestDropdownOpen] = useState(false);
+  const contestDropdownRef = useRef<HTMLDivElement>(null);
 
   // Modales
   const [showNewContestModal, setShowNewContestModal] = useState(false);
@@ -506,6 +512,17 @@ export default function ContestDashboardPage() {
     fetchContests();
   }, []);
 
+  // Cerrar selector de concurso al hacer click afuera
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (contestDropdownRef.current && !contestDropdownRef.current.contains(event.target as Node)) {
+        setContestDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   useEffect(() => {
     if (selectedContestId) {
       fetchContestDetail(selectedContestId);
@@ -654,7 +671,7 @@ export default function ContestDashboardPage() {
   // Descartar o Eliminar Postulante / Participante
   const handleRejectApplicant = async (participantId: string, participantName: string) => {
     if (!contest) return;
-    const confirmDelete = window.confirm(`¿Deseas descartar o eliminar a "${participantName}" del certamen?`);
+    const confirmDelete = window.confirm(`¿Deseas eliminar a "${participantName}" del certamen? Se borrarán sus datos y actuaciones.`);
     if (!confirmDelete) return;
     setActionLoading(true);
     try {
@@ -663,13 +680,40 @@ export default function ContestDashboardPage() {
       });
       const json = await res.json();
       if (res.ok && json.success) {
-        showFeedback("info", `Postulación de "${participantName}" descartada`);
+        showFeedback("info", `Participante "${participantName}" eliminado del certamen`);
         fetchContestDetail(contest.id);
       } else {
-        showFeedback("error", json.error || "Error al descartar postulación");
+        showFeedback("error", json.error || "Error al eliminar participante");
       }
     } catch {
       showFeedback("error", "Error de conexión");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // 🗑️ Retirar Actuación de la Gala Activa
+  const handleDeletePerformance = async (performanceId: string, singerName: string, participantId?: string) => {
+    if (!contest) return;
+    const confirmDelete = window.confirm(
+      `¿Deseas retirar a "${singerName}" de esta gala?\n\n- Pulsa ACEPTAR para quitar su turno de esta fecha.\n- (Si deseas eliminar al participante por completo del certamen, puedes hacerlo desde la pestaña "Cantantes").`
+    );
+    if (!confirmDelete) return;
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/performances?performanceId=${performanceId}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("info", json.message || `Actuación de "${singerName}" retirada de la gala`);
+        fetchContestDetail(contest.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo retirar la actuación");
+      }
+    } catch {
+      showFeedback("error", "Error de red al retirar actuación");
     } finally {
       setActionLoading(false);
     }
@@ -760,9 +804,12 @@ export default function ContestDashboardPage() {
   };
 
   // ✏️ Abrir Modal de Edición de Participante
-  const handleOpenEditParticipant = (p: ContestParticipant) => {
+  const handleOpenEditParticipant = (
+    p: ContestParticipant,
+    perfOverride?: { songTitle: string; artistName: string }
+  ) => {
     setEditingParticipant(p);
-    const firstPerf = p.performances?.[0];
+    const firstPerf = perfOverride || p.performances?.[0];
     setEditParticipantForm({
       name: p.name,
       stageName: p.stageName || "",
@@ -1341,55 +1388,135 @@ export default function ContestDashboardPage() {
   const currentPerformance = contest?.currentPerformance;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="min-h-screen bg-zinc-950 text-white p-3 sm:p-5 lg:p-7 space-y-4 sm:space-y-5">
       {/* ============================================================ */}
-      {/* 1. TOP HEADER DEL CAMPEONATO & SELECTOR                      */}
+      {/* 1. TOP HEADER DEL CAMPEONATO & SELECTOR MODERNO              */}
       {/* ============================================================ */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-zinc-900/80 border border-zinc-800 p-5 rounded-3xl shadow-2xl backdrop-blur-md">
-        <div className="flex items-center gap-3.5">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center text-zinc-950 shadow-xl shadow-amber-500/20">
-            <Trophy className="w-8 h-8" />
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-zinc-900/90 border border-zinc-800/80 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-2xl backdrop-blur-md">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center text-zinc-950 shadow-lg shadow-amber-500/20 shrink-0">
+            <Trophy className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base sm:text-xl lg:text-2xl font-black text-white tracking-tight truncate">
                 {contest?.name || "Concurso de Karaoke Pro"}
               </h1>
               {contest && (
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-xs font-bold border border-amber-500/40">
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold border border-amber-500/40">
                   {contest.code}
                 </span>
               )}
             </div>
-            <p className="text-xs text-zinc-400 font-medium">
+            <p className="text-[11px] sm:text-xs text-zinc-400 font-medium line-clamp-1 sm:line-clamp-none">
               Gestión multidía, jurados móviles, votación en vivo, pantalla gigante y actas oficiales.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Selector de Concurso */}
-          {contests.length > 1 && (
-            <select
-              value={selectedContestId || ""}
-              onChange={(e) => setSelectedContestId(e.target.value)}
-              className="bg-zinc-950 border border-zinc-700 text-white text-xs font-bold px-3 py-2.5 rounded-xl outline-none"
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          {/* Selector de Concurso Ultra Moderno (Reemplaza al native select para evitar modal blanco en móviles) */}
+          <div className="relative" ref={contestDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setContestDropdownOpen((prev) => !prev)}
+              className="px-3 py-2 rounded-xl bg-zinc-950/90 hover:bg-zinc-900 border border-zinc-700 hover:border-amber-500/50 text-white text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md group"
             >
-              {contests.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.code})
-                </option>
-              ))}
-            </select>
-          )}
+              <div className="w-2 h-2 rounded-full shrink-0 bg-amber-400 shadow-sm shadow-amber-400/50 animate-pulse" />
+              <span className="truncate max-w-[130px] sm:max-w-[190px]">
+                {contest ? contest.name : "Certámenes"}
+              </span>
+              {contest && (
+                <span className="px-1.5 py-0.2 rounded-md bg-amber-500/10 text-amber-300 font-mono text-[10px] border border-amber-500/30 shrink-0">
+                  {contest.code}
+                </span>
+              )}
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-zinc-400 group-hover:text-amber-400 transition-transform duration-200 shrink-0 ${
+                  contestDropdownOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {/* Menú Flotante Ultra Moderno */}
+            {contestDropdownOpen && (
+              <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-72 sm:w-80 max-h-80 overflow-y-auto bg-zinc-900/95 backdrop-blur-xl border border-zinc-700 hover:border-amber-500/40 rounded-2xl shadow-2xl p-2 z-50 space-y-1 divide-y divide-zinc-800/70 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-2 py-1 flex items-center justify-between text-[11px] font-bold text-zinc-400">
+                  <span>Certámenes ({contests.length})</span>
+                  <span className="text-[10px] text-amber-400 font-mono">Vidjs Pro</span>
+                </div>
+
+                <div className="pt-1 space-y-1">
+                  {contests.map((c) => {
+                    const isSelected = c.id === selectedContestId;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedContestId(c.id);
+                          setContestDropdownOpen(false);
+                        }}
+                        className={`w-full p-2.5 rounded-xl text-left transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                          isSelected
+                            ? "bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-500/50 text-white shadow-sm"
+                            : "hover:bg-zinc-800/80 text-zinc-300 hover:text-white"
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span className="text-xs font-bold truncate block">{c.name}</span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] font-mono text-amber-300/90 bg-zinc-950 px-1.5 py-0.2 rounded border border-zinc-800">
+                              {c.code}
+                            </span>
+                            <span
+                              className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
+                                c.status === "ACTIVE"
+                                  ? "bg-emerald-500/20 text-emerald-300"
+                                  : c.status === "REGISTRATION"
+                                  ? "bg-amber-500/20 text-amber-300"
+                                  : "bg-zinc-800 text-zinc-400"
+                              }`}
+                            >
+                              {c.status === "ACTIVE"
+                                ? "En Vivo"
+                                : c.status === "REGISTRATION"
+                                ? "Inscripciones"
+                                : "Pausado"}
+                            </span>
+                          </div>
+                        </div>
+                        {isSelected && <Check className="w-4 h-4 text-amber-400 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-2 px-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setContestDropdownOpen(false);
+                      setShowNewContestModal(true);
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-amber-400" />
+                    <span>+ Crear Nuevo Certamen</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Botón Nuevo Concurso */}
           <button
             onClick={() => setShowNewContestModal(true)}
-            className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md"
+            className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+            title="Crear un nuevo certamen de karaoke"
           >
-            <Plus className="w-4 h-4 text-amber-400" />
-            <span>Nuevo Certamen</span>
+            <Plus className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Nuevo</span>
           </button>
 
           {/* Botón Editar Concurso */}
@@ -1397,11 +1524,11 @@ export default function ContestDashboardPage() {
             <button
               type="button"
               onClick={handleOpenEditContest}
-              className="px-3.5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+              className="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
               title="Editar nombre, descripción, puntuación, costos y reglas de este concurso"
             >
-              <Pencil className="w-4 h-4 text-amber-400" />
-              <span>Editar Certamen</span>
+              <Pencil className="w-3.5 h-3.5 text-amber-400" />
+              <span>Editar</span>
             </button>
           )}
 
@@ -1411,10 +1538,10 @@ export default function ContestDashboardPage() {
               type="button"
               onClick={handleDeleteContest}
               disabled={actionLoading}
-              className="p-2.5 rounded-xl bg-zinc-900 hover:bg-red-950/80 text-zinc-400 hover:text-red-400 border border-zinc-800 hover:border-red-500/40 text-xs font-bold transition-all cursor-pointer shadow-md"
+              className="p-2 rounded-xl bg-zinc-900 hover:bg-red-950/80 text-zinc-400 hover:text-red-400 border border-zinc-800 hover:border-red-500/40 text-xs font-bold transition-all cursor-pointer shadow-md"
               title="Eliminar certamen permanentemente"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           )}
 
@@ -1423,11 +1550,11 @@ export default function ContestDashboardPage() {
             <Link
               href={`/display/${contest.code}/contest`}
               target="_blank"
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black flex items-center gap-2 shadow-lg shadow-purple-900/30 transition-all cursor-pointer"
+              className="px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black flex items-center gap-1.5 shadow-lg shadow-purple-900/30 transition-all cursor-pointer"
             >
-              <Tv className="w-4 h-4" />
-              <span>Pantalla TV Show</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <Tv className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Pantalla TV</span>
+              <ExternalLink className="w-3 h-3" />
             </Link>
           )}
         </div>
@@ -1436,7 +1563,7 @@ export default function ContestDashboardPage() {
       {/* Alerta de Feedback flotante */}
       {feedbackMsg && (
         <div
-          className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-2.5 shadow-xl transition-all ${
+          className={`p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 shadow-xl transition-all ${
             feedbackMsg.type === "success"
               ? "bg-emerald-950/90 border border-emerald-500 text-emerald-200"
               : feedbackMsg.type === "error"
@@ -1445,9 +1572,9 @@ export default function ContestDashboardPage() {
           }`}
         >
           {feedbackMsg.type === "success" ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           ) : (
-            <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
           )}
           <span>{feedbackMsg.text}</span>
         </div>
@@ -1457,12 +1584,12 @@ export default function ContestDashboardPage() {
       {/* 1.5 CONTROL MAESTRO DE DIFUSIÓN Y ESTADO (VISIBILIDAD GUEST)  */}
       {/* ============================================================ */}
       {contest && (
-        <div className="bg-zinc-900/90 border border-zinc-800 p-5 rounded-3xl shadow-xl space-y-4">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2.5">
+        <div className="bg-zinc-900/90 border border-zinc-800/80 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xl space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Radio
-                  className={`w-4 h-4 ${
+                  className={`w-3.5 h-3.5 ${
                     contest.status === "ACTIVE"
                       ? "text-emerald-400 animate-pulse"
                       : contest.status === "REGISTRATION"
@@ -1470,11 +1597,11 @@ export default function ContestDashboardPage() {
                       : "text-zinc-500"
                   }`}
                 />
-                <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">
-                  Difusión y Visibilidad para Clientes (/guest)
+                <h3 className="text-xs font-black uppercase tracking-wider text-zinc-300">
+                  Difusión para Clientes (/guest)
                 </h3>
                 <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide border ${
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide border ${
                     contest.status === "ACTIVE"
                       ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                       : contest.status === "REGISTRATION"
@@ -1483,37 +1610,37 @@ export default function ContestDashboardPage() {
                   }`}
                 >
                   {contest.status === "ACTIVE"
-                    ? "🟢 En Vivo & Votaciones"
+                    ? "🟢 En Vivo & Votos"
                     : contest.status === "REGISTRATION"
-                    ? "🟡 Convocatoria & Postulaciones Abiertas"
-                    : "🔴 Desactivado / Oculto en Mesas"}
+                    ? "🟡 Inscripciones Abiertas"
+                    : "🔴 Oculto en Mesas"}
                 </span>
               </div>
-              <p className="text-xs text-zinc-300">
+              <p className="text-[11px] sm:text-xs text-zinc-400">
                 {contest.status === "ACTIVE"
-                  ? "El show está transmitiéndose en vivo. Los comensales ven las estrellas, votan en tiempo real y siguen a los jurados."
+                  ? "Show en vivo. Comensales ven estrellas, votan en tiempo real y siguen a los jurados."
                   : contest.status === "REGISTRATION"
-                  ? "Las mesas pueden ver el certamen y tienen habilitado el formulario para postularse como cantantes con su tema preferido."
-                  : "El concurso está completamente oculto para los comensales en /guest. No verán la pestaña ni banners de votación."}
+                  ? "Las mesas ven el certamen y pueden postularse con su canción y método de pago."
+                  : "Concurso oculto para comensales en /guest. No ven la pestaña ni banners."}
               </p>
             </div>
 
-            {/* Selector de 3 Estados de Concurso */}
-            <div className="flex items-center gap-2 bg-zinc-950 p-1.5 rounded-2xl border border-zinc-800 shrink-0 flex-wrap">
+            {/* Selector de 3 Estados de Concurso Compacto */}
+            <div className="grid grid-cols-3 sm:flex items-center gap-1.5 bg-zinc-950 p-1 rounded-xl sm:rounded-2xl border border-zinc-800 shrink-0">
               {/* Opción 1: Desactivar / Ocultar (PAUSED) */}
               <button
                 type="button"
                 onClick={() => handleUpdateContestStatus("PAUSED")}
                 disabled={actionLoading || contest.status === "PAUSED" || contest.status === "DRAFT"}
-                className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-lg sm:rounded-xl text-[11px] font-black flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   contest.status === "PAUSED" || contest.status === "DRAFT"
                     ? "bg-red-950/80 text-red-300 border border-red-500/60 shadow-md shadow-red-950/50"
                     : "text-zinc-400 hover:text-white hover:bg-zinc-900"
                 }`}
                 title="Oculta el concurso en los teléfonos de los clientes"
               >
-                <EyeOff className="w-3.5 h-3.5" />
-                <span>Ocultar / Desactivar</span>
+                <EyeOff className="w-3 h-3" />
+                <span>Ocultar</span>
               </button>
 
               {/* Opción 2: Modo Convocatoria / Postulaciones (REGISTRATION) */}
@@ -1521,15 +1648,15 @@ export default function ContestDashboardPage() {
                 type="button"
                 onClick={() => handleUpdateContestStatus("REGISTRATION")}
                 disabled={actionLoading || contest.status === "REGISTRATION"}
-                className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-lg sm:rounded-xl text-[11px] font-black flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   contest.status === "REGISTRATION"
                     ? "bg-amber-400 text-zinc-950 shadow-md shadow-amber-500/30 scale-[1.02]"
                     : "text-zinc-400 hover:text-white hover:bg-zinc-900"
                 }`}
-                title="Habilita el formulario de inscripción para que los clientes se postulen desde su mesa"
+                title="Habilita el formulario para que los clientes se postulen desde su mesa"
               >
-                <Mic className="w-3.5 h-3.5" />
-                <span>Abrir Inscripciones</span>
+                <Mic className="w-3 h-3" />
+                <span>Inscripción</span>
               </button>
 
               {/* Opción 3: Modo En Vivo (ACTIVE) */}
@@ -1537,15 +1664,15 @@ export default function ContestDashboardPage() {
                 type="button"
                 onClick={() => handleUpdateContestStatus("ACTIVE")}
                 disabled={actionLoading || contest.status === "ACTIVE"}
-                className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-lg sm:rounded-xl text-[11px] font-black flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   contest.status === "ACTIVE"
                     ? "bg-emerald-500 text-zinc-950 shadow-md shadow-emerald-500/30 scale-[1.02]"
                     : "text-zinc-400 hover:text-white hover:bg-zinc-900"
                 }`}
-                title="Inicia el certamen oficial: habilita votaciones de estrellas y jurados en vivo"
+                title="Inicia el certamen oficial: habilita votaciones y jurados en vivo"
               >
-                <Play className="w-3.5 h-3.5" />
-                <span>Lanzar en Vivo</span>
+                <Play className="w-3 h-3" />
+                <span>En Vivo</span>
               </button>
             </div>
           </div>
@@ -1703,15 +1830,50 @@ export default function ContestDashboardPage() {
                   </p>
                 </div>
 
-                {/* BOTÓN RÁPIDO CARGAR EN CABINA DJ */}
-                <button
-                  onClick={() => handleSendToDjBooth(currentPerformance)}
-                  className="px-5 py-3 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-purple-300 hover:text-purple-200 text-xs font-black flex items-center gap-2 shadow-lg transition-all cursor-pointer whitespace-nowrap"
-                  title="Carga la canción automáticamente en la consola de DJ o Karaoke"
-                >
-                  <Disc3 className="w-4 h-4 text-purple-400 animate-spin [animation-duration:4s]" />
-                  <span>Cargar en Bandeja DJ</span>
-                </button>
+                {/* BOTONERA RÁPIDA: DJ, EDITAR Y RETIRAR */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => handleSendToDjBooth(currentPerformance)}
+                    className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-purple-300 hover:text-purple-200 text-xs font-black flex items-center gap-1.5 shadow-lg transition-all cursor-pointer whitespace-nowrap"
+                    title="Carga la canción automáticamente en la consola de DJ o Karaoke"
+                  >
+                    <Disc3 className="w-4 h-4 text-purple-400 animate-spin [animation-duration:4s]" />
+                    <span>Cargar en DJ</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const p = contest?.participants.find((x) => x.id === currentPerformance.participantId);
+                      if (p) {
+                        handleOpenEditParticipant(p, {
+                          songTitle: currentPerformance.songTitle,
+                          artistName: currentPerformance.artistName,
+                        });
+                      }
+                    }}
+                    className="p-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-amber-300 hover:text-amber-200 transition-all cursor-pointer"
+                    title="Editar datos del cantante en escenario"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleDeletePerformance(
+                        currentPerformance.id,
+                        currentPerformance.participant.stageName || currentPerformance.participant.name,
+                        currentPerformance.participantId
+                      )
+                    }
+                    disabled={actionLoading}
+                    className="p-2.5 rounded-xl bg-zinc-900 hover:bg-red-950/80 border border-zinc-800 hover:border-red-500/40 text-zinc-400 hover:text-red-400 transition-all cursor-pointer"
+                    title="Retirar actuación del escenario"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* BOTONERA DE CONTROL DE LA GALA */}
@@ -1927,9 +2089,9 @@ export default function ContestDashboardPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="flex items-center gap-1.5 self-end sm:self-auto flex-wrap">
                       {perf.totalScore > 0 && (
-                        <span className="text-xs font-mono font-black text-yellow-300 px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-700">
+                        <span className="text-xs font-mono font-black text-yellow-300 px-2.5 py-1 rounded-xl bg-zinc-900 border border-zinc-700">
                           {perf.totalScore} pts
                         </span>
                       )}
@@ -1937,18 +2099,64 @@ export default function ContestDashboardPage() {
                       <button
                         onClick={() => handlePerformanceAction(perf.id, "CALL_TO_STAGE")}
                         disabled={actionLoading || perf.status === "ON_STAGE"}
-                        className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                        className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                       >
                         <Mic className="w-3.5 h-3.5" />
-                        <span>Llamar al Escenario</span>
+                        <span>Escenario</span>
                       </button>
 
                       <button
                         onClick={() => handleSendToDjBooth(perf)}
-                        className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-purple-300 border border-zinc-700 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-purple-300 border border-zinc-700 transition-colors cursor-pointer"
                         title="Cargar pista en consola DJ"
                       >
                         <Disc3 className="w-4 h-4" />
+                      </button>
+
+                      {/* Editar Participante / Canción de esta actuación */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const p = contest?.participants.find((x) => x.id === perf.participantId);
+                          if (p) {
+                            handleOpenEditParticipant(p, {
+                              songTitle: perf.songTitle,
+                              artistName: perf.artistName,
+                            });
+                          } else {
+                            handleOpenEditParticipant({
+                              id: perf.participantId,
+                              name: perf.participant.name,
+                              stageName: perf.participant.stageName,
+                              photoUrl: perf.participant.photoUrl,
+                              tableLabel: perf.participant.tableLabel,
+                              status: perf.participant.status || "ACTIVE",
+                              totalPoints: perf.totalScore,
+                              performances: [perf],
+                            } as any);
+                          }
+                        }}
+                        className="p-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-300 border border-zinc-700 transition-colors cursor-pointer"
+                        title="Editar participante o canción"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+
+                      {/* Borrar / Retirar de esta Gala */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleDeletePerformance(
+                            perf.id,
+                            perf.participant.stageName || perf.participant.name,
+                            perf.participantId
+                          )
+                        }
+                        disabled={actionLoading}
+                        className="p-1.5 rounded-xl bg-zinc-900 hover:bg-red-950/80 text-zinc-400 hover:text-red-400 border border-zinc-800 hover:border-red-500/40 transition-colors cursor-pointer"
+                        title="Retirar actuación de esta gala"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -2748,10 +2956,11 @@ export default function ContestDashboardPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEditParticipant(p)}
-                                  className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-300 transition-all cursor-pointer border border-zinc-700"
+                                  className="py-2 px-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-300 text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer border border-zinc-700"
                                   title="Editar datos de postulación"
                                 >
-                                  <Pencil className="w-4 h-4" />
+                                  <Pencil className="w-3.5 h-3.5" />
+                                  <span>Editar</span>
                                 </button>
 
                                 {/* 3. Cargar en DJ (si tiene canción) */}
@@ -2771,10 +2980,11 @@ export default function ContestDashboardPage() {
                                   type="button"
                                   onClick={() => handleRejectApplicant(p.id, p.name)}
                                   disabled={actionLoading}
-                                  className="p-2 rounded-xl bg-zinc-800 hover:bg-red-950/80 hover:text-red-300 text-zinc-400 transition-all cursor-pointer border border-zinc-700"
+                                  className="py-2 px-2.5 rounded-xl bg-zinc-900 hover:bg-red-950/80 hover:text-red-300 text-zinc-400 text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer border border-zinc-800 hover:border-red-500/40"
                                   title="Eliminar postulación"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Borrar</span>
                                 </button>
                               </>
                             ) : (
