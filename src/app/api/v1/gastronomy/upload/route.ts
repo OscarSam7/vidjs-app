@@ -33,14 +33,12 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 export async function POST(req: NextRequest) {
   try {
     const { session, tenantId } = await requireTenantContext();
-    const canManage = hasAnyPermission(session.role, [
-      PERMISSIONS.GASTRO_MENU_MANAGE,
-      PERMISSIONS.GASTRO_BAR_MANAGE,
-      PERMISSIONS.GASTRO_KITCHEN_MANAGE,
-      "ADMIN",
-      "OWNER",
-      "MANAGER",
-    ]);
+    const canManage =
+      hasAnyPermission(session.role, [
+        PERMISSIONS.GASTRO_MENU_MANAGE,
+        PERMISSIONS.GASTRO_BAR_MANAGE,
+        PERMISSIONS.GASTRO_KITCHEN_MANAGE,
+      ]) || ["OWNER", "SUPER_ADMIN", "MANAGER", "ADMINISTRADOR"].includes(session.role);
 
     if (!canManage) {
       throw new ForbiddenError("No tienes permisos para subir fotos de productos");

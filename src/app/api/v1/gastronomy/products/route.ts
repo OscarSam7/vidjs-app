@@ -339,12 +339,9 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const { session, tenantId } = await requireTenantContext();
-    const canDelete = hasAnyPermission(session.role, [
-      PERMISSIONS.GASTRO_MENU_MANAGE,
-      "ADMIN",
-      "OWNER",
-      "MANAGER",
-    ]);
+    const canDelete =
+      hasPermission(session.role, PERMISSIONS.GASTRO_MENU_MANAGE) ||
+      ["OWNER", "SUPER_ADMIN", "MANAGER", "ADMINISTRADOR"].includes(session.role);
 
     if (!canDelete) {
       throw new ForbiddenError("No tienes permisos para eliminar productos del menú");
