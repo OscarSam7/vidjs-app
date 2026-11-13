@@ -1949,82 +1949,62 @@ function GuestContent() {
         </div>
       )}
       {/* 1. Header Nocturno de Mesa */}
-      <header className="p-3 sm:p-4 bg-zinc-900/95 border-b border-zinc-800 sticky top-0 z-20 backdrop-blur-md w-full">
-        <div className="flex items-center justify-between gap-2 w-full">
-          {/* Brand & Evento */}
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+      <header className="p-3 sm:p-4 bg-zinc-950/95 border-b border-zinc-800/80 sticky top-0 z-20 backdrop-blur-xl w-full">
+        {/* Fila 1: Identidad del Local (Logo + Bienvenida + Nombre) y Mesa VIP */}
+        <div className="flex items-center justify-between gap-3 w-full">
+          {/* Brand & Bienvenida */}
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             {branding?.logoUrl ? (
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 p-0.5 flex items-center justify-center overflow-hidden shrink-0">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-zinc-900 border border-purple-500/30 p-1 flex items-center justify-center overflow-hidden shrink-0 shadow-lg shadow-purple-950/30 ring-1 ring-white/10">
                 <img
                   src={branding.logoUrl}
                   alt={session?.tenant.name || "Logo"}
-                  className="max-h-full max-w-full object-contain"
+                  className="max-h-full max-w-full object-contain drop-shadow"
                 />
               </div>
             ) : (
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
-                <Disc3 className="w-4 h-4 animate-spin [animation-duration:10s]" />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-purple-950 via-zinc-900 to-zinc-950 border border-purple-500/40 flex items-center justify-center text-purple-400 shrink-0 shadow-lg shadow-purple-950/40 ring-1 ring-white/10">
+                <Disc3 className="w-6 h-6 animate-spin [animation-duration:12s] text-purple-400" />
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <div className="text-xs font-black text-white tracking-wide uppercase truncate">
-                {branding?.welcomeTitle || session?.tenant.name}
+              <div className="flex items-center gap-1.5 leading-none mb-0.5">
+                <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest text-purple-400/90 flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5 text-purple-400 shrink-0" />
+                  Bienvenido a
+                </span>
               </div>
-              <div className="text-[10px] sm:text-[11px] text-zinc-400 truncate max-w-[130px] sm:max-w-[200px]">
-                {session?.event.name}
+              <div className="text-sm sm:text-base font-black text-white tracking-wide truncate leading-tight drop-shadow-sm">
+                {(branding?.welcomeTitle || session?.tenant.name || "Vidjs Karaoke")
+                  .replace(/^¡?bienvenidos?\s*(?:a\s*)?/i, "")
+                  .trim() || session?.tenant.name || "Vidjs Karaoke"}
+              </div>
+              <div className="text-[10px] sm:text-[11px] text-zinc-400 font-medium truncate flex items-center gap-1.5 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
+                <span className="truncate">
+                  {session?.event?.name || branding?.welcomeSubtitle || "Noche de Karaoke & Música en Vivo"}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Acciones & Mesa Badge */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <PwaInstallButton variant="guest" />
-
-            {/* Acceso directo a Cabina DJ */}
-            <a
-              href="/dj"
-              className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-zinc-800/80 hover:bg-purple-950/60 text-zinc-400 hover:text-purple-300 border border-zinc-700/60 hover:border-purple-500/50 text-xs flex items-center gap-1 transition-colors shrink-0"
-              title="Acceso para el DJ o Personal de la Cabina"
-            >
-              <Disc3 className="w-3.5 h-3.5 text-purple-400" />
-              <span className="hidden sm:inline font-bold text-[11px]">DJ</span>
-            </a>
-
-            <button
-              onClick={() => setIsPhotoModalOpen(true)}
-              className="p-1.5 sm:px-2 sm:py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-purple-300 border border-purple-500/30 text-xs flex items-center gap-1 cursor-pointer transition-colors shrink-0"
-              title="Subir foto a la pantalla"
-            >
-              <Camera className="w-3.5 h-3.5 text-purple-400" />
-              <span className="hidden sm:inline font-bold text-[11px]">Foto</span>
-            </button>
-
-            {/* Buzón QSR VIP Confidencial (Línea Directa Gerencia & Dueño) */}
-            <button
-              onClick={() => setIsQsrModalOpen(true)}
-              className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 border border-amber-500/40 text-xs flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 shadow-sm"
-              title="Línea Directa y Confidencial con la Gerencia & Dueño (Quejas, Sugerencias y Reclamos)"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline font-bold text-[11px]">Buzón QSR</span>
-            </button>
-
-            {/* Badge de Mesa con acción de cambiar/salir o Conectar Mesa */}
+          {/* Badge de Mesa VIP con acción de cambiar/salir */}
+          <div className="shrink-0 flex items-center">
             {session ? (
               <button
                 onClick={() => setIsManageTableOpen(true)}
-                className="px-2.5 sm:px-3 py-1 rounded-full bg-purple-600/20 hover:bg-purple-600/35 border border-purple-500/40 hover:border-purple-400 text-purple-300 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 shrink-0 max-w-[170px] transition-all cursor-pointer group shadow-sm"
+                className="px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-900/40 via-purple-950/60 to-zinc-900 border border-purple-500/40 hover:border-purple-400 text-purple-200 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer group shadow-md hover:shadow-purple-900/30 active:scale-95 shrink-0 max-w-[150px] sm:max-w-[200px]"
                 title="Toca para cambiar de mesa, mudarte al Karaoke o liberar tu mesa"
               >
                 <span
                   className={`w-2 h-2 rounded-full shrink-0 ${
                     isRealtime
-                      ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] animate-pulse"
+                      ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse"
                       : "bg-emerald-400"
                   }`}
                 />
-                <span className="truncate">{session.table.label}</span>
-                <ArrowLeftRight className="w-3 h-3 text-purple-400 group-hover:text-white shrink-0 ml-0.5" />
+                <span className="truncate font-extrabold">{session.table.label}</span>
+                <ArrowLeftRight className="w-3.5 h-3.5 text-purple-400 group-hover:text-white shrink-0 ml-0.5 transition-colors" />
               </button>
             ) : (
               <button
@@ -2036,13 +2016,53 @@ function GuestContent() {
                     } catch {}
                   }
                 }}
-                className="px-2.5 sm:px-3 py-1 rounded-full bg-purple-600 hover:bg-purple-500 text-white text-[11px] sm:text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer shadow-sm active:scale-95"
+                className="px-3 py-1.5 rounded-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer shadow-md active:scale-95"
                 title="Conectar a una mesa"
               >
                 <QrCode className="w-3.5 h-3.5" />
                 <span>Conectar Mesa</span>
               </button>
             )}
+          </div>
+        </div>
+
+        {/* Fila 2: Barra de Accesos Rápidos & Utilidades VIP */}
+        <div className="mt-2.5 pt-2 border-t border-zinc-800/60 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0">
+            {/* Subir Foto a Pantalla TV */}
+            <button
+              onClick={() => setIsPhotoModalOpen(true)}
+              className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-purple-950/60 text-purple-300 border border-purple-500/25 hover:border-purple-500/50 text-[11px] font-semibold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 active:scale-95"
+              title="Subir foto al Muro Social en la pantalla gigante"
+            >
+              <Camera className="w-3.5 h-3.5 text-purple-400" />
+              <span>Foto a TV</span>
+            </button>
+
+            {/* Acceso directo a Cabina DJ */}
+            <a
+              href="/dj"
+              className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-purple-950/60 text-zinc-300 hover:text-purple-300 border border-zinc-700/60 hover:border-purple-500/50 text-[11px] font-semibold flex items-center gap-1.5 transition-all shrink-0 active:scale-95"
+              title="Acceso para el DJ o Personal de la Cabina"
+            >
+              <Disc3 className="w-3.5 h-3.5 text-purple-400" />
+              <span>Cabina DJ</span>
+            </a>
+
+            {/* Buzón QSR VIP Confidencial */}
+            <button
+              onClick={() => setIsQsrModalOpen(true)}
+              className="px-2.5 py-1 rounded-lg bg-amber-950/30 hover:bg-amber-900/50 text-amber-300 border border-amber-500/30 hover:border-amber-500/50 text-[11px] font-semibold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 active:scale-95"
+              title="Línea Directa y Confidencial con la Gerencia & Dueño (Quejas, Sugerencias y Reclamos)"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+              <span>Buzón QSR</span>
+            </button>
+          </div>
+
+          {/* Instalar App PWA */}
+          <div className="shrink-0">
+            <PwaInstallButton variant="guest" />
           </div>
         </div>
 
@@ -2171,7 +2191,7 @@ function GuestContent() {
       </header>
 
       {/* 2. Navegación Principal: SOLO "Mi Noche" y "Menú" uno al lado del otro con iconos grandes y llamativos */}
-      <div className="grid grid-cols-2 gap-2.5 px-3.5 py-2.5 border-b border-zinc-800/90 bg-zinc-950/95 backdrop-blur-md sticky top-[65px] z-10 shadow-lg">
+      <div className="grid grid-cols-2 gap-2.5 px-3.5 py-2.5 border-b border-zinc-800/90 bg-zinc-950/95 backdrop-blur-md relative z-10 shadow-lg">
         <button
           type="button"
           onClick={() => setActiveTab("hub")}
