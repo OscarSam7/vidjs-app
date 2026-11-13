@@ -24,6 +24,9 @@ import {
   UtensilsCrossed,
   X,
   MapPin,
+  Palette,
+  AlertTriangle,
+  Layers,
 } from "lucide-react";
 import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { useRealtime } from "@/hooks/use-realtime";
@@ -49,6 +52,32 @@ export default function GastronomyTablesAndSectorsPage() {
   const [newTableLabel, setNewTableLabel] = useState("");
   const [newTableCapacity, setNewTableCapacity] = useState(4);
   const [newTableSectorId, setNewTableSectorId] = useState("");
+
+  // Modal Crear Sector VIP
+  const [isCreateSectorModalOpen, setIsCreateSectorModalOpen] = useState(false);
+  const [sectorNameInput, setSectorNameInput] = useState("");
+  const [sectorCodeInput, setSectorCodeInput] = useState("");
+  const [sectorColorInput, setSectorColorInput] = useState("#8B5CF6");
+
+  // Modal Editar Sector VIP
+  const [editingSector, setEditingSector] = useState<any>(null);
+  const [editSectorName, setEditSectorName] = useState("");
+  const [editSectorColor, setEditSectorColor] = useState("#8B5CF6");
+
+  // Modal Eliminar Sector VIP
+  const [deletingSector, setDeletingSector] = useState<any>(null);
+  const [deleteSectorCascade, setDeleteSectorCascade] = useState(false);
+
+  // Modal Crear Mesa VIP
+  const [isCreateTableModalOpen, setIsCreateTableModalOpen] = useState(false);
+  const [createTableLabel, setCreateTableLabel] = useState("");
+  const [createTableNumber, setCreateTableNumber] = useState<number>(1);
+  const [createTableCapacity, setCreateTableCapacity] = useState<number>(4);
+  const [createTableSectorId, setCreateTableSectorId] = useState("");
+  const [createTableZone, setCreateTableZone] = useState("DJ");
+
+  // Modal Eliminar Mesa VIP
+  const [deletingTable, setDeletingTable] = useState<any>(null);
 
   // Edición de Mesa
   const [editingTable, setEditingTable] = useState<any>(null);
@@ -148,13 +177,131 @@ export default function GastronomyTablesAndSectorsPage() {
     if (res) setEditingTable(null);
   };
 
-  const handleDeleteTable = async (t: any) => {
-    if (!window.confirm(`¿Confirmás eliminar la mesa "${t.label}"?`)) return;
-    await execTableAction(
-      { action: "DELETE_TABLE", tableId: t.id },
-      `Mesa "${t.label}" eliminada / desactivada`
+  const SECTOR_PALETTE = [
+    { name: "Púrpura VIP", hex: "#8B5CF6" },
+    { name: "Dorado Ámbar", hex: "#F59E0B" },
+    { name: "Esmeralda", hex: "#10B981" },
+    { name: "Cian Neón", hex: "#06B6D4" },
+    { name: "Rosa Fiesta", hex: "#EC4899" },
+    { name: "Azul Eléctrico", hex: "#3B82F6" },
+    { name: "Índigo", hex: "#6366F1" },
+    { name: "Rojo Rubí", hex: "#EF4444" },
+  ];
+
+  // Handlers para Sectores
+  const handleOpenCreateSectorModal = () => {
+    setSectorNameInput("");
+    setSectorCodeInput("");
+    setSectorColorInput("#8B5CF6");
+    setIsCreateSectorModalOpen(true);
+  };
+
+  const handleCreateSectorModalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sectorNameInput.trim()) return;
+    const res = await execTableAction(
+      {
+        action: "CREATE_SECTOR",
+        sectorName: sectorNameInput.trim(),
+        sectorCode: sectorCodeInput.trim() || undefined,
+        colorHex: sectorColorInput,
+      },
+      `Sector "${sectorNameInput.trim()}" creado exitosamente`
     );
-    if (activeTableId === t.id) setActiveTableId(null);
+    if (res) {
+      setSectorNameInput("");
+      setSectorCodeInput("");
+      setIsCreateSectorModalOpen(false);
+    }
+  };
+
+  const handleOpenEditSector = (sec: any) => {
+    setEditingSector(sec);
+    setEditSectorName(sec.name);
+    setEditSectorColor(sec.colorHex || "#8B5CF6");
+  };
+
+  const handleSaveEditSector = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSector || !editSectorName.trim()) return;
+    const res = await execTableAction(
+      {
+        action: "EDIT_SECTOR",
+        sectorId: editingSector.id,
+        sectorName: editSectorName.trim(),
+        colorHex: editSectorColor,
+      },
+      `Sector "${editSectorName.trim()}" actualizado`
+    );
+    if (res) setEditingSector(null);
+  };
+
+  const handleOpenDeleteSector = (sec: any) => {
+    setDeletingSector(sec);
+    setDeleteSectorCascade(false);
+  };
+
+  const handleConfirmDeleteSector = async () => {
+    if (!deletingSector) return;
+    const res = await execTableAction(
+      {
+        action: "DELETE_SECTOR",
+        sectorId: deletingSector.id,
+        deleteTablesWithSector: deleteSectorCascade,
+      },
+      deleteSectorCascade
+        ? `Sector "${deletingSector.name}" y sus mesas eliminados`
+        : `Sector "${deletingSector.name}" eliminado (mesas reasignadas)`
+    );
+    if (res) {
+      if (selectedSector === deletingSector.id) {
+        setSelectedSector("ALL");
+      }
+      setDeletingSector(null);
+    }
+  };
+
+  // Handlers para Mesas
+  const handleOpenCreateTableModal = () => {
+    const nextNum = Math.max(0, ...tables.map((t) => t.number || 0)) + 1;
+    setCreateTableNumber(nextNum);
+    setCreateTableLabel(`Mesa ${nextNum}`);
+    setCreateTableCapacity(4);
+    setCreateTableSectorId(selectedSector !== "ALL" ? selectedSector : sectors[0]?.id || "");
+    setCreateTableZone("DJ");
+    setIsCreateTableModalOpen(true);
+  };
+
+  const handleCreateModalTableSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await execTableAction(
+      {
+        action: "CREATE_TABLE",
+        number: Number(createTableNumber),
+        label: createTableLabel.trim() || `Mesa ${createTableNumber}`,
+        capacity: Number(createTableCapacity),
+        sectorId: createTableSectorId || undefined,
+        zone: createTableZone,
+      },
+      `Mesa "${createTableLabel.trim() || `Mesa ${createTableNumber}`}" creada con QR único`
+    );
+    if (res) setIsCreateTableModalOpen(false);
+  };
+
+  const handleDeleteTable = (t: any) => {
+    setDeletingTable(t);
+  };
+
+  const handleConfirmDeleteTable = async () => {
+    if (!deletingTable) return;
+    const res = await execTableAction(
+      { action: "DELETE_TABLE", tableId: deletingTable.id },
+      `Mesa "${deletingTable.label}" eliminada / desactivada`
+    );
+    if (res) {
+      if (activeTableId === deletingTable.id) setActiveTableId(null);
+      setDeletingTable(null);
+    }
   };
 
   const handleCopyUrl = (url: string, id: string) => {
@@ -238,39 +385,30 @@ export default function GastronomyTablesAndSectorsPage() {
           </p>
         </div>
 
-        {/* Crear Sector Rápido */}
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (!newSectorName.trim()) return;
-            await execTableAction(
-              { action: "CREATE_SECTOR", sectorName: newSectorName.trim() },
-              `Sector "${newSectorName}" creado`
-            );
-            setNewSectorName("");
-          }}
-          className="flex items-center gap-2 text-xs"
-        >
-          <input
-            type="text"
-            placeholder="Nuevo sector (ej: VIP Deck)"
-            value={newSectorName}
-            onChange={(e) => setNewSectorName(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-[#080F1F] border border-[#263858] text-white"
-          />
+        {/* Acciones Rápidas VIP: Nuevo Sector y Nueva Mesa */}
+        <div className="flex items-center gap-2.5 flex-wrap">
           <button
-            type="submit"
-            className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold flex items-center gap-1 whitespace-nowrap"
+            type="button"
+            onClick={handleOpenCreateSectorModal}
+            className="px-4 py-2.5 rounded-xl bg-[#080F1F] hover:bg-purple-950/40 border border-purple-500/40 text-purple-200 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Crear Sector</span>
+            <Layers className="w-4 h-4 text-purple-400" />
+            <span>+ Nuevo Sector</span>
           </button>
-        </form>
+          <button
+            type="button"
+            onClick={handleOpenCreateTableModal}
+            className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-md shadow-purple-600/25"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Nueva Mesa con QR</span>
+          </button>
+        </div>
       </div>
 
-      {/* Filtro por Sectores + Crear Mesa */}
+      {/* Filtro por Sectores + Gestión de Sectores */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
           <button
             onClick={() => setSelectedSector("ALL")}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
@@ -286,64 +424,61 @@ export default function GastronomyTablesAndSectorsPage() {
               (t) => t.active !== false && t.sectorId === sec.id
             ).length;
             const isSecActive = selectedSector === sec.id;
+            const sectorColor = sec.colorHex || "#8B5CF6";
+
             return (
-              <div key={sec.id} className="flex items-center gap-1">
+              <div
+                key={sec.id}
+                className={`flex items-center gap-1 p-1 rounded-xl border transition-all ${
+                  isSecActive
+                    ? "bg-[#111F38] border-purple-500/60 shadow-sm"
+                    : "bg-[#0D1930] border-[#263858] hover:border-slate-600"
+                }`}
+              >
                 <button
                   onClick={() => setSelectedSector(sec.id)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 ${
-                    isSecActive
-                      ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
-                      : "bg-[#0D1930] text-slate-300 border border-[#263858] hover:text-white"
-                  }`}
+                  className="px-2.5 py-1 text-xs font-bold whitespace-nowrap transition flex items-center gap-2 text-slate-200 hover:text-white"
                 >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
+                    style={{ backgroundColor: sectorColor }}
+                  />
                   <span>{sec.name}</span>
-                  <span className="px-1.5 py-0.2 rounded-full bg-black/30 text-[10px]">
+                  <span className="px-1.5 py-0.5 rounded-md bg-black/40 text-[10px] text-slate-300 font-mono">
                     {countInSec}
                   </span>
                 </button>
-                {isSecActive && (
-                  <>
+
+                <div className="flex items-center gap-0.5 pl-1 border-l border-[#263858]">
+                  <button
+                    onClick={() => handleOpenEditSector(sec)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-purple-300 hover:bg-purple-950/30 transition-colors"
+                    title={`Editar sector "${sec.name}"`}
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                  {sectors.length > 1 && (
                     <button
-                      onClick={async () => {
-                        const newName = window.prompt("Nuevo nombre para el sector:", sec.name);
-                        if (newName && newName.trim()) {
-                          await execTableAction(
-                            { action: "EDIT_SECTOR", sectorId: sec.id, sectorName: newName.trim() },
-                            `Sector renombrado a "${newName.trim()}"`
-                          );
-                        }
-                      }}
-                      className="p-2 rounded-xl bg-[#0D1930] border border-[#263858] text-slate-300 hover:text-white"
-                      title="Renombrar sector"
+                      onClick={() => handleOpenDeleteSector(sec)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-300 hover:bg-red-950/30 transition-colors"
+                      title={`Eliminar sector "${sec.name}"`}
                     >
-                      <Pencil className="w-3 h-3" />
+                      <Trash2 className="w-3 h-3" />
                     </button>
-                    {sectors.length > 1 && (
-                      <button
-                        onClick={async () => {
-                          if (
-                            window.confirm(
-                              `¿Eliminar el sector "${sec.name}"? Sus mesas pasarán al sector principal.`
-                            )
-                          ) {
-                            await execTableAction(
-                              { action: "DELETE_SECTOR", sectorId: sec.id },
-                              `Sector "${sec.name}" eliminado`
-                            );
-                            setSelectedSector("ALL");
-                          }
-                        }}
-                        className="p-2 rounded-xl bg-red-950/30 border border-red-500/30 text-red-300 hover:text-red-200"
-                        title="Eliminar sector"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    )}
-                  </>
-                )}
+                  )}
+                </div>
               </div>
             );
           })}
+
+          <button
+            type="button"
+            onClick={handleOpenCreateSectorModal}
+            className="px-3 py-1.5 rounded-xl bg-[#080F1F] hover:bg-purple-950/30 border border-dashed border-purple-500/40 text-purple-300 text-xs font-semibold flex items-center gap-1 whitespace-nowrap transition-colors"
+          >
+            <Plus className="w-3 h-3" />
+            <span>Sector</span>
+          </button>
         </div>
 
         <form
@@ -503,6 +638,13 @@ export default function GastronomyTablesAndSectorsPage() {
                     title="Editar mesa / Cambiar sector"
                   >
                     <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTable(table)}
+                    className="p-1.5 rounded-lg bg-red-950/30 hover:bg-red-900/40 border border-red-500/30 text-red-400 hover:text-red-300 transition-colors"
+                    title="Eliminar mesa"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -1006,6 +1148,505 @@ export default function GastronomyTablesAndSectorsPage() {
             showToast("Pedido musical enviado a la Cabina DJ / Karaoke");
           }}
         />
+      )}
+
+      {/* MODAL VIP 1: CREAR NUEVO SECTOR */}
+      {isCreateSectorModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={handleCreateSectorModalSubmit}
+            className="w-full max-w-md rounded-3xl bg-[#0D1930] border border-[#263858] p-6 space-y-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-[#263858] pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-500/40 text-purple-300">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Crear Nuevo Sector</h3>
+                  <p className="text-[11px] text-slate-400">Salón, terraza, VIP, barra o patio</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateSectorModalOpen(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-300 font-semibold block mb-1">
+                Nombre del Sector *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Ej: Terraza Lounge, VIP Deck, Salón Oro"
+                value={sectorNameInput}
+                onChange={(e) => setSectorNameInput(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-[#080F1F] border border-[#263858] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-300 font-semibold block mb-1">
+                Código Corto (opcional)
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                placeholder="Ej: VIP, TER, SAL"
+                value={sectorCodeInput}
+                onChange={(e) => setSectorCodeInput(e.target.value.toUpperCase())}
+                className="w-full px-3 py-2 rounded-xl bg-[#080F1F] border border-[#263858] text-xs text-white uppercase placeholder-slate-500 focus:outline-none focus:border-purple-400 font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-300 font-semibold block mb-1.5 flex items-center justify-between">
+                <span>Color Distintivo del Sector</span>
+                <span className="text-[10px] font-mono text-purple-300">{sectorColorInput}</span>
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {SECTOR_PALETTE.map((c) => (
+                  <button
+                    key={c.hex}
+                    type="button"
+                    onClick={() => setSectorColorInput(c.hex)}
+                    className={`p-2 rounded-xl border flex items-center gap-1.5 text-[11px] font-bold transition-all ${
+                      sectorColorInput === c.hex
+                        ? "bg-purple-950/80 border-purple-400 text-white shadow-sm ring-1 ring-purple-400"
+                        : "bg-[#080F1F] border-[#263858] text-slate-300 hover:border-slate-500"
+                    }`}
+                  >
+                    <span
+                      className="w-3 h-3 rounded-full shrink-0 shadow-sm"
+                      style={{ backgroundColor: c.hex }}
+                    />
+                    <span className="truncate text-[10px]">{c.name.split(" ")[0]}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#263858]">
+              <button
+                type="button"
+                onClick={() => setIsCreateSectorModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-[#080F1F] text-xs text-slate-300 hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-md shadow-purple-600/25 flex items-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Crear Sector</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL VIP 2: EDITAR SECTOR */}
+      {editingSector && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={handleSaveEditSector}
+            className="w-full max-w-md rounded-3xl bg-[#0D1930] border border-[#263858] p-6 space-y-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-[#263858] pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-500/40 text-purple-300">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Editar Sector</h3>
+                  <p className="text-[11px] text-slate-400">{editingSector.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingSector(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-300 font-semibold block mb-1">
+                Nombre del Sector *
+              </label>
+              <input
+                type="text"
+                required
+                value={editSectorName}
+                onChange={(e) => setEditSectorName(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-[#080F1F] border border-[#263858] text-xs text-white focus:outline-none focus:border-purple-400"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-300 font-semibold block mb-1.5 flex items-center justify-between">
+                <span>Color Distintivo del Sector</span>
+                <span className="text-[10px] font-mono text-purple-300">{editSectorColor}</span>
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {SECTOR_PALETTE.map((c) => (
+                  <button
+                    key={c.hex}
+                    type="button"
+                    onClick={() => setEditSectorColor(c.hex)}
+                    className={`p-2 rounded-xl border flex items-center gap-1.5 text-[11px] font-bold transition-all ${
+                      editSectorColor === c.hex
+                        ? "bg-purple-950/80 border-purple-400 text-white shadow-sm ring-1 ring-purple-400"
+                        : "bg-[#080F1F] border-[#263858] text-slate-300 hover:border-slate-500"
+                    }`}
+                  >
+                    <span
+                      className="w-3 h-3 rounded-full shrink-0 shadow-sm"
+                      style={{ backgroundColor: c.hex }}
+                    />
+                    <span className="truncate text-[10px]">{c.name.split(" ")[0]}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#263858]">
+              <button
+                type="button"
+                onClick={() => setEditingSector(null)}
+                className="px-4 py-2 rounded-xl bg-[#080F1F] text-xs text-slate-300 hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-md shadow-purple-600/25"
+              >
+                Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL VIP 3: ELIMINAR SECTOR */}
+      {deletingSector && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-[#0D1930] border border-red-500/40 p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#263858] pb-3">
+              <div className="flex items-center gap-2 text-red-400">
+                <div className="p-2 rounded-xl bg-red-950/60 border border-red-500/40">
+                  <AlertTriangle className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Eliminar Sector</h3>
+                  <p className="text-[11px] text-red-300">{deletingSector.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeletingSector(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {(() => {
+              const sectorTablesCount = tables.filter(
+                (t) => t.active !== false && t.sectorId === deletingSector.id
+              ).length;
+
+              return (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-300">
+                    Estás por eliminar el sector <strong className="text-white">"{deletingSector.name}"</strong>.
+                  </p>
+
+                  {sectorTablesCount > 0 ? (
+                    <div className="p-3.5 rounded-2xl bg-[#080F1F] border border-[#263858] space-y-2.5">
+                      <div className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                        <span>⚠️ Este sector contiene {sectorTablesCount} mesa(s) asociada(s):</span>
+                      </div>
+                      <div className="space-y-2 text-xs">
+                        <label className="flex items-start gap-2.5 p-2 rounded-xl bg-navy-900/60 border border-purple-500/30 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="deleteSectorAction"
+                            checked={!deleteSectorCascade}
+                            onChange={() => setDeleteSectorCascade(false)}
+                            className="mt-0.5 text-purple-600"
+                          />
+                          <div>
+                            <span className="font-bold text-white block">Conservar las mesas</span>
+                            <span className="text-[11px] text-slate-400 block">
+                              Reasigna automáticamente las {sectorTablesCount} mesas al sector principal.
+                            </span>
+                          </div>
+                        </label>
+
+                        <label className="flex items-start gap-2.5 p-2 rounded-xl bg-red-950/20 border border-red-500/30 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="deleteSectorAction"
+                            checked={deleteSectorCascade}
+                            onChange={() => setDeleteSectorCascade(true)}
+                            className="mt-0.5 text-red-500"
+                          />
+                          <div>
+                            <span className="font-bold text-red-200 block">
+                              Borrar también todas las mesas de este sector
+                            </span>
+                            <span className="text-[11px] text-red-300/80 block">
+                              Elimina / desactiva las {sectorTablesCount} mesas asociadas al sector.
+                            </span>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-xl bg-slate-900/60 border border-[#263858] text-xs text-slate-400">
+                      Este sector no tiene mesas asignadas actualmente.
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#263858]">
+                    <button
+                      type="button"
+                      onClick={() => setDeletingSector(null)}
+                      className="px-4 py-2 rounded-xl bg-[#080F1F] text-xs text-slate-300 hover:text-white"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmDeleteSector}
+                      className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-xs font-bold text-white shadow-md shadow-red-600/30 flex items-center gap-1.5"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Confirmar Eliminación</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL VIP 4: CREAR NUEVA MESA */}
+      {isCreateTableModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={handleCreateModalTableSubmit}
+            className="w-full max-w-md rounded-3xl bg-[#0D1930] border border-[#263858] p-6 space-y-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-[#263858] pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-500/40 text-purple-300">
+                  <LayoutGrid className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Nueva Mesa con QR Único</h3>
+                  <p className="text-[11px] text-slate-400">Genera comensal, cuenta y código QR</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateTableModalOpen(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-300 font-semibold block mb-1">
+                  Número de Mesa *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min={1}
+                  value={createTableNumber}
+                  onChange={(e) => setCreateTableNumber(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl bg-[#080F1F] border border-[#263858] text-xs text-white font-mono focus:outline-none focus:border-purple-400"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-300 font-semibold block mb-1">
+                  Capacidad (pers.)
+                </label>
+                <input
+                  type="number"
+                  required
+                  min={1}
+                  max={40}
+                  value={createTableCapacity}
+                  onChange={(e) => setCreateTableCapacity(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl bg-[#080F1F] border border-[#263858] text-xs text-white focus:outline-none focus:border-purple-400"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-300 font-semibold block mb-1">
+                Nombre / Etiqueta de la Mesa *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Ej: Mesa 14, Box VIP 2, Living Pista"
+                value={createTableLabel}
+                onChange={(e) => setCreateTableLabel(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-[#080F1F] border border-[#263858] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-300 font-semibold block mb-1">
+                Sector Gastronómico Asignado *
+              </label>
+              <VipSelectModal
+                value={createTableSectorId}
+                onChange={(val) => setCreateTableSectorId(val)}
+                options={sectors.map((s) => ({
+                  value: s.id,
+                  label: s.name,
+                  badge: s.code || "SECTOR",
+                  icon: MapPin,
+                }))}
+                title="Sector de la Nueva Mesa"
+                subtitle="Elige el salón o área del local donde se ubica"
+                placeholder="Seleccionar Sector..."
+                icon={MapPin}
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-300 font-semibold block mb-1">
+                Modalidad Musical Predeterminada
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCreateTableZone("DJ")}
+                  className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                    createTableZone === "DJ"
+                      ? "bg-amber-950/60 border-amber-500/60 text-amber-300 shadow-sm"
+                      : "bg-[#080F1F] border-[#263858] text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <Headphones className="w-3.5 h-3.5" />
+                  <span>Modo DJ / Pista</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreateTableZone("KARAOKE")}
+                  className={`py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                    createTableZone === "KARAOKE"
+                      ? "bg-cyan-950/60 border-cyan-500/60 text-cyan-300 shadow-sm"
+                      : "bg-[#080F1F] border-[#263858] text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <UtensilsCrossed className="w-3.5 h-3.5" />
+                  <span>Modo Karaoke</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#263858]">
+              <button
+                type="button"
+                onClick={() => setIsCreateTableModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-[#080F1F] text-xs text-slate-300 hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-md shadow-purple-600/25 flex items-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Crear Mesa + QR</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL VIP 5: ELIMINAR MESA */}
+      {deletingTable && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-[#0D1930] border border-red-500/40 p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#263858] pb-3">
+              <div className="flex items-center gap-2 text-red-400">
+                <div className="p-2 rounded-xl bg-red-950/60 border border-red-500/40">
+                  <Trash2 className="w-5 h-5 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Eliminar Mesa</h3>
+                  <p className="text-[11px] text-red-300">{deletingTable.label}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeletingTable(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-slate-300">
+                ¿Confirmás que deseás eliminar <strong className="text-white">"{deletingTable.label}"</strong> (#{deletingTable.number}) del sector <strong className="text-purple-300">{deletingTable.sector?.name || "Salón Principal"}</strong>?
+              </p>
+
+              {deletingTable.activeSession || (deletingTable.activeOrders && deletingTable.activeOrders.length > 0) ? (
+                <div className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Mesa con consumos o pedidos asociados</span>
+                  </div>
+                  <p className="text-[11px] text-amber-300/80">
+                    Para proteger la trazabilidad contable y el cierre de caja, la mesa se desactivará de forma segura y se liberará su código QR.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-slate-900/60 border border-[#263858] text-xs text-slate-400">
+                  La mesa no tiene pedidos activos. Se eliminará inmediatamente de la base de datos y del plano.
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#263858]">
+                <button
+                  type="button"
+                  onClick={() => setDeletingTable(null)}
+                  className="px-4 py-2 rounded-xl bg-[#080F1F] text-xs text-slate-300 hover:text-white"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDeleteTable}
+                  className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-xs font-bold text-white shadow-md shadow-red-600/30 flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Eliminar Mesa</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

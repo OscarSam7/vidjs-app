@@ -47,6 +47,7 @@ const tableOperationSchema = z.object({
   sectorName: z.string().optional(),
   sectorCode: z.string().optional(),
   colorHex: z.string().optional(),
+  deleteTablesWithSector: z.boolean().optional(),
   // Para mesa
   tableId: z.string().optional(),
   number: z.coerce.number().int().optional(),
@@ -260,18 +261,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, sector: updatedSector });
     }
 
-    // 1C. ELIMINAR SECTOR (REASIGNANDO MESAS AL SECTOR PRINCIPAL)
+    // 1C. ELIMINAR SECTOR (Y OPCIONALMENTE SUS MESAS CORRESPONDIENTES)
     if (data.action === "DELETE_SECTOR" && data.sectorId) {
-      const fallbackSector = await prisma.gastroSector.findFirst({
-        where: { tenantId, id: { not: data.sectorId }, active: true },
-        orderBy: { orderIndex: "asc" },
-      });
-
-      if (fallbackSector) {
-        await prisma.table.updateMany({
+      if (data.deleteTablesWithSector) {
+        // Eliminar o desactivar todas las mesas asociadas a este sector
+        const sectorTables = await prisma.table.findMany({
           where: { tenantId, sectorId: data.sectorId },
-          data: { sectorId: fallbackSector.id },
+          select: { id: true },
         });
+
+        for (const t of sectorTables) {
+          try {
+            await prisma.table.delete({ where: { id: t.id } });
+          } catch {
+            await prisma.table.update({
+              where: { id: t.id },
+              data: { active: false, tableStatus: "BLOCKED" },
+            });
+          }
+        }
+      } else {
+        // Reasignar mesas al sector fallback
+        const fallbackSector = await prisma.gastroSector.findFirst({
+          where: { tenantId, id: { not: data.sectorId }, active: true },
+          orderBy: { orderIndex: "asc" },
+        });
+
+        if (fallbackSector) {
+          await prisma.table.updateMany({
+            where: { tenantId, sectorId: data.sectorId },
+            data: { sectorId: fallbackSector.id },
+          });
+        }
       }
 
       await prisma.gastroSector.delete({ where: { id: data.sectorId } }).catch(async () => {
