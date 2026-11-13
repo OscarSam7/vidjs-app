@@ -1399,57 +1399,41 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {/* 1. TOP HEADER DEL CAMPEONATO & SELECTOR MODERNO              */}
       {/* ============================================================ */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-zinc-900/90 border border-zinc-800/80 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-2xl backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center text-zinc-950 shadow-lg shadow-amber-500/20 shrink-0">
-            <Trophy className="w-6 h-6 sm:w-7 sm:h-7" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base sm:text-xl lg:text-2xl font-black text-white tracking-tight truncate">
-                {contest?.name || "Concurso de Karaoke Pro"}
-              </h1>
-              {contest && (
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold border border-amber-500/40">
-                  {contest.code}
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] sm:text-xs text-zinc-400 font-medium line-clamp-1 sm:line-clamp-none">
-              Gestión multidía, jurados móviles, votación en vivo, pantalla gigante y actas oficiales.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-          {/* Selector de Concurso Ultra Moderno (Reemplaza al native select para evitar modal blanco en móviles) */}
-          <div className="relative" ref={contestDropdownRef}>
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-zinc-900/90 border border-zinc-800/80 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-2xl backdrop-blur-md relative z-40">
+        {/* BLOQUE DE SELECTOR & ACCIONES (En móvil se posiciona ARRIBA, sobre las informaciones) */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap order-1 md:order-2 w-full md:w-auto justify-between md:justify-end">
+          {/* Selector de Concurso Ultra Moderno (Aparece sobre las informaciones y flota con z-50) */}
+          <div className="relative flex-1 sm:flex-initial" ref={contestDropdownRef}>
             <button
               type="button"
               onClick={() => setContestDropdownOpen((prev) => !prev)}
-              className="px-3 py-2 rounded-xl bg-zinc-950/90 hover:bg-zinc-900 border border-zinc-700 hover:border-amber-500/50 text-white text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md group"
+              className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-zinc-950/90 hover:bg-zinc-900 border border-zinc-700 hover:border-amber-500/50 text-white text-xs font-bold flex items-center justify-between sm:justify-start gap-2 transition-all cursor-pointer shadow-md group"
             >
-              <div className="w-2 h-2 rounded-full shrink-0 bg-amber-400 shadow-sm shadow-amber-400/50 animate-pulse" />
-              <span className="truncate max-w-[130px] sm:max-w-[190px]">
-                {contest ? contest.name : "Certámenes"}
-              </span>
-              {contest && (
-                <span className="px-1.5 py-0.2 rounded-md bg-amber-500/10 text-amber-300 font-mono text-[10px] border border-amber-500/30 shrink-0">
-                  {contest.code}
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-2 h-2 rounded-full shrink-0 bg-amber-400 shadow-sm shadow-amber-400/50 animate-pulse" />
+                <span className="truncate max-w-[140px] sm:max-w-[190px]">
+                  {contest ? contest.name : "Certámenes"}
                 </span>
-              )}
-              <ChevronDown
-                className={`w-3.5 h-3.5 text-zinc-400 group-hover:text-amber-400 transition-transform duration-200 shrink-0 ${
-                  contestDropdownOpen ? "rotate-180" : ""
-                }`}
-              />
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {contest && (
+                  <span className="px-1.5 py-0.2 rounded-md bg-amber-500/10 text-amber-300 font-mono text-[10px] border border-amber-500/30">
+                    {contest.code}
+                  </span>
+                )}
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-zinc-400 group-hover:text-amber-400 transition-transform duration-200 ${
+                    contestDropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </div>
             </button>
 
-            {/* Menú Flotante Ultra Moderno */}
+            {/* Menú Flotante Ultra Moderno (Superpuesto encima de todo con z-50) */}
             {contestDropdownOpen && (
-              <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-72 sm:w-80 max-h-80 overflow-y-auto bg-zinc-900/95 backdrop-blur-xl border border-zinc-700 hover:border-amber-500/40 rounded-2xl shadow-2xl p-2 z-50 space-y-1 divide-y divide-zinc-800/70 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-72 sm:w-80 max-h-80 overflow-y-auto bg-zinc-900/98 backdrop-blur-2xl border border-amber-500/40 rounded-2xl shadow-2xl p-2 z-50 space-y-1 divide-y divide-zinc-800/80 animate-in fade-in zoom-in-95 duration-150">
                 <div className="px-2 py-1 flex items-center justify-between text-[11px] font-bold text-zinc-400">
-                  <span>Certámenes ({contests.length})</span>
+                  <span>Certámenes Creados ({contests.length})</span>
                   <span className="text-[10px] text-amber-400 font-mono">Vidjs Pro</span>
                 </div>
 
@@ -1516,54 +1500,78 @@ export default function ContestDashboardPage() {
             )}
           </div>
 
-          {/* Botón Nuevo Concurso */}
-          <button
-            onClick={() => setShowNewContestModal(true)}
-            className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
-            title="Crear un nuevo certamen de karaoke"
-          >
-            <Plus className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Nuevo</span>
-          </button>
-
-          {/* Botón Editar Concurso */}
-          {contest && (
+          <div className="flex items-center gap-1.5">
+            {/* Botón Nuevo Concurso */}
             <button
-              type="button"
-              onClick={handleOpenEditContest}
-              className="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
-              title="Editar nombre, descripción, puntuación, costos y reglas de este concurso"
+              onClick={() => setShowNewContestModal(true)}
+              className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+              title="Crear un nuevo certamen de karaoke"
             >
-              <Pencil className="w-3.5 h-3.5 text-amber-400" />
-              <span>Editar</span>
+              <Plus className="w-3.5 h-3.5 text-amber-400" />
+              <span>Nuevo</span>
             </button>
-          )}
 
-          {/* Botón Eliminar Concurso */}
-          {contest && (
-            <button
-              type="button"
-              onClick={handleDeleteContest}
-              disabled={actionLoading}
-              className="p-2 rounded-xl bg-zinc-900 hover:bg-red-950/80 text-zinc-400 hover:text-red-400 border border-zinc-800 hover:border-red-500/40 text-xs font-bold transition-all cursor-pointer shadow-md"
-              title="Eliminar certamen permanentemente"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          )}
+            {/* Botón Editar Concurso */}
+            {contest && (
+              <button
+                type="button"
+                onClick={handleOpenEditContest}
+                className="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                title="Editar nombre, descripción, puntuación, costos y reglas de este concurso"
+              >
+                <Pencil className="w-3.5 h-3.5 text-amber-400" />
+                <span>Editar</span>
+              </button>
+            )}
 
-          {/* Botón Abrir Pantalla Gigante / TV Concurso */}
-          {contest && (
-            <Link
-              href={`/display/${contest.code}/contest`}
-              target="_blank"
-              className="px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black flex items-center gap-1.5 shadow-lg shadow-purple-900/30 transition-all cursor-pointer"
-            >
-              <Tv className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Pantalla TV</span>
-              <ExternalLink className="w-3 h-3" />
-            </Link>
-          )}
+            {/* Botón Eliminar Concurso */}
+            {contest && (
+              <button
+                type="button"
+                onClick={handleDeleteContest}
+                disabled={actionLoading}
+                className="p-2 rounded-xl bg-zinc-900 hover:bg-red-950/80 text-zinc-400 hover:text-red-400 border border-zinc-800 hover:border-red-500/40 text-xs font-bold transition-all cursor-pointer shadow-md"
+                title="Eliminar certamen permanentemente"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* Botón Pantalla TV */}
+            {contest && (
+              <Link
+                href={`/display/${contest.code}/contest`}
+                target="_blank"
+                className="px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black flex items-center gap-1.5 shadow-lg shadow-purple-900/30 transition-all cursor-pointer"
+              >
+                <Tv className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">TV Show</span>
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* BLOQUE DE INFORMACIÓN DEL CERTAMEN (En móvil se posiciona debajo del selector) */}
+        <div className="flex items-center gap-3 order-2 md:order-1 pt-2 md:pt-0 border-t border-zinc-800/60 md:border-t-0">
+          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center text-zinc-950 shadow-lg shadow-amber-500/20 shrink-0">
+            <Trophy className="w-6 h-6 sm:w-7 sm:h-7" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base sm:text-xl lg:text-2xl font-black text-white tracking-tight truncate">
+                {contest?.name || "Concurso de Karaoke Pro"}
+              </h1>
+              {contest && (
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold border border-amber-500/40">
+                  {contest.code}
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] sm:text-xs text-zinc-400 font-medium line-clamp-1 sm:line-clamp-none">
+              Gestión multidía, jurados móviles, votación en vivo, pantalla gigante y actas oficiales.
+            </p>
+          </div>
         </div>
       </header>
 
