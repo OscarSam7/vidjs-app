@@ -99,14 +99,7 @@ export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
     // Determinar Modo de Noche
     let nightMode: NightMode = "HYBRID";
     if (parsed.nightMode === "KARAOKE_ONLY" || parsed.nightMode === "DJ_ONLY" || parsed.nightMode === "HYBRID") {
-      // Si la zona fue explícitamente configurada en modo opuesto a un bloqueo exclusivo, flexibilizar a HYBRID
-      if (parsed.nightMode === "DJ_ONLY" && parsed.zone === "KARAOKE") {
-        nightMode = "HYBRID";
-      } else if (parsed.nightMode === "KARAOKE_ONLY" && parsed.zone === "DJ") {
-        nightMode = "HYBRID";
-      } else {
-        nightMode = parsed.nightMode;
-      }
+      nightMode = parsed.nightMode;
     } else if (parsed.zone === "DJ") {
       nightMode = "DJ_ONLY";
     } else if (parsed.zone === "KARAOKE") {
@@ -146,14 +139,14 @@ export function parseQueuePolicy(settingsJson?: string | null): QueuePolicy {
 
     // Compatibilidad Plana (Flat Compatibility)
     let effectiveZone: "DJ" | "KARAOKE" | "MAIN" = "MAIN";
-    if (parsed.zone === "DJ" || parsed.zone === "KARAOKE") {
-      effectiveZone = parsed.zone;
-    } else if (nightMode === "DJ_ONLY") {
+    if (nightMode === "DJ_ONLY") {
       effectiveZone = "DJ";
     } else if (nightMode === "KARAOKE_ONLY") {
       effectiveZone = "KARAOKE";
+    } else if (parsed.zone === "DJ" || parsed.zone === "KARAOKE") {
+      effectiveZone = parsed.zone;
     } else {
-      effectiveZone = "KARAOKE";
+      effectiveZone = "MAIN";
     }
 
     const effectiveMaxActive = effectiveZone === "DJ" ? dj.maxActivePerTable : karaoke.maxActivePerTable;

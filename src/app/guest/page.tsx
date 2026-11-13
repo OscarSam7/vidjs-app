@@ -231,16 +231,50 @@ function GuestContent() {
       }
       return modeParam as "DJ" | "KARAOKE";
     }
+    if (eventParam && String(eventParam).toUpperCase().endsWith("-DJ")) {
+      return "DJ";
+    }
     if (typeof window !== "undefined") {
       try {
         const saved = sessionStorage.getItem("vidjs_guest_active_mode");
         if (saved === "DJ" || saved === "KARAOKE") return saved as "DJ" | "KARAOKE";
       } catch {}
     }
-    return "KARAOKE";
+    return "DJ";
   });
 
   const userModeChoiceRef = useRef<"DJ" | "KARAOKE" | null>(null);
+
+  // Sincronizar automáticamente en vivo con la modalidad activa del evento (incluso sin escanear)
+  useEffect(() => {
+    const checkLiveMode = async () => {
+      try {
+        const codeQuery = eventParam || venueParam || "";
+        const res = await fetch(
+          `/api/v1/guest/live-mode${codeQuery ? `?code=${encodeURIComponent(codeQuery)}` : ""}`
+        );
+        if (res.ok) {
+          const json = await res.json();
+          if (json.nightMode === "DJ_ONLY" || (!modeParam && json.defaultClientMode === "DJ")) {
+            setActiveMode("DJ");
+            if (typeof window !== "undefined") {
+              try {
+                sessionStorage.setItem("vidjs_guest_active_mode", "DJ");
+              } catch {}
+            }
+          } else if (json.nightMode === "KARAOKE_ONLY") {
+            setActiveMode("KARAOKE");
+            if (typeof window !== "undefined") {
+              try {
+                sessionStorage.setItem("vidjs_guest_active_mode", "KARAOKE");
+              } catch {}
+            }
+          }
+        }
+      } catch {}
+    };
+    checkLiveMode();
+  }, [eventParam, venueParam, modeParam]);
 
   const handleSelectMode = (mode: "DJ" | "KARAOKE") => {
     userModeChoiceRef.current = mode;
@@ -574,23 +608,27 @@ function GuestContent() {
           const nightMode = data.data.tableAllowance.nightMode;
           const tableZone = data.data.tableAllowance.zone;
 
-          // Sincronizar automáticamente con la modalidad activa del evento o zona de mesa
-          const isDjTarget = nightMode === "DJ_ONLY" || tableZone === "DJ" || modeParam === "DJ";
-          const isKaraokeTarget = nightMode === "KARAOKE_ONLY" || tableZone === "KARAOKE" || modeParam === "KARAOKE";
-
-          if (isDjTarget && (!userModeChoiceRef.current || nightMode === "DJ_ONLY" || modeParam === "DJ")) {
+          // En todas las mesas y sectores funcionan ambas modalidades.
+          // Si el DJ configuró la noche en DJ_ONLY o KARAOKE_ONLY, sincronizar automáticamente:
+          if (nightMode === "DJ_ONLY" || modeParam === "DJ") {
             setActiveMode("DJ");
             if (typeof window !== "undefined") {
               try {
                 sessionStorage.setItem("vidjs_guest_active_mode", "DJ");
               } catch {}
             }
-          } else if (isKaraokeTarget && (!userModeChoiceRef.current || nightMode === "KARAOKE_ONLY" || modeParam === "KARAOKE")) {
+          } else if (nightMode === "KARAOKE_ONLY" || modeParam === "KARAOKE") {
             setActiveMode("KARAOKE");
             if (typeof window !== "undefined") {
               try {
                 sessionStorage.setItem("vidjs_guest_active_mode", "KARAOKE");
               } catch {}
+            }
+          } else {
+            // Si es HÍBRIDO, ambas modalidades están disponibles en todas las mesas.
+            // Si el cliente no ha forzado karaoke y la noche o zona está en DJ, activar DJ por defecto:
+            if (!userModeChoiceRef.current && (tableZone === "DJ" || modeParam === "DJ")) {
+              setActiveMode("DJ");
             }
           }
         }
@@ -753,8 +791,8 @@ function GuestContent() {
 
   // Sincronización Realtime nativa SSE (0 ms) para comensales de mesa
   const { isConnected: isRealtime } = useRealtime({
-    eventId: session?.event?.id,
-    code: session?.event?.code,
+    eventId: session?.event?.id || "global",
+    code: session?.event?.code || (eventParam as string) || undefined,
     onEvent: async (type: RealtimeEventType, payload: any) => {
       if (type === "BRANDING_UPDATED") {
         if (payload) {
@@ -789,6 +827,23 @@ function GuestContent() {
       } else if (type === "NEXT_TURN_CANCELLED") {
         setActiveTurnCountdown(null);
       } else if (type === "QUEUE_POLICY_UPDATED") {
+        const newNightMode = payload?.policy?.nightMode;
+        const newZone = payload?.policy?.zone;
+        if (newNightMode === "DJ_ONLY" || newZone === "DJ") {
+          setActiveMode("DJ");
+          if (typeof window !== "undefined") {
+            try {
+              sessionStorage.setItem("vidjs_guest_active_mode", "DJ");
+            } catch {}
+          }
+        } else if (newNightMode === "KARAOKE_ONLY" || newZone === "KARAOKE") {
+          setActiveMode("KARAOKE");
+          if (typeof window !== "undefined") {
+            try {
+              sessionStorage.setItem("vidjs_guest_active_mode", "KARAOKE");
+            } catch {}
+          }
+        }
         await loadSessionAndRequests(true);
       } else if (
         type === "TABLE_RELEASED" ||

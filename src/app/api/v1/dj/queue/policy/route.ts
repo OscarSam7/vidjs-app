@@ -179,10 +179,16 @@ export async function PATCH(req: NextRequest) {
     });
 
     // Notificar en tiempo real por SSE a todos los comensales, cabinas y pantallas
-    realtimeBus.broadcast(event.id, "QUEUE_POLICY_UPDATED", {
+    const policyPayload = {
       eventId: event.id,
+      eventCode: event.code,
       policy: updatedPolicy,
-    });
+    };
+    realtimeBus.broadcast(event.id, "QUEUE_POLICY_UPDATED", policyPayload);
+    if (event.code) {
+      realtimeBus.broadcast(event.code, "QUEUE_POLICY_UPDATED", policyPayload);
+    }
+    realtimeBus.broadcast("global", "QUEUE_POLICY_UPDATED", policyPayload);
 
     if (data.photoFitMode !== undefined) {
       realtimeBus.broadcast(event.id, "PHOTO_FIT_MODE", {

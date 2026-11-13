@@ -63,13 +63,24 @@ export async function POST(req: NextRequest) {
     const data = createRequestSchema.parse(body);
 
     const policy = parseQueuePolicy(guestSession.event.settings);
-    const tableZone = (guestSession.table as any).zone || policy.zone || "MAIN";
+    const effectiveNightMode: "DJ_ONLY" | "KARAOKE_ONLY" | "HYBRID" =
+      policy.nightMode === "DJ_ONLY" || (policy as any).zone === "DJ"
+        ? "DJ_ONLY"
+        : policy.nightMode === "KARAOKE_ONLY" || (policy as any).zone === "KARAOKE"
+        ? "KARAOKE_ONLY"
+        : "HYBRID";
+
+    // En todas las mesas y sectores funcionan ambas modalidades según la política del DJ
     const isDjZone =
-      data.mode === "DJ"
+      effectiveNightMode === "DJ_ONLY"
+        ? true
+        : effectiveNightMode === "KARAOKE_ONLY"
+        ? false
+        : data.mode === "DJ"
         ? true
         : data.mode === "KARAOKE"
         ? false
-        : tableZone === "DJ" || policy.nightMode === "DJ_ONLY";
+        : false;
     const effectiveLimit = isDjZone ? policy.dj.maxActivePerTable : policy.karaoke.maxActivePerTable;
     const isPaused = isDjZone ? policy.dj.queuePaused : policy.karaoke.queuePaused;
 
@@ -350,30 +361,34 @@ export async function GET() {
       ["PENDING", "ACCEPTED", "PLAYING"].includes(r.status)
     ).length;
 
-    const explicitTableZone = (guestSession.table as any).zone;
-    const isDjZone =
-      explicitTableZone === "DJ" ||
-      policy.nightMode === "DJ_ONLY" ||
-      (policy as any).zone === "DJ";
-    const isKaraokeZone =
-      explicitTableZone === "KARAOKE" ||
-      policy.nightMode === "KARAOKE_ONLY" ||
-      (policy as any).zone === "KARAOKE";
-    const computedZone: "DJ" | "KARAOKE" | "MAIN" = isDjZone
-      ? "DJ"
-      : isKaraokeZone
-      ? "KARAOKE"
-      : "MAIN";
-
-    const effectiveMax = isDjZone ? policy.dj.maxActivePerTable : policy.karaoke.maxActivePerTable;
-    const effectivePaused = isDjZone ? policy.dj.queuePaused : policy.karaoke.queuePaused;
-
-    const effectiveNightMode =
+    const effectiveNightMode: "DJ_ONLY" | "KARAOKE_ONLY" | "HYBRID" =
       policy.nightMode === "DJ_ONLY" || (policy as any).zone === "DJ"
         ? "DJ_ONLY"
         : policy.nightMode === "KARAOKE_ONLY" || (policy as any).zone === "KARAOKE"
         ? "KARAOKE_ONLY"
-        : policy.nightMode;
+        : "HYBRID";
+
+    // En todas las mesas y sectores funcionan ambas modalidades gobernadas por la modalidad de la noche
+    const computedZone: "DJ" | "KARAOKE" | "MAIN" =
+      effectiveNightMode === "DJ_ONLY"
+        ? "DJ"
+        : effectiveNightMode === "KARAOKE_ONLY"
+        ? "KARAOKE"
+        : "MAIN"; // MAIN = Ambas modalidades habilitadas en todas las mesas y sectores
+
+    const effectiveMax =
+      effectiveNightMode === "DJ_ONLY"
+        ? policy.dj.maxActivePerTable
+        : effectiveNightMode === "KARAOKE_ONLY"
+        ? policy.karaoke.maxActivePerTable
+        : Math.max(policy.dj.maxActivePerTable, policy.karaoke.maxActivePerTable);
+
+    const effectivePaused =
+      effectiveNightMode === "DJ_ONLY"
+        ? policy.dj.queuePaused
+        : effectiveNightMode === "KARAOKE_ONLY"
+        ? policy.karaoke.queuePaused
+        : policy.dj.queuePaused && policy.karaoke.queuePaused;
 
     const tableAllowance = {
       usedSlots: activeRequestsCount,
@@ -382,6 +397,8 @@ export async function GET() {
       queuePaused: effectivePaused,
       zone: computedZone,
       nightMode: effectiveNightMode,
+      djEnabled: policy.dj.enabled && effectiveNightMode !== "KARAOKE_ONLY",
+      karaokeEnabled: policy.karaoke.enabled && effectiveNightMode !== "DJ_ONLY",
       djQueuePaused: policy.dj.queuePaused,
       karaokeQueuePaused: policy.karaoke.queuePaused,
       autoPlayRequests: Boolean(policy.autoPlayRequests),

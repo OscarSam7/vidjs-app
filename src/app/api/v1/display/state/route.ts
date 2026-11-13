@@ -15,17 +15,30 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const code = searchParams.get("code")?.trim().toUpperCase();
+    const rawCode = searchParams.get("code")?.trim().toUpperCase();
 
-    if (!code) {
+    if (!rawCode) {
       return NextResponse.json(
         { error: { code: "BAD_REQUEST", message: "Código de evento requerido" } },
         { status: 400 }
       );
     }
 
-    // 1. Buscar evento por código único
-    const event = await prisma.event.findUnique({
+    let code = rawCode;
+    let explicitSuffixMode: "DJ" | "KARAOKE" | null = null;
+    if (rawCode.endsWith("-DJ")) {
+      code = rawCode.slice(0, -3);
+      explicitSuffixMode = "DJ";
+    } else if (rawCode.endsWith("-KJ")) {
+      code = rawCode.slice(0, -3);
+      explicitSuffixMode = "KARAOKE";
+    } else if (rawCode.endsWith("-KARAOKE")) {
+      code = rawCode.slice(0, -8);
+      explicitSuffixMode = "KARAOKE";
+    }
+
+    // 1. Buscar evento por código único (baseCode o rawCode)
+    let event = await prisma.event.findUnique({
       where: { code },
       include: {
         venue: {
@@ -37,8 +50,22 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    if (!event && code !== rawCode) {
+      event = await prisma.event.findUnique({
+        where: { code: rawCode },
+        include: {
+          venue: {
+            select: { id: true, name: true, address: true, settings: true },
+          },
+          tenant: {
+            select: { id: true, name: true, slug: true, logoUrl: true, settings: true },
+          },
+        },
+      });
+    }
+
     if (!event) {
-      throw new NotFoundError(`No se encontró ningún evento con el código '${code}'`);
+      throw new NotFoundError(`No se encontró ningún evento con el código '${rawCode}'`);
     }
 
     // 2. Consultar canción actual en reproducción (CURRENT)
@@ -89,11 +116,33 @@ export async function GET(req: NextRequest) {
     // 4. Política de cola (Modo Karaoke / DJ, Pausa)
     const policy = parseQueuePolicy(event.settings);
     const resolvedMode =
-      policy.nightMode === "DJ_ONLY" || (policy as any).zone === "DJ"
+      explicitSuffixMode === "DJ" ||
+      policy.nightMode === "DJ_ONLY" ||
+      (policy as any).zone === "DJ"
         ? "DJ"
-        : policy.nightMode === "KARAOKE_ONLY" || (policy as any).zone === "KARAOKE"
+        : explicitSuffixMode === "KARAOKE" ||
+          policy.nightMode === "KARAOKE_ONLY" ||
+          (policy as any).zone === "KARAOKE"
         ? "KARAOKE"
         : null;
+
+    // Si el DJ abrió la Pantalla TV en Modo DJ explícito, notificar a los clientes en vivo
+    if (explicitSuffixMode && policy.nightMode !== `${explicitSuffixMode}_ONLY`) {
+      realtimeBus.broadcast(event.id, "QUEUE_POLICY_UPDATED", {
+        eventId: event.id,
+        policy: { ...policy, nightMode: `${explicitSuffixMode}_ONLY` as any, zone: explicitSuffixMode },
+      });
+      if (event.code) {
+        realtimeBus.broadcast(event.code, "QUEUE_POLICY_UPDATED", {
+          eventId: event.id,
+          policy: { ...policy, nightMode: `${explicitSuffixMode}_ONLY` as any, zone: explicitSuffixMode },
+        });
+      }
+      realtimeBus.broadcast("global", "QUEUE_POLICY_UPDATED", {
+        eventId: event.id,
+        policy: { ...policy, nightMode: `${explicitSuffixMode}_ONLY` as any, zone: explicitSuffixMode },
+      });
+    }
 
     // 5. Generar código QR para proyectar en pantalla con modo pre-resuelto si aplica
     const origin = getRequestOrigin(req);
