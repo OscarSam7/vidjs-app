@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 import { setGuestSessionCookie, getCurrentGuestSession } from "@/lib/auth/guest-session";
 import { realtimeBus } from "@/lib/realtime/event-bus";
 import { getRequestOrigin, sanitizePublicUrl } from "@/lib/url";
+import { parseQueuePolicy } from "@/lib/dj/rotation";
 
 export async function GET(
   req: NextRequest,
@@ -149,6 +150,18 @@ export async function GET(
   const redirectUrl = new URL(`${baseUrl}/guest`);
 
   const incomingMode = req.nextUrl.searchParams.get("mode")?.toUpperCase();
+
+  // Deducir modo desde evento activo si la mesa no tiene zona explícita ni vino por query
+  let eventMode: "DJ" | "KARAOKE" | null = null;
+  if (activeEvent?.settings) {
+    const policy = parseQueuePolicy(activeEvent.settings);
+    if (policy.nightMode === "DJ_ONLY" || (policy as any).zone === "DJ") {
+      eventMode = "DJ";
+    } else if (policy.nightMode === "KARAOKE_ONLY" || (policy as any).zone === "KARAOKE") {
+      eventMode = "KARAOKE";
+    }
+  }
+
   const targetMode =
     incomingMode === "DJ" || incomingMode === "KARAOKE"
       ? incomingMode
@@ -156,7 +169,7 @@ export async function GET(
       ? "DJ"
       : table.zone === "KARAOKE"
       ? "KARAOKE"
-      : null;
+      : eventMode;
 
   if (targetMode) {
     redirectUrl.searchParams.set("mode", targetMode);

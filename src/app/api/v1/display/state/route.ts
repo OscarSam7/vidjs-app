@@ -86,22 +86,29 @@ export async function GET(req: NextRequest) {
       take: 4,
     });
 
-    // 4. Generar código QR para proyectar en pantalla
+    // 4. Política de cola (Modo Karaoke / DJ, Pausa)
+    const policy = parseQueuePolicy(event.settings);
+    const resolvedMode =
+      policy.nightMode === "DJ_ONLY" || (policy as any).zone === "DJ"
+        ? "DJ"
+        : policy.nightMode === "KARAOKE_ONLY" || (policy as any).zone === "KARAOKE"
+        ? "KARAOKE"
+        : null;
+
+    // 5. Generar código QR para proyectar en pantalla con modo pre-resuelto si aplica
     const origin = getRequestOrigin(req);
-    // URL amigable para escanear desde la TV
-    const scanUrl = `${origin}/display/${code}/scan`;
+    const scanUrl = resolvedMode
+      ? `${origin}/display/${code}/scan?mode=${resolvedMode}`
+      : `${origin}/display/${code}/scan`;
     const qrDataUrl = await generateQrDataUrl(scanUrl);
 
-    // 5. Resolver personalización de marca (Tenant -> Venue)
+    // 6. Resolver personalización de marca (Tenant -> Venue)
     const branding = getMergedBranding(
       event.tenant.settings,
       event.venue.settings,
       event.venue.name || event.tenant.name,
       event.tenant.logoUrl
     );
-
-    // 6. Política de cola (Modo Karaoke / DJ, Pausa)
-    const policy = parseQueuePolicy(event.settings);
 
     // 7. Resolver ID de video de YouTube para el tema al aire (Karaoke TV)
     let youtubeVideoId: string | null = null;

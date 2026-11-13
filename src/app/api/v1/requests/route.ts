@@ -351,8 +351,14 @@ export async function GET() {
     ).length;
 
     const explicitTableZone = (guestSession.table as any).zone;
-    const isDjZone = explicitTableZone === "DJ" || policy.nightMode === "DJ_ONLY";
-    const isKaraokeZone = explicitTableZone === "KARAOKE" || policy.nightMode === "KARAOKE_ONLY";
+    const isDjZone =
+      explicitTableZone === "DJ" ||
+      policy.nightMode === "DJ_ONLY" ||
+      (policy as any).zone === "DJ";
+    const isKaraokeZone =
+      explicitTableZone === "KARAOKE" ||
+      policy.nightMode === "KARAOKE_ONLY" ||
+      (policy as any).zone === "KARAOKE";
     const computedZone: "DJ" | "KARAOKE" | "MAIN" = isDjZone
       ? "DJ"
       : isKaraokeZone
@@ -362,13 +368,20 @@ export async function GET() {
     const effectiveMax = isDjZone ? policy.dj.maxActivePerTable : policy.karaoke.maxActivePerTable;
     const effectivePaused = isDjZone ? policy.dj.queuePaused : policy.karaoke.queuePaused;
 
+    const effectiveNightMode =
+      policy.nightMode === "DJ_ONLY" || (policy as any).zone === "DJ"
+        ? "DJ_ONLY"
+        : policy.nightMode === "KARAOKE_ONLY" || (policy as any).zone === "KARAOKE"
+        ? "KARAOKE_ONLY"
+        : policy.nightMode;
+
     const tableAllowance = {
       usedSlots: activeRequestsCount,
       maxSlots: effectiveMax,
       isLocked: activeRequestsCount >= effectiveMax,
       queuePaused: effectivePaused,
       zone: computedZone,
-      nightMode: policy.nightMode,
+      nightMode: effectiveNightMode,
       djQueuePaused: policy.dj.queuePaused,
       karaokeQueuePaused: policy.karaoke.queuePaused,
       autoPlayRequests: Boolean(policy.autoPlayRequests),

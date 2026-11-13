@@ -1,19 +1,25 @@
 import { prisma } from "@/lib/db/prisma";
 import { notFound } from "next/navigation";
 import { QrCode, Users, ArrowRight, Headphones, Mic, CheckCircle2, MapPin } from "lucide-react";
+import { parseQueuePolicy } from "@/lib/dj/rotation";
 
 export const dynamic = "force-dynamic";
 
 export default async function TablePickerFromTvPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ code: string }>;
+  searchParams?: Promise<{ mode?: string }>;
 }) {
   const { code } = await params;
   const rawCode = code.toUpperCase();
+  const searchParamsResolved = searchParams ? await searchParams : {};
+  const queryMode = searchParamsResolved.mode?.toUpperCase();
 
   let baseCode = rawCode;
-  let targetMode: "DJ" | "KARAOKE" | null = null;
+  let targetMode: "DJ" | "KARAOKE" | null =
+    queryMode === "DJ" || queryMode === "KARAOKE" ? (queryMode as "DJ" | "KARAOKE") : null;
 
   if (rawCode.endsWith("-DJ")) {
     baseCode = rawCode.slice(0, -3);
@@ -66,6 +72,16 @@ export default async function TablePickerFromTvPage({
   }
 
   if (!event) notFound();
+
+  // Si no se especificó un modo explícito por sufijo o query param, sincronizar con la modalidad activa del evento
+  if (!targetMode && event.settings) {
+    const policy = parseQueuePolicy(event.settings);
+    if (policy.nightMode === "DJ_ONLY" || (policy as any).zone === "DJ") {
+      targetMode = "DJ";
+    } else if (policy.nightMode === "KARAOKE_ONLY" || (policy as any).zone === "KARAOKE") {
+      targetMode = "KARAOKE";
+    }
+  }
 
   // Si el local fue unificado y las mesas viven en la sede principal del establecimiento, mostrar todas las mesas activas del tenant
   let unifiedTables = event.venue.tables;

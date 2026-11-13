@@ -224,6 +224,11 @@ function GuestContent() {
   const modeParam = searchParams.get("mode")?.toUpperCase();
   const [activeMode, setActiveMode] = useState<"DJ" | "KARAOKE">(() => {
     if (modeParam === "DJ" || modeParam === "KARAOKE") {
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("vidjs_guest_active_mode", modeParam);
+        } catch {}
+      }
       return modeParam as "DJ" | "KARAOKE";
     }
     if (typeof window !== "undefined") {
@@ -569,21 +574,23 @@ function GuestContent() {
           const nightMode = data.data.tableAllowance.nightMode;
           const tableZone = data.data.tableAllowance.zone;
 
-          // Solo forzar modo en carga inicial si la noche o la mesa son exclusivamente DJ o Karaoke
-          if (!activeMode) {
-            if (nightMode === "DJ_ONLY" || tableZone === "DJ") {
-              setActiveMode("DJ");
-            } else if (nightMode === "KARAOKE_ONLY" || tableZone === "KARAOKE") {
-              setActiveMode("KARAOKE");
-            } else if (!userModeChoiceRef.current && !modeParam) {
-              if (typeof window !== "undefined") {
-                try {
-                  const saved = sessionStorage.getItem("vidjs_guest_active_mode");
-                  if (saved === "DJ" || saved === "KARAOKE") {
-                    setActiveMode(saved as "DJ" | "KARAOKE");
-                  }
-                } catch {}
-              }
+          // Sincronizar automáticamente con la modalidad activa del evento o zona de mesa
+          const isDjTarget = nightMode === "DJ_ONLY" || tableZone === "DJ" || modeParam === "DJ";
+          const isKaraokeTarget = nightMode === "KARAOKE_ONLY" || tableZone === "KARAOKE" || modeParam === "KARAOKE";
+
+          if (isDjTarget && (!userModeChoiceRef.current || nightMode === "DJ_ONLY" || modeParam === "DJ")) {
+            setActiveMode("DJ");
+            if (typeof window !== "undefined") {
+              try {
+                sessionStorage.setItem("vidjs_guest_active_mode", "DJ");
+              } catch {}
+            }
+          } else if (isKaraokeTarget && (!userModeChoiceRef.current || nightMode === "KARAOKE_ONLY" || modeParam === "KARAOKE")) {
+            setActiveMode("KARAOKE");
+            if (typeof window !== "undefined") {
+              try {
+                sessionStorage.setItem("vidjs_guest_active_mode", "KARAOKE");
+              } catch {}
             }
           }
         }
