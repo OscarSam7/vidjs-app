@@ -211,6 +211,10 @@ export default function ContestDashboardPage() {
   const [contestDropdownOpen, setContestDropdownOpen] = useState(false);
   const contestDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Dropdown moderno de selección de galas para actas e informes
+  const [reportStageDropdownOpen, setReportStageDropdownOpen] = useState(false);
+  const reportStageDropdownRef = useRef<HTMLDivElement>(null);
+
   // Modales
   const [showNewContestModal, setShowNewContestModal] = useState(false);
   const [showEditContestModal, setShowEditContestModal] = useState(false);
@@ -512,11 +516,14 @@ export default function ContestDashboardPage() {
     fetchContests();
   }, []);
 
-  // Cerrar selector de concurso al hacer click afuera
+  // Cerrar selectores al hacer click afuera
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (contestDropdownRef.current && !contestDropdownRef.current.contains(event.target as Node)) {
         setContestDropdownOpen(false);
+      }
+      if (reportStageDropdownRef.current && !reportStageDropdownRef.current.contains(event.target as Node)) {
+        setReportStageDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -3459,25 +3466,115 @@ export default function ContestDashboardPage() {
             </div>
 
             <div className="flex items-center gap-2.5 flex-wrap">
-              {/* Selector de Gala o Consolidado */}
-              <div className="flex items-center gap-1.5 bg-zinc-950 px-3 py-1.5 rounded-xl border border-zinc-800">
-                <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
-                <select
-                  value={selectedReportStageId}
-                  onChange={(e) => {
-                    const stageId = e.target.value;
-                    setSelectedReportStageId(stageId);
-                    if (contest) fetchReports(contest.id, stageId);
-                  }}
-                  className="bg-transparent text-white text-xs font-bold outline-none cursor-pointer pr-2"
+              {/* Selector Moderno de Gala o Consolidado General */}
+              <div className="relative" ref={reportStageDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setReportStageDropdownOpen((prev) => !prev)}
+                  className="px-3 py-2 rounded-xl bg-zinc-950/90 hover:bg-zinc-900 border border-zinc-700 hover:border-amber-500/50 text-white text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md group"
                 >
-                  <option value="ALL">🌐 Consolidado General (Todas las Fechas)</option>
-                  {contest?.stages.map((st) => (
-                    <option key={st.id} value={st.id}>
-                      📅 {st.title} ({st.stageType})
-                    </option>
-                  ))}
-                </select>
+                  <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="truncate max-w-[150px] sm:max-w-[210px]">
+                    {selectedReportStageId === "ALL"
+                      ? "🌐 Consolidado General"
+                      : (() => {
+                          const st = contest?.stages.find((s) => s.id === selectedReportStageId);
+                          return st ? `📅 ${st.title}` : "Seleccionar Gala";
+                        })()}
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded-md bg-amber-500/10 text-amber-300 font-mono text-[10px] border border-amber-500/30 shrink-0">
+                    {selectedReportStageId === "ALL"
+                      ? "Todas las Galas"
+                      : (() => {
+                          const st = contest?.stages.find((s) => s.id === selectedReportStageId);
+                          return st?.stageType || "Gala";
+                        })()}
+                  </span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-zinc-400 group-hover:text-amber-400 transition-transform duration-200 shrink-0 ${
+                      reportStageDropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Menú Flotante Moderno */}
+                {reportStageDropdownOpen && (
+                  <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-72 sm:w-80 max-h-80 overflow-y-auto bg-zinc-900/95 backdrop-blur-xl border border-zinc-700 hover:border-amber-500/40 rounded-2xl shadow-2xl p-2 z-50 space-y-1 divide-y divide-zinc-800/70 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-2 py-1 flex items-center justify-between text-[11px] font-bold text-zinc-400">
+                      <span>Filtrar Acta / Informe</span>
+                      <span className="text-[10px] text-amber-400 font-mono">Vidjs Audit</span>
+                    </div>
+
+                    <div className="pt-1 space-y-1">
+                      {/* Opción Consolidado General */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedReportStageId("ALL");
+                          if (contest) fetchReports(contest.id, "ALL");
+                          setReportStageDropdownOpen(false);
+                        }}
+                        className={`w-full p-2.5 rounded-xl text-left transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                          selectedReportStageId === "ALL"
+                            ? "bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-500/50 text-white shadow-sm"
+                            : "hover:bg-zinc-800/80 text-zinc-300 hover:text-white"
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span className="text-xs font-bold block">🌐 Consolidado General</span>
+                          <span className="text-[10px] text-zinc-400 block mt-0.5">
+                            Todas las galas, podio unificado y sumatoria oficial
+                          </span>
+                        </div>
+                        {selectedReportStageId === "ALL" && (
+                          <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                        )}
+                      </button>
+
+                      {/* Lista de Galas Individuales */}
+                      {contest?.stages.map((st) => {
+                        const isSelected = selectedReportStageId === st.id;
+                        return (
+                          <button
+                            key={st.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedReportStageId(st.id);
+                              if (contest) fetchReports(contest.id, st.id);
+                              setReportStageDropdownOpen(false);
+                            }}
+                            className={`w-full p-2.5 rounded-xl text-left transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                              isSelected
+                                ? "bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-500/50 text-white shadow-sm"
+                                : "hover:bg-zinc-800/80 text-zinc-300 hover:text-white"
+                            }`}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <span className="text-xs font-bold truncate block">📅 {st.title}</span>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[10px] font-mono text-amber-300/90 bg-zinc-950 px-1.5 py-0.2 rounded border border-zinc-800">
+                                  {st.stageType}
+                                </span>
+                                <span
+                                  className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
+                                    st.status === "LIVE"
+                                      ? "bg-emerald-500/20 text-emerald-300"
+                                      : st.status === "COMPLETED"
+                                      ? "bg-purple-500/20 text-purple-300"
+                                      : "bg-zinc-800 text-zinc-400"
+                                  }`}
+                                >
+                                  {st.status === "LIVE" ? "En Vivo" : st.status === "COMPLETED" ? "Concluida" : "Programada"}
+                                </span>
+                              </div>
+                            </div>
+                            {isSelected && <Check className="w-4 h-4 text-amber-400 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Botón para configurar Marca y Auspiciadores */}
@@ -4112,12 +4209,15 @@ export default function ContestDashboardPage() {
                   <label className="block text-xs font-bold text-zinc-300 mb-1">
                     📅 Fecha Programada del Certamen
                   </label>
-                  <input
-                    type="date"
-                    value={newContestForm.scheduledDate}
-                    onChange={(e) => setNewContestForm({ ...newContestForm, scheduledDate: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono"
-                  />
+                  <div className="flex items-center gap-2 bg-zinc-950 p-2 rounded-xl border border-zinc-800 focus-within:border-amber-400">
+                    <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+                    <input
+                      type="date"
+                      value={newContestForm.scheduledDate}
+                      onChange={(e) => setNewContestForm({ ...newContestForm, scheduledDate: e.target.value })}
+                      className="w-full bg-transparent text-amber-300 font-mono text-xs outline-none cursor-pointer [color-scheme:dark]"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-zinc-300 mb-1">
@@ -4721,29 +4821,44 @@ export default function ContestDashboardPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 mb-1">Tipo de Ronda *</label>
-                  <select
-                    value={newStageForm.stageType}
-                    onChange={(e) => setNewStageForm({ ...newStageForm, stageType: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
-                  >
-                    <option value="AUDITIONS">Audiciones / Filtro</option>
-                    <option value="QUALIFIERS">Clasificatorias</option>
-                    <option value="SEMIFINALS">Semifinal</option>
-                    <option value="FINALS">Gran Final</option>
-                  </select>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1.5">Tipo de Ronda *</label>
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-zinc-950 rounded-xl border border-zinc-800">
+                    {[
+                      { id: "AUDITIONS", label: "Audiciones", icon: "🎤" },
+                      { id: "QUALIFIERS", label: "Clasificatorias", icon: "⚡" },
+                      { id: "SEMIFINALS", label: "Semifinal", icon: "🌟" },
+                      { id: "FINALS", label: "Gran Final", icon: "🏆" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setNewStageForm({ ...newStageForm, stageType: opt.id })}
+                        className={`p-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          newStageForm.stageType === opt.id
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/60 shadow-sm"
+                            : "text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent"
+                        }`}
+                      >
+                        <span>{opt.icon}</span>
+                        <span className="truncate">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 mb-1">Fecha Programada</label>
-                  <input
-                    type="date"
-                    value={newStageForm.date}
-                    onChange={(e) => setNewStageForm({ ...newStageForm, date: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 font-mono text-xs outline-none focus:border-amber-400"
-                  />
+                  <label className="block text-xs font-bold text-zinc-300 mb-1.5">Fecha Programada</label>
+                  <div className="flex items-center gap-2 bg-zinc-950 p-2.5 rounded-xl border border-zinc-800 focus-within:border-amber-400">
+                    <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+                    <input
+                      type="date"
+                      value={newStageForm.date ? newStageForm.date.slice(0, 10) : ""}
+                      onChange={(e) => setNewStageForm({ ...newStageForm, date: e.target.value })}
+                      className="w-full bg-transparent text-amber-300 font-mono text-xs outline-none cursor-pointer [color-scheme:dark]"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -4824,43 +4939,70 @@ export default function ContestDashboardPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 mb-1">Tipo de Ronda</label>
-                  <select
-                    value={editStageForm.stageType}
-                    onChange={(e) => setEditStageForm({ ...editStageForm, stageType: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
-                  >
-                    <option value="AUDITIONS">Audiciones / Filtro</option>
-                    <option value="QUALIFIERS">Clasificatorias</option>
-                    <option value="SEMIFINALS">Semifinal</option>
-                    <option value="FINALS">Gran Final</option>
-                  </select>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1.5">Tipo de Ronda</label>
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-zinc-950 rounded-xl border border-zinc-800">
+                    {[
+                      { id: "AUDITIONS", label: "Audiciones", icon: "🎤" },
+                      { id: "QUALIFIERS", label: "Clasificatorias", icon: "⚡" },
+                      { id: "SEMIFINALS", label: "Semifinal", icon: "🌟" },
+                      { id: "FINALS", label: "Gran Final", icon: "🏆" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setEditStageForm({ ...editStageForm, stageType: opt.id })}
+                        className={`p-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          editStageForm.stageType === opt.id
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/60 shadow-sm"
+                            : "text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent"
+                        }`}
+                      >
+                        <span>{opt.icon}</span>
+                        <span className="truncate">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 mb-1">Estado de la Gala</label>
-                  <select
-                    value={editStageForm.status}
-                    onChange={(e) => setEditStageForm({ ...editStageForm, status: e.target.value as any })}
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
-                  >
-                    <option value="SCHEDULED">Programada</option>
-                    <option value="LIVE">En Vivo / Activa</option>
-                    <option value="COMPLETED">Concluida</option>
-                  </select>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1.5">Estado de la Gala</label>
+                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-zinc-950 rounded-xl border border-zinc-800">
+                    {[
+                      { id: "SCHEDULED", label: "Programada", icon: "📅" },
+                      { id: "LIVE", label: "En Vivo", icon: "🔴" },
+                      { id: "COMPLETED", label: "Concluida", icon: "🏁" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setEditStageForm({ ...editStageForm, status: opt.id as any })}
+                        className={`p-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                          editStageForm.status === opt.id
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/60 shadow-sm"
+                            : "text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent"
+                        }`}
+                      >
+                        <span>{opt.icon}</span>
+                        <span className="truncate">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-bold text-zinc-300 mb-1">Fecha Programada</label>
-                <input
-                  type="date"
-                  value={editStageForm.date}
-                  onChange={(e) => setEditStageForm({ ...editStageForm, date: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-amber-400 font-mono text-xs outline-none focus:border-amber-400"
-                />
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1.5">Fecha Programada</label>
+                  <div className="flex items-center gap-2 bg-zinc-950 p-2.5 rounded-xl border border-zinc-800 focus-within:border-amber-400">
+                    <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+                    <input
+                      type="date"
+                      value={editStageForm.date ? editStageForm.date.slice(0, 10) : ""}
+                      onChange={(e) => setEditStageForm({ ...editStageForm, date: e.target.value })}
+                      className="w-full bg-transparent text-amber-300 font-mono text-xs outline-none cursor-pointer [color-scheme:dark]"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -5204,12 +5346,15 @@ export default function ContestDashboardPage() {
                   <label className="block text-xs font-bold text-zinc-300 mb-1">
                     📅 Fecha Programada del Certamen
                   </label>
-                  <input
-                    type="date"
-                    value={brandingForm.scheduledDate}
-                    onChange={(e) => setBrandingForm({ ...brandingForm, scheduledDate: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono"
-                  />
+                  <div className="flex items-center gap-2 bg-zinc-950 p-2 rounded-xl border border-zinc-800 focus-within:border-amber-400">
+                    <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+                    <input
+                      type="date"
+                      value={brandingForm.scheduledDate}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, scheduledDate: e.target.value })}
+                      className="w-full bg-transparent text-amber-300 font-mono text-xs outline-none cursor-pointer [color-scheme:dark]"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-zinc-300 mb-1">
@@ -5324,55 +5469,73 @@ export default function ContestDashboardPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 mb-1">Modo de Evaluación</label>
-                  <select
-                    value={editContestForm.scoringMode}
-                    onChange={(e) => setEditContestForm({ ...editContestForm, scoringMode: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
-                  >
-                    <option value="AVERAGE">Promedio Simple (Todos los jurados)</option>
-                    <option value="OLYMPIC">Olímpico (Descarta max y min)</option>
-                    <option value="SUM">Suma Total de Puntos</option>
-                  </select>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1.5">Modo de Evaluación</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1 bg-zinc-950 rounded-xl border border-zinc-800">
+                    {[
+                      { id: "AVERAGE", label: "Promedio Simple", icon: "📊", desc: "Todos los jurados" },
+                      { id: "OLYMPIC", label: "Olímpico Pro", icon: "🏅", desc: "Descarta máx y mín" },
+                      { id: "SUM", label: "Suma Total", icon: "➕", desc: "Puntaje acumulado" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setEditContestForm({ ...editContestForm, scoringMode: opt.id })}
+                        className={`p-2.5 rounded-lg text-left transition-all cursor-pointer ${
+                          editContestForm.scoringMode === opt.id
+                            ? "bg-amber-500/20 text-white border border-amber-500/60 shadow-sm"
+                            : "text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>{opt.icon}</span>
+                          <span className="text-xs font-bold">{opt.label}</span>
+                        </div>
+                        <span className="text-[10px] text-zinc-500 block mt-0.5">{opt.desc}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-zinc-300 mb-1">Ponderación Voto del Público (%)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={50}
-                    value={editContestForm.publicVoteWeight}
-                    onChange={(e) => setEditContestForm({ ...editContestForm, publicVoteWeight: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold font-mono"
-                  />
-                </div>
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-300 mb-1.5">Ponderación Público (%)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={50}
+                      value={editContestForm.publicVoteWeight}
+                      onChange={(e) => setEditContestForm({ ...editContestForm, publicVoteWeight: Number(e.target.value) })}
+                      className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold font-mono"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-zinc-300 mb-1">📅 Fecha Programada del Certamen</label>
-                  <input
-                    type="date"
-                    value={editContestForm.scheduledDate}
-                    onChange={(e) => setEditContestForm({ ...editContestForm, scheduledDate: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-300 mb-1.5">📅 Fecha Programada</label>
+                    <div className="flex items-center gap-2 bg-zinc-950 p-2 rounded-xl border border-zinc-800 focus-within:border-amber-400">
+                      <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+                      <input
+                        type="date"
+                        value={editContestForm.scheduledDate ? editContestForm.scheduledDate.slice(0, 10) : ""}
+                        onChange={(e) => setEditContestForm({ ...editContestForm, scheduledDate: e.target.value })}
+                        className="w-full bg-transparent text-amber-300 font-mono text-xs outline-none cursor-pointer [color-scheme:dark]"
+                      />
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-zinc-300 mb-1">💰 Arancel / Costo de Inscripción ($)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={500}
-                    placeholder="0 = Gratuito"
-                    value={editContestForm.registrationFee}
-                    onChange={(e) => setEditContestForm({ ...editContestForm, registrationFee: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold font-mono"
-                  />
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-300 mb-1.5">💰 Arancel / Inscripción ($)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={500}
+                      placeholder="0 = Gratuito"
+                      value={editContestForm.registrationFee}
+                      onChange={(e) => setEditContestForm({ ...editContestForm, registrationFee: Number(e.target.value) })}
+                      className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold font-mono"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -5592,50 +5755,87 @@ export default function ContestDashboardPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-zinc-300 mb-1">Estado en el Certamen</label>
-                  <select
-                    value={editParticipantForm.status}
-                    onChange={(e) => setEditParticipantForm({ ...editParticipantForm, status: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
-                  >
-                    <option value="APPLICANT">Postulante (Pendiente de Aprobación)</option>
-                    <option value="ACTIVE">Admitido / Oficial Activo</option>
-                    <option value="QUALIFIED">Clasificado a Siguiente Ronda</option>
-                    <option value="ELIMINATED">Eliminado</option>
-                    <option value="WINNER">Ganador del Certamen</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-zinc-300 mb-1">Estado del Pago</label>
-                  <select
-                    value={editParticipantForm.paymentStatus}
-                    onChange={(e) => setEditParticipantForm({ ...editParticipantForm, paymentStatus: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
-                  >
-                    <option value="PENDING">🟡 Pendiente de Pago</option>
-                    <option value="PAID">🟢 Pagado / Confirmado</option>
-                    <option value="VERIFIED">✅ Verificado por DJ/Admin</option>
-                    <option value="EXEMPT">🆓 Exento de Pago</option>
-                  </select>
+              {/* Estado en el Certamen - Selector Visual Moderno */}
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1.5">Estado en el Certamen</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 p-1 bg-zinc-950 rounded-xl border border-zinc-800">
+                  {[
+                    { id: "APPLICANT", label: "Postulante", badge: "🟡", desc: "Pendiente" },
+                    { id: "ACTIVE", label: "Admitido", badge: "🟢", desc: "Oficial" },
+                    { id: "QUALIFIED", label: "Clasificado", badge: "⭐", desc: "Sig. Ronda" },
+                    { id: "ELIMINATED", label: "Eliminado", badge: "🔴", desc: "Descalificado" },
+                    { id: "WINNER", label: "Ganador", badge: "👑", desc: "Campeón" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setEditParticipantForm({ ...editParticipantForm, status: opt.id })}
+                      className={`p-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        editParticipantForm.status === opt.id
+                          ? "bg-amber-500/20 text-amber-200 border border-amber-500/60 shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent"
+                      }`}
+                    >
+                      <span>{opt.badge}</span>
+                      <span className="truncate">{opt.label}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Estado del Pago - Selector Visual Moderno */}
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1.5">Estado del Pago</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 bg-zinc-950 rounded-xl border border-zinc-800">
+                  {[
+                    { id: "PENDING", label: "Pendiente", badge: "🟡" },
+                    { id: "PAID", label: "Pagado", badge: "🟢" },
+                    { id: "VERIFIED", label: "Verificado", badge: "✅" },
+                    { id: "EXEMPT", label: "Exento", badge: "🆓" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setEditParticipantForm({ ...editParticipantForm, paymentStatus: opt.id })}
+                      className={`p-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        editParticipantForm.paymentStatus === opt.id
+                          ? "bg-amber-500/20 text-amber-200 border border-amber-500/60 shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent"
+                      }`}
+                    >
+                      <span>{opt.badge}</span>
+                      <span className="truncate">{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Forma de Pago & Nro de Referencia */}
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 mb-1">Forma de Pago</label>
-                  <select
-                    value={editParticipantForm.paymentMethod}
-                    onChange={(e) => setEditParticipantForm({ ...editParticipantForm, paymentMethod: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
-                  >
-                    <option value="TRANSFER">Transferencia Bancaria</option>
-                    <option value="CASH_LOCAL">Efectivo en Local</option>
-                    <option value="CARD_LOCAL">Tarjeta / POS en Local</option>
-                    <option value="FREE">Gratuito</option>
-                  </select>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1.5">Forma de Pago</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 bg-zinc-950 rounded-xl border border-zinc-800">
+                    {[
+                      { id: "TRANSFER", label: "Transferencia", icon: "🏦" },
+                      { id: "CASH_LOCAL", label: "Efectivo", icon: "💵" },
+                      { id: "CARD_LOCAL", label: "Tarjeta / POS", icon: "💳" },
+                      { id: "FREE", label: "Gratuito", icon: "🆓" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setEditParticipantForm({ ...editParticipantForm, paymentMethod: opt.id })}
+                        className={`p-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          editParticipantForm.paymentMethod === opt.id
+                            ? "bg-amber-500/20 text-amber-200 border border-amber-500/60 shadow-sm"
+                            : "text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent"
+                        }`}
+                      >
+                        <span>{opt.icon}</span>
+                        <span className="truncate">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
