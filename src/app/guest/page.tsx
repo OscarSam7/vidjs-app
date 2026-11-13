@@ -46,7 +46,9 @@ import {
   UtensilsCrossed,
   MapPin,
   Users,
+  ShieldCheck,
 } from "lucide-react";
+import { QsrModal } from "@/components/guest/QsrModal";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType, NextTurnCountdownPayload } from "@/lib/realtime/event-bus";
 import PwaInstallButton from "@/components/pwa/PwaInstallButton";
@@ -423,6 +425,7 @@ function GuestContent() {
   const [applauseCount, setApplauseCount] = useState<number>(0);
 
   const [isManageTableOpen, setIsManageTableOpen] = useState(false);
+  const [isQsrModalOpen, setIsQsrModalOpen] = useState(false);
   const [leavingTable, setLeavingTable] = useState(false);
   const [switchBanner, setSwitchBanner] = useState<string | null>(null);
 
@@ -1864,6 +1867,16 @@ function GuestContent() {
             >
               <Camera className="w-3.5 h-3.5 text-purple-400" />
               <span className="hidden sm:inline font-bold text-[11px]">Foto</span>
+            </button>
+
+            {/* Buzón QSR VIP Confidencial (Línea Directa Gerencia & Dueño) */}
+            <button
+              onClick={() => setIsQsrModalOpen(true)}
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 border border-amber-500/40 text-xs flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 shadow-sm"
+              title="Línea Directa y Confidencial con la Gerencia & Dueño (Quejas, Sugerencias y Reclamos)"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline font-bold text-[11px]">Buzón QSR</span>
             </button>
 
             {/* Badge de Mesa con acción de cambiar/salir o Conectar Mesa */}
@@ -4399,15 +4412,39 @@ function GuestContent() {
         </div>
       )}
 
-      {/* Footer link to DJ / Staff Login */}
-      <footer className="py-6 text-center border-t border-zinc-900 mt-8 mb-4">
-        <a
-          href="/dj"
-          className="text-xs text-zinc-500 hover:text-purple-400 transition-colors inline-flex items-center gap-1.5 font-medium"
-        >
-          <Disc3 className="w-3.5 h-3.5 text-purple-400" />
-          <span>¿Eres el DJ o Personal de la Cabina? Ingresar aquí &rarr;</span>
-        </a>
+      {/* Modal de Buzón QSR VIP (Línea Directa Gerencia & Dueño) */}
+      <QsrModal
+        isOpen={isQsrModalOpen}
+        onClose={() => setIsQsrModalOpen(false)}
+        tenantId={session?.tenant?.id || null}
+        venueId={null}
+        tableId={session?.table?.id || null}
+        tableNumber={session?.table ? String(session.table.number) : null}
+        tableName={session?.table?.label || null}
+        guestSessionId={null}
+      />
+
+      {/* Footer link to DJ / Staff Login & Buzón QSR */}
+      <footer className="py-6 text-center border-t border-zinc-900 mt-8 mb-4 space-y-2">
+        <div>
+          <button
+            type="button"
+            onClick={() => setIsQsrModalOpen(true)}
+            className="text-xs text-amber-400/80 hover:text-amber-300 transition-colors inline-flex items-center gap-1.5 font-medium underline underline-offset-4 decoration-amber-500/40"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+            <span>¿Algún problema o sugerencia? Escribe directo a Gerencia & Dueño</span>
+          </button>
+        </div>
+        <div>
+          <a
+            href="/dj"
+            className="text-xs text-zinc-500 hover:text-purple-400 transition-colors inline-flex items-center gap-1.5 font-medium"
+          >
+            <Disc3 className="w-3.5 h-3.5 text-purple-400" />
+            <span>¿Eres el DJ o Personal de la Cabina? Ingresar aquí &rarr;</span>
+          </a>
+        </div>
       </footer>
     </div>
   );

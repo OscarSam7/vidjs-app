@@ -53,6 +53,7 @@ model Tenant {
   gastroDeposits        GastroCustomerDeposit[]
   gastroCashShifts      GastroCashRegisterShift[]
   gastroPendingSales    GastroPendingInvoiceSale[]
+  qsrTickets            QsrTicket[]
 
   @@index([status])
   @@index([slug])
@@ -122,6 +123,7 @@ model Venue {
   gastroDeposits        GastroCustomerDeposit[]
   gastroCashShifts      GastroCashRegisterShift[]
   gastroPendingSales    GastroPendingInvoiceSale[]
+  qsrTickets            QsrTicket[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -1708,6 +1710,56 @@ model GastroPendingInvoiceSale {
   @@index([invoicingStatus])
   @@index([saleDate])
   @@index([batchGroupId])
+}
+
+// 49. QsrTicket (Buzón Privado y Exclusivo de Quejas, Sugerencias, Reclamos y Reconocimientos)
+model QsrTicket {
+  id                String      @id @default(cuid())
+  tenantId          String
+  tenant            Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId           String?
+  venue             Venue?      @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  tableId           String?
+  tableNumber       String?     // Guardado desnormalizado por si la mesa cambia o se borra
+  tableName         String?
+  guestSessionId    String?
+
+  // COMPLAINT (Queja en vivo / urgente), CLAIM (Reclamo servicio/cuenta), SUGGESTION (Sugerencia de mejora), COMPLIMENT (Felicitación al personal)
+  type              String      @default("COMPLAINT") 
+  // LOW, MEDIUM, HIGH, URGENT
+  priority          String      @default("MEDIUM")
+  // 1 a 5 estrellas
+  rating            Int?
+  // BAR, KITCHEN, SERVICE, MUSIC, FACILITIES, BILLING, OTHER
+  category          String      @default("SERVICE")
+
+  subject           String?
+  comment           String      @db.Text
+
+  // Privacidad del cliente
+  isAnonymous       Boolean     @default(true)
+  customerName      String?
+  customerPhone     String?
+
+  // Gestión Gerencial (Solo Dueño y Gerente)
+  // PENDING, IN_PROGRESS, RESOLVED, ARCHIVED
+  status            String      @default("PENDING")
+  // JSON array de notas internas secretas: [{ id, text, authorRole, authorName, createdAt }]
+  internalNotes     String?     @db.Text
+  resolutionSummary String?     @db.Text
+  resolvedByRole    String?
+  resolvedByName    String?
+  resolvedAt        DateTime?
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([status])
+  @@index([type])
+  @@index([priority])
+  @@index([createdAt])
 }
 
 

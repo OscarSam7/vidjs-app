@@ -45,6 +45,7 @@ import {
   FileBarChart2,
   SlidersHorizontal,
   Lock,
+  MessageSquareWarning,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -75,6 +76,7 @@ interface MenuItem {
   badge?: string;
   badgeVariant?: "primary" | "dj" | "karaoke" | "neutral" | "success";
   requiredPlan: PlanCode;
+  allowedRoles?: string[];
 }
 
 interface NavGroup {
@@ -395,6 +397,16 @@ export function Sidebar({
           active: pathname === "/dashboard/team",
           requiredPlan: "STARTER",
         },
+        {
+          name: "Buzón QSR (Privado)",
+          icon: MessageSquareWarning,
+          href: "/dashboard/qsr",
+          active: pathname.startsWith("/dashboard/qsr"),
+          badge: "VIP",
+          badgeVariant: "dj",
+          requiredPlan: "STARTER",
+          allowedRoles: ["OWNER", "MANAGER", "SUPER_ADMIN"],
+        },
       ],
     },
     {
@@ -602,7 +614,15 @@ export function Sidebar({
           {groups.map((group) => {
             const GroupIcon = group.icon;
             const groupUnlocked = isPlanAtLeast(activePlan, group.requiredPlan);
-            const hasActiveChild = group.items.some((it) => it.active);
+            const visibleItems = group.items.filter(
+              (it) => !it.allowedRoles || it.allowedRoles.includes(role)
+            );
+            // Si el grupo no tiene enlaces directos y todos sus items están restringidos para este rol, ocultar el grupo
+            if (!group.href && group.items.length > 0 && visibleItems.length === 0) {
+              return null;
+            }
+
+            const hasActiveChild = visibleItems.some((it) => it.active);
             const isExpanded = openGroupId === group.id;
 
             // Modo Icono Colapsado en Desktop
@@ -610,7 +630,7 @@ export function Sidebar({
               const targetHref = group.href
                 ? group.href
                 : groupUnlocked
-                ? group.items[0]?.href || "/dashboard"
+                ? visibleItems[0]?.href || "/dashboard"
                 : `/dashboard/subscription?required=${group.requiredPlan}`;
 
               return (
@@ -716,7 +736,7 @@ export function Sidebar({
 
                 {isExpanded && (
                   <div className="px-2 pb-2 pt-0.5 space-y-1">
-                    {group.items.map((item) => {
+                    {visibleItems.map((item) => {
                       const ItemIcon = item.icon;
                       const isLocked = !isPlanAtLeast(activePlan, item.requiredPlan);
                       const targetHref = isLocked
