@@ -1138,6 +1138,19 @@ export default function VirtualDjConsole({
   // Cálculo de ganancias de crossfader de potencia constante
   const crossfaderGains = calculateCrossfaderGains(crossfaderValue);
 
+  // Si ambas bandejas están sonando simultáneamente, el crossfader aplica la curva de potencia.
+  // Si solo una bandeja está activa/reproduciendo, el público escucha esa bandeja al 100% (factor = 1.0)
+  // evitando que quede silenciada a 0% por la posición residual del crossfader.
+  const isBothPlaying = Boolean(
+    (isPlayingA || isPlayingARef.current) && (isPlayingB || isPlayingBRef.current)
+  );
+  const crossGainA = isBothPlaying
+    ? crossfaderGains.gainA
+    : (isPlayingB && !isPlayingA ? crossfaderGains.gainA : 1.0);
+  const crossGainB = isBothPlaying
+    ? crossfaderGains.gainB
+    : (isPlayingA && !isPlayingB ? crossfaderGains.gainB : 1.0);
+
   // Cálculo de volumen efectivo dinámico para YouTube (0 a 100)
   const effectiveVolA = isMasterMuted
     ? 0
@@ -1148,7 +1161,7 @@ export default function VirtualDjConsole({
           Math.round(
             (channelVolA / 100) *
               (gainA / 100) *
-              crossfaderGains.gainA *
+              crossGainA *
               (bassKillA ? 0.75 : 1) *
               (masterVolume / 100) *
               100
@@ -1165,7 +1178,7 @@ export default function VirtualDjConsole({
           Math.round(
             (channelVolB / 100) *
               (gainB / 100) *
-              crossfaderGains.gainB *
+              crossGainB *
               (bassKillB ? 0.75 : 1) *
               (masterVolume / 100) *
               100
@@ -1244,24 +1257,22 @@ export default function VirtualDjConsole({
         }, delay);
       });
     } else {
-      // Modo CUE (por defecto): Cargar en segundo 0, 100% silenciado y pausado esperando PLAY manual del DJ
-      sendPlayerCommand(targetIframe, "mute");
-      sendPlayerCommand(targetIframe, "setVolume", [0]);
+      // Modo CUE (por defecto): Cargar en segundo 0 y pausado esperando PLAY manual del DJ
       sendPlayerCommand(targetIframe, "cueVideoById", [vid, 0]);
       sendPlayerCommand(targetIframe, "pauseVideo");
       sendPlayerCommand(targetIframe, "seekTo", [0, true]);
       sendPlayerCommand(targetIframe, "addEventListener", ["onStateChange"]);
       sendPlayerCommand(targetIframe, "addEventListener", ["onError"]);
       setTimeout(() => {
-        if (targetIframe) {
-          sendPlayerCommand(targetIframe, "mute");
-          sendPlayerCommand(targetIframe, "setVolume", [0]);
+        const isTargetPlayingNow = deckId === "A" ? (isPlayingARef.current || isPlayingA) : (isPlayingBRef.current || isPlayingB);
+        if (targetIframe && !isTargetPlayingNow) {
           sendPlayerCommand(targetIframe, "pauseVideo");
           sendPlayerCommand(targetIframe, "seekTo", [0, true]);
         }
       }, 350);
       setTimeout(() => {
-        if (targetIframe) {
+        const isTargetPlayingNow = deckId === "A" ? (isPlayingARef.current || isPlayingA) : (isPlayingBRef.current || isPlayingB);
+        if (targetIframe && !isTargetPlayingNow) {
           sendPlayerCommand(targetIframe, "cueVideoById", [vid, 0]);
           sendPlayerCommand(targetIframe, "pauseVideo");
           sendPlayerCommand(targetIframe, "seekTo", [0, true]);
@@ -1292,13 +1303,9 @@ export default function VirtualDjConsole({
     setIsMasterMuted(false);
     webDjEngine.unlock();
     if (iframeRefA.current && videoIdA && !isEjectedA) {
-      if (effectiveVolA === 0) {
-        sendPlayerCommand(iframeRefA.current, "mute");
-        sendPlayerCommand(iframeRefA.current, "setVolume", [0]);
-      } else {
-        sendPlayerCommand(iframeRefA.current, "unMute");
-        sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
-      }
+      const safeVolA = isMasterMuted ? 0 : Math.max(80, effectiveVolA);
+      sendPlayerCommand(iframeRefA.current, "unMute");
+      sendPlayerCommand(iframeRefA.current, "setVolume", [safeVolA]);
       if (isPlayingA) sendPlayerCommand(iframeRefA.current, "playVideo");
     }
   };
@@ -1308,13 +1315,9 @@ export default function VirtualDjConsole({
     setIsMasterMuted(false);
     webDjEngine.unlock();
     if (iframeRefB.current && videoIdB && !isEjectedB) {
-      if (effectiveVolB === 0) {
-        sendPlayerCommand(iframeRefB.current, "mute");
-        sendPlayerCommand(iframeRefB.current, "setVolume", [0]);
-      } else {
-        sendPlayerCommand(iframeRefB.current, "unMute");
-        sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
-      }
+      const safeVolB = isMasterMuted ? 0 : Math.max(80, effectiveVolB);
+      sendPlayerCommand(iframeRefB.current, "unMute");
+      sendPlayerCommand(iframeRefB.current, "setVolume", [safeVolB]);
       if (isPlayingB) sendPlayerCommand(iframeRefB.current, "playVideo");
     }
   };
@@ -1324,23 +1327,15 @@ export default function VirtualDjConsole({
     setIsMasterMuted(false);
     webDjEngine.unlock();
     if (iframeRefA.current && videoIdA && !isEjectedA) {
-      if (effectiveVolA === 0) {
-        sendPlayerCommand(iframeRefA.current, "mute");
-        sendPlayerCommand(iframeRefA.current, "setVolume", [0]);
-      } else {
-        sendPlayerCommand(iframeRefA.current, "unMute");
-        sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
-      }
+      const safeVolA = isMasterMuted ? 0 : Math.max(80, effectiveVolA);
+      sendPlayerCommand(iframeRefA.current, "unMute");
+      sendPlayerCommand(iframeRefA.current, "setVolume", [safeVolA]);
       if (isPlayingA) sendPlayerCommand(iframeRefA.current, "playVideo");
     }
     if (iframeRefB.current && videoIdB && !isEjectedB) {
-      if (effectiveVolB === 0) {
-        sendPlayerCommand(iframeRefB.current, "mute");
-        sendPlayerCommand(iframeRefB.current, "setVolume", [0]);
-      } else {
-        sendPlayerCommand(iframeRefB.current, "unMute");
-        sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
-      }
+      const safeVolB = isMasterMuted ? 0 : Math.max(80, effectiveVolB);
+      sendPlayerCommand(iframeRefB.current, "unMute");
+      sendPlayerCommand(iframeRefB.current, "setVolume", [safeVolB]);
       if (isPlayingB) sendPlayerCommand(iframeRefB.current, "playVideo");
     }
   };
@@ -1358,6 +1353,21 @@ export default function VirtualDjConsole({
         // Silencioso si el navegador restringe la modificación
       }
     }
+  }, []);
+
+  // Desbloqueo proactivo ante el primer gesto o clic del usuario en la pantalla
+  useEffect(() => {
+    const handleFirstUserGesture = () => {
+      unlockAudio();
+      window.removeEventListener("pointerdown", handleFirstUserGesture);
+      window.removeEventListener("keydown", handleFirstUserGesture);
+    };
+    window.addEventListener("pointerdown", handleFirstUserGesture, { once: true });
+    window.addEventListener("keydown", handleFirstUserGesture, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", handleFirstUserGesture);
+      window.removeEventListener("keydown", handleFirstUserGesture);
+    };
   }, []);
 
   // ==================== SCREEN WAKE LOCK & BACKGROUND AUDIO ANCHOR ====================
@@ -1848,18 +1858,17 @@ export default function VirtualDjConsole({
         onPlaybackControl?.("PAUSE", "A", getDeckSyncDetails("A"));
       }
     } else {
+      if (!isPlayingB && !isPlayingBRef.current) {
+        setCrossfaderValue(-100);
+      }
       unlockAudioA();
       if (isAutoPlayMode && (deckTrackA || trackA)) {
         startPlaybackWatchdogA(deckTrackA || trackA!, videoIdA);
       }
       if (iframeRefA.current) {
-        if (effectiveVolA === 0) {
-          sendPlayerCommand(iframeRefA.current, "mute");
-          sendPlayerCommand(iframeRefA.current, "setVolume", [0]);
-        } else {
-          sendPlayerCommand(iframeRefA.current, "unMute");
-          sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
-        }
+        const safeVolA = isMasterMuted ? 0 : Math.max(80, effectiveVolA);
+        sendPlayerCommand(iframeRefA.current, "unMute");
+        sendPlayerCommand(iframeRefA.current, "setVolume", [safeVolA]);
         sendPlayerCommand(iframeRefA.current, "playVideo");
       }
       isPlayingARef.current = true;
@@ -1869,7 +1878,7 @@ export default function VirtualDjConsole({
         onPlaybackControl?.("PLAY", onAir, getDeckSyncDetails(onAir));
       } else {
         onPlaybackControl?.("PLAY", "A", getDeckSyncDetails("A"));
-        animateCrossfaderTo(-100, 500);
+        animateCrossfaderTo(-100, 300);
       }
     }
   };
@@ -1897,7 +1906,7 @@ export default function VirtualDjConsole({
           onPlaybackControl?.("PLAY", onAir, getDeckSyncDetails(onAir));
         } else {
           onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
-          animateCrossfaderTo(100, 500);
+          animateCrossfaderTo(100, 300);
         }
       }
       return;
@@ -1917,18 +1926,17 @@ export default function VirtualDjConsole({
         onPlaybackControl?.("PAUSE", "B", getDeckSyncDetails("B"));
       }
     } else {
+      if (!isPlayingA && !isPlayingARef.current) {
+        setCrossfaderValue(100);
+      }
       unlockAudioB();
       if (isAutoPlayMode && (deckTrackB || trackB)) {
         startPlaybackWatchdogB(deckTrackB || trackB!, videoIdB);
       }
       if (iframeRefB.current) {
-        if (effectiveVolB === 0) {
-          sendPlayerCommand(iframeRefB.current, "mute");
-          sendPlayerCommand(iframeRefB.current, "setVolume", [0]);
-        } else {
-          sendPlayerCommand(iframeRefB.current, "unMute");
-          sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
-        }
+        const safeVolB = isMasterMuted ? 0 : Math.max(80, effectiveVolB);
+        sendPlayerCommand(iframeRefB.current, "unMute");
+        sendPlayerCommand(iframeRefB.current, "setVolume", [safeVolB]);
         sendPlayerCommand(iframeRefB.current, "playVideo");
       }
       isPlayingBRef.current = true;
@@ -1938,7 +1946,7 @@ export default function VirtualDjConsole({
         onPlaybackControl?.("PLAY", onAir, getDeckSyncDetails(onAir));
       } else {
         onPlaybackControl?.("PLAY", "B", getDeckSyncDetails("B"));
-        animateCrossfaderTo(100, 500);
+        animateCrossfaderTo(100, 300);
       }
     }
   };
@@ -2347,10 +2355,8 @@ export default function VirtualDjConsole({
     searchRequestIdA.current++;
     const reqId = searchRequestIdA.current;
 
-    // Solo silenciar y pausar si NO vamos a reproducir de inmediato
+    // Solo pausar si NO vamos a reproducir de inmediato
     if (!autoPlay && iframeRefA.current) {
-      sendPlayerCommand(iframeRefA.current, "mute");
-      sendPlayerCommand(iframeRefA.current, "setVolume", [0]);
       sendPlayerCommand(iframeRefA.current, "pauseVideo");
     }
 
@@ -2527,10 +2533,8 @@ export default function VirtualDjConsole({
     searchRequestIdB.current++;
     const reqId = searchRequestIdB.current;
 
-    // Solo silenciar y pausar si NO vamos a reproducir de inmediato
+    // Solo pausar si NO vamos a reproducir de inmediato
     if (!autoPlay && iframeRefB.current) {
-      sendPlayerCommand(iframeRefB.current, "mute");
-      sendPlayerCommand(iframeRefB.current, "setVolume", [0]);
       sendPlayerCommand(iframeRefB.current, "pauseVideo");
     }
 
@@ -2695,11 +2699,9 @@ export default function VirtualDjConsole({
       watchdogTimerARef.current = null;
     }
 
-    // Silenciar, pausar y rebobinar el iframe persistente sin destruir su nodo en el DOM
+    // Pausar y rebobinar el iframe persistente sin destruir su nodo en el DOM
     if (iframeRefA.current) {
       sendPlayerCommand(iframeRefA.current, "pauseVideo");
-      sendPlayerCommand(iframeRefA.current, "mute");
-      sendPlayerCommand(iframeRefA.current, "setVolume", [0]);
       sendPlayerCommand(iframeRefA.current, "seekTo", [0, true]);
     }
 
@@ -2760,11 +2762,9 @@ export default function VirtualDjConsole({
       watchdogTimerBRef.current = null;
     }
 
-    // Silenciar, pausar y rebobinar el iframe persistente sin destruir su nodo en el DOM
+    // Pausar y rebobinar el iframe persistente sin destruir su nodo en el DOM
     if (iframeRefB.current) {
       sendPlayerCommand(iframeRefB.current, "pauseVideo");
-      sendPlayerCommand(iframeRefB.current, "mute");
-      sendPlayerCommand(iframeRefB.current, "setVolume", [0]);
       sendPlayerCommand(iframeRefB.current, "seekTo", [0, true]);
     }
 
@@ -3326,26 +3326,28 @@ export default function VirtualDjConsole({
   // Sincronización de volumen y mute en Deck A
   useEffect(() => {
     if (videoIdA && iframeRefA.current) {
-      sendPlayerCommand(iframeRefA.current, "setVolume", [effectiveVolA]);
-      if (effectiveVolA === 0) {
+      if (isMasterMuted || channelVolA === 0 || masterVolume === 0) {
         sendPlayerCommand(iframeRefA.current, "mute");
+        sendPlayerCommand(iframeRefA.current, "setVolume", [0]);
       } else {
         sendPlayerCommand(iframeRefA.current, "unMute");
+        sendPlayerCommand(iframeRefA.current, "setVolume", [Math.max(1, effectiveVolA)]);
       }
     }
-  }, [effectiveVolA, videoIdA]);
+  }, [effectiveVolA, videoIdA, isMasterMuted, channelVolA, masterVolume]);
 
   // Sincronización de volumen y mute en Deck B
   useEffect(() => {
     if (videoIdB && iframeRefB.current) {
-      sendPlayerCommand(iframeRefB.current, "setVolume", [effectiveVolB]);
-      if (effectiveVolB === 0) {
+      if (isMasterMuted || channelVolB === 0 || masterVolume === 0) {
         sendPlayerCommand(iframeRefB.current, "mute");
+        sendPlayerCommand(iframeRefB.current, "setVolume", [0]);
       } else {
         sendPlayerCommand(iframeRefB.current, "unMute");
+        sendPlayerCommand(iframeRefB.current, "setVolume", [Math.max(1, effectiveVolB)]);
       }
     }
-  }, [effectiveVolB, videoIdB]);
+  }, [effectiveVolB, videoIdB, isMasterMuted, channelVolB, masterVolume]);
 
   // Sincronización de Play/Pausa en Deck A (Estricta y aislada: sin dependencias espurias de volumen)
   useEffect(() => {
@@ -4285,21 +4287,18 @@ export default function VirtualDjConsole({
 
           <button
             onClick={() => {
-              if (isMasterMuted) {
-                unlockAudio();
-              } else {
-                setIsMasterMuted(true);
-              }
+              unlockAudio();
+              showFeedback("success", "🔊 Audio de cabina activo y bandejas al 100%");
             }}
             className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-md ${
               isMasterMuted
                 ? "bg-red-600 hover:bg-red-500 text-white animate-pulse"
                 : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30"
             }`}
-            title="Activa o silencia la salida de audio de cabina"
+            title="Desbloquear y asegurar salida de audio al 100% en todas las bandejas"
           >
             {isMasterMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            <span>{isMasterMuted ? "🔇 AUDIO MUTED (CLICK PARA ACTIVAR)" : "🔊 AUDIO CABINA: ACTIVO"}</span>
+            <span>{isMasterMuted ? "🔇 AUDIO MUTED (CLICK PARA ACTIVAR)" : "🔊 AUDIO CABINA: ACTIVO (CLICK RESTAURAR)"}</span>
           </button>
         </div>
 
