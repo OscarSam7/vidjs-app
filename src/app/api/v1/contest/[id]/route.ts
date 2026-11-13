@@ -104,6 +104,18 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
     const body = await req.json();
 
+    if (body.status === "ACTIVE" || body.status === "REGISTRATION") {
+      // Pausar cualquier otro certamen del tenant para evitar colisiones en los paneles de clientes
+      await prisma.karaokeContest.updateMany({
+        where: {
+          tenantId: session.tenantId,
+          id: { not: id },
+          status: { in: ["ACTIVE", "REGISTRATION"] },
+        },
+        data: { status: "PAUSED" },
+      });
+    }
+
     const updated = await prisma.karaokeContest.update({
       where: { id },
       data: {
@@ -121,6 +133,10 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         activeStageId: body.activeStageId !== undefined ? body.activeStageId : undefined,
         requireConsumption: body.requireConsumption !== undefined ? Boolean(body.requireConsumption) : undefined,
         minConsumptionNotes: body.minConsumptionNotes !== undefined ? body.minConsumptionNotes : undefined,
+        registrationFee: body.registrationFee !== undefined ? Number(body.registrationFee) : undefined,
+        paymentInstructions: body.paymentInstructions !== undefined ? body.paymentInstructions : undefined,
+        allowRemoteRegistration: body.allowRemoteRegistration !== undefined ? Boolean(body.allowRemoteRegistration) : undefined,
+        scheduledDate: body.scheduledDate !== undefined ? (body.scheduledDate ? new Date(body.scheduledDate) : null) : undefined,
       },
       include: {
         stages: true,
@@ -131,6 +147,10 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
     broadcastContestEvent(updated.id, updated.eventId, "CONTEST_STAGE_CHANGE", {
       contest: updated,
+      status: updated.status,
+      contestId: updated.id,
+      contestName: updated.name,
+      contestCode: updated.code,
     });
 
     return NextResponse.json({
@@ -155,13 +175,32 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       throw new UnauthorizedError("Debes iniciar sesión para eliminar el concurso");
     }
 
+    const contest = await prisma.karaokeContest.findUnique({
+      where: { id },
+      select: { id: true, eventId: true, name: true, tenantId: true },
+    });
+
+    if (!contest) {
+      return NextResponse.json({ success: true, message: "Concurso no encontrado o ya eliminado" });
+    }
+
+    if (contest.tenantId !== session.tenantId) {
+      throw new UnauthorizedError("No tienes permiso para eliminar este concurso");
+    }
+
     await prisma.karaokeContest.delete({
       where: { id },
     });
 
+    broadcastContestEvent(id, contest.eventId, "CONTEST_STAGE_CHANGE", {
+      status: "DELETED",
+      contestId: id,
+      contestName: contest.name,
+    });
+
     return NextResponse.json({
       success: true,
-      message: "Concurso eliminado correctamente",
+      message: `Concurso "${contest.name}" eliminado correctamente`,
     });
   } catch (error) {
     return handleApiError(error);

@@ -4307,7 +4307,7 @@ export default function VirtualDjConsole({
           <button
             type="button"
             onClick={() => setIsCockpitLocked((prev) => !prev)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-md border ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm border ${
               isCockpitLocked
                 ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-black border-emerald-300 shadow-emerald-500/30"
                 : "bg-gradient-to-r from-purple-900/70 to-indigo-900/70 hover:from-purple-800 hover:to-indigo-800 text-purple-100 border-purple-500/50"
@@ -4315,11 +4315,11 @@ export default function VirtualDjConsole({
             title="Fija las 2 bandejas y el mixer dentro de tu pantalla sin desplazamiento (Cockpit Estático)"
           >
             {isCockpitLocked ? (
-              <Minimize2 className="w-3.5 h-3.5 shrink-0" />
+              <Minimize2 className="w-3 h-3 shrink-0" />
             ) : (
-              <Maximize2 className="w-3.5 h-3.5 shrink-0" />
+              <Maximize2 className="w-3 h-3 shrink-0" />
             )}
-            <span>{isCockpitLocked ? "✕ Soltar Cabina" : "📌 Fijar Cabina en Pantalla"}</span>
+            <span>{isCockpitLocked ? "✕ Soltar Cabina" : "📌 Fijar Cabina"}</span>
           </button>
 
           <button

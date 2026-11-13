@@ -3503,23 +3503,23 @@ export default function DjBoothPage() {
         />
       )}
 
-      {/* 🔲 Botón Flotante Fijo Pantalla Completa en Panel Principal DJ */}
+      {/* 🔲 Botón Flotante Fijo Pantalla Completa en Panel Principal DJ (Compacto) */}
       <div
-        className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-40 select-none"
+        className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-40 select-none"
         data-floating="dj-fullscreen-control"
       >
         <button
           type="button"
           onClick={toggleFullscreen}
-          className={`group flex items-center gap-2 sm:gap-2.5 px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl border backdrop-blur-md shadow-2xl transition-all duration-300 cursor-pointer active:scale-95 ${
+          className={`group flex items-center justify-center p-2 rounded-xl border backdrop-blur-md shadow-lg transition-all duration-200 cursor-pointer active:scale-90 ${
             isFullscreen
-              ? "bg-purple-950/90 hover:bg-purple-900 border-purple-500/70 text-purple-200 hover:text-white shadow-purple-950/60 ring-2 ring-purple-500/30"
+              ? "bg-purple-950/90 hover:bg-purple-900 border-purple-500/70 text-purple-200 hover:text-white shadow-purple-950/60 ring-1 ring-purple-500/30"
               : "bg-zinc-950/90 hover:bg-zinc-900 border-zinc-700/80 hover:border-cyan-500/80 text-zinc-300 hover:text-white shadow-black/80 hover:shadow-cyan-950/40 ring-1 ring-white/10"
           }`}
           title={
             isFullscreen
               ? "Salir de pantalla completa (Esc o clic)"
-              : "Poner cabina en pantalla completa (F11 o clic)"
+              : "Pantalla completa DJ (F11 o clic)"
           }
           aria-label={
             isFullscreen
@@ -3528,16 +3528,10 @@ export default function DjBoothPage() {
           }
         >
           {isFullscreen ? (
-            <Minimize2 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-300 group-hover:scale-110 transition-transform" />
+            <Minimize2 className="w-3.5 h-3.5 text-purple-300 group-hover:scale-110 transition-transform shrink-0" />
           ) : (
-            <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-300 group-hover:scale-110 transition-transform" />
+            <Maximize2 className="w-3.5 h-3.5 text-cyan-300 group-hover:scale-110 transition-transform shrink-0" />
           )}
-          <span className="text-xs sm:text-sm font-black tracking-wide">
-            {isFullscreen ? "Salir Pantalla Completa" : "Pantalla Completa DJ"}
-          </span>
-          <span className="ml-1 px-1.5 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-[10px] font-mono text-zinc-400 hidden sm:inline">
-            {isFullscreen ? "ESC" : "F11"}
-          </span>
         </button>
       </div>
     </div>

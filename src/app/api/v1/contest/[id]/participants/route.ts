@@ -127,7 +127,26 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     if (!session?.tenantId) throw new UnauthorizedError("No autorizado");
 
     const body = await req.json();
-    const { participantId, status, finalRank, tableLabel, name, stageName, photoUrl, totalPoints } = body;
+    const {
+      participantId,
+      status,
+      finalRank,
+      tableLabel,
+      name,
+      stageName,
+      phone,
+      email,
+      bio,
+      isRemote,
+      photoUrl,
+      totalPoints,
+      paymentStatus,
+      paymentMethod,
+      paymentReference,
+      paymentAmount,
+      songTitle,
+      artistName,
+    } = body;
 
     if (!participantId) {
       return NextResponse.json({ success: false, error: "participantId requerido" }, { status: 400 });
@@ -141,10 +160,51 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         tableLabel: tableLabel !== undefined ? tableLabel : undefined,
         name: name || undefined,
         stageName: stageName !== undefined ? stageName : undefined,
+        phone: phone !== undefined ? phone : undefined,
+        email: email !== undefined ? email : undefined,
+        bio: bio !== undefined ? bio : undefined,
+        isRemote: isRemote !== undefined ? Boolean(isRemote) : undefined,
         photoUrl: photoUrl !== undefined ? photoUrl : undefined,
         totalPoints: totalPoints !== undefined ? totalPoints : undefined,
+        paymentStatus: paymentStatus !== undefined ? paymentStatus : undefined,
+        paymentMethod: paymentMethod !== undefined ? paymentMethod : undefined,
+        paymentReference: paymentReference !== undefined ? paymentReference : undefined,
+        paymentAmount: paymentAmount !== undefined ? Number(paymentAmount) : undefined,
+      },
+      include: {
+        performances: { orderBy: { createdAt: "asc" } },
       },
     });
+
+    // Actualizar canción de actuación si se especificó
+    if (songTitle || artistName) {
+      if (updated.performances.length > 0) {
+        await prisma.contestPerformance.update({
+          where: { id: updated.performances[0].id },
+          data: {
+            songTitle: songTitle || undefined,
+            artistName: artistName || undefined,
+          },
+        });
+      } else {
+        const contest = await prisma.karaokeContest.findUnique({
+          where: { id },
+          select: { activeStageId: true },
+        });
+        if (contest?.activeStageId) {
+          await prisma.contestPerformance.create({
+            data: {
+              contestId: id,
+              stageId: contest.activeStageId,
+              participantId: updated.id,
+              songTitle: songTitle || "Canción de Karaoke",
+              artistName: artistName || "Artista",
+              status: "PENDING",
+            },
+          });
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,

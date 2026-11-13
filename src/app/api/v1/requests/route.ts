@@ -487,7 +487,7 @@ export async function GET() {
     const flashDeal = getActiveFlashDeal(pulse.level, branding.activePromo);
 
     // 5. Consultar Concurso de Karaoke Activo o en Registro para la noche o establecimiento
-    const activeContest = await prisma.karaokeContest.findFirst({
+    let activeContest = await prisma.karaokeContest.findFirst({
       where: {
         tenantId: guestSession.tenantId,
         status: { in: ["ACTIVE", "REGISTRATION"] },
@@ -498,9 +498,23 @@ export async function GET() {
       },
       include: {
         criteria: { where: { active: true }, orderBy: { orderIndex: "asc" } },
-        stages: { where: { status: "LIVE" }, take: 1 },
+        stages: { orderBy: { orderIndex: "asc" } },
       },
     });
+
+    if (!activeContest) {
+      activeContest = await prisma.karaokeContest.findFirst({
+        where: {
+          tenantId: guestSession.tenantId,
+          status: { in: ["ACTIVE", "REGISTRATION"] },
+        },
+        orderBy: { updatedAt: "desc" },
+        include: {
+          criteria: { where: { active: true }, orderBy: { orderIndex: "asc" } },
+          stages: { orderBy: { orderIndex: "asc" } },
+        },
+      });
+    }
 
     let contestPayload = null;
     if (activeContest) {
@@ -532,6 +546,8 @@ export async function GET() {
         }),
       ]);
 
+      const liveStage = activeContest.stages.find((s) => s.id === activeContest.activeStageId) || activeContest.stages[0];
+
       contestPayload = {
         id: activeContest.id,
         name: activeContest.name,
@@ -541,7 +557,18 @@ export async function GET() {
         description: activeContest.description,
         prizes: activeContest.prizes,
         rules: activeContest.rules,
-        stageTitle: activeContest.stages[0]?.title || "Gala Oficial de Karaoke",
+        registrationFee: activeContest.registrationFee || 0,
+        paymentInstructions: activeContest.paymentInstructions || null,
+        allowRemoteRegistration: activeContest.allowRemoteRegistration,
+        scheduledDate: activeContest.scheduledDate ? activeContest.scheduledDate.toISOString() : null,
+        stageTitle: liveStage?.title || "Gala Oficial de Karaoke",
+        stages: activeContest.stages.map((st) => ({
+          id: st.id,
+          title: st.title,
+          stageType: st.stageType,
+          date: st.date.toISOString(),
+          status: st.status,
+        })),
         scoringMode: activeContest.scoringMode,
         publicVoteWeight: activeContest.publicVoteWeight,
         myApplication: myApplication
@@ -552,6 +579,9 @@ export async function GET() {
               status: myApplication.status,
               songTitle: myApplication.performances[0]?.songTitle || null,
               artistName: myApplication.performances[0]?.artistName || null,
+              paymentStatus: myApplication.paymentStatus,
+              paymentMethod: myApplication.paymentMethod,
+              paymentReference: myApplication.paymentReference,
             }
           : null,
         activePerformance: activePerformance

@@ -47,6 +47,7 @@ import {
   MapPin,
   Users,
   ShieldCheck,
+  CreditCard,
 } from "lucide-react";
 import { QsrModal } from "@/components/guest/QsrModal";
 import { useRealtime } from "@/hooks/use-realtime";
@@ -313,8 +314,19 @@ function GuestContent() {
     prizes?: string | null;
     rules?: string | null;
     stageTitle: string;
+    stages?: Array<{
+      id: string;
+      title: string;
+      stageType: string;
+      date: string;
+      status: string;
+    }>;
     scoringMode: string;
     publicVoteWeight: number;
+    registrationFee?: number;
+    paymentInstructions?: string | null;
+    allowRemoteRegistration?: boolean;
+    scheduledDate?: string | null;
     myApplication?: {
       id: string;
       name: string;
@@ -322,6 +334,9 @@ function GuestContent() {
       status: string;
       songTitle?: string | null;
       artistName?: string | null;
+      tableLabel?: string | null;
+      paymentStatus?: string | null;
+      paymentMethod?: string | null;
     } | null;
     activePerformance?: any;
   } | null>(null);
@@ -334,6 +349,10 @@ function GuestContent() {
     artistName: "",
     phone: "",
     bio: "",
+    selectedStageId: "",
+    paymentMethod: "TRANSFER",
+    paymentReference: "",
+    paymentProofUrl: "",
   });
   const [applicationSubmitting, setApplicationSubmitting] = useState(false);
   const [applicationFeedback, setApplicationFeedback] = useState<{
@@ -588,6 +607,39 @@ function GuestContent() {
     }
   };
 
+  // 🏆 Cargar certamen activo públicamente (para comensales en mesa o remotos)
+  const fetchPublicActiveContest = async () => {
+    try {
+      const codeQuery =
+        eventParam ||
+        venueParam ||
+        sessionRef.current?.event?.code ||
+        session?.event?.code ||
+        "";
+      const url = codeQuery
+        ? `/api/v1/contest/active?code=${encodeURIComponent(codeQuery)}`
+        : `/api/v1/contest/active`;
+      const contestRes = await fetch(url);
+      if (contestRes.ok) {
+        const cJson = await contestRes.json();
+        if (cJson.data) {
+          setActiveContestInfo(cJson.data);
+          if (cJson.data.activePerformance) {
+            setActiveContestVote({
+              contestId: cJson.data.id,
+              performance: cJson.data.activePerformance,
+            });
+          }
+        } else {
+          setActiveContestInfo(null);
+          setActiveContestVote(null);
+        }
+      }
+    } catch {
+      // Silencioso
+    }
+  };
+
   // Cargar sesión inicial o actualizar en segundo plano sin interrumpir al usuario
   const loadSessionAndRequests = async (silent: boolean = false) => {
     try {
@@ -677,16 +729,19 @@ function GuestContent() {
             setActiveContestVote(null);
           }
         } else {
-          setActiveContestInfo(null);
-          setActiveContestVote(null);
+          // Si requests no trajo certamen para el evento estricto, consultar certamen del establecimiento
+          await fetchPublicActiveContest();
         }
       } else {
         setSession(null);
-        // Si no hay sesión activa, cargar branding público para que el invitado vea logo y portada
+        // Si no hay sesión activa, cargar branding público y certamen público
         try {
-          const codeQuery = eventParam || venueParam || "RETRO-POP";
-          const brandRes = await fetch(`/api/v1/branding?code=${encodeURIComponent(codeQuery)}`);
-          if (brandRes.ok) {
+          const codeQuery = eventParam || venueParam || "";
+          const [brandRes] = await Promise.all([
+            fetch(`/api/v1/branding?code=${encodeURIComponent(codeQuery || "RETRO-POP")}`),
+            fetchPublicActiveContest(),
+          ]);
+          if (brandRes && brandRes.ok) {
             const bJson = await brandRes.json();
             if (bJson.data?.resolved) {
               setBranding(bJson.data.resolved);
@@ -749,6 +804,7 @@ function GuestContent() {
 
   useEffect(() => {
     loadSessionAndRequests();
+    fetchPublicActiveContest();
     loadPublicTables();
   }, []);
 
@@ -901,7 +957,15 @@ function GuestContent() {
         }
 
         if (type === "CONTEST_STAGE_CHANGE") {
-          await loadSessionAndRequests(true);
+          if (payload?.status === "DELETED") {
+            setActiveContestInfo(null);
+            setActiveContestVote(null);
+          } else {
+            await Promise.all([
+              loadSessionAndRequests(true),
+              fetchPublicActiveContest(),
+            ]);
+          }
           return;
         }
 
@@ -1065,10 +1129,11 @@ function GuestContent() {
     }
   };
 
-  // 📝 Postularse como cantante al concurso desde la mesa
+  // 📝 Postularse como cantante al concurso (Presencial en Mesa o Remoto/Online)
   const handleRegisterContestApplication = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeContestInfo || !session?.table?.label) return;
+    if (!activeContestInfo) return;
+    const isRemote = !session?.table?.label;
     const finalName = applicationForm.name.trim() || guestName.trim() || session?.guestName || "";
     if (!finalName || !applicationForm.songTitle.trim()) {
       setApplicationFeedback({
@@ -1077,6 +1142,17 @@ function GuestContent() {
       });
       return;
     }
+
+    if (isRemote && !applicationForm.phone.trim()) {
+      setApplicationFeedback({
+        type: "error",
+        text: "Para participación remota o previa, por favor ingresa tu teléfono o WhatsApp de contacto.",
+      });
+      return;
+    }
+
+    const regFee = activeContestInfo.registrationFee || 0;
+    const selectedMethod = regFee === 0 ? "FREE" : applicationForm.paymentMethod;
 
     try {
       setApplicationSubmitting(true);
@@ -1091,6 +1167,12 @@ function GuestContent() {
           artistName: applicationForm.artistName.trim() || null,
           phone: applicationForm.phone.trim() || null,
           bio: applicationForm.bio.trim() || null,
+          isRemote,
+          selectedStageId: applicationForm.selectedStageId || undefined,
+          paymentMethod: selectedMethod,
+          paymentReference: applicationForm.paymentReference.trim() || null,
+          paymentProofUrl: applicationForm.paymentProofUrl.trim() || null,
+          paymentAmount: regFee,
         }),
       });
       const json = await res.json();
@@ -1110,6 +1192,9 @@ function GuestContent() {
                   status: "APPLICANT",
                   songTitle: applicationForm.songTitle.trim(),
                   artistName: applicationForm.artistName.trim() || null,
+                  tableLabel: isRemote ? null : session?.table?.label,
+                  paymentStatus: json.data?.participant?.paymentStatus || (regFee === 0 ? "PAID" : "PENDING"),
+                  paymentMethod: selectedMethod,
                 },
               }
             : null
@@ -1564,6 +1649,51 @@ function GuestContent() {
             Selecciona tu mesa disponible directamente aquí, escanea el QR físico o ingresa el código de la TV.
           </p>
         </div>
+
+        {/* 🏆 Tarjeta destacada de Concurso de Karaoke para Participación Presencial o Remota */}
+        {activeContestInfo && (
+          <div className="p-4 rounded-3xl bg-gradient-to-br from-amber-950/80 via-zinc-950 to-zinc-950 border-2 border-amber-500/70 text-left shadow-xl space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                  {activeContestInfo.status === "REGISTRATION" ? "¡Inscripciones Abiertas!" : "¡Certamen de Karaoke en Vivo!"}
+                </span>
+              </div>
+              <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                {activeContestInfo.stageTitle}
+              </span>
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-white">{activeContestInfo.name}</h3>
+              <p className="text-[11px] text-zinc-300 mt-1 leading-relaxed">
+                {activeContestInfo.description || "Compite en el escenario o participa votando por tus cantantes favoritos."}
+              </p>
+              {activeContestInfo.registrationFee && activeContestInfo.registrationFee > 0 ? (
+                <div className="mt-1.5 inline-block text-[11px] font-bold text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-lg border border-amber-500/30">
+                  💰 Inscripción: ${activeContestInfo.registrationFee.toLocaleString()}
+                </div>
+              ) : (
+                <div className="mt-1.5 inline-block text-[11px] font-bold text-emerald-300 bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-500/30">
+                  🆓 Inscripción Gratuita
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setDismissConnectScreen(true);
+                setActiveTab("contest");
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95"
+            >
+              <Mic className="w-4 h-4" />
+              <span>Ver Certamen e Inscribirme Ahora</span>
+            </button>
+          </div>
+        )}
 
         {/* Selector en vivo de Mesas Unificadas Disponibles */}
         <div className="pt-2 border-t border-zinc-800/80 text-left space-y-3">
@@ -2183,6 +2313,33 @@ function GuestContent() {
             </button>
           )}
         </div>
+
+        {/* 🏆 Banner destacado de Concurso en Vivo o Inscripciones Abiertas */}
+        {activeContestInfo && activeTab !== "contest" && (
+          <div
+            onClick={() => setActiveTab("contest")}
+            className="w-full p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/90 via-zinc-950 to-amber-950/90 border-2 border-amber-500/70 flex items-center justify-between gap-3 cursor-pointer shadow-xl hover:border-amber-400 transition-all active:scale-[0.99] animate-pulse text-left"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="p-2 rounded-xl bg-amber-500 text-black font-black shrink-0">
+                <Trophy className="w-4 h-4" />
+              </span>
+              <div className="min-w-0">
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
+                  {activeContestInfo.status === "REGISTRATION"
+                    ? "¡Inscripciones Abiertas!"
+                    : "¡Certamen de Karaoke en Vivo!"}
+                </span>
+                <span className="text-xs font-black text-white truncate block">
+                  {activeContestInfo.name}
+                </span>
+              </div>
+            </div>
+            <span className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-black text-xs font-black shrink-0 shadow-md">
+              {activeContestInfo.status === "REGISTRATION" ? "Postularme" : "Ver / Votar"}
+            </span>
+          </div>
+        )}
 
         {/* PESTAÑA 1: "MI NOCHE" (WELCOME HUB) */}
         {activeTab === "hub" && (
@@ -3401,32 +3558,61 @@ function GuestContent() {
                   </span>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-black/60 border border-zinc-800 space-y-1">
+                <div className="p-3 rounded-2xl bg-black/60 border border-zinc-800 space-y-2">
                   <div className="text-xs font-bold text-amber-300">
                     🎤 Canción: {activeContestInfo.myApplication.songTitle}
                     {activeContestInfo.myApplication.artistName ? ` (${activeContestInfo.myApplication.artistName})` : ""}
                   </div>
                   <div className="text-[11px] text-zinc-400">
-                    Mesa: <strong className="text-white">{session?.table?.label || "Tu Mesa"}</strong> • El DJ te llamará por micrófono cuando sea tu turno.
+                    Ubicación: <strong className="text-white">{activeContestInfo.myApplication.tableLabel || session?.table?.label || "Participación Remota / Online"}</strong> • El DJ te llamará cuando sea tu turno en escenario.
                   </div>
+                  {activeContestInfo.myApplication.paymentStatus && (
+                    <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between text-xs">
+                      <span className="text-zinc-400">Estado de Inscripción:</span>
+                      {activeContestInfo.myApplication.paymentStatus === "PAID" || activeContestInfo.myApplication.paymentStatus === "VERIFIED" ? (
+                        <span className="font-bold text-emerald-400 bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-500/40">
+                          🟢 Pago Confirmado / Inscripción Oficial
+                        </span>
+                      ) : (
+                        <span className="font-bold text-amber-400 bg-amber-950/60 px-2.5 py-1 rounded-lg border border-amber-500/40">
+                          🟡 Pago Pendiente de Validación
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Formulario de Postulación de Clientes (cuando está abierto y la mesa no se ha postulado) */}
+            {/* Formulario de Postulación de Clientes (cuando está abierto y no se ha postulado) */}
             {!activeContestInfo.myApplication && (activeContestInfo.status === "REGISTRATION" || activeContestInfo.allowRegistrations) && (
               <div className="p-5 rounded-3xl bg-zinc-900/90 border-2 border-amber-500/60 shadow-xl space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                    <Mic className="w-5 h-5" />
-                  </span>
-                  <div>
-                    <h3 className="text-base font-black text-white">
-                      ¡Postúlate para Cantar en el Concurso!
-                    </h3>
-                    <p className="text-xs text-zinc-400">
-                      Sube al escenario y compite con tu canción favorita.
-                    </p>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      <Mic className="w-5 h-5 text-amber-400" />
+                    </span>
+                    <div>
+                      <h3 className="text-base font-black text-white">
+                        ¡Postúlate para Cantar en el Concurso!
+                      </h3>
+                      <p className="text-xs text-zinc-400">
+                        {session?.table?.label
+                          ? `Inscripción abierta desde tu mesa (${session.table.label})`
+                          : "Inscripción abierta online para participar en el certamen"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {activeContestInfo.registrationFee && activeContestInfo.registrationFee > 0 ? (
+                      <span className="px-3 py-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-black">
+                        💰 Inscripción: ${activeContestInfo.registrationFee.toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black">
+                        🆓 Inscripción Gratuita
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -3451,7 +3637,7 @@ function GuestContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-[11px] font-bold text-zinc-300 block mb-1">
-                        Tu Nombre: *
+                        Tu Nombre Completo: *
                       </label>
                       <input
                         type="text"
@@ -3506,18 +3692,142 @@ function GuestContent() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-[11px] font-bold text-zinc-300 block mb-1">
-                      Dedicatoria o Nota al DJ (Opcional):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ej: Para la mesa 4 que estamos de cumpleaños"
-                      value={applicationForm.bio}
-                      onChange={(e) => setApplicationForm({ ...applicationForm, bio: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                        Teléfono / WhatsApp de Contacto: {!session?.table?.label ? "*" : "(Opcional)"}
+                      </label>
+                      <input
+                        type="tel"
+                        required={!session?.table?.label}
+                        placeholder="Ej: +56 9 1234 5678"
+                        value={applicationForm.phone}
+                        onChange={(e) => setApplicationForm({ ...applicationForm, phone: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                        Dedicatoria o Nota al DJ (Opcional):
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej: Para mi familia que vinieron a verme"
+                        value={applicationForm.bio}
+                        onChange={(e) => setApplicationForm({ ...applicationForm, bio: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      />
+                    </div>
                   </div>
+
+                  {/* Selector de Gala / Fecha programada */}
+                  {activeContestInfo.stages && activeContestInfo.stages.length > 0 && (
+                    <div>
+                      <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                        Gala o Fecha a Participar:
+                      </label>
+                      <select
+                        value={applicationForm.selectedStageId}
+                        onChange={(e) => setApplicationForm({ ...applicationForm, selectedStageId: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                      >
+                        <option value="">Gala Activa: {activeContestInfo.stageTitle}</option>
+                        {activeContestInfo.stages.map((st) => (
+                          <option key={st.id} value={st.id}>
+                            {st.title} ({new Date(st.date).toLocaleDateString()}) - {st.status === "LIVE" ? "EN VIVO" : "PROGRAMADA"}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* SECCIÓN DE FORMA DE PAGO */}
+                  {activeContestInfo.registrationFee && activeContestInfo.registrationFee > 0 ? (
+                    <div className="p-4 rounded-2xl bg-zinc-950 border border-amber-500/40 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                          <CreditCard className="w-4 h-4 text-amber-400" />
+                          <span>Forma de Pago de la Inscripción (${activeContestInfo.registrationFee.toLocaleString()})</span>
+                        </span>
+                        <span className="text-[10px] text-zinc-400">Requerido para competir</span>
+                      </div>
+
+                      {activeContestInfo.paymentInstructions && (
+                        <div className="p-3 rounded-xl bg-black/70 border border-zinc-800 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase">Datos para Transferencia:</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(activeContestInfo.paymentInstructions || "");
+                                alert("¡Datos bancarios copiados al portapapeles!");
+                              }}
+                              className="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
+                            >
+                              <Copy className="w-3 h-3" />
+                              <span>Copiar Datos</span>
+                            </button>
+                          </div>
+                          <p className="text-xs font-mono text-amber-200/90 whitespace-pre-wrap leading-relaxed">
+                            {activeContestInfo.paymentInstructions}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setApplicationForm({ ...applicationForm, paymentMethod: "TRANSFER" })}
+                          className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                            applicationForm.paymentMethod === "TRANSFER"
+                              ? "bg-amber-500/20 text-amber-300 border-amber-500"
+                              : "bg-zinc-900 text-zinc-400 border-zinc-800"
+                          }`}
+                        >
+                          🏦 Transferencia
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setApplicationForm({ ...applicationForm, paymentMethod: "CASH_LOCAL" })}
+                          className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                            applicationForm.paymentMethod === "CASH_LOCAL"
+                              ? "bg-amber-500/20 text-amber-300 border-amber-500"
+                              : "bg-zinc-900 text-zinc-400 border-zinc-800"
+                          }`}
+                        >
+                          💵 Efectivo en Local
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setApplicationForm({ ...applicationForm, paymentMethod: "CARD_LOCAL" })}
+                          className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                            applicationForm.paymentMethod === "CARD_LOCAL"
+                              ? "bg-amber-500/20 text-amber-300 border-amber-500"
+                              : "bg-zinc-900 text-zinc-400 border-zinc-800"
+                          }`}
+                        >
+                          💳 Tarjeta / POS
+                        </button>
+                      </div>
+
+                      {applicationForm.paymentMethod === "TRANSFER" && (
+                        <div>
+                          <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                            Nro de Operación / Comprobante o Teléfono que Transfiere: *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Ej: Operación #987654 o RUT/Nombre del titular"
+                            value={applicationForm.paymentReference}
+                            onChange={(e) => setApplicationForm({ ...applicationForm, paymentReference: e.target.value })}
+                            className="w-full px-3.5 py-2.5 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
 
                   <button
                     type="submit"
@@ -3532,7 +3842,9 @@ function GuestContent() {
                     <span>
                       {applicationSubmitting
                         ? "Enviando postulación..."
-                        : `Enviar Postulación desde ${session?.table?.label || "mi mesa"}`}
+                        : session?.table?.label
+                        ? `Enviar Postulación desde ${session.table.label}`
+                        : "Enviar Postulación Online / Remota"}
                     </span>
                   </button>
                 </form>

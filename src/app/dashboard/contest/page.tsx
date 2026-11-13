@@ -42,6 +42,7 @@ import {
   UserCheck,
   UserX,
   Radio,
+  CreditCard,
 } from "lucide-react";
 import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { useRealtime } from "@/hooks/use-realtime";
@@ -115,7 +116,14 @@ interface ContestParticipant {
   stageName: string | null;
   photoUrl: string | null;
   phone?: string | null;
+  email?: string | null;
   tableLabel: string | null;
+  isRemote?: boolean;
+  paymentMethod?: string | null;
+  paymentStatus?: string | null;
+  paymentReference?: string | null;
+  paymentProofUrl?: string | null;
+  paymentAmount?: number;
   status: string;
   totalPoints: number;
   finalRank?: number | null;
@@ -137,6 +145,10 @@ interface ContestDetail {
   publicVoteWeight: number;
   requireConsumption?: boolean;
   minConsumptionNotes?: string | null;
+  registrationFee?: number;
+  paymentInstructions?: string | null;
+  allowRemoteRegistration?: boolean;
+  scheduledDate?: string | null;
   rules: string | null;
   prizes: string | null;
   activeStageId: string | null;
@@ -195,12 +207,52 @@ export default function ContestDashboardPage() {
 
   // Modales
   const [showNewContestModal, setShowNewContestModal] = useState(false);
+  const [showEditContestModal, setShowEditContestModal] = useState(false);
   const [showNewParticipantModal, setShowNewParticipantModal] = useState(false);
+  const [showEditParticipantModal, setShowEditParticipantModal] = useState(false);
+  const [editingParticipant, setEditingParticipant] = useState<ContestParticipant | null>(null);
   const [showNewStageModal, setShowNewStageModal] = useState(false);
   const [showNewJudgeModal, setShowNewJudgeModal] = useState(false);
   const [showNewCriteriaModal, setShowNewCriteriaModal] = useState(false);
   const [showBrandingModal, setShowBrandingModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState<{ url: string; title: string; pin?: string } | null>(null);
+
+  // Form State para Editar Concurso
+  const [editContestForm, setEditContestForm] = useState({
+    name: "",
+    description: "",
+    scoringMode: "AVERAGE",
+    publicVoteWeight: 20,
+    requireConsumption: true,
+    registrationFee: 0,
+    paymentInstructions: "",
+    allowRemoteRegistration: true,
+    scheduledDate: "",
+    coverUrl: "",
+    logoUrl: "",
+    sponsors: "",
+    organizers: "",
+    prizes: "",
+    rules: "",
+  });
+
+  // Form State para Editar Participante
+  const [editParticipantForm, setEditParticipantForm] = useState({
+    name: "",
+    stageName: "",
+    phone: "",
+    email: "",
+    tableLabel: "",
+    isRemote: false,
+    bio: "",
+    songTitle: "",
+    artistName: "",
+    status: "ACTIVE",
+    paymentStatus: "PENDING",
+    paymentMethod: "TRANSFER",
+    paymentReference: "",
+    paymentAmount: 0,
+  });
 
   // Form State para Nuevo Concurso
   const [newContestForm, setNewContestForm] = useState({
@@ -210,6 +262,10 @@ export default function ContestDashboardPage() {
     publicVoteWeight: 20,
     judgesCount: 3,
     requireConsumption: true,
+    registrationFee: 0,
+    paymentInstructions: "Banco: Banco Estado\nCuenta Corriente: #12345678\nAlias/RUT: karaoke.vidjs / 12.345.678-9\nTitular: Vidjs Karaoke Bar\nWhatsApp de Comprobantes: +56 9 1234 5678",
+    allowRemoteRegistration: true,
+    scheduledDate: new Date().toISOString().split("T")[0],
   });
 
   // Form State para Nuevo Participante
@@ -290,6 +346,10 @@ export default function ContestDashboardPage() {
     organizers: "",
     prizes: "",
     rules: "",
+    registrationFee: 0,
+    paymentInstructions: "",
+    allowRemoteRegistration: true,
+    scheduledDate: "",
   });
 
   const showFeedback = (type: "success" | "error" | "info", text: string) => {
@@ -567,6 +627,30 @@ export default function ContestDashboardPage() {
     }
   };
 
+  // Confirmar / Verificar Pago del Participante
+  const handleVerifyParticipantPayment = async (participantId: string) => {
+    if (!contest) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/participants`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ participantId, paymentStatus: "PAID" }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", "🟢 ¡Pago verificado y marcado como PAGADO para el participante!");
+        fetchContestDetail(contest.id);
+      } else {
+        showFeedback("error", json.error || "Error al verificar pago");
+      }
+    } catch {
+      showFeedback("error", "Error de red al verificar pago");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Descartar o Eliminar Postulante / Participante
   const handleRejectApplicant = async (participantId: string, participantName: string) => {
     if (!contest) return;
@@ -586,6 +670,144 @@ export default function ContestDashboardPage() {
       }
     } catch {
       showFeedback("error", "Error de conexión");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // 🗑️ Eliminar Concurso Seleccionado Permanentemente
+  const handleDeleteContest = async () => {
+    if (!contest) return;
+    const confirmDelete = window.confirm(
+      `⚠️ ¿Estás seguro de que deseas eliminar permanentemente el certamen "${contest.name}" (${contest.code})?\n\nEsta acción borrará todas sus galas, jurados, cantantes postulados, actuaciones y votaciones registradas. No se puede deshacer.`
+    );
+    if (!confirmDelete) return;
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", json.message || "Concurso eliminado correctamente");
+        const remaining = contests.filter((c) => c.id !== contest.id);
+        setContests(remaining);
+        if (remaining.length > 0) {
+          setSelectedContestId(remaining[0].id);
+        } else {
+          setSelectedContestId(null);
+          setContest(null);
+        }
+      } else {
+        showFeedback("error", json.error || "No se pudo eliminar el concurso");
+      }
+    } catch {
+      showFeedback("error", "Error de red al eliminar el certamen");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ✏️ Abrir Modal de Edición de Concurso
+  const handleOpenEditContest = () => {
+    if (!contest) return;
+    setEditContestForm({
+      name: contest.name,
+      description: contest.description || "",
+      scoringMode: contest.scoringMode || "AVERAGE",
+      publicVoteWeight: contest.publicVoteWeight ?? 20,
+      requireConsumption: contest.requireConsumption ?? true,
+      registrationFee: contest.registrationFee ?? 0,
+      paymentInstructions: contest.paymentInstructions || "",
+      allowRemoteRegistration: contest.allowRemoteRegistration ?? true,
+      scheduledDate: contest.scheduledDate ? contest.scheduledDate.split("T")[0] : "",
+      coverUrl: contest.coverUrl || "",
+      logoUrl: contest.logoUrl || "",
+      sponsors: contest.sponsors || "",
+      organizers: contest.organizers || "",
+      prizes: contest.prizes || "",
+      rules: contest.rules || "",
+    });
+    setShowEditContestModal(true);
+  };
+
+  // 💾 Guardar Edición Completa del Concurso
+  const handleSaveEditContest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contest) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editContestForm),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", "✅ Certamen actualizado con éxito");
+        setShowEditContestModal(false);
+        await fetchContests();
+        fetchContestDetail(contest.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo actualizar el concurso");
+      }
+    } catch {
+      showFeedback("error", "Error de red al actualizar certamen");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ✏️ Abrir Modal de Edición de Participante
+  const handleOpenEditParticipant = (p: ContestParticipant) => {
+    setEditingParticipant(p);
+    const firstPerf = p.performances?.[0];
+    setEditParticipantForm({
+      name: p.name,
+      stageName: p.stageName || "",
+      phone: p.phone || "",
+      email: p.email || "",
+      tableLabel: p.tableLabel || "",
+      isRemote: Boolean(p.isRemote),
+      bio: p.bio || "",
+      songTitle: firstPerf?.songTitle || "",
+      artistName: firstPerf?.artistName || "",
+      status: p.status,
+      paymentStatus: p.paymentStatus || "PENDING",
+      paymentMethod: p.paymentMethod || "TRANSFER",
+      paymentReference: p.paymentReference || "",
+      paymentAmount: p.paymentAmount || 0,
+    });
+    setShowEditParticipantModal(true);
+  };
+
+  // 💾 Guardar Edición de Participante
+  const handleSaveEditParticipant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contest || !editingParticipant) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}/participants`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          participantId: editingParticipant.id,
+          ...editParticipantForm,
+          tableLabel: editParticipantForm.isRemote ? null : (editParticipantForm.tableLabel || null),
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        showFeedback("success", "✅ Participante actualizado con éxito");
+        setShowEditParticipantModal(false);
+        setEditingParticipant(null);
+        fetchContestDetail(contest.id);
+      } else {
+        showFeedback("error", json.error || "No se pudo actualizar participante");
+      }
+    } catch {
+      showFeedback("error", "Error de red al actualizar participante");
     } finally {
       setActionLoading(false);
     }
@@ -1031,6 +1253,10 @@ export default function ContestDashboardPage() {
       organizers: contest.organizers || "",
       prizes: contest.prizes || "",
       rules: contest.rules || "",
+      registrationFee: contest.registrationFee ?? 0,
+      paymentInstructions: contest.paymentInstructions || "",
+      allowRemoteRegistration: contest.allowRemoteRegistration ?? true,
+      scheduledDate: contest.scheduledDate ? contest.scheduledDate.split("T")[0] : "",
     });
     setShowBrandingModal(true);
   };
@@ -1165,6 +1391,32 @@ export default function ContestDashboardPage() {
             <Plus className="w-4 h-4 text-amber-400" />
             <span>Nuevo Certamen</span>
           </button>
+
+          {/* Botón Editar Concurso */}
+          {contest && (
+            <button
+              type="button"
+              onClick={handleOpenEditContest}
+              className="px-3.5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+              title="Editar nombre, descripción, puntuación, costos y reglas de este concurso"
+            >
+              <Pencil className="w-4 h-4 text-amber-400" />
+              <span>Editar Certamen</span>
+            </button>
+          )}
+
+          {/* Botón Eliminar Concurso */}
+          {contest && (
+            <button
+              type="button"
+              onClick={handleDeleteContest}
+              disabled={actionLoading}
+              className="p-2.5 rounded-xl bg-zinc-900 hover:bg-red-950/80 text-zinc-400 hover:text-red-400 border border-zinc-800 hover:border-red-500/40 text-xs font-bold transition-all cursor-pointer shadow-md"
+              title="Eliminar certamen permanentemente"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Botón Abrir Pantalla Gigante / TV Concurso */}
           {contest && (
@@ -2351,7 +2603,11 @@ export default function ContestDashboardPage() {
                         >
                           {/* Encabezado de Tarjeta */}
                           <div className="flex items-center justify-between gap-2">
-                            {p.tableLabel ? (
+                            {p.isRemote ? (
+                              <span className="text-xs font-black px-2.5 py-0.5 rounded-full border bg-cyan-500/20 text-cyan-300 border-cyan-500/40 flex items-center gap-1">
+                                🌐 Remoto / Online
+                              </span>
+                            ) : p.tableLabel ? (
                               <span
                                 className={`text-xs font-black px-2.5 py-0.5 rounded-full border ${
                                   isApplicant
@@ -2435,6 +2691,44 @@ export default function ContestDashboardPage() {
                             </p>
                           ) : null}
 
+                          {/* Estado de Pago e Inscripción */}
+                          {((contest.registrationFee ?? 0) > 0 || p.paymentMethod || p.paymentStatus) && (
+                            <div className="p-2.5 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-1.5">
+                              <div className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <CreditCard className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                                  <span className="text-[11px] text-zinc-400">Pago:</span>
+                                  {p.paymentStatus === "PAID" || p.paymentStatus === "VERIFIED" ? (
+                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                      🟢 Pagado {p.paymentMethod ? `(${p.paymentMethod === "TRANSFER" ? "Transferencia" : p.paymentMethod === "CASH_LOCAL" ? "Efectivo" : p.paymentMethod === "CARD_LOCAL" ? "Tarjeta" : "Gratis"})` : ""}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                      🟡 Pendiente {p.paymentMethod ? `(${p.paymentMethod === "TRANSFER" ? "Transferencia" : p.paymentMethod === "CASH_LOCAL" ? "Efectivo" : p.paymentMethod === "CARD_LOCAL" ? "Tarjeta" : "Pendiente"})` : ""}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {p.paymentStatus !== "PAID" && p.paymentStatus !== "VERIFIED" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleVerifyParticipantPayment(p.id)}
+                                    disabled={actionLoading}
+                                    className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-600/30 hover:bg-emerald-600 text-emerald-200 border border-emerald-500/40 transition cursor-pointer"
+                                    title="Marcar como Pago Recibido"
+                                  >
+                                    Confirmar Pago
+                                  </button>
+                                )}
+                              </div>
+                              {p.paymentReference && (
+                                <div className="text-[10px] text-zinc-400 font-mono truncate">
+                                  <strong className="text-zinc-300">Ref / WhatsApp:</strong> {p.paymentReference}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
                           {/* BOTONERA DE ACCIÓN */}
                           <div className="pt-2 border-t border-zinc-800/80 flex items-center gap-2">
                             {isApplicant ? (
@@ -2450,7 +2744,17 @@ export default function ContestDashboardPage() {
                                   <span>Aprobar y Admitir</span>
                                 </button>
 
-                                {/* 2. Cargar en DJ (si tiene canción) */}
+                                {/* 2. Editar Postulante */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditParticipant(p)}
+                                  className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-300 transition-all cursor-pointer border border-zinc-700"
+                                  title="Editar datos de postulación"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+
+                                {/* 3. Cargar en DJ (si tiene canción) */}
                                 {firstPerf && (
                                   <button
                                     type="button"
@@ -2462,19 +2766,30 @@ export default function ContestDashboardPage() {
                                   </button>
                                 )}
 
-                                {/* 3. Descartar Postulante */}
+                                {/* 4. Descartar / Borrar Postulante */}
                                 <button
                                   type="button"
                                   onClick={() => handleRejectApplicant(p.id, p.name)}
                                   disabled={actionLoading}
                                   className="p-2 rounded-xl bg-zinc-800 hover:bg-red-950/80 hover:text-red-300 text-zinc-400 transition-all cursor-pointer border border-zinc-700"
-                                  title="Descartar postulación"
+                                  title="Eliminar postulación"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
                               </>
                             ) : (
                               <>
+                                {/* Editar Participante Oficial */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditParticipant(p)}
+                                  className="py-1.5 px-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-300 text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer border border-zinc-700"
+                                  title="Editar participante"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                  <span>Editar</span>
+                                </button>
+
                                 {firstPerf && (
                                   <button
                                     type="button"
@@ -2494,6 +2809,7 @@ export default function ContestDashboardPage() {
                                   title="Eliminar del certamen"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Borrar</span>
                                 </button>
                               </>
                             )}
@@ -3493,7 +3809,7 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {showNewContestModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-black text-white flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-amber-400" />
@@ -3579,6 +3895,66 @@ export default function ContestDashboardPage() {
                     className="w-full p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-bold outline-none"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">
+                    📅 Fecha Programada del Certamen
+                  </label>
+                  <input
+                    type="date"
+                    value={newContestForm.scheduledDate}
+                    onChange={(e) => setNewContestForm({ ...newContestForm, scheduledDate: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">
+                    💰 Costo de Inscripción ($)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={500}
+                    placeholder="0 = Gratuito"
+                    value={newContestForm.registrationFee}
+                    onChange={(e) => setNewContestForm({ ...newContestForm, registrationFee: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-white block">
+                    🌐 Permitir Inscripción Remota / Previa
+                  </span>
+                  <span className="text-[10px] text-zinc-400 block">
+                    Habilita que los participantes se registren online para este certamen sin estar físicamente en la mesa
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={newContestForm.allowRemoteRegistration}
+                  onChange={(e) =>
+                    setNewContestForm({ ...newContestForm, allowRemoteRegistration: e.target.checked })
+                  }
+                  className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
+                  💳 Datos de Pago / Cuenta Bancaria para Inscripciones
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder={`Banco: Banco Estado\nCuenta Corriente: 12345678\nAlias/RUT: 12.345.678-9\nTitular: Vidjs Karaoke Bar\nWhatsApp: +56 9 1234 5678`}
+                  value={newContestForm.paymentInstructions}
+                  onChange={(e) => setNewContestForm({ ...newContestForm, paymentInstructions: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono text-[11px] resize-none"
+                />
               </div>
 
               <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between">
@@ -4612,6 +4988,69 @@ export default function ContestDashboardPage() {
                 />
               </div>
 
+              {/* Fecha Programada y Costo de Inscripción */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">
+                    📅 Fecha Programada del Certamen
+                  </label>
+                  <input
+                    type="date"
+                    value={brandingForm.scheduledDate}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, scheduledDate: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">
+                    💰 Costo de Inscripción ($)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={500}
+                    placeholder="0 = Gratuito"
+                    value={brandingForm.registrationFee}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, registrationFee: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Permitir Inscripción Remota / Online */}
+              <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-white block">
+                    🌐 Permitir Inscripción Remota / Previa
+                  </span>
+                  <span className="text-[10px] text-zinc-400 block">
+                    Habilita que los participantes se inscriban online desde fuera del local para una fecha futura
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={brandingForm.allowRemoteRegistration}
+                  onChange={(e) =>
+                    setBrandingForm({ ...brandingForm, allowRemoteRegistration: e.target.checked })
+                  }
+                  className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
+                />
+              </div>
+
+              {/* Datos Bancarios / Instrucciones de Pago */}
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
+                  💳 Datos de Pago / Cuenta Bancaria para Inscripciones
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder={`Banco: Banco Estado\nCuenta Corriente: 12345678\nAlias/RUT: 12.345.678-9\nTitular: Vidjs Karaoke Bar\nWhatsApp: +56 9 1234 5678`}
+                  value={brandingForm.paymentInstructions}
+                  onChange={(e) => setBrandingForm({ ...brandingForm, paymentInstructions: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono text-[11px] resize-none"
+                />
+              </div>
+
               <div className="pt-3 border-t border-zinc-800 flex items-center justify-end gap-2">
                 <button
                   type="button"
@@ -4626,6 +5065,398 @@ export default function ContestDashboardPage() {
                   className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {actionLoading ? "Guardando..." : "Guardar Configuración"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: EDITAR CONCURSO COMPLETO                              */}
+      {/* ============================================================ */}
+      {showEditContestModal && contest && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-amber-400" />
+                <span>Editar Certamen: {contest.name}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowEditContestModal(false)}
+                className="text-zinc-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditContest} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre del Certamen *</label>
+                <input
+                  type="text"
+                  required
+                  value={editContestForm.name}
+                  onChange={(e) => setEditContestForm({ ...editContestForm, name: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-bold outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Descripción / Reglamento Breve</label>
+                <textarea
+                  rows={2}
+                  value={editContestForm.description}
+                  onChange={(e) => setEditContestForm({ ...editContestForm, description: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Modo de Evaluación</label>
+                  <select
+                    value={editContestForm.scoringMode}
+                    onChange={(e) => setEditContestForm({ ...editContestForm, scoringMode: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
+                  >
+                    <option value="AVERAGE">Promedio Simple (Todos los jurados)</option>
+                    <option value="OLYMPIC">Olímpico (Descarta max y min)</option>
+                    <option value="SUM">Suma Total de Puntos</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Ponderación Voto del Público (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={50}
+                    value={editContestForm.publicVoteWeight}
+                    onChange={(e) => setEditContestForm({ ...editContestForm, publicVoteWeight: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">📅 Fecha Programada del Certamen</label>
+                  <input
+                    type="date"
+                    value={editContestForm.scheduledDate}
+                    onChange={(e) => setEditContestForm({ ...editContestForm, scheduledDate: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">💰 Arancel / Costo de Inscripción ($)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={500}
+                    placeholder="0 = Gratuito"
+                    value={editContestForm.registrationFee}
+                    onChange={(e) => setEditContestForm({ ...editContestForm, registrationFee: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-white block">🌐 Inscripción Remota / Previa</span>
+                    <span className="text-[10px] text-zinc-400 block">Permite registro a distancia</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={editContestForm.allowRemoteRegistration}
+                    onChange={(e) => setEditContestForm({ ...editContestForm, allowRemoteRegistration: e.target.checked })}
+                    className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
+                  />
+                </div>
+
+                <div className="p-3 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-white block">Consumo Mínimo para Votar</span>
+                    <span className="text-[10px] text-zinc-400 block">Exigir validación por mozo</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={editContestForm.requireConsumption}
+                    onChange={(e) => setEditContestForm({ ...editContestForm, requireConsumption: e.target.checked })}
+                    className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">
+                  💳 Datos de Pago / Cuenta Bancaria para Inscripciones
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Banco, Cuenta Corriente, CBU / Alias / RUT, Titular, WhatsApp..."
+                  value={editContestForm.paymentInstructions}
+                  onChange={(e) => setEditContestForm({ ...editContestForm, paymentInstructions: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono text-[11px] resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">URL Logo Oficial (Opcional)</label>
+                  <input
+                    type="url"
+                    placeholder="https://ejemplo.com/logo.png"
+                    value={editContestForm.logoUrl}
+                    onChange={(e) => setEditContestForm({ ...editContestForm, logoUrl: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono text-[11px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">URL Banner de Portada (Opcional)</label>
+                  <input
+                    type="url"
+                    placeholder="https://ejemplo.com/cover.jpg"
+                    value={editContestForm.coverUrl}
+                    onChange={(e) => setEditContestForm({ ...editContestForm, coverUrl: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono text-[11px]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Premios Oficiales</label>
+                <textarea
+                  rows={2}
+                  value={editContestForm.prizes}
+                  onChange={(e) => setEditContestForm({ ...editContestForm, prizes: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none text-[11px]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">Reglamento o Normas del Concurso</label>
+                <textarea
+                  rows={2}
+                  value={editContestForm.rules}
+                  onChange={(e) => setEditContestForm({ ...editContestForm, rules: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 resize-none text-[11px]"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-zinc-800 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditContestModal(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {actionLoading ? "Guardando..." : "Guardar Cambios"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: EDITAR PARTICIPANTE                                   */}
+      {/* ============================================================ */}
+      {showEditParticipantModal && editingParticipant && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-amber-400" />
+                <span>Editar Participante: {editingParticipant.name}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditParticipantModal(false);
+                  setEditingParticipant(null);
+                }}
+                className="text-zinc-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditParticipant} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre Real *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editParticipantForm.name}
+                    onChange={(e) => setEditParticipantForm({ ...editParticipantForm, name: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Nombre Artístico</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: La Voz de Oro"
+                    value={editParticipantForm.stageName}
+                    onChange={(e) => setEditParticipantForm({ ...editParticipantForm, stageName: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Canción a Cantar</label>
+                  <input
+                    type="text"
+                    placeholder="Título de la canción"
+                    value={editParticipantForm.songTitle}
+                    onChange={(e) => setEditParticipantForm({ ...editParticipantForm, songTitle: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Artista Original</label>
+                  <input
+                    type="text"
+                    placeholder="Nombre del artista"
+                    value={editParticipantForm.artistName}
+                    onChange={(e) => setEditParticipantForm({ ...editParticipantForm, artistName: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Teléfono / WhatsApp</label>
+                  <input
+                    type="tel"
+                    placeholder="+56 9 1234 5678"
+                    value={editParticipantForm.phone}
+                    onChange={(e) => setEditParticipantForm({ ...editParticipantForm, phone: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Mesa en Local</label>
+                  <input
+                    type="text"
+                    disabled={editParticipantForm.isRemote}
+                    placeholder="Ej: Mesa 4"
+                    value={editParticipantForm.isRemote ? "Remoto / Online" : editParticipantForm.tableLabel}
+                    onChange={(e) => setEditParticipantForm({ ...editParticipantForm, tableLabel: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-white block">Participante Remoto / Online</span>
+                  <span className="text-[10px] text-zinc-400 block">No requiere mesa física en el local</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={editParticipantForm.isRemote}
+                  onChange={(e) => setEditParticipantForm({ ...editParticipantForm, isRemote: e.target.checked })}
+                  className="w-5 h-5 accent-cyan-400 rounded cursor-pointer"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Estado en el Certamen</label>
+                  <select
+                    value={editParticipantForm.status}
+                    onChange={(e) => setEditParticipantForm({ ...editParticipantForm, status: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
+                  >
+                    <option value="APPLICANT">Postulante (Pendiente de Aprobación)</option>
+                    <option value="ACTIVE">Admitido / Oficial Activo</option>
+                    <option value="QUALIFIED">Clasificado a Siguiente Ronda</option>
+                    <option value="ELIMINATED">Eliminado</option>
+                    <option value="WINNER">Ganador del Certamen</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Estado del Pago</label>
+                  <select
+                    value={editParticipantForm.paymentStatus}
+                    onChange={(e) => setEditParticipantForm({ ...editParticipantForm, paymentStatus: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-bold"
+                  >
+                    <option value="PENDING">🟡 Pendiente de Pago</option>
+                    <option value="PAID">🟢 Pagado / Confirmado</option>
+                    <option value="VERIFIED">✅ Verificado por DJ/Admin</option>
+                    <option value="EXEMPT">🆓 Exento de Pago</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Forma de Pago</label>
+                  <select
+                    value={editParticipantForm.paymentMethod}
+                    onChange={(e) => setEditParticipantForm({ ...editParticipantForm, paymentMethod: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
+                  >
+                    <option value="TRANSFER">Transferencia Bancaria</option>
+                    <option value="CASH_LOCAL">Efectivo en Local</option>
+                    <option value="CARD_LOCAL">Tarjeta / POS en Local</option>
+                    <option value="FREE">Gratuito</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">Nro de Referencia / Comprobante</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Op #123456"
+                    value={editParticipantForm.paymentReference}
+                    onChange={(e) => setEditParticipantForm({ ...editParticipantForm, paymentReference: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-zinc-800 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditParticipantModal(false);
+                    setEditingParticipant(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {actionLoading ? "Guardando..." : "Guardar Participante"}
                 </button>
               </div>
             </form>

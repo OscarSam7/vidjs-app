@@ -7,6 +7,7 @@ import {
   DEFAULT_CONTEST_CRITERIA,
   generateContestCode,
   generateJudgePin,
+  broadcastContestEvent,
 } from "@/lib/contest/contest-service";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,10 @@ const CreateContestSchema = z.object({
   initialStageTitle: z.string().default("Gala 1: Audiciones y Clasificatorias"),
   judgesCount: z.number().min(1).max(10).default(3),
   requireConsumption: z.boolean().default(true),
+  registrationFee: z.number().min(0).default(0),
+  paymentInstructions: z.string().optional().nullable(),
+  allowRemoteRegistration: z.boolean().default(true),
+  scheduledDate: z.string().optional().nullable(),
 });
 
 /**
@@ -119,6 +124,10 @@ export async function POST(req: NextRequest) {
         rules: parsed.rules || null,
         prizes: parsed.prizes || null,
         requireConsumption: parsed.requireConsumption,
+        registrationFee: parsed.registrationFee,
+        paymentInstructions: parsed.paymentInstructions || null,
+        allowRemoteRegistration: parsed.allowRemoteRegistration,
+        scheduledDate: parsed.scheduledDate ? new Date(parsed.scheduledDate) : null,
       },
     });
 
@@ -187,6 +196,16 @@ export async function POST(req: NextRequest) {
         judges: true,
         participants: true,
       },
+    });
+
+    // Notificar inmediatamente a las cabinas DJ, pantallas y comensales móviles en 0 ms
+    broadcastContestEvent(contest.id, contest.eventId, "CONTEST_STAGE_CHANGE", {
+      contest: fullContest,
+      type: "CONTEST_CREATED",
+      contestId: contest.id,
+      contestName: contest.name,
+      contestCode: contest.code,
+      status: contest.status,
     });
 
     return NextResponse.json({

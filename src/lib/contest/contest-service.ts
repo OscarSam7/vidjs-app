@@ -133,10 +133,14 @@ export function broadcastContestEvent(
   type: any,
   data: any
 ) {
-  // Emitir al canal del concurso
+  // 1. Emitir al canal directo del concurso
   eventBus.broadcast(`contest:${contestId}`, type, data);
   eventBus.broadcast(contestId, type, data);
-  // Si está vinculado a una noche/evento de Vidjs, emitir también al evento para la pantalla TV
+
+  // 2. Emitir a la sala global para que cualquier comensal/cliente móvil lo reciba de inmediato
+  eventBus.broadcast("global", type, { ...data, contestId });
+
+  // 3. Si está vinculado a una noche/evento de Vidjs, emitir también al canal del evento para cabinas y Smart TVs
   if (eventId) {
     eventBus.broadcast(eventId, type, { ...data, contestId });
   }

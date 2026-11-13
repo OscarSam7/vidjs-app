@@ -441,6 +441,10 @@ model KaraokeContest {
   activeStageId       String?              // ID de la fecha/gala activa
   requireConsumption Boolean               @default(true) // Exigir consumo mínimo verificado para votar
   minConsumptionNotes String?               // Ej: "$5.000 o 1 Trago"
+  registrationFee     Float                @default(0) // Valor o costo de inscripción (0 = gratis)
+  paymentInstructions String?              // Datos bancarios para transferencia (Banco, CBU/RUT/Alias, Titular)
+  allowRemoteRegistration Boolean          @default(true) // Permitir inscripción remota antes de la fecha
+  scheduledDate       DateTime?            // Fecha programada para el concurso
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -526,6 +530,13 @@ model ContestParticipant {
   phone        String?
   email        String?
   tableLabel   String?              // Mesa asignada en el local
+  isRemote     Boolean              @default(false) // Participación remota o inscripción anticipada
+  selectedStageId String?           // Gala o fecha seleccionada para cantar
+  paymentMethod   String?           // TRANSFER, CASH_LOCAL, CARD_LOCAL, FREE
+  paymentStatus   String            @default("PENDING") // PENDING, VERIFIED, PAID, EXEMPT
+  paymentProofUrl String?           // Comprobante de pago adjunto (voucher/transferencia)
+  paymentReference String?          // Nro de comprobante o referencia de pago
+  paymentAmount   Float             @default(0) // Monto pagado
   status       String               @default("ACTIVE") // ACTIVE, QUALIFIED, ELIMINATED, WINNER
   finalRank    Int?                 // 1, 2, 3...
   bio          String?
