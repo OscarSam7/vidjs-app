@@ -41,15 +41,16 @@ export async function GET(req: NextRequest) {
       activeEvents[0];
 
     const eventId = currentEvent.id;
+    const activeEventIds = activeEvents.map((e) => e.id);
 
-    // 4. Consultar estado en paralelo
+    // 4. Consultar estado en paralelo (unificado para todos los eventos activos del local)
     const [pendingRequests, queue, currentPlaying, recentHistory, statsCounts, tables] =
       await Promise.all([
-        // Solicitudes pendientes de moderación
+        // Solicitudes pendientes de moderación de la noche
         prisma.songRequest.findMany({
           where: {
             tenantId,
-            eventId,
+            eventId: { in: activeEventIds },
             status: "PENDING",
           },
           include: {
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
         prisma.queueEntry.findMany({
           where: {
             tenantId,
-            eventId,
+            eventId: { in: activeEventIds },
             status: "QUEUED",
           },
           include: {
@@ -83,7 +84,7 @@ export async function GET(req: NextRequest) {
         prisma.queueEntry.findFirst({
           where: {
             tenantId,
-            eventId,
+            eventId: { in: activeEventIds },
             status: "CURRENT",
           },
           include: {
@@ -101,7 +102,7 @@ export async function GET(req: NextRequest) {
         prisma.queueEntry.findMany({
           where: {
             tenantId,
-            eventId,
+            eventId: { in: activeEventIds },
             status: { in: ["COMPLETED", "SKIPPED"] },
           },
           include: {
@@ -119,7 +120,7 @@ export async function GET(req: NextRequest) {
         // Estadísticas agregadas
         prisma.songRequest.groupBy({
           by: ["status"],
-          where: { tenantId, eventId },
+          where: { tenantId, eventId: { in: activeEventIds } },
           _count: true,
         }),
 

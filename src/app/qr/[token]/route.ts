@@ -67,18 +67,21 @@ export async function GET(
   let fromVenue: string | null = null;
   let toVenue: string | null = null;
 
-  if (prevSession && prevSession.tableId !== table.id) {
+  if (prevSession && (prevSession.tableId !== table.id || prevSession.eventId !== activeEvent.id)) {
     carriedGuestName = prevSession.guestName;
     fromZone = prevSession.table.zone;
 
     // Detectar si cambió de local comercial / fiesta privada (cross-tenant o cross-venue)
     const isDifferentTenant = prevSession.tenantId !== table.tenantId;
     const isDifferentVenue = prevSession.table.venueId !== table.venueId;
+    const isDifferentEvent = prevSession.eventId !== activeEvent.id;
 
     if (isDifferentTenant || isDifferentVenue) {
       switchType = "venue";
       fromVenue = prevSession.tenant.name || prevSession.table.venue?.name || "tu evento anterior";
       toVenue = table.tenant.name || table.venue.name || "este local";
+    } else if (isDifferentEvent) {
+      switchType = "event";
     } else if (prevSession.table.zone !== table.zone) {
       switchType = "zone";
     } else {

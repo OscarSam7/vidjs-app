@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     const code = searchParams.get("code")?.trim().toUpperCase();
 
     // 1. Si se proporciona un código de evento/pantalla (ej: RETRO-POP), resolver el eventId
-    if (!eventId && code) {
+    if ((!eventId || eventId === "global") && code) {
       const event = await prisma.event.findUnique({
         where: { code },
         select: { id: true, status: true },
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
           )
         );
 
-        // Suscribirse a los eventos transmitidos en este evento
+        // Definir callback receptor de mensajes en tiempo real
         listener = (msg: RealtimeMessage) => {
           try {
             const chunk = `event: ${msg.type}\ndata: ${JSON.stringify(
@@ -93,7 +93,13 @@ export async function GET(req: NextRequest) {
           }
         };
 
-        realtimeBus.subscribe(targetEventId, listener);
+        // Suscribirse a los eventos transmitidos en este evento y al canal global
+        const subscribedChannels = new Set<string>([targetEventId, "global"]);
+        if (code) subscribedChannels.add(code);
+
+        subscribedChannels.forEach((ch) => {
+          realtimeBus.subscribe(ch, listener!);
+        });
 
         // Heartbeat para mantener viva la conexión a través de balanceadores y Smart TVs
         heartbeatTimer = setInterval(() => {
@@ -106,14 +112,20 @@ export async function GET(req: NextRequest) {
       },
       cancel() {
         if (heartbeatTimer) clearInterval(heartbeatTimer);
-        if (listener) realtimeBus.unsubscribe(targetEventId, listener);
+        if (listener) {
+          const channels = [targetEventId, "global", ...(code ? [code] : [])];
+          channels.forEach((ch) => realtimeBus.unsubscribe(ch, listener!));
+        }
       },
     });
 
     // Manejar aborto desde la señal de la petición HTTP
     req.signal.addEventListener("abort", () => {
       if (heartbeatTimer) clearInterval(heartbeatTimer);
-      if (listener) realtimeBus.unsubscribe(targetEventId, listener);
+      if (listener) {
+        const channels = [targetEventId, "global", ...(code ? [code] : [])];
+        channels.forEach((ch) => realtimeBus.unsubscribe(ch, listener!));
+      }
     });
 
     return new Response(stream, {

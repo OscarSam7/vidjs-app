@@ -1346,7 +1346,7 @@ export default function DjBoothPage() {
 
   // Activar Modo Karaoke
   const handleActivateKaraokeMode = () => {
-    handleUpdatePolicy({ zone: "KARAOKE", nightMode: "HYBRID" });
+    handleUpdatePolicy({ zone: "KARAOKE", nightMode: "KARAOKE_ONLY" });
     showFeedback("success", "🎤 Modo Karaoke activado");
   };
 
@@ -1645,12 +1645,12 @@ export default function DjBoothPage() {
               onClick={() => handleUpdatePolicy({ zone: "DJ", nightMode: "DJ_ONLY" })}
               disabled={policyLoading}
               className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
-                queuePolicy.zone === "DJ"
+                queuePolicy.zone === "DJ" || queuePolicy.nightMode === "DJ_ONLY"
                   ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/40"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               }`}
             >
-              <Disc3 className={`w-4 h-4 shrink-0 ${queuePolicy.zone === "DJ" ? "animate-spin [animation-duration:4s]" : ""}`} />
+              <Disc3 className={`w-4 h-4 shrink-0 ${(queuePolicy.zone === "DJ" || queuePolicy.nightMode === "DJ_ONLY") ? "animate-spin [animation-duration:4s]" : ""}`} />
               <span className="whitespace-nowrap">🎧 Modo DJ</span>
             </button>
 
@@ -1658,7 +1658,7 @@ export default function DjBoothPage() {
               onClick={handleActivateKaraokeMode}
               disabled={policyLoading}
               className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
-                queuePolicy.zone === "KARAOKE"
+                queuePolicy.zone === "KARAOKE" || queuePolicy.nightMode === "KARAOKE_ONLY"
                   ? "bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-lg shadow-cyan-600/40"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               }`}

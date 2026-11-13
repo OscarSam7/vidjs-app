@@ -161,8 +161,9 @@ export async function PATCH(req: NextRequest) {
       ...updatedPolicy,
     });
 
-    await prisma.event.update({
-      where: { id: event.id },
+    // Sincronizar de forma unificada en el evento seleccionado y en todos los eventos activos del local
+    await prisma.event.updateMany({
+      where: { tenantId, status: "ACTIVE" },
       data: { settings: mergedSettings },
     });
 
@@ -178,17 +179,28 @@ export async function PATCH(req: NextRequest) {
       },
     });
 
-    // Notificar en tiempo real por SSE a todos los comensales, cabinas y pantallas
-    const policyPayload = {
+    // Notificar en tiempo real por SSE a todos los comensales, cabinas y pantallas de la sala
+    const allActiveEvents = await prisma.event.findMany({
+      where: { tenantId, status: "ACTIVE" },
+      select: { id: true, code: true },
+    });
+
+    for (const ev of allActiveEvents) {
+      const payload = {
+        eventId: ev.id,
+        eventCode: ev.code,
+        policy: updatedPolicy,
+      };
+      realtimeBus.broadcast(ev.id, "QUEUE_POLICY_UPDATED", payload);
+      if (ev.code) {
+        realtimeBus.broadcast(ev.code, "QUEUE_POLICY_UPDATED", payload);
+      }
+    }
+    realtimeBus.broadcast("global", "QUEUE_POLICY_UPDATED", {
       eventId: event.id,
       eventCode: event.code,
       policy: updatedPolicy,
-    };
-    realtimeBus.broadcast(event.id, "QUEUE_POLICY_UPDATED", policyPayload);
-    if (event.code) {
-      realtimeBus.broadcast(event.code, "QUEUE_POLICY_UPDATED", policyPayload);
-    }
-    realtimeBus.broadcast("global", "QUEUE_POLICY_UPDATED", policyPayload);
+    });
 
     if (data.photoFitMode !== undefined) {
       realtimeBus.broadcast(event.id, "PHOTO_FIT_MODE", {

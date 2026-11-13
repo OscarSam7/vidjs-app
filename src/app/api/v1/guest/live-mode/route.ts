@@ -10,16 +10,32 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const codeQuery = searchParams.get("code")?.trim().toUpperCase();
 
-    // 1. Intentar resolver por sesión de mesa del comensal
+    // 1. Intentar resolver por sesión de mesa del comensal vinculada al evento activo más reciente
     const guestSession = await getCurrentGuestSession().catch(() => null);
 
     let activeEvent = null;
 
-    if (guestSession?.eventId) {
-      activeEvent = await prisma.event.findUnique({
-        where: { id: guestSession.eventId },
+    if (guestSession) {
+      activeEvent = await prisma.event.findFirst({
+        where: {
+          tenantId: guestSession.tenantId,
+          status: "ACTIVE",
+        },
+        orderBy: { startsAt: "desc" },
         select: { id: true, code: true, name: true, status: true, settings: true },
       });
+
+      if (activeEvent && guestSession.eventId !== activeEvent.id) {
+        await prisma.guestSession.update({
+          where: { id: guestSession.id },
+          data: { eventId: activeEvent.id },
+        }).catch(() => null);
+      } else if (!activeEvent && guestSession.eventId) {
+        activeEvent = await prisma.event.findUnique({
+          where: { id: guestSession.eventId },
+          select: { id: true, code: true, name: true, status: true, settings: true },
+        });
+      }
     }
 
     // 2. Si no hay sesión o evento, resolver por código query si se pasó

@@ -54,7 +54,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Validar que el evento siga activo
+    // 2. Validar o auto-sincronizar con el evento activo de la noche
+    const activeVenueEvent = await prisma.event.findFirst({
+      where: {
+        status: "ACTIVE",
+        OR: [
+          { venueId: guestSession.table.venueId },
+          { tenantId: guestSession.tenantId },
+        ],
+      },
+      orderBy: { startsAt: "desc" },
+      select: { id: true, name: true, code: true, status: true, startsAt: true, settings: true },
+    });
+
+    if (activeVenueEvent && guestSession.eventId !== activeVenueEvent.id) {
+      await prisma.guestSession.update({
+        where: { id: guestSession.id },
+        data: { eventId: activeVenueEvent.id },
+      });
+      guestSession.eventId = activeVenueEvent.id;
+      guestSession.event = activeVenueEvent as any;
+    }
+
     if (guestSession.event.status !== "ACTIVE") {
       throw new AppError("El evento de esta noche ha finalizado. No se aceptan más solicitudes.", 400);
     }
@@ -226,8 +247,21 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Notificar inmediatamente a la cabina del DJ en tiempo real (con flag VIP Fast-Pass si aplica)
+    // Notificar inmediatamente a la cabina del DJ en tiempo real en todos los canales y eventos activos
     realtimeBus.broadcast(guestSession.eventId, "REQUEST_NEW", songRequest);
+    realtimeBus.broadcast("global", "REQUEST_NEW", songRequest);
+    if (guestSession.event?.code) {
+      realtimeBus.broadcast(guestSession.event.code, "REQUEST_NEW", songRequest);
+    }
+    const siblingActiveEvents = await prisma.event.findMany({
+      where: { tenantId: guestSession.tenantId, status: "ACTIVE" },
+      select: { id: true, code: true },
+    });
+    siblingActiveEvents.forEach((sev) => {
+      if (sev.id !== guestSession.eventId) {
+        realtimeBus.broadcast(sev.id, "REQUEST_NEW", songRequest);
+      }
+    });
 
     if (queueEntryStatus === "CURRENT") {
       realtimeBus.broadcast(guestSession.eventId, "TRACK_CHANGE", {
@@ -273,6 +307,28 @@ export async function GET() {
     const guestSession = await getCurrentGuestSession();
     if (!guestSession) {
       throw new UnauthorizedError("Sesión no encontrada");
+    }
+
+    // 0. Auto-sincronización con el evento activo de la noche (evitar desfasajes si la fecha o evento cambió)
+    const activeVenueEvent = await prisma.event.findFirst({
+      where: {
+        status: "ACTIVE",
+        OR: [
+          { venueId: guestSession.table.venueId },
+          { tenantId: guestSession.tenantId },
+        ],
+      },
+      orderBy: { startsAt: "desc" },
+      select: { id: true, name: true, code: true, status: true, startsAt: true, settings: true },
+    });
+
+    if (activeVenueEvent && guestSession.eventId !== activeVenueEvent.id) {
+      await prisma.guestSession.update({
+        where: { id: guestSession.id },
+        data: { eventId: activeVenueEvent.id },
+      });
+      guestSession.eventId = activeVenueEvent.id;
+      guestSession.event = activeVenueEvent as any;
     }
 
     // 1. Consultar solicitudes activas y recientes limpias de la mesa (evitar acumular historial basura cancelado)
