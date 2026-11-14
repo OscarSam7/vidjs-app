@@ -2613,6 +2613,12 @@ export default function DjBoothPage() {
         onPlaybackControl={handlePlaybackControl}
         isAutoPlayMode={Boolean(queuePolicy.autoPlayRequests)}
         nextTurnMode={queuePolicy.nextTurnMode}
+        onAcceptRequest={handleAccept}
+        onRejectRequest={handleReject}
+        onLoadQueueEntry={handleLoadQueueEntry}
+        onSkipQueueEntry={handleSkipQueueEntry}
+        onCallSinger={handleCallSinger}
+        zone={queuePolicy.zone}
       />
 
       {/* 2.5 SOUNDBOARD FX LAUNCHPAD PARA DJ */}
