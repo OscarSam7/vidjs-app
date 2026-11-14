@@ -71,18 +71,19 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     // Mapa de consumos por mesa
     const consumptionMap = new Map<string, any>();
     contest.tableConsumptions.forEach((c) => {
-      consumptionMap.set(c.tableLabel.toLowerCase(), c);
+      consumptionMap.set(c.tableLabel.toLowerCase().trim(), c);
     });
 
     // Consolidar con las mesas reales registradas en el local
     const allTables = contest.tenant.tables.map((t) => {
-      const label = t.label || `Mesa ${t.number}`;
+      const label = (t.label || `Mesa ${t.number}`).trim();
       const record = consumptionMap.get(label.toLowerCase());
 
       return {
         id: t.id,
         number: t.number,
         label,
+        tableLabel: label,
         zone: t.zone,
         status: record?.status || "PENDING",
         isSuperVote: record?.status === "SUPER_VOTE",
@@ -95,12 +96,15 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     // Agregar también mesas que pudieran haber sido registradas manualmente
     contest.tableConsumptions.forEach((c) => {
-      const exists = allTables.some((t) => t.label.toLowerCase() === c.tableLabel.toLowerCase());
+      const exists = allTables.some(
+        (t) => (t.tableLabel || t.label).toLowerCase().trim() === c.tableLabel.toLowerCase().trim()
+      );
       if (!exists) {
         allTables.push({
           id: c.id,
           number: 0,
-          label: c.tableLabel,
+          label: c.tableLabel.trim(),
+          tableLabel: c.tableLabel.trim(),
           zone: "MAIN",
           status: c.status,
           isSuperVote: c.status === "SUPER_VOTE",
@@ -118,6 +122,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         requireConsumption: contest.requireConsumption,
         minConsumptionNotes: contest.minConsumptionNotes,
         tables: allTables,
+        tableConsumptions: allTables,
       },
     });
   } catch (error) {
@@ -174,16 +179,18 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const tableLabelTrimmed = parsed.tableLabel.trim();
+
     const consumption = await prisma.contestTableConsumption.upsert({
       where: {
         contestId_tableLabel: {
           contestId: contest.id,
-          tableLabel: parsed.tableLabel,
+          tableLabel: tableLabelTrimmed,
         },
       },
       create: {
         contestId: contest.id,
-        tableLabel: parsed.tableLabel,
+        tableLabel: tableLabelTrimmed,
         status: parsed.status,
         consumptionAmount: parsed.consumptionAmount || 0,
         notes: parsed.notes || null,
@@ -201,7 +208,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     // Difundir en tiempo real a todos los comensales de la mesa y al panel del DJ
     broadcastContestEvent(contest.id, contest.eventId, "CONTEST_VOTE_UPDATE", {
       type: "TABLE_CONSUMPTION_UPDATE",
-      tableLabel: parsed.tableLabel,
+      tableLabel: tableLabelTrimmed,
       status: parsed.status,
       isSuperVote: parsed.status === "SUPER_VOTE",
       notes: parsed.notes,
@@ -210,10 +217,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
     const statusMessage =
       parsed.status === "SUPER_VOTE"
-        ? `🌟 ¡SÚPER VOTO (x2) activado para ${parsed.tableLabel} por consumo especial!`
+        ? `🌟 ¡SÚPER VOTO (x2) activado para ${tableLabelTrimmed} por consumo especial!`
         : parsed.status === "VERIFIED"
-        ? `✅ Consumo mínimo verificado para ${parsed.tableLabel}. Votos individuales habilitados.`
-        : `🔒 Votos bloqueados para ${parsed.tableLabel} (esperando consumo).`;
+        ? `✅ Consumo mínimo verificado para ${tableLabelTrimmed}. Votos individuales habilitados.`
+        : `🔒 Votos bloqueados para ${tableLabelTrimmed} (esperando consumo).`;
 
     return NextResponse.json({
       success: true,

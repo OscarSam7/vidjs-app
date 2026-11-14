@@ -447,7 +447,17 @@ export default function ContestDashboardPage() {
       const res = await fetch(`/api/v1/contest/${contestId}/consumption`);
       const json = await res.json();
       if (res.ok && json.success) {
-        setTableConsumptions(json.data.tableConsumptions || []);
+        const rawList = json.data.tables || json.data.tableConsumptions || [];
+        const normalized = rawList.map((item: any) => ({
+          id: item.id || `tc-${item.tableLabel || item.label}`,
+          tableLabel: String(item.tableLabel || item.label || "").trim(),
+          status: (item.status as "PENDING" | "VERIFIED" | "SUPER_VOTE") || "PENDING",
+          consumptionAmount: item.consumptionAmount ?? null,
+          notes: item.notes ?? null,
+          verifiedBy: item.verifiedBy ?? null,
+          updatedAt: item.updatedAt || new Date().toISOString(),
+        }));
+        setTableConsumptions(normalized);
       }
     } catch {}
   };
@@ -478,18 +488,55 @@ export default function ContestDashboardPage() {
     }
   };
 
+  const [processingTableLabel, setProcessingTableLabel] = useState<string | null>(null);
+
   const handleSetTableStatus = async (
     tableLabel: string,
     status: "PENDING" | "VERIFIED" | "SUPER_VOTE",
     notes?: string
   ) => {
-    if (!contest || !tableLabel.trim()) return;
+    if (!contest || !tableLabel.trim()) {
+      showFeedback("error", "Indica la mesa a configurar");
+      return;
+    }
+    const cleanLabel = tableLabel.trim();
+    setProcessingTableLabel(cleanLabel);
+
+    // Actualización optimista instantánea en la interfaz
+    setTableConsumptions((prev) => {
+      const existingIdx = prev.findIndex(
+        (tc) => tc.tableLabel.toLowerCase().trim() === cleanLabel.toLowerCase()
+      );
+      if (existingIdx >= 0) {
+        const copy = [...prev];
+        copy[existingIdx] = {
+          ...copy[existingIdx],
+          status,
+          notes: notes !== undefined ? notes : copy[existingIdx].notes,
+          updatedAt: new Date().toISOString(),
+        };
+        return copy;
+      }
+      return [
+        ...prev,
+        {
+          id: `opt-${Date.now()}`,
+          tableLabel: cleanLabel,
+          status,
+          consumptionAmount: null,
+          notes: notes || null,
+          verifiedBy: "Staff",
+          updatedAt: new Date().toISOString(),
+        },
+      ];
+    });
+
     try {
       const res = await fetch(`/api/v1/contest/${contest.id}/consumption`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tableLabel: tableLabel.trim(),
+          tableLabel: cleanLabel,
           status,
           notes,
         }),
@@ -499,17 +546,21 @@ export default function ContestDashboardPage() {
         showFeedback(
           "success",
           status === "SUPER_VOTE"
-            ? `🌟 ¡SÚPER VOTO (x2) asignado a ${tableLabel}!`
+            ? `🌟 ¡SÚPER VOTO (x2) asignado a ${cleanLabel}!`
             : status === "VERIFIED"
-            ? `✅ Consumo validado para ${tableLabel}`
-            : `🔒 ${tableLabel} bloqueada a la espera de consumo`
+            ? `✅ Consumo validado para ${cleanLabel} (Votos habilitados)`
+            : `🔒 ${cleanLabel} bloqueada a la espera de consumo`
         );
-        fetchTableConsumptions(contest.id);
+        await fetchTableConsumptions(contest.id);
       } else {
         showFeedback("error", json.error || "No se pudo actualizar el estado de la mesa");
+        await fetchTableConsumptions(contest.id);
       }
     } catch {
       showFeedback("error", "Error de red al actualizar estado de consumo");
+      await fetchTableConsumptions(contest.id);
+    } finally {
+      setProcessingTableLabel(null);
     }
   };
 
@@ -2312,22 +2363,36 @@ export default function ContestDashboardPage() {
               <span className="text-[11px] font-black uppercase tracking-wider text-zinc-300 block">
                 ⚡ Validación Rápida de Mesa
               </span>
-              <div className="flex flex-col sm:flex-row items-center gap-2.5">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
                 <input
                   type="text"
-                  placeholder="Ej: Mesa 7, VIP 2, Barra 1..."
+                  placeholder="Ej: Mesa 1, Mesa 7, VIP 2..."
                   value={quickTableInput}
                   onChange={(e) => setQuickTableInput(e.target.value)}
-                  className="w-full sm:w-64 p-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs font-bold outline-none placeholder:text-zinc-600 focus:border-amber-400"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && quickTableInput.trim()) {
+                      handleSetTableStatus(quickTableInput, "VERIFIED", quickNotesInput);
+                      setQuickTableInput("");
+                      setQuickNotesInput("");
+                    }
+                  }}
+                  className="w-full md:w-64 p-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs font-bold outline-none placeholder:text-zinc-600 focus:border-amber-400"
                 />
                 <input
                   type="text"
                   placeholder="Nota u observaciones (opcional)"
                   value={quickNotesInput}
                   onChange={(e) => setQuickNotesInput(e.target.value)}
-                  className="w-full sm:flex-1 p-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs outline-none placeholder:text-zinc-600 focus:border-amber-400"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && quickTableInput.trim()) {
+                      handleSetTableStatus(quickTableInput, "VERIFIED", quickNotesInput);
+                      setQuickTableInput("");
+                      setQuickNotesInput("");
+                    }
+                  }}
+                  className="w-full md:flex-1 p-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs outline-none placeholder:text-zinc-600 focus:border-amber-400"
                 />
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
                   <button
                     type="button"
                     onClick={() => {
@@ -2367,10 +2432,14 @@ export default function ContestDashboardPage() {
             {/* Listado de Mesas con Acciones Rápidas */}
             {(() => {
               const knownTableLabels = new Set<string>();
-              tableConsumptions.forEach((tc) => knownTableLabels.add(tc.tableLabel));
-              globalTableVotes?.byTable?.forEach((tb) => knownTableLabels.add(tb.tableLabel));
+              tableConsumptions.forEach((tc) => {
+                if (tc.tableLabel) knownTableLabels.add(tc.tableLabel.trim());
+              });
+              globalTableVotes?.byTable?.forEach((tb) => {
+                if (tb.tableLabel) knownTableLabels.add(tb.tableLabel.trim());
+              });
               contest?.participants?.forEach((p) => {
-                if (p.tableLabel) knownTableLabels.add(p.tableLabel);
+                if (p.tableLabel) knownTableLabels.add(p.tableLabel.trim());
               });
 
               const tablesList = Array.from(knownTableLabels).map((label) => {
@@ -2404,7 +2473,7 @@ export default function ContestDashboardPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     {/* Filtros */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <button
                         type="button"
                         onClick={() => setTableStatusFilter("ALL")}
@@ -2466,99 +2535,105 @@ export default function ContestDashboardPage() {
 
                   {filteredTables.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {filteredTables.map((tbl) => (
-                        <div
-                          key={tbl.tableLabel}
-                          className={`p-3.5 rounded-2xl border transition-all space-y-3 ${
-                            tbl.status === "SUPER_VOTE"
-                              ? "bg-gradient-to-br from-amber-950/50 via-zinc-900 to-zinc-950 border-amber-500/60 shadow-lg shadow-amber-950/30"
-                              : tbl.status === "VERIFIED"
-                              ? "bg-zinc-950/90 border-emerald-500/40"
-                              : "bg-zinc-950/60 border-zinc-800"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <span className="text-sm font-black text-white block">
-                                {tbl.tableLabel}
-                              </span>
-                              {tbl.notes && (
-                                <span className="text-[10px] text-zinc-400 italic block">
-                                  {tbl.notes}
+                      {filteredTables.map((tbl) => {
+                        const isBusy = processingTableLabel === tbl.tableLabel;
+                        return (
+                          <div
+                            key={tbl.tableLabel}
+                            className={`p-3.5 rounded-2xl border transition-all space-y-3 ${
+                              tbl.status === "SUPER_VOTE"
+                                ? "bg-gradient-to-br from-amber-950/50 via-zinc-900 to-zinc-950 border-amber-500/60 shadow-lg shadow-amber-950/30 ring-1 ring-amber-500/30"
+                                : tbl.status === "VERIFIED"
+                                ? "bg-zinc-950/90 border-emerald-500/40 ring-1 ring-emerald-500/20"
+                                : "bg-zinc-950/60 border-zinc-800"
+                            } ${isBusy ? "opacity-75" : ""}`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-sm font-black text-white block">
+                                  {tbl.tableLabel}
                                 </span>
-                              )}
+                                {tbl.notes && (
+                                  <span className="text-[10px] text-zinc-400 italic block">
+                                    {tbl.notes}
+                                  </span>
+                                )}
+                              </div>
+                              <div>
+                                {tbl.status === "SUPER_VOTE" ? (
+                                  <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-[10px] font-black uppercase flex items-center gap-1 shadow-md">
+                                    <Sparkles className="w-3 h-3" />
+                                    <span>Súper Voto x2</span>
+                                  </span>
+                                ) : tbl.status === "VERIFIED" ? (
+                                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold uppercase flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    <span>Validado (1.0x)</span>
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold uppercase flex items-center gap-1">
+                                    <Lock className="w-3 h-3" />
+                                    <span>Pendiente</span>
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              {tbl.status === "SUPER_VOTE" ? (
-                                <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-[10px] font-black uppercase flex items-center gap-1 shadow-md">
-                                  <Sparkles className="w-3 h-3" />
-                                  <span>Súper Voto x2</span>
-                                </span>
-                              ) : tbl.status === "VERIFIED" ? (
-                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold uppercase flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  <span>Validado (1.0x)</span>
-                                </span>
-                              ) : (
-                                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold uppercase flex items-center gap-1">
-                                  <Lock className="w-3 h-3" />
-                                  <span>Pendiente</span>
-                                </span>
-                              )}
+
+                            <div className="flex items-center justify-between text-[11px] text-zinc-400 border-t border-zinc-900 pt-2 font-mono">
+                              <span>Votos emitidos: {tbl.totalVotes}</span>
+                              <span>Promedio: ⭐ {tbl.avgStars}</span>
+                            </div>
+
+                            {/* Acciones de 1 toque */}
+                            <div className="grid grid-cols-3 gap-1.5 pt-1">
+                              <button
+                                type="button"
+                                disabled={isBusy}
+                                onClick={() => handleSetTableStatus(tbl.tableLabel, "VERIFIED")}
+                                className={`py-1.5 px-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                                  tbl.status === "VERIFIED"
+                                    ? "bg-emerald-600 text-white font-black shadow-md shadow-emerald-900/40 ring-1 ring-emerald-400"
+                                    : "bg-zinc-900 hover:bg-emerald-950/60 text-emerald-400 border border-zinc-800 hover:border-emerald-500/40"
+                                }`}
+                                title="Validar consumo normal (1.0x - Habilita votos)"
+                              >
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>Validar</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                disabled={isBusy}
+                                onClick={() => handleSetTableStatus(tbl.tableLabel, "SUPER_VOTE")}
+                                className={`py-1.5 px-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                                  tbl.status === "SUPER_VOTE"
+                                    ? "bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-black shadow-md shadow-amber-500/40 ring-1 ring-amber-300"
+                                    : "bg-zinc-900 hover:bg-amber-950/60 text-amber-400 border border-zinc-800 hover:border-amber-500/40"
+                                }`}
+                                title="Asignar beneficio de Súper Voto doble (2.0x)"
+                              >
+                                <Sparkles className="w-3 h-3" />
+                                <span>Súper x2</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                disabled={isBusy}
+                                onClick={() => handleSetTableStatus(tbl.tableLabel, "PENDING")}
+                                className={`py-1.5 px-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                                  tbl.status === "PENDING"
+                                    ? "bg-zinc-800 text-amber-400 font-bold border border-amber-500/40"
+                                    : "bg-zinc-900 hover:bg-red-950/40 text-zinc-400 hover:text-red-400 border border-zinc-800"
+                                }`}
+                                title="Restablecer o bloquear hasta nuevo consumo"
+                              >
+                                <Lock className="w-3 h-3" />
+                                <span>Bloquear</span>
+                              </button>
                             </div>
                           </div>
-
-                          <div className="flex items-center justify-between text-[11px] text-zinc-400 border-t border-zinc-900 pt-2 font-mono">
-                            <span>Votos emitidos: {tbl.totalVotes}</span>
-                            <span>Promedio: ⭐ {tbl.avgStars}</span>
-                          </div>
-
-                          {/* Acciones de 1 toque */}
-                          <div className="grid grid-cols-3 gap-1.5 pt-1">
-                            <button
-                              type="button"
-                              onClick={() => handleSetTableStatus(tbl.tableLabel, "VERIFIED")}
-                              className={`py-1.5 px-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                                tbl.status === "VERIFIED"
-                                  ? "bg-emerald-600 text-white font-black"
-                                  : "bg-zinc-900 hover:bg-emerald-950/60 text-emerald-400 border border-zinc-800 hover:border-emerald-500/40"
-                              }`}
-                              title="Validar consumo normal (1.0x)"
-                            >
-                              <CheckCircle2 className="w-3 h-3" />
-                              <span>Validar</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleSetTableStatus(tbl.tableLabel, "SUPER_VOTE")}
-                              className={`py-1.5 px-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                                tbl.status === "SUPER_VOTE"
-                                  ? "bg-amber-400 text-black font-black"
-                                  : "bg-zinc-900 hover:bg-amber-950/60 text-amber-400 border border-zinc-800 hover:border-amber-500/40"
-                              }`}
-                              title="Asignar beneficio de Súper Voto doble (2.0x)"
-                            >
-                              <Sparkles className="w-3 h-3" />
-                              <span>Súper x2</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleSetTableStatus(tbl.tableLabel, "PENDING")}
-                              className={`py-1.5 px-2 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                                tbl.status === "PENDING"
-                                  ? "bg-zinc-800 text-zinc-400 font-bold"
-                                  : "bg-zinc-900 hover:bg-red-950/40 text-zinc-400 hover:text-red-400 border border-zinc-800"
-                              }`}
-                              title="Restablecer o bloquear hasta nuevo consumo"
-                            >
-                              <Lock className="w-3 h-3" />
-                              <span>Bloquear</span>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="p-6 text-center text-xs text-zinc-500 bg-zinc-950/40 rounded-2xl border border-zinc-800/60">
