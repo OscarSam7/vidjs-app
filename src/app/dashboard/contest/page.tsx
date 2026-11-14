@@ -235,6 +235,7 @@ export default function ContestDashboardPage() {
     scoringMode: "AVERAGE",
     publicVoteWeight: 20,
     requireConsumption: true,
+    minConsumptionNotes: "",
     registrationFee: 0,
     paymentInstructions: "",
     allowRemoteRegistration: true,
@@ -273,6 +274,7 @@ export default function ContestDashboardPage() {
     publicVoteWeight: 20,
     judgesCount: 3,
     requireConsumption: true,
+    minConsumptionNotes: "$5.000 o 1 consumición por persona",
     registrationFee: 0,
     paymentInstructions: "Banco: Banco Estado\nCuenta Corriente: #12345678\nAlias/RUT: karaoke.vidjs / 12.345.678-9\nTitular: Vidjs Karaoke Bar\nWhatsApp de Comprobantes: +56 9 1234 5678",
     allowRemoteRegistration: true,
@@ -485,6 +487,36 @@ export default function ContestDashboardPage() {
       }
     } catch {
       showFeedback("error", "Error al actualizar política de consumo");
+    }
+  };
+
+  const [minConsumptionRuleText, setMinConsumptionRuleText] = useState("");
+  const [isEditingRule, setIsEditingRule] = useState(false);
+
+  useEffect(() => {
+    if (contest) {
+      setMinConsumptionRuleText(contest.minConsumptionNotes || "");
+    }
+  }, [contest?.minConsumptionNotes]);
+
+  const handleSaveMinConsumptionRule = async () => {
+    if (!contest) return;
+    try {
+      const res = await fetch(`/api/v1/contest/${contest.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ minConsumptionNotes: minConsumptionRuleText.trim() }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setContest((prev) => (prev ? { ...prev, minConsumptionNotes: minConsumptionRuleText.trim() } : prev));
+        showFeedback("success", "✅ Regla de consumo mínimo guardada con éxito");
+        setIsEditingRule(false);
+      } else {
+        showFeedback("error", json.error || "No se pudo actualizar la regla de consumo");
+      }
+    } catch {
+      showFeedback("error", "Error de red al actualizar la regla de consumo");
     }
   };
 
@@ -821,6 +853,7 @@ export default function ContestDashboardPage() {
       scoringMode: contest.scoringMode || "AVERAGE",
       publicVoteWeight: contest.publicVoteWeight ?? 20,
       requireConsumption: contest.requireConsumption ?? true,
+      minConsumptionNotes: contest.minConsumptionNotes || "",
       registrationFee: contest.registrationFee ?? 0,
       paymentInstructions: contest.paymentInstructions || "",
       allowRemoteRegistration: contest.allowRemoteRegistration ?? true,
@@ -2355,6 +2388,91 @@ export default function ContestDashboardPage() {
                 >
                   {contest?.requireConsumption !== false ? "Desactivar" : "Activar Exigencia"}
                 </button>
+              </div>
+            </div>
+
+            {/* Configuración de Monto Exigido y Súper Voto */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 rounded-2xl bg-zinc-950/70 border border-zinc-800/80">
+              {/* Columna 1: Monto Mínimo Exigido */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-black text-white uppercase tracking-wider">
+                      Monto / Condición Mínima Exigida
+                    </span>
+                  </div>
+                  {!isEditingRule && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingRule(true)}
+                      className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      <span>Modificar Regla</span>
+                    </button>
+                  )}
+                </div>
+
+                {isEditingRule ? (
+                  <div className="space-y-2 animate-in fade-in duration-150">
+                    <input
+                      type="text"
+                      placeholder="Ej: $5.000 por comensal o 1 consumición por persona"
+                      value={minConsumptionRuleText}
+                      onChange={(e) => setMinConsumptionRuleText(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-zinc-900 border border-amber-500/50 text-white text-xs font-bold outline-none focus:border-amber-400"
+                    />
+                    <div className="flex items-center gap-2 justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMinConsumptionRuleText(contest?.minConsumptionNotes || "");
+                          setIsEditingRule(false);
+                        }}
+                        className="px-3 py-1 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white text-xs font-bold cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveMinConsumptionRule}
+                        className="px-3.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-black cursor-pointer shadow-md"
+                      >
+                        Guardar Regla
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-amber-300 block">
+                        {contest?.minConsumptionNotes || "No especificado (Requerido por la casa)"}
+                      </span>
+                      <span className="text-[10px] text-zinc-400 block mt-0.5">
+                        Mensaje mostrado en /guest cuando los comensales intentan votar sin consumo verificado.
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Columna 2: Criterio Súper Voto x2 */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-yellow-400" />
+                  <span className="text-xs font-black text-white uppercase tracking-wider">
+                    Beneficio Súper Voto (x2)
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-gradient-to-r from-amber-950/30 to-yellow-950/20 border border-amber-500/30">
+                  <span className="text-xs font-bold text-amber-200 block">
+                    🌟 Ponderación Doble (2.0x) para mesas con consumo destacado
+                  </span>
+                  <span className="text-[10px] text-zinc-400 block mt-0.5 leading-relaxed">
+                    Premia a las mesas que pidan botellas, baldes o consumos premium. Activa el botón <strong>Súper x2</strong> en cualquier mesa para duplicar el impacto de sus votos.
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -4351,23 +4469,45 @@ export default function ContestDashboardPage() {
                 />
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-white block">
-                    Exigir Consumo Mínimo de Mesas
-                  </span>
-                  <span className="text-[10px] text-zinc-400 block">
-                    Solo los comensales de mesas validadas por mozo podrán votar
-                  </span>
+              <div className="space-y-2">
+                <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-white block">
+                      Exigir Consumo Mínimo de Mesas
+                    </span>
+                    <span className="text-[10px] text-zinc-400 block">
+                      Solo los comensales de mesas validadas por mozo podrán votar
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={newContestForm.requireConsumption}
+                    onChange={(e) =>
+                      setNewContestForm({ ...newContestForm, requireConsumption: e.target.checked })
+                    }
+                    className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
+                  />
                 </div>
-                <input
-                  type="checkbox"
-                  checked={newContestForm.requireConsumption}
-                  onChange={(e) =>
-                    setNewContestForm({ ...newContestForm, requireConsumption: e.target.checked })
-                  }
-                  className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
-                />
+
+                {newContestForm.requireConsumption && (
+                  <div className="p-3 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-1.5 animate-in fade-in duration-200">
+                    <label className="block text-[11px] font-bold text-amber-300">
+                      💰 Monto o Condición Mínima Exigida para Votar (Visible en /guest)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ej: $5.000 por persona, 1 trago por comensal, etc."
+                      value={newContestForm.minConsumptionNotes}
+                      onChange={(e) =>
+                        setNewContestForm({ ...newContestForm, minConsumptionNotes: e.target.value })
+                      }
+                      className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
+                    />
+                    <span className="text-[10px] text-zinc-400 block">
+                      Este aviso aparecerá en la pantalla de los comensales cuando su mesa esté pendiente de consumo.
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2">
@@ -5623,7 +5763,7 @@ export default function ContestDashboardPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 <div className="p-3 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between">
                   <div>
                     <span className="text-xs font-bold text-white block">🌐 Inscripción Remota / Previa</span>
@@ -5637,17 +5777,37 @@ export default function ContestDashboardPage() {
                   />
                 </div>
 
-                <div className="p-3 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-white block">Consumo Mínimo para Votar</span>
-                    <span className="text-[10px] text-zinc-400 block">Exigir validación por mozo</span>
+                <div className="space-y-2">
+                  <div className="p-3 rounded-2xl bg-zinc-950/80 border border-zinc-800 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-white block">Consumo Mínimo para Votar</span>
+                      <span className="text-[10px] text-zinc-400 block">Exigir validación por mozo / barra</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={editContestForm.requireConsumption}
+                      onChange={(e) => setEditContestForm({ ...editContestForm, requireConsumption: e.target.checked })}
+                      className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
+                    />
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={editContestForm.requireConsumption}
-                    onChange={(e) => setEditContestForm({ ...editContestForm, requireConsumption: e.target.checked })}
-                    className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
-                  />
+
+                  {editContestForm.requireConsumption && (
+                    <div className="p-3 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-1.5 animate-in fade-in duration-200">
+                      <label className="block text-[11px] font-bold text-amber-300">
+                        💰 Monto o Condición Mínima Exigida para Votar (Visible en /guest)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej: $5.000 por persona, 1 consumición obligatoria, etc."
+                        value={editContestForm.minConsumptionNotes}
+                        onChange={(e) => setEditContestForm({ ...editContestForm, minConsumptionNotes: e.target.value })}
+                        className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400"
+                      />
+                      <span className="text-[10px] text-zinc-400 block">
+                        Este aviso aparecerá en la pantalla de los comensales cuando su mesa esté pendiente de consumo.
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
