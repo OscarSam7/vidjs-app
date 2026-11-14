@@ -48,7 +48,11 @@ import {
   Users,
   ShieldCheck,
   CreditCard,
+  Calendar,
+  Upload,
+  FileCheck,
 } from "lucide-react";
+import { VipSelectModal, type VipSelectOption } from "@/components/ui/VipSelectModal";
 import { QsrModal } from "@/components/guest/QsrModal";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType, NextTurnCountdownPayload } from "@/lib/realtime/event-bus";
@@ -355,6 +359,7 @@ function GuestContent() {
     paymentProofUrl: "",
   });
   const [applicationSubmitting, setApplicationSubmitting] = useState(false);
+  const [compressingProof, setCompressingProof] = useState(false);
   const [applicationFeedback, setApplicationFeedback] = useState<{
     type: "success" | "error";
     text: string;
@@ -1126,6 +1131,33 @@ function GuestContent() {
       alert("Error de conexión al emitir voto");
     } finally {
       setContestVoteLoading(false);
+    }
+  };
+
+  // 📸 Subida y compresión rápida de comprobante de pago de inscripción
+  const handleProofUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCompressingProof(true);
+    try {
+      if (file.type.startsWith("image/")) {
+        const compressed = await compressImageFile(file, 1200, 1200, 0.82);
+        setApplicationForm((prev) => ({ ...prev, paymentProofUrl: compressed }));
+      } else {
+        const reader = new FileReader();
+        reader.onload = (readerEvent) => {
+          setApplicationForm((prev) => ({
+            ...prev,
+            paymentProofUrl: (readerEvent.target?.result as string) || "",
+          }));
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      console.error("Error al procesar comprobante de pago:", err);
+      alert("Error al cargar la imagen. Intenta con otra fotografía.");
+    } finally {
+      setCompressingProof(false);
     }
   };
 
@@ -3741,24 +3773,58 @@ function GuestContent() {
                     </div>
                   </div>
 
-                  {/* Selector de Gala / Fecha programada */}
+                  {/* Selector VIP Moderno de Gala / Fecha programada */}
                   {activeContestInfo.stages && activeContestInfo.stages.length > 0 && (
                     <div>
-                      <label className="text-[11px] font-bold text-zinc-300 block mb-1">
-                        Gala o Fecha a Participar:
+                      <label className="text-[11px] font-bold text-zinc-300 block mb-1.5 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Gala o Fecha a Participar:</span>
                       </label>
-                      <select
+                      <VipSelectModal
                         value={applicationForm.selectedStageId}
-                        onChange={(e) => setApplicationForm({ ...applicationForm, selectedStageId: e.target.value })}
-                        className="w-full px-3.5 py-2.5 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
-                      >
-                        <option value="">Gala Activa: {activeContestInfo.stageTitle}</option>
-                        {activeContestInfo.stages.map((st) => (
-                          <option key={st.id} value={st.id}>
-                            {st.title} ({new Date(st.date).toLocaleDateString()}) - {st.status === "LIVE" ? "EN VIVO" : "PROGRAMADA"}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(val) => setApplicationForm((prev) => ({ ...prev, selectedStageId: val }))}
+                        title="Elegir Gala o Fecha a Participar"
+                        subtitle="Selecciona la gala activa de hoy o una fecha programada del certamen"
+                        icon={Calendar}
+                        placeholder={activeContestInfo.stageTitle ? `Gala Actual: ${activeContestInfo.stageTitle}` : "Seleccionar Gala..."}
+                        buttonClassName="border-amber-500/40 hover:border-amber-400 bg-zinc-950/90 text-xs sm:text-sm py-2.5"
+                        options={[
+                          {
+                            value: "",
+                            label: activeContestInfo.stageTitle ? `Gala Activa: ${activeContestInfo.stageTitle}` : "Gala Activa de Hoy",
+                            subtitle: "Presentarte en la gala en vivo de esta noche",
+                            badge: "EN VIVO",
+                            badgeTone: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+                            icon: Trophy,
+                            iconTone: "text-amber-400 bg-amber-500/10 border-amber-500/30",
+                          },
+                          ...activeContestInfo.stages.map((st) => {
+                            const isLive = st.status === "LIVE";
+                            const dateFormatted = st.date
+                              ? new Date(st.date).toLocaleDateString(undefined, {
+                                  weekday: "short",
+                                  day: "numeric",
+                                  month: "short",
+                                })
+                              : "";
+                            return {
+                              value: st.id,
+                              label: st.title,
+                              subtitle: dateFormatted
+                                ? `Fecha: ${dateFormatted} • ${st.stageType || "Ronda"}`
+                                : (st.stageType || "Ronda"),
+                              badge: isLive ? "EN VIVO" : "PROGRAMADA",
+                              badgeTone: isLive
+                                ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                                : "bg-blue-500/20 text-blue-300 border-blue-500/40",
+                              icon: Calendar,
+                              iconTone: isLive
+                                ? "text-rose-400 bg-rose-500/10 border-rose-500/30"
+                                : "text-blue-400 bg-blue-500/10 border-blue-500/30",
+                            };
+                          }),
+                        ]}
+                      />
                     </div>
                   )}
 
@@ -3832,18 +3898,99 @@ function GuestContent() {
                       </div>
 
                       {applicationForm.paymentMethod === "TRANSFER" && (
-                        <div>
-                          <label className="text-[11px] font-bold text-zinc-300 block mb-1">
-                            Nro de Operación / Comprobante o Teléfono que Transfiere: *
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="Ej: Operación #987654 o RUT/Nombre del titular"
-                            value={applicationForm.paymentReference}
-                            onChange={(e) => setApplicationForm({ ...applicationForm, paymentReference: e.target.value })}
-                            className="w-full px-3.5 py-2.5 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
-                          />
+                        <div className="space-y-3 pt-1">
+                          <div>
+                            <label className="text-[11px] font-bold text-zinc-300 block mb-1">
+                              Nro de Operación / Comprobante o Teléfono que Transfiere:
+                            </label>
+                            <input
+                              type="text"
+                              required={!applicationForm.paymentProofUrl}
+                              placeholder="Ej: Operación #987654 o RUT/Nombre del titular"
+                              value={applicationForm.paymentReference}
+                              onChange={(e) => setApplicationForm({ ...applicationForm, paymentReference: e.target.value })}
+                              className="w-full px-3.5 py-2.5 bg-black/60 border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-400"
+                            />
+                          </div>
+
+                          {/* Subir Comprobante de Pago */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="text-[11px] font-bold text-zinc-300 flex items-center gap-1.5">
+                                <Upload className="w-3.5 h-3.5 text-amber-400" />
+                                <span>Comprobante de Pago (Voucher / Foto):</span>
+                              </label>
+                              {applicationForm.paymentProofUrl && (
+                                <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                                  <FileCheck className="w-3 h-3" /> Adjuntado
+                                </span>
+                              )}
+                            </div>
+
+                            {applicationForm.paymentProofUrl ? (
+                              <div className="p-3 rounded-xl bg-zinc-900/90 border border-emerald-500/40 flex items-center gap-3">
+                                <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-emerald-500/30 bg-black shrink-0 flex items-center justify-center">
+                                  {applicationForm.paymentProofUrl.startsWith("data:image/") || applicationForm.paymentProofUrl.startsWith("http") ? (
+                                    <img
+                                      src={applicationForm.paymentProofUrl}
+                                      alt="Comprobante"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <FileCheck className="w-7 h-7 text-emerald-400" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-bold text-emerald-300 truncate">Comprobante Listo</p>
+                                  <p className="text-[10px] text-zinc-400 truncate">Se adjuntará con tu postulación</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setApplicationForm((prev) => ({ ...prev, paymentProofUrl: "" }))}
+                                  className="px-2 py-1.5 rounded-lg bg-zinc-800 hover:bg-rose-950/80 text-zinc-400 hover:text-rose-300 border border-zinc-700 hover:border-rose-500/50 transition-colors cursor-pointer text-[11px] font-medium flex items-center gap-1"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span>Quitar</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <div>
+                                <label className={`w-full p-4 rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center gap-2 cursor-pointer ${
+                                  compressingProof
+                                    ? "bg-zinc-900/60 border-amber-500/50 opacity-70 pointer-events-none"
+                                    : "bg-black/50 hover:bg-zinc-900/80 border-zinc-800 hover:border-amber-400/80"
+                                }`}>
+                                  <input
+                                    type="file"
+                                    accept="image/*,application/pdf"
+                                    className="hidden"
+                                    disabled={compressingProof}
+                                    onChange={handleProofUpload}
+                                  />
+                                  {compressingProof ? (
+                                    <div className="flex items-center gap-2 text-xs text-amber-300 py-1">
+                                      <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+                                      <span>Optimizando comprobante...</span>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <div className="w-9 h-9 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                                        <Upload className="w-4 h-4" />
+                                      </div>
+                                      <div className="text-center">
+                                        <span className="text-xs font-bold text-zinc-200 block">
+                                          Toca aquí para subir foto o captura del comprobante
+                                        </span>
+                                        <span className="text-[10px] text-zinc-500 block">
+                                          JPG, PNG o PDF (se procesa y comprime al instante)
+                                        </span>
+                                      </div>
+                                    </>
+                                  )}
+                                </label>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>

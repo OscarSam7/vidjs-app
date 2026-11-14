@@ -45,6 +45,7 @@ import {
   UserMinus,
   Radio,
   CreditCard,
+  FileCheck,
 } from "lucide-react";
 import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { useRealtime } from "@/hooks/use-realtime";
@@ -5856,6 +5857,40 @@ export default function ContestDashboardPage() {
                     className="w-full p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs outline-none focus:border-amber-400 font-mono"
                   />
                 </div>
+
+                {/* Comprobante de Pago Adjuntado por el Cliente */}
+                {editingParticipant.paymentProofUrl && (
+                  <div className="p-3 rounded-2xl bg-zinc-950 border border-emerald-500/35 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                        <FileCheck className="w-4 h-4 text-emerald-400" />
+                        <span>Comprobante de Pago Adjunto</span>
+                      </span>
+                      <a
+                        href={editingParticipant.paymentProofUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-amber-400 hover:text-amber-300 underline font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        Ver imagen completa ↗
+                      </a>
+                    </div>
+                    {editingParticipant.paymentProofUrl.startsWith("data:image/") ||
+                    editingParticipant.paymentProofUrl.startsWith("http") ? (
+                      <div className="max-h-56 overflow-hidden rounded-xl border border-zinc-800 bg-black/80 flex items-center justify-center p-1">
+                        <img
+                          src={editingParticipant.paymentProofUrl}
+                          alt="Comprobante de pago"
+                          className="max-h-52 w-auto object-contain rounded-lg shadow-md"
+                        />
+                      </div>
+                    ) : (
+                      <div className="p-2.5 bg-black/60 rounded-xl border border-zinc-800 text-xs font-mono text-zinc-300 break-all">
+                        {editingParticipant.paymentProofUrl}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="pt-3 border-t border-zinc-800 flex items-center justify-end gap-2">
