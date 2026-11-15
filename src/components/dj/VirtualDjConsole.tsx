@@ -1050,9 +1050,13 @@ export default function VirtualDjConsole({
     };
   }, []);
 
+  // Duración real reportada por el reproductor multimedia (YouTube / Audio HTML5)
+  const [realDurationA, setRealDurationA] = useState<number>(0);
+  const [realDurationB, setRealDurationB] = useState<number>(0);
+
   // Determinar Track A (aislado por estado explícito)
   const trackA = isEjectedA ? null : (deckTrackA || manualTrackA || null);
-  const trackADuration = trackA?.song?.durationSeconds || 210;
+  const trackADuration = realDurationA || trackA?.song?.durationSeconds || 240;
   const baseBpmA = trackA?.song?.bpm || 124;
   const effectiveBpmA = Number((baseBpmA * (1 + pitchA / 100)).toFixed(1));
 
@@ -1064,17 +1068,19 @@ export default function VirtualDjConsole({
       ? queue.find((q) => q.id === selectedQueueIdB) || null
       : queue[0] || null;
   const trackB = isEjectedB ? null : (deckTrackB || manualTrackB || null);
-  const trackBDuration = trackB?.song?.durationSeconds || 210;
+  const trackBDuration = realDurationB || trackB?.song?.durationSeconds || 240;
   const baseBpmB = trackB?.song?.bpm || 126;
   const effectiveBpmB = Number((baseBpmB * (1 + pitchB / 100)).toFixed(1));
 
-  // Reiniciar estado de guardado cuando cambia la pista montada en Deck A o Deck B
+  // Reiniciar estado de guardado y duración real cuando cambia la pista montada en Deck A o Deck B
   useEffect(() => {
     setSavedDeckA(false);
+    setRealDurationA(0);
   }, [trackA?.id, trackA?.customTitle, videoIdA, localAudioNameA]);
 
   useEffect(() => {
     setSavedDeckB(false);
+    setRealDurationB(0);
   }, [trackB?.id, trackB?.customTitle, videoIdB, localAudioNameB]);
 
   // Rotación física continua del vinilo a ~33 1/3 RPM sincronizado con BPM y pitch
@@ -2137,16 +2143,22 @@ export default function VirtualDjConsole({
         if (activeLoopA !== null && next >= cuePointA + activeLoopA * 2) {
           return cuePointA;
         }
-        const effectiveDurationA = Math.max(30, trackADuration);
-        if (next >= effectiveDurationA) {
-          handleDeckAEndedRef.current?.();
-          return effectiveDurationA;
+
+        // Si hay reproductor de YouTube o Audio HTML5 activo, el audio corre en tiempo real
+        // y NO se corta por este timer artificial. Se permite que se ejecute TODA la canción completa.
+        const hasRealPlayerA = Boolean(videoIdA) || (deckModeA === "native" && Boolean(audioRefA.current?.src));
+        if (!hasRealPlayerA) {
+          const effectiveDurationA = Math.max(30, trackADuration);
+          if (next >= effectiveDurationA) {
+            handleDeckAEndedRef.current?.();
+            return effectiveDurationA;
+          }
         }
         return next;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [isPlayingA, trackADuration, activeLoopA, cuePointA]);
+  }, [isPlayingA, trackADuration, activeLoopA, cuePointA, videoIdA, deckModeA]);
 
   // Temporizador Deck B (Resistente a segundo plano mediante delta Date.now)
   const lastTickBRef = useRef(Date.now());
@@ -2163,16 +2175,22 @@ export default function VirtualDjConsole({
         if (activeLoopB !== null && next >= cuePointB + activeLoopB * 2) {
           return cuePointB;
         }
-        const effectiveDurationB = Math.max(30, trackBDuration);
-        if (next >= effectiveDurationB) {
-          handleDeckBEndedRef.current?.();
-          return effectiveDurationB;
+
+        // Si hay reproductor de YouTube o Audio HTML5 activo, el audio corre en tiempo real
+        // y NO se corta por este timer artificial. Se permite que se ejecute TODA la canción completa.
+        const hasRealPlayerB = Boolean(videoIdB) || (deckModeB === "native" && Boolean(audioRefB.current?.src));
+        if (!hasRealPlayerB) {
+          const effectiveDurationB = Math.max(30, trackBDuration);
+          if (next >= effectiveDurationB) {
+            handleDeckBEndedRef.current?.();
+            return effectiveDurationB;
+          }
         }
         return next;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [isPlayingB, trackBDuration, activeLoopB, cuePointB]);
+  }, [isPlayingB, trackBDuration, activeLoopB, cuePointB, videoIdB, deckModeB]);
 
   // Metrónomo visual de compás (Phase Beat 1-2-3-4)
   useEffect(() => {
@@ -2897,11 +2915,18 @@ export default function VirtualDjConsole({
     // Vaciar y limpiar siempre la bandeja Deck A al finalizar para que no quede estancada
     handleClearDeckA(true);
 
-    // En modo Auto-Play activado: dar paso automáticamente a la siguiente pista de la cola
+    // En modo Auto-Play activado: dar paso automáticamente a la siguiente pista enganchando siempre
     if (isAutoPlayMode) {
-      if (!isPlayingB && !isPlayingBRef.current) {
-        // Si hay una política de cuenta regresiva de 5 segundos activa, dejamos que FINISH_CURRENT gestione el turno de 5s.
-        // Solo llamamos onNextTrack de inmediato si no hay modo de turno de 5s configurado (DISABLED).
+      if (trackB || deckTrackB) {
+        // Enganche suave hacia Deck B
+        unlockAudioB();
+        setIsPlayingB(true);
+        isPlayingBRef.current = true;
+        animateCrossfaderTo(100, 1500);
+        setEngancheDirection("B_TO_A");
+        showFeedback("success", `🎧 Enganche automático ➔ Deck B: "${trackB?.song?.title || trackB?.customTitle || 'Siguiente Pista'}"`);
+      } else if (!isPlayingB && !isPlayingBRef.current) {
+        // Si no hay tema listo en la otra bandeja, cargar el siguiente de la cola
         if (!nextTurnMode || nextTurnMode === "DISABLED") {
           onNextTrackRef.current?.();
         }
@@ -2916,6 +2941,9 @@ export default function VirtualDjConsole({
     isAutoPlayMode,
     nextTurnMode,
     handleClearDeckA,
+    trackB,
+    deckTrackB,
+    animateCrossfaderTo,
   ]);
 
   // Manejador automático de fin de pista en DECK B
@@ -2949,11 +2977,18 @@ export default function VirtualDjConsole({
     // Vaciar y limpiar siempre la bandeja Deck B al finalizar para que no quede estancada
     handleClearDeckB(true);
 
-    // En modo Auto-Play activado: dar paso automáticamente a la siguiente pista de la cola
+    // En modo Auto-Play activado: dar paso automáticamente a la siguiente pista enganchando siempre
     if (isAutoPlayMode) {
-      if (!isPlayingA && !isPlayingARef.current) {
-        // Si hay una política de cuenta regresiva de 5 segundos activa, dejamos que FINISH_CURRENT gestione el turno de 5s.
-        // Solo llamamos onNextTrack de inmediato si no hay modo de turno de 5s configurado (DISABLED).
+      if (trackA || deckTrackA) {
+        // Enganche suave hacia Deck A
+        unlockAudioA();
+        setIsPlayingA(true);
+        isPlayingARef.current = true;
+        animateCrossfaderTo(-100, 1500);
+        setEngancheDirection("A_TO_B");
+        showFeedback("success", `🎧 Enganche automático ➔ Deck A: "${trackA?.song?.title || trackA?.customTitle || 'Siguiente Pista'}"`);
+      } else if (!isPlayingA && !isPlayingARef.current) {
+        // Si no hay tema listo en la otra bandeja, cargar el siguiente de la cola
         if (!nextTurnMode || nextTurnMode === "DISABLED") {
           onNextTrackRef.current?.();
         }
@@ -2968,6 +3003,9 @@ export default function VirtualDjConsole({
     isAutoPlayMode,
     nextTurnMode,
     handleClearDeckB,
+    trackA,
+    deckTrackA,
+    animateCrossfaderTo,
   ]);
 
   useEffect(() => {
@@ -3089,7 +3127,16 @@ export default function VirtualDjConsole({
         return;
       }
 
-      // 4. Sincronización continua de tiempo real si YouTube entrega segundos
+      // 4. Sincronización continua de tiempo real y duración si YouTube entrega datos
+      if (typeof data.info?.duration === "number" && data.info.duration > 0) {
+        const d = Math.floor(data.info.duration);
+        if (deck === "A") {
+          setRealDurationA(d);
+        } else {
+          setRealDurationB(d);
+        }
+      }
+
       if (typeof data.info?.currentTime === "number" && data.info.currentTime > 0) {
         if (deck === "A") {
           hasPlaybackStartedARef.current = true;

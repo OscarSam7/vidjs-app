@@ -136,11 +136,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Sanitizar textos de entrada del usuario
-    const sanitizedGuestName = data.guestName ? sanitizeText(data.guestName) : null;
-    const sanitizedCustomTitle = data.customTitle ? sanitizeText(data.customTitle) : null;
-    const sanitizedCustomArtist = data.customArtist ? sanitizeText(data.customArtist) : null;
-    const sanitizedNotes = data.notes ? sanitizeText(data.notes) : null;
+    // 4.1 Validación de duración máxima en modo Auto-Play (Máximo 10 minutos / 600 segundos)
+    if (isAutoPlay) {
+      if (data.songId) {
+        const targetSong = await prisma.song.findUnique({
+          where: { id: data.songId },
+          select: { durationSeconds: true, title: true },
+        });
+        if (targetSong?.durationSeconds && targetSong.durationSeconds > 600) {
+          throw new AppError(
+            `El tema o mix "${targetSong.title}" excede el límite permitido (${Math.round(targetSong.durationSeconds / 60)} min). En modo automático no se permiten pistas que duren más de 10 minutos para garantizar la rotación de la sala.`,
+            400,
+            "SONG_TOO_LONG"
+          );
+        }
+      }
+
+      // Si es solicitud personalizada o enlace directo, revisar si menciona mixes de larga duración
+      const textToCheck = `${data.customTitle || ""} ${data.customArtist || ""} ${data.notes || ""}`.toLowerCase();
+      const longMixKeywords = ["1 hour", "2 hour", "3 hour", "full set", "extended set", "dj set 30", "dj set 60", "mix 30", "mix 60"];
+      if (longMixKeywords.some((kw) => textToCheck.includes(kw))) {
+        throw new AppError(
+          "En modo automático no se permiten mixes o sets extensos de más de 10 minutos de duración.",
+          400,
+          "SONG_TOO_LONG"
+        );
+      }
+    }
 
     // Si se proporcionó un nombre de comensal, actualizar la sesión de forma limpia
     if (sanitizedGuestName && sanitizedGuestName !== guestSession.guestName) {
