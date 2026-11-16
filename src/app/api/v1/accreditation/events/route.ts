@@ -80,6 +80,8 @@ const createEventSchema = z.object({
       })
     )
     .optional(),
+  commissionPerTicket: z.number().optional(),
+  posList: z.array(z.any()).optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -185,7 +187,22 @@ export async function GET(req: NextRequest) {
       });
 
       if (!totalCapacity) totalCapacity = Math.max(totalParticipants, 400);
-      const commission = Math.round(calculatedGross * 0.02); // 2% comisión Redticket
+
+      let parsedSettings: any = {};
+      try {
+        if (event.settings) parsedSettings = JSON.parse(event.settings);
+      } catch {}
+
+      const commissionPerTicket =
+        parsedSettings.commissionPerTicket !== undefined
+          ? Number(parsedSettings.commissionPerTicket)
+          : 1200;
+
+      // Comisión Vidticket: calculada por boleta configurable o fallback 2% de gross
+      const commission =
+        parsedSettings.commissionPerTicket !== undefined
+          ? totalParticipants * commissionPerTicket
+          : Math.round(calculatedGross * 0.02);
 
       const { accreditations, ...rest } = event;
 
@@ -196,6 +213,8 @@ export async function GET(req: NextRequest) {
           totalCapacity,
           grossRevenue: calculatedGross,
           commission,
+          commissionPerTicket,
+          posList: parsedSettings.posList || [],
           currency: "Gs",
           tiers,
         },
@@ -259,6 +278,8 @@ export async function POST(req: NextRequest) {
       artists: parsed.artists || [],
       staff: parsed.staff || [],
       responsibleProducer: parsed.organizerName || "Rumba Stage",
+      commissionPerTicket: parsed.commissionPerTicket ?? 1200,
+      posList: parsed.posList || [],
     };
 
     const event = await prisma.event.create({

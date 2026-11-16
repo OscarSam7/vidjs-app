@@ -134,6 +134,14 @@ export default function TicketTemplatesPage() {
   const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TicketTemplate | null>(null);
   const [activeEditTab, setActiveEditTab] = useState<"design" | "elements" | "format" | "preview_data">("design");
+  const [savedToastMessage, setSavedToastMessage] = useState<string | null>(null);
+  const [isInsertOptionModalOpen, setIsInsertOptionModalOpen] = useState(false);
+  const [newOptionName, setNewOptionName] = useState("");
+  const [newOptionValue, setNewOptionValue] = useState("");
+  const [customFields, setCustomFields] = useState<Array<{ id: string; label: string; value: string }>>([
+    { id: "opt_sector", label: "Sector / Puerta", value: "VIP Deck - Puerta 1" },
+    { id: "opt_mesa", label: "Mesa / Camarota", value: "Mesa VIP #07" },
+  ]);
 
   // Sample data for real-time ticket preview
   const [sampleData, setSampleData] = useState({
@@ -171,6 +179,38 @@ export default function TicketTemplatesPage() {
   };
 
   const activeTemplate = templates.find((t) => t.id === activeTemplateId) || templates[0];
+
+  const handleUpdateActiveTemplate = (updates: Partial<TicketTemplate>) => {
+    const updated = templates.map((t) =>
+      t.id === activeTemplate.id ? { ...t, ...updates } : t
+    );
+    setTemplates(updated);
+  };
+
+  const handleSaveCurrentLiveTemplate = () => {
+    saveTemplatesToStorage(templates);
+    setSavedToastMessage(`¡Plantilla "${activeTemplate.name}" guardada y actualizada exitosamente!`);
+    setTimeout(() => setSavedToastMessage(null), 3500);
+  };
+
+  const handleInsertNewOption = () => {
+    if (!newOptionName.trim()) return;
+    const newField = {
+      id: `opt_${Date.now()}`,
+      label: newOptionName.trim(),
+      value: newOptionValue.trim() || "Configurado",
+    };
+    setCustomFields((prev) => [...prev, newField]);
+    setNewOptionName("");
+    setNewOptionValue("");
+    setIsInsertOptionModalOpen(false);
+    setSavedToastMessage(`¡Nueva opción "${newField.label}" agregada a la plantilla!`);
+    setTimeout(() => setSavedToastMessage(null), 3500);
+  };
+
+  const handleRemoveCustomField = (id: string) => {
+    setCustomFields((prev) => prev.filter((f) => f.id !== id));
+  };
 
   const handleOpenEdit = (template: TicketTemplate) => {
     setEditingTemplate({ ...template });
@@ -449,19 +489,29 @@ export default function TicketTemplatesPage() {
 
           {/* Quick Options Bar for Selected Template */}
           <div className="bg-[#0A1322] border border-[#263858] rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Sliders className="w-4 h-4 text-purple-400" />
                 <span>Opciones Rápidas: {activeTemplate.name}</span>
               </h3>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleOpenEdit(activeTemplate)}
-                className="border-[#263858] text-xs text-purple-300 hover:text-white"
-              >
-                Abrir Editor Completo
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => setIsInsertOptionModalOpen(true)}
+                  className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 hover:text-white border border-purple-500/40 text-xs gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Insertar Opción</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleOpenEdit(activeTemplate)}
+                  className="border-[#263858] text-xs text-slate-300 hover:text-white"
+                >
+                  Abrir Editor Completo
+                </Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -470,10 +520,7 @@ export default function TicketTemplatesPage() {
                   type="checkbox"
                   checked={activeTemplate.showFlyer}
                   onChange={(e) => {
-                    const updated = templates.map((t) =>
-                      t.id === activeTemplate.id ? { ...t, showFlyer: e.target.checked } : t
-                    );
-                    saveTemplatesToStorage(updated);
+                    handleUpdateActiveTemplate({ showFlyer: e.target.checked });
                   }}
                   className="rounded text-purple-600 focus:ring-purple-500"
                 />
@@ -485,10 +532,7 @@ export default function TicketTemplatesPage() {
                   type="checkbox"
                   checked={activeTemplate.showQr}
                   onChange={(e) => {
-                    const updated = templates.map((t) =>
-                      t.id === activeTemplate.id ? { ...t, showQr: e.target.checked } : t
-                    );
-                    saveTemplatesToStorage(updated);
+                    handleUpdateActiveTemplate({ showQr: e.target.checked });
                   }}
                   className="rounded text-purple-600 focus:ring-purple-500"
                 />
@@ -500,10 +544,7 @@ export default function TicketTemplatesPage() {
                   type="checkbox"
                   checked={activeTemplate.showPrice}
                   onChange={(e) => {
-                    const updated = templates.map((t) =>
-                      t.id === activeTemplate.id ? { ...t, showPrice: e.target.checked } : t
-                    );
-                    saveTemplatesToStorage(updated);
+                    handleUpdateActiveTemplate({ showPrice: e.target.checked });
                   }}
                   className="rounded text-purple-600 focus:ring-purple-500"
                 />
@@ -515,10 +556,7 @@ export default function TicketTemplatesPage() {
                   type="checkbox"
                   checked={activeTemplate.showDocument}
                   onChange={(e) => {
-                    const updated = templates.map((t) =>
-                      t.id === activeTemplate.id ? { ...t, showDocument: e.target.checked } : t
-                    );
-                    saveTemplatesToStorage(updated);
+                    handleUpdateActiveTemplate({ showDocument: e.target.checked });
                   }}
                   className="rounded text-purple-600 focus:ring-purple-500"
                 />
@@ -528,14 +566,137 @@ export default function TicketTemplatesPage() {
           </div>
         </div>
 
-        {/* Right column: High-fidelity Live Ticket Preview (WYSIWYG) */}
+        {/* Right column: High-fidelity Live Ticket Preview (WYSIWYG) & Real-time Editor */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Eye className="w-4 h-4 text-emerald-400" />
-              <span>Vista Previa en Vivo ({activeTemplate.widthMm}x{activeTemplate.heightMm}mm)</span>
-            </h3>
-            <span className="text-[11px] text-slate-400 font-mono">{activeTemplate.font}</span>
+          {/* Header de Vista Previa con Botón de Guardado Prominente */}
+          <div className="bg-[#0A1322] border border-[#263858] rounded-2xl p-4 shadow-xl space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm font-bold text-white">
+                  Vista Previa & Edición en Vivo
+                </h3>
+              </div>
+
+              <Button
+                size="sm"
+                onClick={handleSaveCurrentLiveTemplate}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold gap-1.5 shadow-lg shadow-emerald-950/40 cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Guardar Modificación</span>
+              </Button>
+            </div>
+
+            {/* Alerta de guardado exitoso */}
+            {savedToastMessage && (
+              <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-bold text-xs flex items-center gap-2 animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{savedToastMessage}</span>
+              </div>
+            )}
+
+            {/* Controles rápidos de edición en vivo */}
+            <div className="space-y-3 pt-2 border-t border-[#263858] text-xs">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1">Nombre Plantilla</label>
+                  <Input
+                    value={activeTemplate.name}
+                    onChange={(e) => handleUpdateActiveTemplate({ name: e.target.value })}
+                    className="bg-[#080F1F] border-[#263858] text-xs h-8 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1">Tipografía</label>
+                  <select
+                    value={activeTemplate.font}
+                    onChange={(e) => handleUpdateActiveTemplate({ font: e.target.value })}
+                    className="w-full bg-[#080F1F] border border-[#263858] rounded-xl px-2.5 py-1.5 text-white text-xs h-8"
+                  >
+                    <option value="Concierto Bold">Concierto Bold</option>
+                    <option value="Modern Sans">Modern Sans</option>
+                    <option value="Cyber Mono">Cyber Mono</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Colores en vivo */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1">Color de Acento</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={activeTemplate.accentColor}
+                      onChange={(e) => handleUpdateActiveTemplate({ accentColor: e.target.value })}
+                      className="w-8 h-8 rounded-lg bg-transparent border border-[#263858] cursor-pointer"
+                    />
+                    <Input
+                      value={activeTemplate.accentColor}
+                      onChange={(e) => handleUpdateActiveTemplate({ accentColor: e.target.value })}
+                      className="bg-[#080F1F] border-[#263858] text-white text-xs h-8 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1">Fondo del Boleto</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={activeTemplate.backgroundColor}
+                      onChange={(e) => handleUpdateActiveTemplate({ backgroundColor: e.target.value })}
+                      className="w-8 h-8 rounded-lg bg-transparent border border-[#263858] cursor-pointer"
+                    />
+                    <Input
+                      value={activeTemplate.backgroundColor}
+                      onChange={(e) => handleUpdateActiveTemplate({ backgroundColor: e.target.value })}
+                      className="bg-[#080F1F] border-[#263858] text-white text-xs h-8 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Flyer URL */}
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">URL Flyer Oficial</label>
+                <Input
+                  value={activeTemplate.flyerUrl}
+                  onChange={(e) => handleUpdateActiveTemplate({ flyerUrl: e.target.value })}
+                  placeholder="https://..."
+                  className="bg-[#080F1F] border-[#263858] text-xs h-8 text-white"
+                />
+              </div>
+
+              {/* Términos y Cláusulas */}
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Términos al Pie del Boleto</label>
+                <textarea
+                  rows={2}
+                  value={activeTemplate.termsText}
+                  onChange={(e) => handleUpdateActiveTemplate({ termsText: e.target.value })}
+                  placeholder="Válido para 1 solo ingreso..."
+                  className="w-full bg-[#080F1F] border border-[#263858] rounded-xl p-2 text-white text-[11px]"
+                />
+              </div>
+
+              {/* Botón Insertar Opción */}
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[11px] text-slate-400">
+                  {customFields.length} opciones / campos extras
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsInsertOptionModalOpen(true)}
+                  className="border-[#263858] text-purple-300 hover:text-white text-xs gap-1 h-7"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>+ Agregar Opción al Ticket</span>
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Ticket Canvas Container */}
@@ -602,6 +763,20 @@ export default function TicketTemplatesPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Campos Extras Insertados */}
+                {customFields.length > 0 && (
+                  <div className="space-y-1 py-1.5 border-y border-dashed border-gray-300/60">
+                    {customFields.map((field) => (
+                      <div key={field.id} className="flex items-center justify-between text-[10px]">
+                        <span className="text-gray-400 font-bold uppercase text-[8px]">{field.label}:</span>
+                        <span className="font-extrabold" style={{ color: activeTemplate.accentColor }}>
+                          {field.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Ticket code & Organizer */}
                 <div className="space-y-0.5">
@@ -713,6 +888,100 @@ export default function TicketTemplatesPage() {
           </div>
         </div>
       </div>
+
+      {/* MODAL EXTRA: INSERTAR NUEVA OPCIÓN / CAMPO AL TICKET */}
+      {isInsertOptionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#0A1322] border border-[#263858] rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#263858] pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Plus className="w-4 h-4 text-purple-400" />
+                <span>Insertar Opción en Plantilla</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsInsertOptionModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Agrega campos específicos al boleto como sector de acceso, número de mesa, promotor o patrocinador.
+            </p>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-slate-300 font-bold block mb-1">Nombre del Campo / Opción</label>
+                <Input
+                  value={newOptionName}
+                  onChange={(e) => setNewOptionName(e.target.value)}
+                  placeholder="Ej: Sector, Mesa, Sponsor Oficial, Puerta..."
+                  className="bg-[#080F1F] border-[#263858] text-white text-xs h-9"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-300 font-bold block mb-1">Valor por Defecto / Muestra</label>
+                <Input
+                  value={newOptionValue}
+                  onChange={(e) => setNewOptionValue(e.target.value)}
+                  placeholder="Ej: Camarotes VIP #12"
+                  className="bg-[#080F1F] border-[#263858] text-white text-xs h-9"
+                />
+              </div>
+
+              {customFields.length > 0 && (
+                <div className="pt-2">
+                  <span className="text-[11px] text-slate-400 block mb-1.5 font-bold">Opciones Actuales:</span>
+                  <div className="space-y-1.5">
+                    {customFields.map((f) => (
+                      <div
+                        key={f.id}
+                        className="flex items-center justify-between p-2 rounded-lg bg-[#080F1F] border border-[#263858]"
+                      >
+                        <div>
+                          <span className="font-bold text-white">{f.label}: </span>
+                          <span className="text-slate-400">{f.value}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCustomField(f.id)}
+                          className="text-red-400 hover:text-red-300 p-1 text-xs"
+                          title="Eliminar campo"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#263858]">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsInsertOptionModalOpen(false)}
+                className="text-slate-400 hover:text-white text-xs"
+              >
+                Cerrar
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleInsertNewOption}
+                disabled={!newOptionName.trim()}
+                className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold gap-1 shadow-md"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Agregar al Ticket</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL 1: EDITAR PLANTILLA COMPLETA */}
       {isEditingModalOpen && editingTemplate && (

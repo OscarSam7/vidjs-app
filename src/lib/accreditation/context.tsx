@@ -43,6 +43,14 @@ export interface AccreditationEventSummary {
     totalCapacity: number;
     grossRevenue: number;
     commission: number;
+    commissionPerTicket?: number;
+    posList?: Array<{
+      id: string;
+      name: string;
+      type: "BOLETERIA_FIJA" | "PROMOTOR_RRPP" | "CAJA_PUERTA" | "ONLINE";
+      operator: string;
+      pin?: string;
+    }>;
     currency: string;
     tiers: Array<{
       id: string;

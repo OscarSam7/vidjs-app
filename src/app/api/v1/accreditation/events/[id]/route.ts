@@ -22,6 +22,7 @@ const updateEventSchema = z.object({
   bannerUrl: z.string().optional().nullable(),
   logoUrl: z.string().optional().nullable(),
   isPublicRegistration: z.boolean().optional(),
+  settings: z.string().optional().nullable(),
 });
 
 export async function GET(

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Info,
   Image as ImageIcon,
@@ -21,18 +21,37 @@ import {
   MapPin,
   Building,
   Key,
+  Store,
+  Copy,
+  DollarSign,
+  Percent,
+  CheckCircle2,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { cn } from "@/lib/utils";
 
+export interface PuntoDeVenta {
+  id: string;
+  name: string;
+  type: "BOLETERIA_FIJA" | "PROMOTOR_RRPP" | "CAJA_PUERTA";
+  operatorName: string;
+  operatorPhone: string;
+  accessPin: string;
+  commissionPercent: number;
+}
+
 export interface EventWizardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreated: (event: any) => void;
+  onCreated?: (event: any) => void;
+  onUpdated?: (event: any) => void;
   activeVenueId?: string | null;
   activeVenueName?: string | null;
+  mode?: "create" | "edit";
+  initialEvent?: any;
 }
 
 type WizardTab = "general" | "multimedia" | "artists" | "dates" | "tickets" | "staff";
@@ -41,12 +60,19 @@ export function EventWizardModal({
   isOpen,
   onClose,
   onCreated,
+  onUpdated,
   activeVenueId,
   activeVenueName = "Sede Centro",
+  mode = "create",
+  initialEvent = null,
 }: EventWizardModalProps) {
+  const isEditMode = mode === "edit" && Boolean(initialEvent);
+
   const [activeTab, setActiveTab] = useState<WizardTab>("general");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copiedPosId, setCopiedPosId] = useState<string | null>(null);
+  const [staffSubTab, setStaffSubTab] = useState<"pos" | "gates">("pos");
 
   // Tab 1: Info General
   const [producer, setProducer] = useState("Rumba Stage");
@@ -80,22 +106,131 @@ export function EventWizardModal({
     { dayNumber: 2, name: "Día 2 - Gran Cierre", date: new Date(Date.now() + 86400000).toISOString().slice(0, 10) },
   ]);
 
-  // Tab 5: Entradas / Acreditaciones
+  // Tab 5: Entradas / Acreditaciones & Comisión Vidticket
+  const [commissionPerTicket, setCommissionPerTicket] = useState<number>(1200);
   const [categories, setCategories] = useState<
-    Array<{ name: string; code: string; colorHex: string; maxAvailable: number; allowReentry: boolean }>
+    Array<{ name: string; code: string; colorHex: string; price: number; maxAvailable: number; allowReentry: boolean }>
   >([
-    { name: "VIP All Access", code: "VIP", colorHex: "#8B5CF6", maxAvailable: 100, allowReentry: true },
-    { name: "General / Campo", code: "GEN", colorHex: "#3B82F6", maxAvailable: 350, allowReentry: true },
-    { name: "Staff & Operaciones", code: "STAFF", colorHex: "#10B981", maxAvailable: 30, allowReentry: true },
-    { name: "Prensa & Media", code: "PRENSA", colorHex: "#EC4899", maxAvailable: 20, allowReentry: true },
+    { name: "VIP All Access", code: "VIP", colorHex: "#8B5CF6", price: 120000, maxAvailable: 100, allowReentry: true },
+    { name: "General / Campo", code: "GEN", colorHex: "#3B82F6", price: 60000, maxAvailable: 350, allowReentry: true },
+    { name: "Staff & Operaciones", code: "STAFF", colorHex: "#10B981", price: 0, maxAvailable: 30, allowReentry: true },
+    { name: "Prensa & Media", code: "PRENSA", colorHex: "#EC4899", price: 0, maxAvailable: 20, allowReentry: true },
   ]);
 
-  // Tab 6: Staff & Puertas
+  // Tab 6: Staff & Puntos de Venta (POS)
   const [pin, setPin] = useState("1234");
   const [staffMembers, setStaffMembers] = useState<Array<{ name: string; role: string; phone: string }>>([
     { name: "Jefe de Puerta Principal", role: "Control de Acceso", phone: "+595 981 123456" },
     { name: "Operador Sector VIP", role: "Validador QR", phone: "+595 982 654321" },
   ]);
+
+  const [puntosDeVenta, setPuntosDeVenta] = useState<PuntoDeVenta[]>([
+    {
+      id: "pos_central",
+      name: "Boletería Central Rumba Stage",
+      type: "BOLETERIA_FIJA",
+      operatorName: "Cajero 1 - Boletería",
+      operatorPhone: "0981 123456",
+      accessPin: "1122",
+      commissionPercent: 0,
+    },
+    {
+      id: "pos_rrpp_1",
+      name: "RRPP Juan Pérez (Promotor)",
+      type: "PROMOTOR_RRPP",
+      operatorName: "Juan Pérez",
+      operatorPhone: "0982 987654",
+      accessPin: "3344",
+      commissionPercent: 10,
+    },
+    {
+      id: "pos_puerta_norte",
+      name: "Caja Taquilla Puerta Norte",
+      type: "CAJA_PUERTA",
+      operatorName: "Operador Puerta Norte",
+      operatorPhone: "0983 555666",
+      accessPin: "5566",
+      commissionPercent: 0,
+    },
+  ]);
+
+  // Carga de datos existentes si está en modo Edición
+  useEffect(() => {
+    if (!initialEvent) return;
+
+    if (initialEvent.name) setName(initialEvent.name);
+    if (initialEvent.description) setDescription(initialEvent.description);
+    if (initialEvent.eventType) setEventType(initialEvent.eventType);
+    if (initialEvent.organizerName) setProducer(initialEvent.organizerName);
+    if (initialEvent.locationName) setLocationName(initialEvent.locationName);
+    if (initialEvent.maxCapacity) setMaxCapacity(String(initialEvent.maxCapacity));
+    if (initialEvent.bannerUrl) setBannerUrl(initialEvent.bannerUrl);
+    if (initialEvent.logoUrl) setLogoUrl(initialEvent.logoUrl);
+
+    if (initialEvent.startsAt) {
+      setStartsAt(new Date(initialEvent.startsAt).toISOString().slice(0, 16));
+    }
+    if (initialEvent.endsAt) {
+      setEndsAt(new Date(initialEvent.endsAt).toISOString().slice(0, 16));
+    }
+
+    // Parsear Settings extendidos (comisión Vidticket, artistas, posList, etc.)
+    let parsedSettings: any = {};
+    try {
+      if (typeof initialEvent.settings === "string") {
+        parsedSettings = JSON.parse(initialEvent.settings);
+      } else if (initialEvent.settings) {
+        parsedSettings = initialEvent.settings;
+      }
+    } catch {}
+
+    if (parsedSettings.commissionPerTicket !== undefined) {
+      setCommissionPerTicket(Number(parsedSettings.commissionPerTicket));
+    } else if (initialEvent.financials?.commissionPerTicket !== undefined) {
+      setCommissionPerTicket(Number(initialEvent.financials.commissionPerTicket));
+    }
+
+    if (Array.isArray(parsedSettings.posList) && parsedSettings.posList.length > 0) {
+      setPuntosDeVenta(parsedSettings.posList);
+    } else if (Array.isArray(initialEvent.financials?.posList) && initialEvent.financials.posList.length > 0) {
+      setPuntosDeVenta(initialEvent.financials.posList);
+    }
+
+    if (Array.isArray(parsedSettings.artists) && parsedSettings.artists.length > 0) {
+      setArtists(parsedSettings.artists);
+    }
+
+    if (Array.isArray(parsedSettings.staff) && parsedSettings.staff.length > 0) {
+      setStaffMembers(parsedSettings.staff);
+    }
+
+    if (parsedSettings.pin) setPin(parsedSettings.pin);
+
+    // Si tiene categorías en financials o accreditationTypes
+    if (initialEvent.financials?.tiers && initialEvent.financials.tiers.length > 0) {
+      setCategories(
+        initialEvent.financials.tiers.map((t: any) => ({
+          name: t.name,
+          code: t.code || t.name.slice(0, 4).toUpperCase(),
+          colorHex: t.colorHex || "#8B5CF6",
+          price: t.price || 50000,
+          maxAvailable: t.max || 100,
+          allowReentry: true,
+        }))
+      );
+    } else if (initialEvent.accreditationTypes && initialEvent.accreditationTypes.length > 0) {
+      setCategories(
+        initialEvent.accreditationTypes.map((t: any) => ({
+          name: t.name,
+          code: t.code || t.name.slice(0, 4).toUpperCase(),
+          colorHex: t.colorHex || "#8B5CF6",
+          price: 50000,
+          maxAvailable: t.maxAvailable || 100,
+          allowReentry: t.allowReentry ?? true,
+        }))
+      );
+    }
+  }, [initialEvent]);
 
   if (!isOpen) return null;
 
@@ -105,7 +240,7 @@ export function EventWizardModal({
     { id: "artists", label: "Artistas", icon: Users },
     { id: "dates", label: "Fechas", icon: Calendar },
     { id: "tickets", label: "Entradas", icon: Ticket },
-    { id: "staff", label: "Staff", icon: ShieldCheck },
+    { id: "staff", label: "Staff & POS", icon: ShieldCheck },
   ];
 
   const handleNext = () => {
@@ -138,6 +273,7 @@ export function EventWizardModal({
         name: `Acceso Especial ${nextNum}`,
         code: `ACC-${nextNum}`,
         colorHex: "#F59E0B",
+        price: 50000,
         maxAvailable: 50,
         allowReentry: true,
       },
@@ -146,6 +282,35 @@ export function EventWizardModal({
 
   const handleRemoveCategory = (index: number) => {
     setCategories((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddPos = () => {
+    const id = `pos_${Date.now().toString().slice(-4)}`;
+    setPuntosDeVenta((prev) => [
+      ...prev,
+      {
+        id,
+        name: `Punto de Venta ${prev.length + 1}`,
+        type: "PROMOTOR_RRPP",
+        operatorName: "Promotor Asignado",
+        operatorPhone: "",
+        accessPin: String(Math.floor(1000 + Math.random() * 9000)),
+        commissionPercent: 10,
+      },
+    ]);
+  };
+
+  const handleRemovePos = (idx: number) => {
+    setPuntosDeVenta((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleCopyPosLink = (pos: PuntoDeVenta) => {
+    const eventCode = initialEvent?.code || "EVENTO";
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${origin}/eventos/${eventCode}?pos=${pos.id}`;
+    navigator.clipboard.writeText(url);
+    setCopiedPosId(pos.id);
+    setTimeout(() => setCopiedPosId(null), 2000);
   };
 
   const handleAddStaff = () => {
@@ -175,7 +340,16 @@ export function EventWizardModal({
 
       const effectiveProducer = producer === "OTHER" ? customProducer.trim() || "Productora Independiente" : producer;
 
-      const payload = {
+      const settingsObj = {
+        commissionPerTicket: Number(commissionPerTicket) || 1200,
+        posList: puntosDeVenta,
+        artists: artists.filter((a) => a.name.trim()),
+        staff: staffMembers.filter((s) => s.name.trim()),
+        pin: pin.trim() || undefined,
+        responsibleProducer: effectiveProducer,
+      };
+
+      const payload: any = {
         name: name.trim(),
         description: description.trim() || undefined,
         eventType,
@@ -190,11 +364,15 @@ export function EventWizardModal({
         bannerUrl: bannerUrl.trim() || undefined,
         logoUrl: logoUrl.trim() || undefined,
         pin: pin.trim() || undefined,
+        settings: JSON.stringify(settingsObj),
+        commissionPerTicket: Number(commissionPerTicket) || 1200,
+        posList: puntosDeVenta,
         createDefaultCategories: categories.length === 0,
         customCategories: categories.map((c) => ({
           name: c.name.trim(),
           code: c.code.trim().toUpperCase(),
           colorHex: c.colorHex,
+          price: c.price || 0,
           maxAvailable: c.maxAvailable,
           allowReentry: c.allowReentry,
         })),
@@ -203,13 +381,6 @@ export function EventWizardModal({
           role: a.role.trim(),
           time: a.time.trim(),
         })),
-        eventDaysList: isMultiDay
-          ? eventDays.map((d) => ({
-              dayNumber: d.dayNumber,
-              name: d.name,
-              date: d.date,
-            }))
-          : undefined,
         staff: staffMembers.filter((s) => s.name.trim()).map((s) => ({
           name: s.name.trim(),
           role: s.role.trim(),
@@ -217,18 +388,53 @@ export function EventWizardModal({
         })),
       };
 
-      const res = await fetch("/api/v1/accreditation/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      if (isEditMode) {
+        // ACTUALIZAR EVENTO EXISTENTE
+        const res = await fetch(`/api/v1/accreditation/events/${initialEvent.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: payload.name,
+            description: payload.description,
+            eventType: payload.eventType,
+            organizerName: payload.organizerName,
+            responsibleCompany: payload.responsibleCompany,
+            locationName: payload.locationName,
+            maxCapacity: payload.maxCapacity,
+            startsAt: payload.startsAt,
+            endsAt: payload.endsAt,
+            bannerUrl: payload.bannerUrl,
+            logoUrl: payload.logoUrl,
+            settings: payload.settings,
+          }),
+        });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Error al crear el evento");
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || "Error al actualizar el evento");
+        }
+
+        if (onUpdated) {
+          onUpdated(data.event || { ...initialEvent, ...payload, settings: payload.settings });
+        } else if (onCreated) {
+          onCreated(data.event);
+        }
+      } else {
+        // CREAR NUEVO EVENTO
+        const res = await fetch("/api/v1/accreditation/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || "Error al crear el evento");
+        }
+
+        if (onCreated) onCreated(data.event);
       }
 
-      onCreated(data.event);
       onClose();
     } catch (err: any) {
       setError(err.message || "Error inesperado al guardar el evento");
@@ -238,16 +444,19 @@ export function EventWizardModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
       <div className="relative w-full max-w-3xl max-h-[92vh] bg-[#0F1E36] border border-[#263858] rounded-3xl shadow-2xl flex flex-col text-[#F8FAFC] overflow-hidden">
         {/* Modal Top Bar */}
         <div className="p-5 sm:p-6 pb-3 border-b border-[#263858] flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-              Crear Nuevo Evento
+              <Sparkles className="w-5 h-5 text-purple-400" />
+              <span>{isEditMode ? `Editar Evento: ${name || initialEvent.name}` : "Crear Nuevo Evento"}</span>
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Configuración completa: producción, artistas, jornadas, entradas y accesos
+              {isEditMode
+                ? "Configuración completa: producción, artistas, jornadas, comisiones Vidticket y puntos de venta"
+                : "Configuración completa: producción, artistas, jornadas, entradas y accesos"}
             </p>
           </div>
           <button
@@ -259,8 +468,8 @@ export function EventWizardModal({
           </button>
         </div>
 
-        {/* Tab Navigation Strip (Exact to screenshot) */}
-        <div className="px-5 sm:px-6 border-b border-[#263858] bg-[#0A1322] flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
+        {/* Wizard Navigation Tabs */}
+        <div className="px-5 sm:px-6 pt-3 pb-2 border-b border-[#263858] bg-[#0A1322] flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -270,48 +479,45 @@ export function EventWizardModal({
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "py-3.5 px-3.5 text-xs font-bold transition-all flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer",
+                  "flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer",
                   isActive
-                    ? "border-purple-500 text-purple-400 font-extrabold"
-                    : "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                    ? "bg-purple-600 text-white shadow-md shadow-purple-950"
+                    : "text-slate-400 hover:text-white hover:bg-white/5"
                 )}
               >
-                <Icon className={cn("w-4 h-4", isActive ? "text-purple-400" : "text-slate-400")} />
+                <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Error message */}
+        {/* Error notification */}
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-red-950/80 border border-red-800 rounded-xl text-red-200 text-xs shrink-0 flex items-center gap-2">
+          <div className="m-5 mb-0 p-3 bg-red-950/70 border border-red-800 rounded-2xl text-red-200 text-xs flex items-center justify-between">
             <span>{error}</span>
+            <button type="button" onClick={() => setError(null)} className="text-red-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
-        {/* Form Body Scrollable */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+        {/* Wizard Step Body */}
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
           {/* TAB 1: INFO GENERAL */}
           {activeTab === "general" && (
             <div className="space-y-4 animate-fade-in">
               <div>
-                <h3 className="text-base font-bold text-white">Información General del Evento</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Los campos marcados con * son obligatorios</p>
-              </div>
-
-              <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  Seleccionar productora <span className="text-red-400">*</span>
+                  Seleccionar Productora / Organizador *
                 </label>
                 <Select
                   value={producer}
                   onChange={(e) => setProducer(e.target.value)}
                   options={[
-                    { value: "Rumba Stage", label: "Rumba Stage" },
-                    { value: "Vidjeis Producciones", label: "Vidjeis Producciones" },
-                    { value: "Stage Master Eventos", label: "Stage Master Eventos" },
-                    { value: "Electro Fest Paraguay", label: "Electro Fest Paraguay" },
+                    { value: "Rumba Stage", label: "Rumba Stage (Organizador Principal)" },
+                    { value: "Crocodilo Medicina", label: "Atlética Medicina Crocodilo" },
+                    { value: "Live Sessions PY", label: "Live Sessions PY" },
                     { value: "OTHER", label: "+ Otra productora..." },
                   ]}
                   className="bg-[#0A1322] border-[#263858] text-white"
@@ -321,14 +527,13 @@ export function EventWizardModal({
               {producer === "OTHER" && (
                 <div className="animate-fade-in">
                   <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Nombre de la Productora <span className="text-red-400">*</span>
+                    Nombre de la Productora Personalizada *
                   </label>
                   <Input
                     type="text"
                     placeholder="Ej: Velvet Entertainment"
                     value={customProducer}
                     onChange={(e) => setCustomProducer(e.target.value)}
-                    required
                     className="bg-[#0A1322] border-[#263858] text-white"
                   />
                 </div>
@@ -336,46 +541,45 @@ export function EventWizardModal({
 
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  Nombre del Evento <span className="text-red-400">*</span>
+                  Nombre del Evento *
                 </label>
                 <Input
                   type="text"
-                  placeholder="Nombre del Evento"
+                  placeholder="Ej: TARDEZINHA DA CROCCO o Sábado DJ Live Sessions"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  className="bg-[#0A1322] border-[#263858] text-white font-bold"
                   required
-                  className="bg-[#0A1322] border-[#263858] text-white text-sm"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  Describe tu evento... <span className="text-red-400">*</span>
+                  Describe tu Evento (Información pública y propuesta)
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Describe tu evento..."
+                  placeholder="Describe las atracciones, temática, barra libre, horarios y experiencia para los asistentes..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-[#0A1322] border border-[#263858] rounded-xl p-3 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#0A1322] border border-[#263858] text-white text-xs outline-none focus:border-purple-500 transition-colors"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Categoría de Evento
+                    Categoría / Tipo de Evento
                   </label>
                   <Select
                     value={eventType}
                     onChange={(e) => setEventType(e.target.value)}
                     options={[
                       { value: "FIESTA", label: "Fiesta / Boliche" },
-                      { value: "CONCIERTO", label: "Concierto en Vivo" },
-                      { value: "FESTIVAL", label: "Festival" },
-                      { value: "CONGRESO", label: "Congreso" },
-                      { value: "EMPRESARIAL", label: "Empresarial" },
-                      { value: "PRIVADO", label: "Evento Privado" },
+                      { value: "CONCIERTO", label: "Concierto / Festival" },
+                      { value: "GASTRONOMIA", label: "Gastronomía & Show" },
+                      { value: "CONGRESO", label: "Congreso / Simposio" },
+                      { value: "EMPRESARIAL", label: "Empresarial & Networking" },
                       { value: "GENERAL", label: "General" },
                     ]}
                     className="bg-[#0A1322] border-[#263858] text-white"
@@ -384,25 +588,11 @@ export function EventWizardModal({
 
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Lugar / Sede
-                  </label>
-                  <Input
-                    type="text"
-                    placeholder="Ej: Sede Centro"
-                    value={locationName}
-                    onChange={(e) => setLocationName(e.target.value)}
-                    className="bg-[#0A1322] border-[#263858] text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Aforo Máximo
+                    Aforo / Capacidad Máxima (Personas)
                   </label>
                   <Input
                     type="number"
-                    min="1"
-                    placeholder="Ej: 500"
+                    placeholder="500"
                     value={maxCapacity}
                     onChange={(e) => setMaxCapacity(e.target.value)}
                     className="bg-[#0A1322] border-[#263858] text-white font-mono"
@@ -416,46 +606,41 @@ export function EventWizardModal({
           {activeTab === "multimedia" && (
             <div className="space-y-4 animate-fade-in">
               <div>
-                <h3 className="text-base font-bold text-white">Material Visual & Multimedia</h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Afiches, banners y logotipos que se proyectarán en pantallas y credenciales
-                </p>
-              </div>
-
-              <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  URL del Banner Horizontal (16:9)
+                  URL del Flyer / Banner Principal (Portada)
                 </label>
                 <Input
                   type="url"
-                  placeholder="https://ejemplo.com/banner-evento.jpg"
+                  placeholder="https://images.unsplash.com/... o enlace de tu imagen"
                   value={bannerUrl}
                   onChange={(e) => setBannerUrl(e.target.value)}
-                  className="bg-[#0A1322] border-[#263858] text-white text-xs"
+                  className="bg-[#0A1322] border-[#263858] text-white text-xs font-mono"
                 />
-                {bannerUrl && (
-                  <div className="mt-2 h-32 rounded-xl overflow-hidden border border-[#263858] relative">
-                    <img src={bannerUrl} alt="Banner Preview" className="w-full h-full object-cover" />
-                  </div>
-                )}
+                <span className="text-[11px] text-slate-400 mt-1 block">
+                  Recomendado: 1200x600px en formato JPG, PNG o WEBP.
+                </span>
               </div>
+
+              {bannerUrl && (
+                <div className="p-3 bg-[#0A1322] border border-[#263858] rounded-2xl space-y-2">
+                  <span className="text-[11px] font-bold text-purple-300 block">Vista Previa de Flyer:</span>
+                  <div className="h-40 w-full rounded-xl overflow-hidden bg-black/60 border border-slate-700">
+                    <img src={bannerUrl} alt="Flyer" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  URL del Logotipo / Isotipo Oficial
+                  URL del Logo o Insignia del Evento / Productora (Opcional)
                 </label>
                 <Input
                   type="url"
-                  placeholder="https://ejemplo.com/logo-evento.png"
+                  placeholder="https://ejemplo.com/logo.png"
                   value={logoUrl}
                   onChange={(e) => setLogoUrl(e.target.value)}
-                  className="bg-[#0A1322] border-[#263858] text-white text-xs"
+                  className="bg-[#0A1322] border-[#263858] text-white text-xs font-mono"
                 />
-                {logoUrl && (
-                  <div className="mt-2 w-20 h-20 rounded-xl overflow-hidden border border-[#263858] p-2 bg-[#0A1322] flex items-center justify-center">
-                    <img src={logoUrl} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -465,9 +650,9 @@ export function EventWizardModal({
             <div className="space-y-4 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-bold text-white">Line-up, DJs y Artistas Invitados</h3>
+                  <h3 className="text-base font-bold text-white">Line-up de Artistas & DJs</h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Cronograma de shows y presentaciones durante la noche
+                    Define la grilla de shows, horarios y roles musicales del evento
                   </p>
                 </div>
                 <Button
@@ -482,31 +667,30 @@ export function EventWizardModal({
                 </Button>
               </div>
 
-              <div className="space-y-2.5">
-                {artists.map((artist, idx) => (
+              <div className="space-y-3">
+                {artists.map((art, idx) => (
                   <div
                     key={idx}
-                    className="p-3 bg-[#0A1322] border border-[#263858] rounded-xl flex items-center gap-3"
+                    className="p-3.5 bg-[#0A1322] border border-[#263858] rounded-2xl flex flex-col sm:flex-row items-center gap-2.5"
                   >
-                    <div className="flex-1">
+                    <div className="flex-1 w-full sm:w-auto">
                       <Input
                         type="text"
                         placeholder="Nombre del Artista / DJ"
-                        value={artist.name}
+                        value={art.name}
                         onChange={(e) => {
                           const updated = [...artists];
                           updated[idx].name = e.target.value;
                           setArtists(updated);
                         }}
-                        className="bg-[#0F1E36] border-[#263858] text-white text-xs"
+                        className="bg-[#0F1E36] border-[#263858] text-white text-xs font-bold"
                       />
                     </div>
-
-                    <div className="w-40">
+                    <div className="w-full sm:w-44">
                       <Input
                         type="text"
-                        placeholder="Rol (ej: DJ Principal)"
-                        value={artist.role}
+                        placeholder="Rol (ej: Set Estelar)"
+                        value={art.role}
                         onChange={(e) => {
                           const updated = [...artists];
                           updated[idx].role = e.target.value;
@@ -515,25 +699,23 @@ export function EventWizardModal({
                         className="bg-[#0F1E36] border-[#263858] text-white text-xs"
                       />
                     </div>
-
-                    <div className="w-36">
+                    <div className="w-full sm:w-36">
                       <Input
                         type="text"
-                        placeholder="Horario (23:00 - 02:00)"
-                        value={artist.time}
+                        placeholder="Horario (02:00 hs)"
+                        value={art.time}
                         onChange={(e) => {
                           const updated = [...artists];
                           updated[idx].time = e.target.value;
                           setArtists(updated);
                         }}
-                        className="bg-[#0F1E36] border-[#263858] text-white text-xs"
+                        className="bg-[#0F1E36] border-[#263858] text-white text-xs font-mono"
                       />
                     </div>
-
                     <button
                       type="button"
                       onClick={() => handleRemoveArtist(idx)}
-                      className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+                      className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-950/30 rounded-xl transition-colors"
                       title="Quitar artista"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -547,95 +729,83 @@ export function EventWizardModal({
           {/* TAB 4: FECHAS */}
           {activeTab === "dates" && (
             <div className="space-y-4 animate-fade-in">
-              <div>
-                <h3 className="text-base font-bold text-white">Fechas & Programación del Evento</h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Establece la fecha de inicio, duración y modalidad de jornadas
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Fecha & Hora de Inicio <span className="text-red-400">*</span>
+                    Fecha y Hora de Inicio *
                   </label>
                   <Input
                     type="datetime-local"
                     value={startsAt}
                     onChange={(e) => setStartsAt(e.target.value)}
                     required
-                    className="bg-[#0A1322] border-[#263858] text-white text-xs"
+                    className="bg-[#0A1322] border-[#263858] text-white text-xs font-mono"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Fecha & Hora de Finalización
+                    Fecha y Hora de Finalización
                   </label>
                   <Input
                     type="datetime-local"
                     value={endsAt}
                     onChange={(e) => setEndsAt(e.target.value)}
-                    className="bg-[#0A1322] border-[#263858] text-white text-xs"
+                    className="bg-[#0A1322] border-[#263858] text-white text-xs font-mono"
                   />
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-[#263858]">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isMultiDay}
-                    onChange={(e) => setIsMultiDay(e.target.checked)}
-                    className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
-                  />
-                  <span className="text-xs font-bold text-white">Evento Multidía (Varias Jornadas)</span>
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  Ubicación / Lugar Físico
                 </label>
+                <Input
+                  type="text"
+                  placeholder="Ej: Rumba Stage — Mcal. Estigarribia 1001"
+                  value={locationName}
+                  onChange={(e) => setLocationName(e.target.value)}
+                  className="bg-[#0A1322] border-[#263858] text-white"
+                />
               </div>
-
-              {isMultiDay && (
-                <div className="space-y-2.5 pt-1">
-                  <span className="text-xs font-bold text-slate-300 block">Jornadas del Evento:</span>
-                  {eventDays.map((day, idx) => (
-                    <div key={idx} className="p-3 bg-[#0A1322] border border-[#263858] rounded-xl flex items-center gap-3 text-xs">
-                      <span className="w-7 h-7 rounded-lg bg-purple-950 text-purple-300 border border-purple-800 flex items-center justify-center font-bold">
-                        {day.dayNumber}
-                      </span>
-                      <Input
-                        type="text"
-                        value={day.name}
-                        onChange={(e) => {
-                          const updated = [...eventDays];
-                          updated[idx].name = e.target.value;
-                          setEventDays(updated);
-                        }}
-                        className="bg-[#0F1E36] border-[#263858] text-white text-xs flex-1"
-                      />
-                      <Input
-                        type="date"
-                        value={day.date}
-                        onChange={(e) => {
-                          const updated = [...eventDays];
-                          updated[idx].date = e.target.value;
-                          setEventDays(updated);
-                        }}
-                        className="bg-[#0F1E36] border-[#263858] text-white text-xs w-40"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
 
-          {/* TAB 5: ENTRADAS */}
+          {/* TAB 5: ENTRADAS & COMISIÓN VIDTICKET */}
           {activeTab === "tickets" && (
             <div className="space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between">
+              {/* Sección Comisión Vidticket Editable */}
+              <div className="p-4 rounded-2xl bg-[#0A1322] border border-purple-500/40 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-purple-400" />
+                    <div>
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                        Comisión Vidticket por Boleta
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        Monto unitario en Guaraníes retenido automáticamente por la plataforma
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-purple-300">Gs.</span>
+                    <Input
+                      type="number"
+                      value={commissionPerTicket}
+                      onChange={(e) => setCommissionPerTicket(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                      className="w-28 bg-[#0F1E36] border-purple-500/50 text-white font-mono font-bold text-xs"
+                      placeholder="1200"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
                 <div>
-                  <h3 className="text-base font-bold text-white">Entradas & Tipos de Acreditación</h3>
+                  <h3 className="text-base font-bold text-white">Lotes & Categorías de Entrada</h3>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Niveles de acceso con cupos y credenciales QR independientes
+                    Precios, aforo por lote y margen neto para la productora
                   </p>
                 </div>
                 <Button
@@ -646,163 +816,324 @@ export function EventWizardModal({
                   className="border-purple-600/40 text-purple-300 hover:text-white hover:bg-purple-950/60 text-xs"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" />
-                  <span>Agregar Tipo de Entrada</span>
+                  <span>Agregar Lote</span>
                 </Button>
               </div>
 
-              <div className="space-y-2.5">
-                {categories.map((cat, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 bg-[#0A1322] border border-[#263858] rounded-xl flex items-center gap-3"
-                  >
-                    <input
-                      type="color"
-                      value={cat.colorHex}
-                      onChange={(e) => {
-                        const updated = [...categories];
-                        updated[idx].colorHex = e.target.value;
-                        setCategories(updated);
-                      }}
-                      className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
-                      title="Color de credencial"
-                    />
-
-                    <div className="flex-1">
-                      <Input
-                        type="text"
-                        placeholder="Nombre de Entrada"
-                        value={cat.name}
-                        onChange={(e) => {
-                          const updated = [...categories];
-                          updated[idx].name = e.target.value;
-                          setCategories(updated);
-                        }}
-                        className="bg-[#0F1E36] border-[#263858] text-white text-xs font-bold"
-                      />
-                    </div>
-
-                    <div className="w-28">
-                      <Input
-                        type="text"
-                        placeholder="Código (VIP)"
-                        value={cat.code}
-                        onChange={(e) => {
-                          const updated = [...categories];
-                          updated[idx].code = e.target.value.toUpperCase();
-                          setCategories(updated);
-                        }}
-                        className="bg-[#0F1E36] border-[#263858] text-white text-xs font-mono uppercase"
-                      />
-                    </div>
-
-                    <div className="w-28">
-                      <Input
-                        type="number"
-                        placeholder="Cupo (100)"
-                        value={cat.maxAvailable || ""}
-                        onChange={(e) => {
-                          const updated = [...categories];
-                          updated[idx].maxAvailable = parseInt(e.target.value, 10) || 0;
-                          setCategories(updated);
-                        }}
-                        className="bg-[#0F1E36] border-[#263858] text-white text-xs font-mono"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveCategory(idx)}
-                      className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
-                      title="Quitar categoría"
+              <div className="space-y-3">
+                {categories.map((cat, idx) => {
+                  const netRevenue = Math.max(0, (cat.price || 0) - commissionPerTicket);
+                  return (
+                    <div
+                      key={idx}
+                      className="p-3.5 bg-[#0A1322] border border-[#263858] rounded-2xl space-y-2.5"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex flex-col sm:flex-row items-center gap-2.5">
+                        <div className="flex-1 w-full sm:w-auto">
+                          <label className="text-[10px] text-slate-400 block mb-1">Nombre Lote / Nivel</label>
+                          <Input
+                            type="text"
+                            placeholder="Nombre del Lote (VIP, General, etc.)"
+                            value={cat.name}
+                            onChange={(e) => {
+                              const updated = [...categories];
+                              updated[idx].name = e.target.value;
+                              setCategories(updated);
+                            }}
+                            className="bg-[#0F1E36] border-[#263858] text-white text-xs font-bold"
+                          />
+                        </div>
+
+                        <div className="w-full sm:w-36">
+                          <label className="text-[10px] text-slate-400 block mb-1">Precio Venta (Gs)</label>
+                          <Input
+                            type="number"
+                            placeholder="60000"
+                            value={cat.price || ""}
+                            onChange={(e) => {
+                              const updated = [...categories];
+                              updated[idx].price = parseInt(e.target.value, 10) || 0;
+                              setCategories(updated);
+                            }}
+                            className="bg-[#0F1E36] border-[#263858] text-white text-xs font-mono font-bold"
+                          />
+                        </div>
+
+                        <div className="w-full sm:w-28">
+                          <label className="text-[10px] text-slate-400 block mb-1">Cupo Máx</label>
+                          <Input
+                            type="number"
+                            placeholder="100"
+                            value={cat.maxAvailable || ""}
+                            onChange={(e) => {
+                              const updated = [...categories];
+                              updated[idx].maxAvailable = parseInt(e.target.value, 10) || 0;
+                              setCategories(updated);
+                            }}
+                            className="bg-[#0F1E36] border-[#263858] text-white text-xs font-mono"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCategory(idx)}
+                          className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-950/30 rounded-xl transition-colors sm:self-end"
+                          title="Quitar categoría"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-[#1D2B44]">
+                        <span>
+                          Comisión Vidticket: <strong className="font-mono text-purple-300">Gs. {commissionPerTicket.toLocaleString("es-PY")}</strong>
+                        </span>
+                        <span>
+                          Neto Productora: <strong className="font-mono text-emerald-400 font-bold">Gs. {netRevenue.toLocaleString("es-PY")}</strong>
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* TAB 6: STAFF */}
+          {/* TAB 6: STAFF & PUNTOS DE VENTA (POS) */}
           {activeTab === "staff" && (
             <div className="space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-bold text-white">Staff & Control de Acceso</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Personal de escaneo en puertas y PIN de seguridad para operarios
-                  </p>
-                </div>
-                <Button
+              {/* Sub-selector de Puntos de Venta vs Escaneo en Puertas */}
+              <div className="flex items-center gap-2 p-1 bg-[#0A1322] border border-[#263858] rounded-xl text-xs">
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddStaff}
-                  className="border-purple-600/40 text-purple-300 hover:text-white hover:bg-purple-950/60 text-xs"
+                  onClick={() => setStaffSubTab("pos")}
+                  className={cn(
+                    "flex-1 py-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer",
+                    staffSubTab === "pos"
+                      ? "bg-purple-600 text-white shadow-md shadow-purple-950"
+                      : "text-slate-400 hover:text-white"
+                  )}
                 >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  <span>Agregar Staff</span>
-                </Button>
+                  <Store className="w-4 h-4" />
+                  <span>Puntos de Venta Separados ({puntosDeVenta.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStaffSubTab("gates")}
+                  className={cn(
+                    "flex-1 py-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer",
+                    staffSubTab === "gates"
+                      ? "bg-purple-600 text-white shadow-md shadow-purple-950"
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Control de Puertas & Escáner</span>
+                </button>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  PIN de Acceso Rápido para Escáner Móvil en Puerta
-                </label>
-                <div className="flex items-center gap-2 max-w-xs">
-                  <Key className="w-4 h-4 text-purple-400" />
-                  <Input
-                    type="text"
-                    maxLength={6}
-                    placeholder="1234"
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value)}
-                    className="bg-[#0A1322] border-[#263858] text-white font-mono tracking-widest text-center text-sm font-bold"
-                  />
-                </div>
-                <span className="text-[11px] text-slate-400 mt-1 block">
-                  Permite a los guardias acceder a la cámara escáner desde sus teléfonos sin usuario ni contraseña.
-                </span>
-              </div>
-
-              <div className="space-y-2.5 pt-2">
-                <span className="text-xs font-bold text-slate-300 block">Personal Operativo Asignado:</span>
-                {staffMembers.map((st, idx) => (
-                  <div key={idx} className="p-3 bg-[#0A1322] border border-[#263858] rounded-xl flex items-center gap-3">
-                    <Input
-                      type="text"
-                      placeholder="Nombre del Operador"
-                      value={st.name}
-                      onChange={(e) => {
-                        const updated = [...staffMembers];
-                        updated[idx].name = e.target.value;
-                        setStaffMembers(updated);
-                      }}
-                      className="bg-[#0F1E36] border-[#263858] text-white text-xs flex-1"
-                    />
-                    <Input
-                      type="text"
-                      placeholder="Rol (ej: Portero)"
-                      value={st.role}
-                      onChange={(e) => {
-                        const updated = [...staffMembers];
-                        updated[idx].role = e.target.value;
-                        setStaffMembers(updated);
-                      }}
-                      className="bg-[#0F1E36] border-[#263858] text-white text-xs w-44"
-                    />
-                    <button
+              {/* VISTA 1: PUNTOS DE VENTA SEPARADOS */}
+              {staffSubTab === "pos" && (
+                <div className="space-y-3 animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-bold text-white">Puntos de Venta, Promotores & RRPP</h4>
+                      <p className="text-[11px] text-slate-400">
+                        Cada punto de venta tiene accesos, PIN y reportes individualizados
+                      </p>
+                    </div>
+                    <Button
                       type="button"
-                      onClick={() => handleRemoveStaff(idx)}
-                      className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
-                      title="Quitar operador"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddPos}
+                      className="border-purple-600/40 text-purple-300 hover:text-white hover:bg-purple-950/60 text-xs"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      <span>Agregar Punto de Venta</span>
+                    </Button>
                   </div>
-                ))}
-              </div>
+
+                  <div className="space-y-3">
+                    {puntosDeVenta.map((pos, idx) => (
+                      <div
+                        key={pos.id || idx}
+                        className="p-3.5 bg-[#0A1322] border border-[#263858] rounded-2xl space-y-3"
+                      >
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-1">Nombre Punto de Venta</label>
+                            <Input
+                              type="text"
+                              value={pos.name}
+                              onChange={(e) => {
+                                const updated = [...puntosDeVenta];
+                                updated[idx].name = e.target.value;
+                                setPuntosDeVenta(updated);
+                              }}
+                              placeholder="Ej: Boletería Central"
+                              className="bg-[#0F1E36] border-[#263858] text-white text-xs font-bold"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-1">Tipo de Canal</label>
+                            <Select
+                              value={pos.type}
+                              onChange={(e) => {
+                                const updated = [...puntosDeVenta];
+                                updated[idx].type = e.target.value as any;
+                                setPuntosDeVenta(updated);
+                              }}
+                              options={[
+                                { value: "BOLETERIA_FIJA", label: "Boletería Fija / Taquilla" },
+                                { value: "PROMOTOR_RRPP", label: "Promotor / RRPP Móvil" },
+                                { value: "CAJA_PUERTA", label: "Caja en Puerta" },
+                              ]}
+                              className="bg-[#0F1E36] border-[#263858] text-white text-xs"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-1">Responsable / Operador</label>
+                            <Input
+                              type="text"
+                              value={pos.operatorName}
+                              onChange={(e) => {
+                                const updated = [...puntosDeVenta];
+                                updated[idx].operatorName = e.target.value;
+                                setPuntosDeVenta(updated);
+                              }}
+                              placeholder="Ej: Juan Pérez"
+                              className="bg-[#0F1E36] border-[#263858] text-white text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#1D2B44] text-xs">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5">
+                              <Key className="w-3.5 h-3.5 text-purple-400" />
+                              <span className="text-[11px] text-slate-400">PIN:</span>
+                              <input
+                                type="text"
+                                maxLength={6}
+                                value={pos.accessPin}
+                                onChange={(e) => {
+                                  const updated = [...puntosDeVenta];
+                                  updated[idx].accessPin = e.target.value;
+                                  setPuntosDeVenta(updated);
+                                }}
+                                className="w-16 px-1.5 py-0.5 rounded bg-black/60 border border-slate-700 text-white font-mono text-center text-xs"
+                              />
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleCopyPosLink(pos)}
+                              className="px-2.5 py-1 rounded-lg bg-purple-950/60 hover:bg-purple-900 border border-purple-500/40 text-purple-300 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                            >
+                              {copiedPosId === pos.id ? (
+                                <>
+                                  <Check className="w-3 h-3 text-emerald-400" />
+                                  <span>¡Enlace Copiado!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3 h-3" />
+                                  <span>Copiar Enlace POS</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePos(idx)}
+                            className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+                            title="Eliminar punto de venta"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* VISTA 2: CONTROL DE PUERTAS & ESCÁNER */}
+              {staffSubTab === "gates" && (
+                <div className="space-y-3 animate-fade-in">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      PIN de Acceso Rápido para Escáner en Puertas
+                    </label>
+                    <div className="flex items-center gap-2 max-w-xs">
+                      <Key className="w-4 h-4 text-purple-400" />
+                      <Input
+                        type="text"
+                        maxLength={6}
+                        placeholder="1234"
+                        value={pin}
+                        onChange={(e) => setPin(e.target.value)}
+                        className="bg-[#0A1322] border-[#263858] text-white font-mono tracking-widest text-center text-sm font-bold"
+                      />
+                    </div>
+                    <span className="text-[11px] text-slate-400 mt-1 block">
+                      Permite a los guardias en puerta acceder a la cámara lectora sin contraseñas.
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5 pt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-300">Guardias & Operadores Asignados:</span>
+                      <button
+                        type="button"
+                        onClick={handleAddStaff}
+                        className="text-xs text-purple-400 hover:text-purple-300 font-bold"
+                      >
+                        + Agregar Guardia
+                      </button>
+                    </div>
+                    {staffMembers.map((st, idx) => (
+                      <div key={idx} className="p-3 bg-[#0A1322] border border-[#263858] rounded-xl flex items-center gap-3">
+                        <Input
+                          type="text"
+                          placeholder="Nombre del Guardia / Operador"
+                          value={st.name}
+                          onChange={(e) => {
+                            const updated = [...staffMembers];
+                            updated[idx].name = e.target.value;
+                            setStaffMembers(updated);
+                          }}
+                          className="bg-[#0F1E36] border-[#263858] text-white text-xs flex-1"
+                        />
+                        <Input
+                          type="text"
+                          placeholder="Punto (ej: Puerta Principal)"
+                          value={st.role}
+                          onChange={(e) => {
+                            const updated = [...staffMembers];
+                            updated[idx].role = e.target.value;
+                            setStaffMembers(updated);
+                          }}
+                          className="bg-[#0F1E36] border-[#263858] text-white text-xs w-44"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStaff(idx)}
+                          className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+                          title="Quitar operador"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </form>
@@ -868,7 +1199,7 @@ export function EventWizardModal({
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    <span>Crear Evento Oficial</span>
+                    <span>{isEditMode ? "Guardar Cambios del Evento" : "Crear Evento Oficial"}</span>
                   </>
                 )}
               </Button>
