@@ -36,8 +36,50 @@ const createEventSchema = z.object({
   venueId: z.string().optional(),
   bannerUrl: z.string().optional().nullable(),
   logoUrl: z.string().optional().nullable(),
+  pin: z.string().optional().nullable(),
   isPublicRegistration: z.boolean().default(false),
   createDefaultCategories: z.boolean().default(true),
+  artists: z
+    .array(
+      z.object({
+        name: z.string(),
+        role: z.string(),
+        time: z.string().optional(),
+      })
+    )
+    .optional(),
+  customCategories: z
+    .array(
+      z.object({
+        name: z.string(),
+        code: z.string(),
+        colorHex: z.string().default("#8B5CF6"),
+        maxAvailable: z.number().optional().nullable(),
+        allowReentry: z.boolean().default(true),
+        description: z.string().optional(),
+      })
+    )
+    .optional(),
+  eventDaysList: z
+    .array(
+      z.object({
+        dayNumber: z.number().default(1),
+        name: z.string(),
+        date: z.string(),
+        startTime: z.string().optional(),
+        endTime: z.string().optional(),
+      })
+    )
+    .optional(),
+  staff: z
+    .array(
+      z.object({
+        name: z.string(),
+        role: z.string(),
+        phone: z.string().optional(),
+      })
+    )
+    .optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -157,6 +199,12 @@ export async function POST(req: NextRequest) {
       code = `${code}-${Math.floor(10 + Math.random() * 90)}`;
     }
 
+    const settingsObj = {
+      artists: parsed.artists || [],
+      staff: parsed.staff || [],
+      responsibleProducer: parsed.organizerName || "Rumba Stage",
+    };
+
     const event = await prisma.event.create({
       data: {
         tenantId,
@@ -177,60 +225,92 @@ export async function POST(req: NextRequest) {
         daysCount: parsed.daysCount,
         bannerUrl: parsed.bannerUrl,
         logoUrl: parsed.logoUrl,
+        pin: parsed.pin,
+        settings: JSON.stringify(settingsObj),
         isPublicRegistration: parsed.isPublicRegistration,
         status: "ACTIVE",
       },
     });
 
-    // Create default categories if requested
-    if (parsed.createDefaultCategories) {
-      const defaultCategories = [
-        { name: "VIP", code: "VIP", colorHex: "#8B5CF6", description: "Acceso total a todas las áreas", orderIndex: 0 },
-        { name: "General / Participante", code: "GEN", colorHex: "#3B82F6", description: "Acceso a salas generales", orderIndex: 1 },
-        { name: "Prensa & Medios", code: "PRENSA", colorHex: "#EC4899", description: "Acceso a sala de prensa y sesiones", orderIndex: 2 },
-        { name: "Staff & Organización", code: "STAFF", colorHex: "#10B981", description: "Personal técnico y operativo", orderIndex: 3 },
-        { name: "Disertante / Expositores", code: "EXPO", colorHex: "#F59E0B", description: "Conferencistas y expositores", orderIndex: 4 },
-      ];
-
-      for (const cat of defaultCategories) {
-        await prisma.accreditationType.create({
+    // 1. Create Event Days if provided
+    if (parsed.eventDaysList && parsed.eventDaysList.length > 0) {
+      for (const day of parsed.eventDaysList) {
+        await prisma.eventDay.create({
           data: {
-            tenantId,
             eventId: event.id,
-            name: cat.name,
-            code: cat.code,
-            colorHex: cat.colorHex,
-            description: cat.description,
-            orderIndex: cat.orderIndex,
+            dayNumber: day.dayNumber,
+            name: day.name,
+            date: new Date(day.date),
+            startTime: day.startTime || null,
+            endTime: day.endTime || null,
+            active: true,
           },
-        });
+        }).catch(() => null);
       }
+    }
 
-      // Create default Access Point
-      const mainGate = await prisma.accessPoint.create({
+    // 2. Create Categories: custom or default
+    const categoriesToCreate =
+      parsed.customCategories && parsed.customCategories.length > 0
+        ? parsed.customCategories.map((c, idx) => ({
+            name: c.name,
+            code: c.code,
+            colorHex: c.colorHex || "#8B5CF6",
+            description: c.description || "",
+            maxAvailable: c.maxAvailable || null,
+            allowReentry: c.allowReentry ?? true,
+            orderIndex: idx,
+          }))
+        : parsed.createDefaultCategories
+        ? [
+            { name: "VIP", code: "VIP", colorHex: "#8B5CF6", description: "Acceso total a todas las áreas", orderIndex: 0, allowReentry: true },
+            { name: "General / Participante", code: "GEN", colorHex: "#3B82F6", description: "Acceso a salas generales", orderIndex: 1, allowReentry: true },
+            { name: "Prensa & Medios", code: "PRENSA", colorHex: "#EC4899", description: "Acceso a sala de prensa y sesiones", orderIndex: 2, allowReentry: true },
+            { name: "Staff & Organización", code: "STAFF", colorHex: "#10B981", description: "Personal técnico y operativo", orderIndex: 3, allowReentry: true },
+            { name: "Disertante / Expositores", code: "EXPO", colorHex: "#F59E0B", description: "Conferencistas y expositores", orderIndex: 4, allowReentry: true },
+          ]
+        : [];
+
+    for (const cat of categoriesToCreate) {
+      await prisma.accreditationType.create({
         data: {
           tenantId,
           eventId: event.id,
-          name: "Entrada Principal",
-          code: "GATE_MAIN",
-          locationDetails: "Acceso peatonal principal",
-          sectorType: "MAIN",
+          name: cat.name,
+          code: cat.code,
+          colorHex: cat.colorHex,
+          description: cat.description,
+          maxAvailable: (cat as any).maxAvailable || null,
+          allowReentry: (cat as any).allowReentry ?? true,
+          orderIndex: cat.orderIndex,
         },
       });
+    }
 
-      // Link categories to main gate
-      const allTypes = await prisma.accreditationType.findMany({
-        where: { eventId: event.id },
-      });
-      for (const cat of allTypes) {
-        await prisma.accessPointRule.create({
-          data: {
-            accessPointId: mainGate.id,
-            accreditationTypeId: cat.id,
-            isAllowed: true,
-          },
-        });
-      }
+    // 3. Create Default Access Point
+    const mainGate = await prisma.accessPoint.create({
+      data: {
+        tenantId,
+        eventId: event.id,
+        name: "Entrada Principal",
+        code: "GATE_MAIN",
+        locationDetails: "Acceso peatonal principal",
+        sectorType: "MAIN",
+      },
+    });
+
+    // Link all categories to main gate
+    const allTypes = await prisma.accreditationType.findMany({
+      where: { eventId: event.id },
+    });
+    for (const cat of allTypes) {
+      await prisma.accessPointRule.create({
+        data: {
+          accessPointId: mainGate.id,
+          accreditationTypeId: cat.id,
+          isAllowed: true,
+        },
+      }).catch(() => null);
     }
 
     return NextResponse.json({ success: true, event }, { status: 201 });

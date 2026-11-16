@@ -36,224 +36,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { cn } from "@/lib/utils";
-
-function QuickCreateEventModal({
-  isOpen,
-  onClose,
-  onCreated,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onCreated: (event: any) => void;
-}) {
-  const { activeVenueId } = useAccreditation();
-  const [name, setName] = useState("");
-  const [eventType, setEventType] = useState("CONGRESO");
-  const [startsAt, setStartsAt] = useState(
-    new Date(Date.now() + 86400000).toISOString().slice(0, 16)
-  );
-  const [locationName, setLocationName] = useState("");
-  const [maxCapacity, setMaxCapacity] = useState("");
-  const [organizerName, setOrganizerName] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) {
-      setError("El nombre del evento es obligatorio");
-      return;
-    }
-    try {
-      setIsSubmitting(true);
-      setError(null);
-      const res = await fetch("/api/v1/accreditation/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          eventType,
-          startsAt: new Date(startsAt).toISOString(),
-          locationName: locationName.trim() || undefined,
-          organizerName: organizerName.trim() || undefined,
-          maxCapacity: maxCapacity ? parseInt(maxCapacity, 10) : undefined,
-          venueId: activeVenueId || undefined,
-          createDefaultCategories: true,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Error al crear el evento");
-      }
-
-      onCreated(data.event);
-      onClose();
-    } catch (err: any) {
-      setError(err.message || "Error inesperado al crear evento");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-lg bg-[#0F1E36] border border-[#263858] rounded-2xl p-6 shadow-2xl text-[#F8FAFC]">
-        <div className="flex items-center justify-between pb-4 border-b border-[#263858]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-purple-950/80 border border-purple-600/50 flex items-center justify-center text-purple-300">
-              <Sparkles className="w-5 h-5 text-purple-400" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-white">Nuevo Evento</h3>
-              <p className="text-xs text-slate-400">
-                Configuración rápida con categorías estándar y puerta principal
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {error && (
-          <div className="mt-4 p-3 bg-red-950/60 border border-red-800/80 rounded-xl text-red-200 text-xs">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Nombre del Evento *
-            </label>
-            <Input
-              type="text"
-              placeholder="Ej: Congreso Internacional de Tecnología 2026"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="bg-[#0A1322] border-[#263858] text-white"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Tipo de Evento
-              </label>
-              <Select
-                value={eventType}
-                onChange={(e) => setEventType(e.target.value)}
-                options={[
-                  { value: "CONGRESO", label: "Congreso" },
-                  { value: "CONFERENCIA", label: "Conferencia" },
-                  { value: "SEMINARIO", label: "Seminario" },
-                  { value: "FERIA", label: "Feria / Expo" },
-                  { value: "FESTIVAL", label: "Festival" },
-                  { value: "CONCIERTO", label: "Concierto" },
-                  { value: "EMPRESARIAL", label: "Empresarial" },
-                  { value: "PRIVADO", label: "Evento Privado" },
-                  { value: "DEPORTIVO", label: "Deportivo" },
-                  { value: "FIESTA", label: "Fiesta / Discoteca" },
-                  { value: "GENERAL", label: "General" },
-                ]}
-                className="bg-[#0A1322] border-[#263858] text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Fecha & Hora de Inicio *
-              </label>
-              <Input
-                type="datetime-local"
-                value={startsAt}
-                onChange={(e) => setStartsAt(e.target.value)}
-                required
-                className="bg-[#0A1322] border-[#263858] text-white"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Lugar / Sede
-              </label>
-              <Input
-                type="text"
-                placeholder="Ej: Centro de Convenciones"
-                value={locationName}
-                onChange={(e) => setLocationName(e.target.value)}
-                className="bg-[#0A1322] border-[#263858] text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Aforo Máximo
-              </label>
-              <Input
-                type="number"
-                placeholder="Ej: 500"
-                min="1"
-                value={maxCapacity}
-                onChange={(e) => setMaxCapacity(e.target.value)}
-                className="bg-[#0A1322] border-[#263858] text-white"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Organizador / Empresa Responsable
-            </label>
-            <Input
-              type="text"
-              placeholder="Ej: Vidjeis Producciones S.A."
-              value={organizerName}
-              onChange={(e) => setOrganizerName(e.target.value)}
-              className="bg-[#0A1322] border-[#263858] text-white"
-            />
-          </div>
-
-          <div className="pt-2 flex items-center justify-end gap-2.5">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="border-[#263858] text-slate-300"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isSubmitting}
-              className="bg-purple-600 hover:bg-purple-500 text-white font-semibold"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creando...
-                </>
-              ) : (
-                "Crear Evento"
-              )}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+import { EventWizardModal } from "@/components/accreditation/EventWizardModal";
 
 function AccreditationHeader() {
   const pathname = usePathname();
@@ -263,6 +46,7 @@ function AccreditationHeader() {
     activeEvent,
     activeEventId,
     setActiveEventId,
+    activeVenueId,
     isLoading,
     isOnline,
     refreshEvents,
@@ -438,9 +222,10 @@ function AccreditationHeader() {
         </div>
       </div>
 
-      <QuickCreateEventModal
+      <EventWizardModal
         isOpen={createEventModalOpen}
         onClose={() => setCreateEventModalOpen(false)}
+        activeVenueId={activeVenueId}
         onCreated={async (newEvt) => {
           await refreshEvents();
           setActiveEventId(newEvt.id);
