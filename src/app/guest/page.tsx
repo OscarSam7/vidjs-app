@@ -54,6 +54,8 @@ import {
   ListMusic,
   Ticket,
   ChevronRight,
+  ChevronLeft,
+  Pause,
   Wallet,
 } from "lucide-react";
 import { VipSelectModal, type VipSelectOption } from "@/components/ui/VipSelectModal";
@@ -631,6 +633,192 @@ function GuestContent() {
       sectorColor: string;
     }>
   >([]);
+
+  // 🎠 Carrusel Híbrido: Inicio, Catálogo, Pedidos, Cola, Playlist, Eventos (+ Concurso si activo)
+  // Auto-desplazamiento continuo suave + pausa al tocar/hover + soporte de deslizamiento manual (swipe) + flechas laterales ‹ ›
+  const CAROUSEL_TABS: Array<{
+    id: "hub" | "catalog" | "my-requests" | "queue" | "playlist" | "events" | "contest";
+    label: string;
+    shortLabel: string;
+    icon: any;
+    badge?: number | string;
+    badgeTone?: string;
+  }> = [
+    { id: "hub", label: "Inicio", shortLabel: "Inicio", icon: Sparkles },
+    { id: "catalog", label: "Catálogo", shortLabel: "Catálogo", icon: Music },
+    {
+      id: "my-requests",
+      label: "Mis Pedidos",
+      shortLabel: "Pedidos",
+      icon: Clock,
+      badge: myRequests.length > 0 ? myRequests.length : undefined,
+      badgeTone: "bg-purple-600 text-white",
+    },
+    {
+      id: "queue",
+      label: "Cola en Vivo",
+      shortLabel: "Cola",
+      icon: ListMusic,
+      badge: liveQueue.length > 0 ? liveQueue.length : undefined,
+      badgeTone: "bg-emerald-600 text-white",
+    },
+    {
+      id: "playlist",
+      label: "Mi Playlist",
+      shortLabel: "Playlist",
+      icon: Heart,
+      badge: guestPlaylist.length > 0 ? guestPlaylist.length : undefined,
+      badgeTone: "bg-pink-600 text-white",
+    },
+    {
+      id: "events",
+      label: "Eventos",
+      shortLabel: "Eventos",
+      icon: Ticket,
+      badge: myStoredTickets.length > 0 ? myStoredTickets.length : "En Venta",
+      badgeTone:
+        myStoredTickets.length > 0
+          ? "bg-emerald-500 text-black"
+          : "bg-gradient-to-r from-red-500 to-pink-500 text-white",
+    },
+    ...(activeContestInfo
+      ? [
+          {
+            id: "contest" as const,
+            label: "Concurso",
+            shortLabel: "Concurso",
+            icon: Trophy,
+            badge: activeContestVote ? "Votar" : undefined,
+            badgeTone: "bg-amber-400 text-black",
+          },
+        ]
+      : []),
+  ];
+
+  const [isCarouselAutoPlay, setIsCarouselAutoPlay] = useState<boolean>(true);
+  const [isCarouselPaused, setIsCarouselPaused] = useState<boolean>(false);
+  const [carouselProgress, setCarouselProgress] = useState<number>(0); // 0 to 100%
+  const carouselResumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const touchEndXRef = useRef<number | null>(null);
+  const touchEndYRef = useRef<number | null>(null);
+  const tabBarScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const currentCarouselIndex = Math.max(
+    0,
+    CAROUSEL_TABS.findIndex((t) => t.id === activeTab)
+  );
+
+  const prevTabInfo =
+    CAROUSEL_TABS[(currentCarouselIndex - 1 + CAROUSEL_TABS.length) % CAROUSEL_TABS.length];
+  const nextTabInfo = CAROUSEL_TABS[(currentCarouselIndex + 1) % CAROUSEL_TABS.length];
+
+  const goToNextSlide = () => {
+    const nextIdx = (currentCarouselIndex + 1) % CAROUSEL_TABS.length;
+    setActiveTab(CAROUSEL_TABS[nextIdx].id);
+    setCarouselProgress(0);
+  };
+
+  const goToPrevSlide = () => {
+    const prevIdx = (currentCarouselIndex - 1 + CAROUSEL_TABS.length) % CAROUSEL_TABS.length;
+    setActiveTab(CAROUSEL_TABS[prevIdx].id);
+    setCarouselProgress(0);
+  };
+
+  const goToSlide = (
+    tabId: "hub" | "catalog" | "my-requests" | "queue" | "playlist" | "events" | "contest"
+  ) => {
+    setActiveTab(tabId);
+    setCarouselProgress(0);
+  };
+
+  // Auto-scroll centrado suave de la pestaña activa en la barra de navegación
+  useEffect(() => {
+    try {
+      const tabElement = document.getElementById(`carousel-nav-tab-${activeTab}`);
+      if (tabElement) {
+        tabElement.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      }
+    } catch {}
+  }, [activeTab]);
+
+  // Auto-desplazamiento continuo suave con intervalo de 8s (80ms ticks para barra fluida)
+  useEffect(() => {
+    if (!isCarouselAutoPlay || isCarouselPaused) return;
+
+    const intervalMs = 80;
+    const durationMs = 8000;
+    const step = (intervalMs / durationMs) * 100;
+
+    const timer = setInterval(() => {
+      setCarouselProgress((prev) => {
+        if (prev >= 100) {
+          goToNextSlide();
+          return 0;
+        }
+        return prev + step;
+      });
+    }, intervalMs);
+
+    return () => clearInterval(timer);
+  }, [isCarouselAutoPlay, isCarouselPaused, currentCarouselIndex, CAROUSEL_TABS.length]);
+
+  // Controladores táctiles Swipe (deslizamiento horizontal manual con dedo)
+  const handleCarouselTouchStart = (e: React.TouchEvent) => {
+    setIsCarouselPaused(true);
+    if (carouselResumeTimeoutRef.current) {
+      clearTimeout(carouselResumeTimeoutRef.current);
+    }
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+    touchEndXRef.current = e.touches[0].clientX;
+    touchEndYRef.current = e.touches[0].clientY;
+  };
+
+  const handleCarouselTouchMove = (e: React.TouchEvent) => {
+    touchEndXRef.current = e.touches[0].clientX;
+    touchEndYRef.current = e.touches[0].clientY;
+  };
+
+  const handleCarouselTouchEnd = () => {
+    if (touchStartXRef.current !== null && touchEndXRef.current !== null) {
+      const deltaX = touchEndXRef.current - touchStartXRef.current;
+      const deltaY = Math.abs((touchEndYRef.current || 0) - (touchStartYRef.current || 0));
+
+      // Si el deslizamiento horizontal superó los 45px y superó al vertical
+      if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > deltaY * 1.1) {
+        if (deltaX < 0) {
+          goToNextSlide(); // Swipe izquierda -> Siguiente pestaña
+        } else {
+          goToPrevSlide(); // Swipe derecha -> Anterior pestaña
+        }
+      }
+    }
+
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    touchEndXRef.current = null;
+    touchEndYRef.current = null;
+
+    // Pausa temporal al tocar: reanuda tras 4.5 segundos de reposo
+    carouselResumeTimeoutRef.current = setTimeout(() => {
+      setIsCarouselPaused(false);
+    }, 4500);
+  };
+
+  const handleCarouselMouseEnter = () => {
+    setIsCarouselPaused(true);
+    if (carouselResumeTimeoutRef.current) {
+      clearTimeout(carouselResumeTimeoutRef.current);
+    }
+  };
+
+  const handleCarouselMouseLeave = () => {
+    carouselResumeTimeoutRef.current = setTimeout(() => {
+      setIsCarouselPaused(false);
+    }, 3000);
+  };
   const [publicSectors, setPublicSectors] = useState<Array<{ id: string; name: string; colorHex: string }>>([]);
   const [selectedTableSector, setSelectedTableSector] = useState<string>("ALL");
   const [loadingPublicTables, setLoadingPublicTables] = useState(false);
@@ -2491,148 +2679,174 @@ function GuestContent() {
         </div>
       )}
 
-      {/* 3. Contenido Principal de "Mi Noche" */}
-      <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto w-full overflow-x-hidden space-y-4">
-        {/* Sub-navegación interna dentro de "Mi Noche": Inicio, Catálogo, Mis Pedidos, Cola, Playlist y Concurso */}
-        <div className="p-1.5 rounded-2xl bg-zinc-900/95 border border-zinc-800 flex items-center gap-1.5 shadow-inner overflow-x-auto no-scrollbar">
-          <button
-            type="button"
-            onClick={() => setActiveTab("hub")}
-            className={`flex-1 min-w-[70px] py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              activeTab === "hub"
-                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-900/50"
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 shrink-0" />
-            <span>Inicio</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("catalog")}
-            className={`flex-1 min-w-[80px] py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              activeTab === "catalog"
-                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-900/50"
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
-            }`}
-          >
-            <Music className="w-3.5 h-3.5 shrink-0" />
-            <span>Catálogo</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("my-requests")}
-            className={`flex-1 min-w-[95px] py-2.5 px-1.5 sm:px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              activeTab === "my-requests"
-                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-900/50"
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden xs:inline sm:inline">Mis</span> Pedidos
-            {myRequests.length > 0 && (
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                  activeTab === "my-requests"
-                    ? "bg-white text-purple-700"
-                    : "bg-purple-600 text-white"
-                }`}
-              >
-                {myRequests.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("queue")}
-            className={`flex-1 min-w-[75px] py-2.5 px-1.5 sm:px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              activeTab === "queue"
-                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-900/50"
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
-            }`}
-          >
-            <ListMusic className="w-3.5 h-3.5 shrink-0" />
-            <span>Cola</span>
-            {liveQueue.length > 0 && (
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                  activeTab === "queue"
-                    ? "bg-white text-emerald-700"
-                    : "bg-emerald-600 text-white"
-                }`}
-              >
-                {liveQueue.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("playlist")}
-            className={`flex-1 min-w-[80px] py-2.5 px-1.5 sm:px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              activeTab === "playlist"
-                ? "bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-md shadow-pink-900/50"
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
-            }`}
-          >
-            <Heart className={`w-3.5 h-3.5 shrink-0 ${guestPlaylist.length > 0 ? "text-pink-400 fill-pink-400" : ""}`} />
-            <span>Playlist</span>
-            {guestPlaylist.length > 0 && (
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                  activeTab === "playlist"
-                    ? "bg-white text-pink-700"
-                    : "bg-pink-600 text-white"
-                }`}
-              >
-                {guestPlaylist.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("events")}
-            className={`flex-1 min-w-[85px] py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-              activeTab === "events"
-                ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white shadow-md shadow-purple-900/50"
-                : "text-purple-300 hover:text-white hover:bg-purple-950/40"
-            }`}
-          >
-            <Ticket className="w-3.5 h-3.5 shrink-0 text-purple-400" />
-            <span>Eventos</span>
-            {myStoredTickets.length > 0 ? (
-              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-500 text-black">
-                {myStoredTickets.length}
-              </span>
-            ) : (
-              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-gradient-to-r from-red-500 to-pink-500 text-white uppercase tracking-tighter">
-                En Venta
-              </span>
-            )}
-          </button>
-
-          {activeContestInfo && (
+      {/* 3. Contenido Principal de "Mi Noche" (Carrusel Híbrido: Auto-desplazamiento + Pausa al tocar/hover + Swipe + Flechas ‹ ›) */}
+      <div
+        className="flex-1 p-3.5 sm:p-4 overflow-y-auto w-full overflow-x-hidden space-y-4 relative"
+        onTouchStart={handleCarouselTouchStart}
+        onTouchMove={handleCarouselTouchMove}
+        onTouchEnd={handleCarouselTouchEnd}
+        onMouseEnter={handleCarouselMouseEnter}
+        onMouseLeave={handleCarouselMouseLeave}
+      >
+        {/* 🎠 BARRA DE NAVEGACIÓN TIPO CARRUSEL CON FLECHAS LATERALES ‹ › & INDICADOR DE AUTO-DESPLAZAMIENTO */}
+        <div className="space-y-2 sticky top-0 z-20 bg-zinc-950/95 -mx-1 px-1 py-1 backdrop-blur-md rounded-2xl border border-zinc-800/80 shadow-2xl">
+          <div className="flex items-center gap-1.5 w-full">
+            {/* Flecha Lateral Izquierda ‹ */}
             <button
               type="button"
-              onClick={() => setActiveTab("contest")}
-              className={`flex-1 min-w-[85px] py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                activeTab === "contest"
-                  ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-md shadow-amber-900/50"
-                  : "text-amber-400 hover:text-amber-200 hover:bg-amber-950/30"
-              }`}
+              onClick={goToPrevSlide}
+              aria-label={`Ir a pestaña anterior: ${prevTabInfo.label}`}
+              className="w-8 sm:w-9 h-11 rounded-xl bg-zinc-900 border border-zinc-700/80 text-zinc-300 hover:text-white hover:border-purple-500 hover:bg-purple-950/60 flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95 shadow-md group"
+              title={`‹ Anterior: ${prevTabInfo.label}`}
             >
-              <Trophy className="w-3.5 h-3.5 shrink-0" />
-              <span>Concurso</span>
-              {activeContestVote && (
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-              )}
+              <span className="text-xl font-black leading-none group-hover:-translate-x-0.5 transition-transform">
+                ‹
+              </span>
             </button>
+
+            {/* Pestañas de Navegación del Carrusel con Desplazamiento Centrado Suave */}
+            <div
+              ref={tabBarScrollRef}
+              className="flex-1 p-1 rounded-xl bg-zinc-900/90 border border-zinc-800 flex items-center gap-1.5 shadow-inner overflow-x-auto no-scrollbar scroll-smooth"
+            >
+              {CAROUSEL_TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                const Icon = tab.icon;
+
+                return (
+                  <button
+                    key={tab.id}
+                    id={`carousel-nav-tab-${tab.id}`}
+                    type="button"
+                    onClick={() => goToSlide(tab.id)}
+                    className={`flex-1 min-w-[76px] py-2 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                      isActive
+                        ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white shadow-md shadow-purple-900/50 scale-[1.02]"
+                        : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{tab.shortLabel}</span>
+                    {tab.badge !== undefined && (
+                      <span
+                        className={`px-1.5 py-0.2 rounded-full text-[9px] font-black ${
+                          isActive
+                            ? "bg-white text-purple-700"
+                            : tab.badgeTone || "bg-purple-600 text-white"
+                        }`}
+                      >
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Flecha Lateral Derecha › */}
+            <button
+              type="button"
+              onClick={goToNextSlide}
+              aria-label={`Ir a pestaña siguiente: ${nextTabInfo.label}`}
+              className="w-8 sm:w-9 h-11 rounded-xl bg-zinc-900 border border-zinc-700/80 text-zinc-300 hover:text-white hover:border-purple-500 hover:bg-purple-950/60 flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95 shadow-md group"
+              title={`Siguiente: ${nextTabInfo.label} ›`}
+            >
+              <span className="text-xl font-black leading-none group-hover:translate-x-0.5 transition-transform">
+                ›
+              </span>
+            </button>
+          </div>
+
+          {/* Estado de Auto-Desplazamiento + Pausa al Tocar + Dots Indicadores */}
+          <div className="flex items-center justify-between gap-2 px-2 text-[10px]">
+            <div className="flex items-center gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={() => setIsCarouselAutoPlay((prev) => !prev)}
+                className="p-1 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
+                title={
+                  isCarouselAutoPlay
+                    ? "Pausar auto-desplazamiento"
+                    : "Activar auto-desplazamiento"
+                }
+              >
+                {isCarouselAutoPlay && !isCarouselPaused ? (
+                  <Pause className="w-2.5 h-2.5 text-purple-400" />
+                ) : (
+                  <Play className="w-2.5 h-2.5 text-zinc-400" />
+                )}
+                <span className="text-[9px] font-mono">
+                  {isCarouselAutoPlay ? "AUTO" : "MANUAL"}
+                </span>
+              </button>
+
+              <span className="truncate text-zinc-400 font-medium">
+                {isCarouselPaused ? (
+                  <span className="text-amber-400 font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                    Pausado al interactuar (swipe / hover)
+                  </span>
+                ) : isCarouselAutoPlay ? (
+                  <span className="text-purple-300 font-medium">
+                    Auto-desplazamiento continuo activo
+                  </span>
+                ) : (
+                  <span className="text-zinc-500">Navegación manual con swipe o ‹ ›</span>
+                )}
+              </span>
+            </div>
+
+            {/* Dots Indicadores de posición de carrusel */}
+            <div className="flex items-center gap-1 shrink-0">
+              {CAROUSEL_TABS.map((tab, idx) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => goToSlide(tab.id)}
+                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                    activeTab === tab.id
+                      ? "w-4 bg-gradient-to-r from-purple-500 to-pink-500 shadow-sm"
+                      : "w-1.5 bg-zinc-700 hover:bg-zinc-500"
+                  }`}
+                  title={`${idx + 1}. ${tab.label}`}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Línea de Progreso Continuo del Carrusel */}
+          {isCarouselAutoPlay && (
+            <div className="w-full h-1 bg-zinc-900 rounded-full overflow-hidden">
+              <div
+                className={`h-full bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 transition-all duration-100 ${
+                  isCarouselPaused ? "opacity-30" : "opacity-100"
+                }`}
+                style={{ width: `${carouselProgress}%` }}
+              />
+            </div>
           )}
         </div>
+
+        {/* Flechas Laterales Flotantes ‹ y › para Navegación Rápida con 1 toque */}
+        <button
+          type="button"
+          onClick={goToPrevSlide}
+          aria-label={`Ir a ${prevTabInfo.label}`}
+          className="fixed left-2 bottom-20 z-40 w-9 h-9 rounded-full bg-zinc-950/90 hover:bg-purple-900/90 text-white border border-zinc-700/80 hover:border-purple-400 shadow-2xl backdrop-blur-md flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-95 group opacity-85 hover:opacity-100"
+          title={`‹ Anterior: ${prevTabInfo.label}`}
+        >
+          <ChevronLeft className="w-4 h-4 text-zinc-300 group-hover:text-white -ml-0.5 transition-colors" />
+        </button>
+
+        <button
+          type="button"
+          onClick={goToNextSlide}
+          aria-label={`Ir a ${nextTabInfo.label}`}
+          className="fixed right-2 bottom-20 z-40 w-9 h-9 rounded-full bg-zinc-950/90 hover:bg-purple-900/90 text-white border border-zinc-700/80 hover:border-purple-400 shadow-2xl backdrop-blur-md flex items-center justify-center cursor-pointer transition-all hover:scale-110 active:scale-95 group opacity-85 hover:opacity-100"
+          title={`Siguiente: ${nextTabInfo.label} ›`}
+        >
+          <ChevronRight className="w-4 h-4 text-zinc-300 group-hover:text-white -mr-0.5 transition-colors" />
+        </button>
 
         {/* 🏆 Banner recordatorio de Concurso cuando estás navegando en Catálogo o Mis Pedidos */}
         {activeContestInfo && activeTab !== "contest" && activeTab !== "hub" && (
