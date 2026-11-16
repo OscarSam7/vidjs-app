@@ -294,7 +294,17 @@ function GuestContent() {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<"hub" | "catalog" | "my-requests" | "queue" | "playlist" | "contest">("hub");
+  const [activeTab, setActiveTab] = useState<"hub" | "catalog" | "my-requests" | "queue" | "playlist" | "contest" | "events">("hub");
+  const [guestEvents, setGuestEvents] = useState<any[]>([]);
+  const [isLoadingGuestEvents, setIsLoadingGuestEvents] = useState(false);
+  const [guestEventsTab, setGuestEventsTab] = useState<"browse" | "wallet">("browse");
+  const [myStoredTickets, setMyStoredTickets] = useState<any[]>([]);
+  const [activeQrModalTicket, setActiveQrModalTicket] = useState<any | null>(null);
+  const [selectedBuyEvent, setSelectedBuyEvent] = useState<any | null>(null);
+  const [mobileBuyerName, setMobileBuyerName] = useState("");
+  const [mobileBuyerDoc, setMobileBuyerDoc] = useState("");
+  const [mobileSelectedTiers, setMobileSelectedTiers] = useState<Record<string, number>>({});
+  const [isBuyingMobileTicket, setIsBuyingMobileTicket] = useState(false);
 
   // 🎵 Playlist Personal del Cliente (Pistas DJ y Karaoke)
   interface GuestPlaylistItem {
@@ -965,6 +975,31 @@ function GuestContent() {
   useEffect(() => {
     if (activeTab === "queue") {
       fetchLiveQueue();
+    }
+  }, [activeTab]);
+
+  // 🎟️ Cargar Entradas y Cartelera de Eventos
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("vidjs_purchased_tickets");
+        if (stored) {
+          setMyStoredTickets(JSON.parse(stored));
+        }
+      } catch {}
+    }
+
+    if (activeTab === "events" || activeTab === "hub") {
+      setIsLoadingGuestEvents(true);
+      fetch("/api/v1/events/public")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.events) {
+            setGuestEvents(data.events);
+          }
+        })
+        .catch((err) => console.error("Error loading guest events:", err))
+        .finally(() => setIsLoadingGuestEvents(false));
     }
   }, [activeTab]);
 
@@ -2551,6 +2586,28 @@ function GuestContent() {
             )}
           </button>
 
+          <button
+            type="button"
+            onClick={() => setActiveTab("events")}
+            className={`flex-1 min-w-[85px] py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              activeTab === "events"
+                ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white shadow-md shadow-purple-900/50"
+                : "text-purple-300 hover:text-white hover:bg-purple-950/40"
+            }`}
+          >
+            <Ticket className="w-3.5 h-3.5 shrink-0 text-purple-400" />
+            <span>Eventos</span>
+            {myStoredTickets.length > 0 ? (
+              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-500 text-black">
+                {myStoredTickets.length}
+              </span>
+            ) : (
+              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-gradient-to-r from-red-500 to-pink-500 text-white uppercase tracking-tighter">
+                En Venta
+              </span>
+            )}
+          </button>
+
           {activeContestInfo && (
             <button
               type="button"
@@ -2600,6 +2657,37 @@ function GuestContent() {
         {/* PESTAÑA 1: "MI NOCHE" (WELCOME HUB) */}
         {activeTab === "hub" && (
           <div className="space-y-4 w-full">
+            {/* 🎟️ Banner Cartelera de Eventos & Entradas Publicadas */}
+            <div
+              onClick={() => setActiveTab("events")}
+              className="w-full p-4 rounded-3xl bg-gradient-to-r from-purple-950/80 via-zinc-950 to-indigo-950/80 border-2 border-purple-500/50 hover:border-purple-400 transition-all cursor-pointer shadow-xl flex items-center justify-between gap-3 text-left group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-pink-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-purple-900/40 group-hover:scale-105 transition-transform">
+                  <Ticket className="w-6 h-6 -rotate-12" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-black uppercase text-purple-400 tracking-wider">
+                      Cartelera Oficial en Vivo
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded text-[8px] font-black bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono">
+                      VIDJS
+                    </span>
+                  </div>
+                  <h3 className="text-sm sm:text-base font-black text-white">
+                    Eventos, Fiestas & Entradas
+                  </h3>
+                  <p className="text-[11px] text-zinc-400">
+                    Adquiere tus boletos con QR oficial para ingresar a los mejores eventos
+                  </p>
+                </div>
+              </div>
+              <span className="px-3 py-1.5 rounded-xl bg-purple-600 text-white text-xs font-black shrink-0 flex items-center gap-1 shadow-md shadow-purple-900/40 group-hover:bg-purple-500 transition-all">
+                <span>Ver Eventos</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
             {/* 🏆 Concurso Oficial de Karaoke Activo o en Registro esta Noche */}
             {activeContestInfo && (
               <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-950/80 via-zinc-950 to-zinc-950 border-2 border-amber-500/60 shadow-xl space-y-3">
@@ -4955,7 +5043,469 @@ function GuestContent() {
             )}
           </div>
         )}
+
+        {/* PESTAÑA 7: EVENTOS & CARTELERA OFICIAL */}
+        {activeTab === "events" && (
+          <div className="space-y-4 w-full animate-fadeIn pb-12">
+            {/* Header de Cartelera */}
+            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-purple-950/90 via-zinc-950 to-indigo-950/90 border-2 border-purple-500/50 shadow-xl space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-purple-900/40">
+                    <Ticket className="w-5 h-5 -rotate-12" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-purple-400 tracking-wider block">
+                      VIDJS TICKET SUITE • CARTELERA MÓVIL
+                    </span>
+                    <h2 className="text-base sm:text-lg font-black text-white">
+                      Eventos, Fiestas & Entradas Oficiales
+                    </h2>
+                  </div>
+                </div>
+
+                {/* Sub-tabs selector: Cartelera vs Mis Entradas */}
+                <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-zinc-900 border border-zinc-800 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setGuestEventsTab("browse")}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                      guestEventsTab === "browse"
+                        ? "bg-purple-600 text-white shadow-md shadow-purple-900/40"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Cartelera</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setGuestEventsTab("wallet")}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                      guestEventsTab === "wallet"
+                        ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-900/40"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Wallet className="w-3.5 h-3.5" />
+                    <span>Mis Entradas ({myStoredTickets.length})</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN 1: Explorar Cartelera de Eventos */}
+            {guestEventsTab === "browse" && (
+              <div className="space-y-4">
+                {isLoadingGuestEvents ? (
+                  <div className="py-16 text-center space-y-3">
+                    <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-xs text-zinc-400 font-bold">Cargando eventos publicados...</p>
+                  </div>
+                ) : guestEvents.length === 0 ? (
+                  <div className="p-8 rounded-3xl bg-zinc-900/60 border border-zinc-800 text-center space-y-2">
+                    <Ticket className="w-8 h-8 text-zinc-600 mx-auto" />
+                    <p className="text-sm font-bold text-white">No hay eventos publicados por el momento</p>
+                    <p className="text-xs text-zinc-400">Pronto anunciaremos nuevas fechas y conciertos.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {guestEvents.map((evt) => {
+                      const minPrice =
+                        evt.tiers && evt.tiers.length > 0
+                          ? Math.min(...evt.tiers.map((t: any) => t.price))
+                          : 25000;
+
+                      return (
+                        <div
+                          key={evt.id}
+                          className="rounded-3xl bg-zinc-950 border border-zinc-800 overflow-hidden shadow-xl flex flex-col justify-between hover:border-purple-500/50 transition-all group"
+                        >
+                          <div>
+                            {/* Flyer Banner */}
+                            <div className="relative h-44 sm:h-48 overflow-hidden bg-black">
+                              <img
+                                src={evt.bannerUrl}
+                                alt={evt.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              />
+                              <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-600 text-white uppercase tracking-wider shadow">
+                                  {evt.eventType}
+                                </span>
+                              </div>
+                              <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between text-xs text-white drop-shadow">
+                                <span className="flex items-center gap-1 font-bold text-[11px]">
+                                  <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                                  <span className="truncate">{evt.locationName}</span>
+                                </span>
+                                <span className="text-[10px] bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-md text-amber-300 font-bold">
+                                  ★ {evt.rating?.toFixed(1) || "4.8"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Info */}
+                            <div className="p-4 space-y-2">
+                              <span className="text-[10px] text-purple-400 font-bold flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>{evt.timeSchedule || "Próximamente"}</span>
+                              </span>
+
+                              <h3 className="text-base font-black text-white leading-tight line-clamp-1">
+                                {evt.name}
+                              </h3>
+
+                              <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                                {evt.description}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Price & Actions */}
+                          <div className="p-4 pt-0">
+                            <div className="pt-3 border-t border-zinc-800 flex items-center justify-between gap-2">
+                              <div>
+                                <span className="text-[10px] text-zinc-400 block">Entradas desde</span>
+                                <span className="text-xs sm:text-sm font-black text-white font-mono">
+                                  Gs. {minPrice.toLocaleString("es-PY")}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-1.5">
+                                <a
+                                  href={`/eventos/${evt.code}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold transition-colors cursor-pointer"
+                                >
+                                  Ver Más
+                                </a>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedBuyEvent(evt);
+                                    setMobileSelectedTiers({ [evt.tiers?.[0]?.id || "default"]: 1 });
+                                    if (session?.guestName) setMobileBuyerName(session.guestName);
+                                  }}
+                                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-black flex items-center gap-1 shadow-md shadow-purple-900/40 cursor-pointer"
+                                >
+                                  <Ticket className="w-3.5 h-3.5" />
+                                  <span>Adquirir</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SECCIÓN 2: Mis Entradas & QR Móvil */}
+            {guestEventsTab === "wallet" && (
+              <div className="space-y-4">
+                {myStoredTickets.length === 0 ? (
+                  <div className="p-8 rounded-3xl bg-zinc-900/60 border border-zinc-800 text-center space-y-3 max-w-md mx-auto">
+                    <Wallet className="w-10 h-10 text-purple-400 mx-auto" />
+                    <h3 className="text-base font-bold text-white">Tu Billetera está vacía</h3>
+                    <p className="text-xs text-zinc-400">
+                      Aún no has adquirido entradas para los próximos eventos. Explora la cartelera y consigue tu pase oficial.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setGuestEventsTab("browse")}
+                      className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xs shadow-md shadow-purple-900/40 transition-all cursor-pointer"
+                    >
+                      Explorar Eventos en Venta
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-xs text-zinc-400 px-1">
+                      <span>Mostrando {myStoredTickets.length} entradas oficiales</span>
+                      <span className="text-emerald-400 font-bold">● Válidas para ingreso</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {myStoredTickets.map((tkt, idx) => (
+                        <div
+                          key={idx}
+                          className="rounded-3xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border-2 border-purple-500/40 p-4 shadow-xl space-y-3 relative overflow-hidden"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-purple-500/20 text-purple-300 border border-purple-500/40 uppercase">
+                                {tkt.tierName}
+                              </span>
+                              <h4 className="text-base font-black text-white truncate mt-1">
+                                {tkt.eventName}
+                              </h4>
+                              <p className="text-[11px] text-zinc-400">
+                                Titular: <strong className="text-white">{tkt.buyerName}</strong> • CI: {tkt.buyerDoc}
+                              </p>
+                              <p className="text-[10px] text-zinc-500">
+                                {tkt.venueName} • {tkt.eventDate}
+                              </p>
+                              <div className="font-mono text-xs font-bold text-purple-400 mt-1">
+                                {tkt.id}
+                              </div>
+                            </div>
+
+                            {/* Mini QR trigger */}
+                            <button
+                              type="button"
+                              onClick={() => setActiveQrModalTicket(tkt)}
+                              className="w-16 h-16 rounded-2xl bg-white p-1.5 flex flex-col items-center justify-center shrink-0 cursor-pointer hover:scale-105 transition-transform shadow-lg"
+                              title="Toca para agrandar QR en puerta"
+                            >
+                              <QrCode className="w-full h-full text-black" />
+                            </button>
+                          </div>
+
+                          <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between gap-2">
+                            <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              <span>QR Anti-Fraude Activo</span>
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => setActiveQrModalTicket(tkt)}
+                              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xs flex items-center gap-1 shadow-md shadow-purple-900/40 cursor-pointer"
+                            >
+                              <QrCode className="w-3.5 h-3.5" />
+                              <span>Mostrar en Puerta</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* MODAL MÓVIL: Adquisición Rápida de Entradas */}
+      {selectedBuyEvent && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <Ticket className="w-5 h-5 text-purple-400" />
+                  <span>Adquirir Entrada Oficial</span>
+                </h3>
+                <p className="text-[11px] text-zinc-400 truncate max-w-[260px]">
+                  {selectedBuyEvent.name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedBuyEvent(null)}
+                className="text-zinc-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Selector de Entradas */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-zinc-300 block">
+                Selecciona Tipo de Entrada:
+              </label>
+              {(selectedBuyEvent.tiers || []).map((tier: any) => {
+                const count = mobileSelectedTiers[tier.id] || 0;
+                return (
+                  <div
+                    key={tier.id}
+                    className="p-3 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-between gap-3"
+                  >
+                    <div>
+                      <h4 className="text-xs font-black text-white">{tier.name}</h4>
+                      <span className="text-[10px] text-zinc-400 block">{tier.available} disponibles</span>
+                      <span className="text-xs font-mono font-bold text-purple-400">{tier.formattedPrice}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-black border border-zinc-800 rounded-xl p-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setMobileSelectedTiers((prev) => ({
+                            ...prev,
+                            [tier.id]: Math.max(0, (prev[tier.id] || 0) - 1),
+                          }))
+                        }
+                        className="w-6 h-6 rounded flex items-center justify-center text-zinc-400 hover:text-white text-xs cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <span className="w-5 text-center text-xs font-black text-white">{count}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setMobileSelectedTiers((prev) => ({
+                            ...prev,
+                            [tier.id]: (prev[tier.id] || 0) + 1,
+                          }))
+                        }
+                        className="w-6 h-6 rounded flex items-center justify-center text-zinc-400 hover:text-white text-xs cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Buyer fields */}
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-zinc-300 font-bold block mb-1">Tu Nombre Completo *</label>
+                <input
+                  type="text"
+                  value={mobileBuyerName}
+                  onChange={(e) => setMobileBuyerName(e.target.value)}
+                  placeholder="Ej: Juan Pérez"
+                  className="w-full px-3 py-2 rounded-xl bg-black border border-zinc-800 text-white text-xs outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-zinc-300 font-bold block mb-1">Documento (CI / DNI) *</label>
+                <input
+                  type="text"
+                  value={mobileBuyerDoc}
+                  onChange={(e) => setMobileBuyerDoc(e.target.value)}
+                  placeholder="Ej: 4.512.890"
+                  className="w-full px-3 py-2 rounded-xl bg-black border border-zinc-800 text-white text-xs outline-none focus:border-purple-500"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-zinc-800 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedBuyEvent(null)}
+                className="px-3 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-bold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isBuyingMobileTicket}
+                onClick={() => {
+                  if (!mobileBuyerName.trim() || !mobileBuyerDoc.trim()) {
+                    alert("Completa tu Nombre y Documento CI para el boleto.");
+                    return;
+                  }
+                  setIsBuyingMobileTicket(true);
+                  const selectedTier = selectedBuyEvent.tiers?.[0] || {
+                    name: "ACCESO GENERAL",
+                    price: 25000,
+                    formattedPrice: "Gs. 25.000",
+                  };
+                  const tktNumber = Math.floor(100000 + Math.random() * 900000);
+                  const newTkt = {
+                    id: `VID-${selectedBuyEvent.code.slice(0, 8)}-${tktNumber}`,
+                    eventCode: selectedBuyEvent.code,
+                    eventName: selectedBuyEvent.name,
+                    tierName: selectedTier.name,
+                    tierPrice: selectedTier.price,
+                    formattedPrice: selectedTier.formattedPrice,
+                    buyerName: mobileBuyerName.trim(),
+                    buyerDoc: mobileBuyerDoc.trim(),
+                    venueName: selectedBuyEvent.locationName,
+                    eventDate: selectedBuyEvent.timeSchedule || "Próximamente",
+                    purchaseDate: new Date().toLocaleDateString("es-PY"),
+                    qrPayload: `VIDJS_AUTH:${selectedBuyEvent.code}:${tktNumber}:${mobileBuyerDoc.trim()}:VALID`,
+                  };
+
+                  const updated = [newTkt, ...myStoredTickets];
+                  setMyStoredTickets(updated);
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem("vidjs_purchased_tickets", JSON.stringify(updated));
+                  }
+                  setIsBuyingMobileTicket(false);
+                  setSelectedBuyEvent(null);
+                  setGuestEventsTab("wallet");
+                  setActiveQrModalTicket(newTkt);
+                }}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-black text-xs shadow-md shadow-purple-900/40"
+              >
+                {isBuyingMobileTicket ? "Generando..." : "Confirmar y Generar QR"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL MÓVIL: Mostrar QR en Puerta (Pantalla Completa) */}
+      {activeQrModalTicket && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="w-full max-w-sm bg-white text-black rounded-3xl p-6 space-y-4 shadow-2xl text-center">
+            <div className="flex items-center justify-between border-b pb-2">
+              <span className="text-[10px] font-black uppercase text-purple-700 font-mono tracking-widest">
+                PASE OFICIAL VIDJS
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveQrModalTicket(null)}
+                className="text-gray-400 hover:text-black"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-800">
+                {activeQrModalTicket.tierName}
+              </span>
+              <h3 className="text-lg font-black text-black mt-1">
+                {activeQrModalTicket.eventName}
+              </h3>
+              <p className="text-xs text-gray-600">
+                Titular: <strong>{activeQrModalTicket.buyerName}</strong>
+              </p>
+              <p className="text-[11px] text-gray-500">
+                CI: <strong>{activeQrModalTicket.buyerDoc}</strong> • {activeQrModalTicket.venueName}
+              </p>
+            </div>
+
+            {/* Giant QR for Gate Scanner */}
+            <div className="w-48 h-48 mx-auto bg-black rounded-2xl p-3 shadow-inner flex flex-col items-center justify-center">
+              <QrCode className="w-full h-full text-white" />
+              <span className="text-[8px] text-purple-300 font-mono mt-1">
+                ESCANEABLE POR CONTROL DE PUERTA
+              </span>
+            </div>
+
+            <div className="font-mono text-xs font-black text-purple-900">
+              {activeQrModalTicket.id}
+            </div>
+
+            <div className="text-[10px] text-gray-500 leading-tight">
+              Presenta este código en el acceso al local para validar tu ingreso con el escáner del staff.
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveQrModalTicket(null)}
+              className="w-full py-2.5 rounded-xl bg-black text-white font-black text-xs hover:bg-gray-800 transition-colors"
+            >
+              Listo / Guardar en Pantalla
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 4. Modal de Confirmación, Dedicatoria y Fast-Pass */}
       {isCustomModalOpen && (

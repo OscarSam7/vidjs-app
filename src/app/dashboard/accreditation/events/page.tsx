@@ -437,7 +437,7 @@ export default function EventsManagementPage() {
                     {/* Primary Links: Ver, Lista de Compradores */}
                     <div className="flex items-center justify-between gap-2 text-xs">
                       <Link
-                        href={`/accreditation/${evt.code}/register`}
+                        href={`/eventos/${evt.code}`}
                         target="_blank"
                         className="text-purple-300 hover:text-white font-bold flex items-center gap-1 hover:underline"
                       >
