@@ -24,7 +24,15 @@ import {
   X,
   Loader2,
   Clock,
+  Globe,
+  Lock,
+  Eye,
+  Pause,
+  Play,
+  BarChart3,
+  Ticket,
 } from "lucide-react";
+import { BuyersListModal } from "@/components/accreditation/BuyersListModal";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
@@ -63,6 +71,47 @@ export default function EventsManagementPage() {
   const [editEventModalOpen, setEditEventModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [buyersModalEvent, setBuyersModalEvent] = useState<any | null>(null);
+  const [statsModalEvent, setStatsModalEvent] = useState<any | null>(null);
+  const [presaleModalEvent, setPresaleModalEvent] = useState<any | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
+  const handleTogglePublic = async (evt: any) => {
+    try {
+      setActionLoadingId(evt.id);
+      const res = await fetch(`/api/v1/accreditation/events/${evt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPublicRegistration: evt.isPublicRegistration === false ? true : false }),
+      });
+      if (res.ok) {
+        await refreshEvents();
+      }
+    } catch (e) {
+      console.error("Error toggling public state:", e);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleToggleStatus = async (evt: any) => {
+    try {
+      setActionLoadingId(evt.id);
+      const newStatus = evt.status === "ACTIVE" ? "PAUSED" : "ACTIVE";
+      const res = await fetch(`/api/v1/accreditation/events/${evt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        await refreshEvents();
+      }
+    } catch (e) {
+      console.error("Error toggling event status:", e);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   const filteredEvents = useMemo(() => {
     return events.filter((evt) => {
@@ -219,145 +268,278 @@ export default function EventsManagementPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredEvents.map((evt) => {
             const isActiveSelection = evt.id === activeEventId;
+            const gross = evt.financials?.grossRevenue || 0;
+            const commission = evt.financials?.commission || Math.round(gross * 0.02);
+            const totalSold = evt.financials?.totalSold || evt.metrics?.totalParticipants || 0;
+            const totalCapacity = evt.financials?.totalCapacity || evt.maxCapacity || 400;
 
             return (
               <div
                 key={evt.id}
                 className={cn(
-                  "bg-[#0F1E36] border rounded-2xl p-5 shadow-sm transition-all flex flex-col justify-between relative group",
+                  "bg-[#0F1E36] border rounded-2xl shadow-md transition-all flex flex-col justify-between overflow-hidden relative group",
                   isActiveSelection
-                    ? "border-purple-500/80 shadow-purple-950/20 bg-gradient-to-b from-[#0F1E36] to-purple-950/10"
-                    : "border-[#263858] hover:border-slate-600"
+                    ? "border-purple-500/80 shadow-purple-950/20 ring-1 ring-purple-500/30"
+                    : "border-[#263858] hover:border-slate-500"
                 )}
               >
-                {/* Active Selection Badge */}
-                {isActiveSelection && (
-                  <div className="absolute -top-2.5 right-4 bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Evento Activo
-                  </div>
-                )}
-
-                <div>
-                  {/* Category & Status badges */}
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-400 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-800/60">
-                      {evt.eventType || "GENERAL"}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-[10px] px-2 py-0.5 rounded-full font-bold",
-                        evt.status === "ACTIVE"
-                          ? "bg-emerald-950 text-emerald-300 border border-emerald-800"
-                          : evt.status === "DRAFT"
-                          ? "bg-amber-950 text-amber-300 border border-amber-800"
-                          : "bg-slate-800 text-slate-300"
-                      )}
-                    >
-                      {evt.status}
-                    </span>
-                  </div>
-
-                  {/* Title & Code */}
-                  <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors line-clamp-1">
-                    {evt.name}
-                  </h3>
-                  <div className="text-[11px] font-mono text-slate-400 mt-0.5">
-                    Código: <strong className="text-slate-200">{evt.code}</strong>
-                  </div>
-
-                  {/* Location & Dates */}
-                  <div className="space-y-1 mt-3 pt-3 border-t border-[#263858]/60 text-xs text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                      <span>
-                        {new Date(evt.startsAt).toLocaleDateString("es-PY", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                        {evt.daysCount && evt.daysCount > 1 ? ` (${evt.daysCount} días)` : ""}
+                {/* Flyer Banner Header */}
+                <div className="h-32 w-full relative bg-gradient-to-r from-amber-600/30 via-purple-900/40 to-slate-900 border-b border-[#263858] overflow-hidden flex items-center justify-center">
+                  {evt.bannerUrl ? (
+                    <img
+                      src={evt.bannerUrl}
+                      alt={evt.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-4 text-center">
+                      <Sparkles className="w-6 h-6 text-purple-400 mb-1" />
+                      <span className="text-[11px] font-black uppercase tracking-wider text-purple-300 font-mono">
+                        {evt.eventType || "CONCIERTO"}
                       </span>
                     </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0F1E36] via-transparent to-transparent opacity-90" />
 
-                    {evt.locationName && (
-                      <div className="flex items-center gap-2 truncate">
-                        <MapPin className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                        <span className="truncate">{evt.locationName}</span>
-                      </div>
-                    )}
-
-                    {evt.organizerName && (
-                      <div className="flex items-center gap-2 truncate text-slate-400 text-[11px]">
-                        <Building className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                        <span className="truncate">{evt.organizerName}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Metrics Strip */}
-                  {evt.metrics && (
-                    <div className="grid grid-cols-3 gap-2 mt-4 p-2.5 bg-[#0A1322] border border-[#263858] rounded-xl text-center">
-                      <div>
-                        <span className="text-[10px] text-slate-400 block">Registrados</span>
-                        <strong className="text-xs font-mono text-purple-300">
-                          {evt.metrics.totalParticipants}
-                        </strong>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 block">Acreditados</span>
-                        <strong className="text-xs font-mono text-blue-300">
-                          {evt.metrics.totalAccredited}
-                        </strong>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 block">Ingresados</span>
-                        <strong className="text-xs font-mono text-emerald-300">
-                          {evt.metrics.totalCheckedIn}
-                        </strong>
-                      </div>
+                  {/* Active Selection Badge */}
+                  {isActiveSelection && (
+                    <div className="absolute top-2.5 right-3 bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md flex items-center gap-1 z-10">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Evento Activo
                     </div>
                   )}
                 </div>
 
-                {/* Actions bar */}
-                <div className="mt-5 pt-3 border-t border-[#263858] flex items-center justify-between gap-2">
-                  {!isActiveSelection ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setActiveEventId(evt.id)}
-                      className="border-[#263858] hover:border-purple-500 text-xs text-purple-300"
-                    >
-                      Activar
-                    </Button>
-                  ) : (
-                    <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> En uso
-                    </span>
-                  )}
+                {/* Body Content */}
+                <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+                  <div>
+                    {/* Title */}
+                    <h3 className="text-lg font-black text-white tracking-tight uppercase line-clamp-1">
+                      {evt.name}
+                    </h3>
 
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditClick(evt)}
-                      className="p-1.5 text-slate-400 hover:text-white"
-                      title="Editar evento"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
+                    {/* Status Badges Row (Publicado / Borrador & Público / Privado) */}
+                    <div className="flex items-center gap-2 mt-2">
+                      <span
+                        className={cn(
+                          "text-[10px] font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1",
+                          evt.status === "ACTIVE"
+                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                            : evt.status === "PAUSED"
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                            : "bg-slate-800 text-slate-300 border-slate-700"
+                        )}
+                      >
+                        {evt.status === "ACTIVE"
+                          ? "Publicado"
+                          : evt.status === "PAUSED"
+                          ? "Suspendido"
+                          : "Borrador"}
+                      </span>
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteEvent(evt.id, evt.name)}
-                      disabled={isDeleting === evt.id}
-                      className="p-1.5 text-slate-400 hover:text-red-400"
-                      title="Eliminar evento"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                      <span
+                        className={cn(
+                          "text-[10px] font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1",
+                          evt.isPublicRegistration !== false
+                            ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
+                            : "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                        )}
+                      >
+                        {evt.isPublicRegistration !== false ? (
+                          <>
+                            <Globe className="w-3 h-3" />
+                            Público
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-3 h-3" />
+                            Privado
+                          </>
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Event Details: Date & Location */}
+                    <div className="space-y-1.5 mt-3 pt-3 border-t border-[#263858]/60 text-xs text-slate-300">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                        <span>
+                          {new Date(evt.startsAt).toLocaleDateString("es-PY", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
+
+                      {/* Financials Box (Vendidos, Ingresos Brutos, Comisión Redticket) */}
+                      <div className="space-y-1 pt-2 font-sans text-xs">
+                        <div className="flex items-center gap-2 text-slate-300">
+                          <Ticket className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>
+                            Vendidos:{" "}
+                            <strong className="text-white font-mono">{totalSold}</strong> /{" "}
+                            {totalCapacity}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-slate-300">
+                          <span className="text-slate-400 font-mono shrink-0">Gs</span>
+                          <span>
+                            Ingresos Brutos:{" "}
+                            <strong className="text-emerald-400 font-mono font-bold">
+                              Gs {gross.toLocaleString("es-PY")}
+                            </strong>
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-slate-400 text-[11px]">
+                          <CheckCircle2 className="w-3 h-3 text-slate-500 shrink-0" />
+                          <span>
+                            Comisión Redticket:{" "}
+                            <span className="font-mono text-slate-300">
+                              Gs {commission.toLocaleString("es-PY")}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Tiers / Lotes Breakdown List */}
+                      <div className="mt-3 pt-2 border-t border-[#263858]/40 space-y-1">
+                        {evt.financials?.tiers && evt.financials.tiers.length > 0 ? (
+                          evt.financials.tiers.slice(0, 4).map((tier: any) => (
+                            <div
+                              key={tier.id}
+                              className="flex items-center justify-between text-[11px] text-slate-300"
+                            >
+                              <span className="truncate max-w-[170px] uppercase font-semibold text-slate-400">
+                                {tier.name}
+                              </span>
+                              <span className="font-mono font-bold text-white shrink-0">
+                                {tier.sold} / {tier.max}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center justify-between text-[11px] text-slate-400">
+                            <span className="uppercase font-semibold">GENERAL</span>
+                            <span className="font-mono font-bold text-white">
+                              {evt.metrics?.totalParticipants || 0} / {evt.maxCapacity || 400}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions Bar (Image 1 replica) */}
+                  <div className="mt-5 pt-3 border-t border-[#263858] space-y-2">
+                    {/* Primary Links: Ver, Lista de Compradores */}
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <Link
+                        href={`/accreditation/${evt.code}/register`}
+                        target="_blank"
+                        className="text-purple-300 hover:text-white font-bold flex items-center gap-1 hover:underline"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Ver</span>
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => setBuyersModalEvent(evt)}
+                        className="text-slate-300 hover:text-white font-bold flex items-center gap-1 cursor-pointer hover:underline"
+                      >
+                        <Users className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Lista de Compradores</span>
+                      </button>
+                    </div>
+
+                    {/* Secondary Links: Estadísticas, Preventa */}
+                    <div className="flex items-center justify-between gap-2 text-xs text-slate-400 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setStatsModalEvent(evt)}
+                        className="hover:text-slate-200 flex items-center gap-1 cursor-pointer"
+                      >
+                        <BarChart3 className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Estadísticas</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPresaleModalEvent(evt)}
+                        className="hover:text-slate-200 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Ticket className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Preventa</span>
+                      </button>
+                    </div>
+
+                    {/* Control Buttons: Editar, Hacer Privado, Suspender, Eliminar */}
+                    <div className="flex items-center justify-between gap-1 pt-2 border-t border-[#263858]/50 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => handleEditClick(evt)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#0A1322] flex items-center gap-1 cursor-pointer"
+                        title="Editar evento"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                        <span className="text-[11px]">Editar</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePublic(evt)}
+                        disabled={actionLoadingId === evt.id}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#0A1322] flex items-center gap-1 cursor-pointer"
+                        title={
+                          evt.isPublicRegistration !== false ? "Hacer privado" : "Hacer público"
+                        }
+                      >
+                        {evt.isPublicRegistration !== false ? (
+                          <>
+                            <Lock className="w-3.5 h-3.5 text-amber-400" />
+                            <span className="text-[11px]">Hacer privado</span>
+                          </>
+                        ) : (
+                          <>
+                            <Globe className="w-3.5 h-3.5 text-blue-400" />
+                            <span className="text-[11px]">Hacer público</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleStatus(evt)}
+                        disabled={actionLoadingId === evt.id}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-[#0A1322] flex items-center gap-1 cursor-pointer"
+                        title={evt.status === "ACTIVE" ? "Suspender evento" : "Reactivar evento"}
+                      >
+                        {evt.status === "ACTIVE" ? (
+                          <>
+                            <Pause className="w-3.5 h-3.5 text-amber-400" />
+                            <span className="text-[11px]">Suspender</span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-[11px]">Reactivar</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEvent(evt.id, evt.name)}
+                        disabled={isDeleting === evt.id}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-[#0A1322] flex items-center gap-1 cursor-pointer"
+                        title="Eliminar evento"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -377,6 +559,147 @@ export default function EventsManagementPage() {
             setEditEventModalOpen(false);
           }}
         />
+      )}
+
+      {/* Buyers List Modal */}
+      {buyersModalEvent && (
+        <BuyersListModal
+          isOpen={Boolean(buyersModalEvent)}
+          onClose={() => setBuyersModalEvent(null)}
+          eventId={buyersModalEvent.id}
+          eventName={buyersModalEvent.name}
+          eventCode={buyersModalEvent.code}
+        />
+      )}
+
+      {/* Stats Modal */}
+      {statsModalEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#0A1322] border border-[#263858] rounded-2xl w-full max-w-lg p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#263858] pb-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-blue-400" />
+                <h3 className="text-base font-bold text-white">Estadísticas de Venta</h3>
+              </div>
+              <button
+                onClick={() => setStatsModalEvent(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <div className="p-3 rounded-xl bg-[#0F1E36] border border-[#263858] flex justify-between items-center">
+                <span className="text-slate-400">Evento:</span>
+                <strong className="text-white font-bold">{statsModalEvent.name}</strong>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-[#0F1E36] border border-[#263858]">
+                  <span className="text-slate-400 block text-[11px]">Total Boletos</span>
+                  <strong className="text-base font-mono text-purple-300">
+                    {statsModalEvent.financials?.totalSold ||
+                      statsModalEvent.metrics?.totalParticipants ||
+                      0}
+                  </strong>
+                </div>
+                <div className="p-3 rounded-xl bg-[#0F1E36] border border-[#263858]">
+                  <span className="text-slate-400 block text-[11px]">Recaudación Bruta</span>
+                  <strong className="text-base font-mono text-emerald-400">
+                    Gs {(statsModalEvent.financials?.grossRevenue || 0).toLocaleString("es-PY")}
+                  </strong>
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-[#0F1E36] border border-[#263858] space-y-2">
+                <span className="text-slate-400 block text-[11px] font-bold uppercase">
+                  Desglose por Categoría
+                </span>
+                {statsModalEvent.financials?.tiers?.map((t: any) => (
+                  <div key={t.id} className="flex justify-between items-center">
+                    <span className="text-slate-300">{t.name}</span>
+                    <span className="font-mono text-white font-bold">
+                      {t.sold} / {t.max} (Gs {(t.sold * t.price).toLocaleString("es-PY")})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="pt-2 text-right">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setStatsModalEvent(null)}
+                className="border-[#263858] text-xs text-slate-300"
+              >
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Presale Modal */}
+      {presaleModalEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#0A1322] border border-[#263858] rounded-2xl w-full max-w-lg p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#263858] pb-3">
+              <div className="flex items-center gap-2">
+                <Ticket className="w-5 h-5 text-amber-400" />
+                <h3 className="text-base font-bold text-white">Lotes de Preventa & Cupos</h3>
+              </div>
+              <button
+                onClick={() => setPresaleModalEvent(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <p className="text-slate-400">
+                Lotes y categorías de entradas configuradas para{" "}
+                <strong className="text-white">{presaleModalEvent.name}</strong>.
+              </p>
+              <div className="space-y-2">
+                {presaleModalEvent.financials?.tiers?.map((t: any) => (
+                  <div
+                    key={t.id}
+                    className="p-3 rounded-xl bg-[#0F1E36] border border-[#263858] flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="font-bold text-white uppercase">{t.name}</div>
+                      <div className="text-[11px] text-slate-400">
+                        Precio:{" "}
+                        <span className="font-mono text-emerald-400 font-bold">
+                          Gs {t.price.toLocaleString("es-PY")}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                        {t.sold} vendidos de {t.max}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="pt-2 flex justify-between items-center">
+              <Link
+                href="/dashboard/accreditation/types"
+                className="text-xs text-purple-300 hover:underline font-bold"
+              >
+                Gestionar todos los tipos &gt;
+              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPresaleModalEvent(null)}
+                className="border-[#263858] text-xs text-slate-300"
+              >
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

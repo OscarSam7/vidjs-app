@@ -29,6 +29,7 @@ import {
   CheckCircle2,
   X,
   Loader2,
+  Ticket,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -57,6 +58,7 @@ function AccreditationHeader() {
   const navLinks = [
     { name: "Resumen", href: "/dashboard/accreditation", icon: LayoutDashboard, exact: true },
     { name: "Eventos", href: "/dashboard/accreditation/events", icon: CalendarCheck2 },
+    { name: "Tickets", href: "/dashboard/accreditation/tickets", icon: Ticket },
     { name: "Participantes", href: "/dashboard/accreditation/participants", icon: UserCheck },
     { name: "Empresas", href: "/dashboard/accreditation/organizations", icon: Building2 },
     { name: "Categorías", href: "/dashboard/accreditation/types", icon: Tags },

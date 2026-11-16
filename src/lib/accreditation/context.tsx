@@ -30,12 +30,29 @@ export interface AccreditationEventSummary {
     checkInRecords: number;
     accreditationTypes: number;
   };
+  isPublicRegistration?: boolean;
   metrics?: {
     totalParticipants: number;
     totalAccredited: number;
     totalCheckedIn: number;
     totalPending: number;
     attendanceRate: number;
+  };
+  financials?: {
+    totalSold: number;
+    totalCapacity: number;
+    grossRevenue: number;
+    commission: number;
+    currency: string;
+    tiers: Array<{
+      id: string;
+      name: string;
+      code: string;
+      colorHex: string;
+      sold: number;
+      max: number;
+      price: number;
+    }>;
   };
 }
 
