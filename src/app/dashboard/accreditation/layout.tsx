@@ -46,6 +46,7 @@ function QuickCreateEventModal({
   onClose: () => void;
   onCreated: (event: any) => void;
 }) {
+  const { activeVenueId } = useAccreditation();
   const [name, setName] = useState("");
   const [eventType, setEventType] = useState("CONGRESO");
   const [startsAt, setStartsAt] = useState(
@@ -78,6 +79,7 @@ function QuickCreateEventModal({
           locationName: locationName.trim() || undefined,
           organizerName: organizerName.trim() || undefined,
           maxCapacity: maxCapacity ? parseInt(maxCapacity, 10) : undefined,
+          venueId: activeVenueId || undefined,
           createDefaultCategories: true,
         }),
       });

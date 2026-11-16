@@ -45,8 +45,12 @@ export async function GET(req: NextRequest) {
     const { tenantId } = await requireTenantContext();
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
+    const venueId = searchParams.get("venueId");
 
     const whereClause: any = { tenantId };
+    if (venueId && venueId !== "ALL") {
+      whereClause.venueId = venueId;
+    }
     if (status && status !== "ALL") {
       whereClause.status = status;
     }
@@ -54,6 +58,13 @@ export async function GET(req: NextRequest) {
     const events = await prisma.event.findMany({
       where: whereClause,
       include: {
+        venue: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
         _count: {
           select: {
             participants: true,

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useAccreditation } from "@/lib/accreditation/context";
+import { useRealtime } from "@/hooks/use-realtime";
 import {
   Users,
   IdCard,
@@ -24,6 +25,7 @@ import {
   ShieldCheck,
   ChevronRight,
   TrendingUp,
+  Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -90,7 +92,7 @@ interface DashboardData {
 }
 
 export default function AccreditationDashboardPage() {
-  const { activeEventId, setCreateEventModalOpen, isOnline } = useAccreditation();
+  const { activeEventId, activeVenueId, setCreateEventModalOpen, isOnline } = useAccreditation();
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -100,9 +102,11 @@ export default function AccreditationDashboardPage() {
     else setIsRefreshing(true);
 
     try {
-      const url = activeEventId
-        ? `/api/v1/accreditation/dashboard?eventId=${activeEventId}`
-        : "/api/v1/accreditation/dashboard";
+      const params = new URLSearchParams();
+      if (activeEventId) params.set("eventId", activeEventId);
+      if (activeVenueId) params.set("venueId", activeVenueId);
+
+      const url = `/api/v1/accreditation/dashboard?${params.toString()}`;
       const res = await fetch(url);
       if (res.ok) {
         const json = await res.json();
@@ -114,17 +118,32 @@ export default function AccreditationDashboardPage() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [activeEventId]);
+  }, [activeEventId, activeVenueId]);
+
+  // Hook up SSE Realtime Connection for instant KPI and check-in updates
+  const { isConnected: isSseConnected } = useRealtime({
+    eventId: activeEventId,
+    enabled: Boolean(activeEventId),
+    onEvent: (type) => {
+      if (
+        type === "CHECKIN_RECORDED" ||
+        type === "ACCREDITATION_REGISTERED" ||
+        type === "ACCREDITATION_STATUS_CHANGED"
+      ) {
+        fetchDashboardData(true);
+      }
+    },
+  });
 
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Periodic refresh every 15 seconds for live ingress monitoring
+  // Periodic fallback refresh every 20 seconds for live ingress monitoring
   useEffect(() => {
     const timer = setInterval(() => {
       fetchDashboardData(true);
-    }, 15000);
+    }, 20000);
     return () => clearInterval(timer);
   }, [fetchDashboardData]);
 
@@ -210,6 +229,29 @@ export default function AccreditationDashboardPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          <div
+            className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all",
+              isSseConnected
+                ? "bg-purple-950/60 text-purple-300 border-purple-700/60 shadow-sm shadow-purple-950"
+                : "bg-slate-900/80 text-slate-400 border-slate-700/60"
+            )}
+            title={isSseConnected ? "Canal SSE en vivo conectado para actualización instantánea de entradas" : "Conectando al canal de eventos en vivo..."}
+          >
+            <Radio className={cn("w-3.5 h-3.5", isSseConnected ? "text-purple-400 animate-pulse" : "text-slate-500")} />
+            <span>{isSseConnected ? "SSE Conectado" : "Reconectando..."}</span>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCreateEventModalOpen(true)}
+            className="border-purple-600/40 hover:border-purple-500 text-purple-300 hover:text-white hover:bg-purple-950/50"
+          >
+            <Sparkles className="w-3.5 h-3.5 mr-1 text-purple-400" />
+            <span>+ Nuevo Evento</span>
+          </Button>
+
           <Button
             variant="outline"
             size="sm"

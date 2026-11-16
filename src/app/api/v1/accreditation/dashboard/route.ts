@@ -8,13 +8,17 @@ export async function GET(req: NextRequest) {
     const { tenantId } = await requireTenantContext();
     const { searchParams } = new URL(req.url);
     const eventId = searchParams.get("eventId");
+    const venueId = searchParams.get("venueId");
 
     let resolvedEventId = eventId;
 
     if (!resolvedEventId) {
-      // Find default active event if none passed
+      // Find default active event if none passed (respecting active venue)
       const firstEvent = await prisma.event.findFirst({
-        where: { tenantId },
+        where: {
+          tenantId,
+          ...(venueId && venueId !== "ALL" ? { venueId } : {}),
+        },
         orderBy: { startsAt: "desc" },
         select: { id: true },
       });
