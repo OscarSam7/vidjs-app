@@ -37,6 +37,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
+import { TicketPaymentModal } from "@/components/events/TicketPaymentModal";
 
 interface TierSelection {
   [tierId: string]: number;
@@ -846,248 +847,30 @@ export default function PublicEventLaunchPage({
         </div>
       </footer>
 
-      {/* MODAL: Checkout / Datos de Compra */}
-      {isCheckoutOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-[#0A1322] border border-[#263858] rounded-3xl w-full max-w-lg p-5 sm:p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-[#263858] pb-3">
-              <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Ticket className="w-5 h-5 text-purple-400" />
-                  <span>Adquirir Entradas — {event.name}</span>
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Completa tus datos para emitir tu boleto con QR oficial
-                </p>
-              </div>
-              <button
-                onClick={() => setIsCheckoutOpen(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Selected Tickets Recap */}
-            <div className="p-3 rounded-2xl bg-[#080F1F] border border-[#263858] space-y-1.5 text-xs">
-              <span className="font-bold text-slate-300 block">Resumen del Pedido:</span>
-              {selectedTiersList.map((t: any) => (
-                <div key={t.id} className="flex justify-between text-slate-400">
-                  <span>
-                    {tierCounts[t.id]}x {t.name}
-                  </span>
-                  <span className="font-mono text-white">
-                    Gs. {(t.price * (tierCounts[t.id] || 0)).toLocaleString("es-PY")}
-                  </span>
-                </div>
-              ))}
-              <div className="pt-1 border-t border-[#263858] flex justify-between font-bold text-purple-400">
-                <span>Total a Abonar:</span>
-                <span className="font-mono">Gs. {totalAmount.toLocaleString("es-PY")}</span>
-              </div>
-            </div>
-
-            {/* Buyer Form */}
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="text-slate-300 font-bold block mb-1">
-                  Nombre Completo *
-                </label>
-                <Input
-                  value={buyerName}
-                  onChange={(e) => setBuyerName(e.target.value)}
-                  placeholder="Ej: Juan Pérez"
-                  className="bg-[#080F1F] border-[#263858] text-white text-xs h-9"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-slate-300 font-bold block mb-1">
-                    Documento (CI / DNI) *
-                  </label>
-                  <Input
-                    value={buyerDoc}
-                    onChange={(e) => setBuyerDoc(e.target.value)}
-                    placeholder="Ej: 4.512.890"
-                    className="bg-[#080F1F] border-[#263858] text-white text-xs h-9"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-slate-300 font-bold block mb-1">
-                    WhatsApp / Teléfono *
-                  </label>
-                  <Input
-                    value={buyerPhone}
-                    onChange={(e) => setBuyerPhone(e.target.value)}
-                    placeholder="Ej: 0981 123456"
-                    className="bg-[#080F1F] border-[#263858] text-white text-xs h-9"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-slate-300 font-bold block mb-1">
-                  Correo Electrónico (para recibir entradas) *
-                </label>
-                <Input
-                  type="email"
-                  value={buyerEmail}
-                  onChange={(e) => setBuyerEmail(e.target.value)}
-                  placeholder="correo@ejemplo.com"
-                  className="bg-[#080F1F] border-[#263858] text-white text-xs h-9"
-                />
-              </div>
-
-              {/* Payment Method Selector */}
-              <div>
-                <label className="text-slate-300 font-bold block mb-1.5">
-                  Método de Pago
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("vidjs_pay")}
-                    className={cn(
-                      "p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1",
-                      paymentMethod === "vidjs_pay"
-                        ? "border-purple-500 bg-purple-950/40 text-purple-300"
-                        : "border-[#263858] bg-[#080F1F] text-slate-400"
-                    )}
-                  >
-                    <Wallet className="w-4 h-4 text-purple-400" />
-                    <span className="font-bold text-[10px]">VIDJS Pay</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("card")}
-                    className={cn(
-                      "p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1",
-                      paymentMethod === "card"
-                        ? "border-purple-500 bg-purple-950/40 text-purple-300"
-                        : "border-[#263858] bg-[#080F1F] text-slate-400"
-                    )}
-                  >
-                    <CreditCard className="w-4 h-4 text-blue-400" />
-                    <span className="font-bold text-[10px]">Tarjeta</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("transfer")}
-                    className={cn(
-                      "p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1",
-                      paymentMethod === "transfer"
-                        ? "border-purple-500 bg-purple-950/40 text-purple-300"
-                        : "border-[#263858] bg-[#080F1F] text-slate-400"
-                    )}
-                  >
-                    <Building className="w-4 h-4 text-emerald-400" />
-                    <span className="font-bold text-[10px]">Pix / SIPAP</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-[#263858] flex justify-end gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsCheckoutOpen(false)}
-                className="text-slate-400 text-xs"
-              >
-                Cancelar
-              </Button>
-
-              <Button
-                size="sm"
-                disabled={isPurchasing}
-                onClick={handleConfirmPurchase}
-                className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs gap-1.5 shadow-md shadow-purple-900/40 cursor-pointer"
-              >
-                {isPurchasing ? "Emitiendo Entrada..." : "Confirmar y Generar QR"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: Success Tickets Generated */}
-      {purchasedTickets && purchasedTickets.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-[#0A1322] border border-purple-500/50 rounded-3xl w-full max-w-lg p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="text-center space-y-2 pb-3 border-b border-[#263858]">
-              <div className="w-12 h-12 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center">
-                <CheckCircle2 className="w-7 h-7" />
-              </div>
-              <h3 className="text-lg font-black text-white">
-                ¡Entradas Adquiridas con Éxito!
-              </h3>
-              <p className="text-xs text-slate-400">
-                Tus pases están listos y guardados en tu Billetera Móvil VIDJS
-              </p>
-            </div>
-
-            {/* Tickets Cards */}
-            <div className="space-y-3">
-              {purchasedTickets.map((tkt, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white text-zinc-900 rounded-2xl p-4 shadow-xl border-2 border-dashed border-gray-300 relative overflow-hidden"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <span className="text-[10px] font-black uppercase text-purple-700 tracking-wider">
-                        {tkt.tierName}
-                      </span>
-                      <h4 className="text-base font-black text-black leading-tight">
-                        {tkt.eventName}
-                      </h4>
-                      <p className="text-xs text-gray-600 mt-1">
-                        Titular: <strong>{tkt.buyerName}</strong> • CI: {tkt.buyerDoc}
-                      </p>
-                      <p className="text-[11px] text-gray-500">
-                        {tkt.venueName} • {tkt.eventDate}
-                      </p>
-                      <div className="font-mono text-xs font-bold text-purple-900 mt-2">
-                        {tkt.id}
-                      </div>
-                    </div>
-
-                    {/* QR Code representation */}
-                    <div className="w-20 h-20 bg-black rounded-xl p-1.5 flex flex-col items-center justify-center shrink-0">
-                      <QrCode className="w-full h-full text-white" />
-                      <span className="text-[7px] text-purple-300 font-mono">VIDJS QR</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Actions */}
-            <div className="pt-2 flex flex-col sm:flex-row gap-2 border-t border-[#263858]">
-              <Link
-                href="/guest"
-                className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-md shadow-purple-900/40"
-              >
-                <Wallet className="w-3.5 h-3.5" />
-                <span>Ver en App Móvil / Billetera</span>
-              </Link>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPurchasedTickets(null)}
-                className="border-[#263858] text-xs text-slate-300"
-              >
-                Cerrar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* MODAL: Checkout / Métodos de Pago y Emisión de Entradas */}
+      <TicketPaymentModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        event={{
+          id: event?.id,
+          code: event.code,
+          name: event.name,
+          locationName: event.locationName,
+          timeSchedule: event.timeSchedule,
+          bannerUrl: event.bannerUrl,
+        }}
+        selectedTiers={selectedTiersList.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          price: t.price,
+          count: tierCounts[t.id] || 0,
+          formattedPrice: t.formattedPrice,
+        }))}
+        totalAmount={totalAmount}
+        onTicketPurchased={(tickets) => {
+          setTierCounts({});
+        }}
+      />
     </div>
   );
 }

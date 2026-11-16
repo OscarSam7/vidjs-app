@@ -58,6 +58,7 @@ import {
 } from "lucide-react";
 import { VipSelectModal, type VipSelectOption } from "@/components/ui/VipSelectModal";
 import { QsrModal } from "@/components/guest/QsrModal";
+import { TicketPaymentModal } from "@/components/events/TicketPaymentModal";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType, NextTurnCountdownPayload } from "@/lib/realtime/event-bus";
 import PwaInstallButton from "@/components/pwa/PwaInstallButton";
@@ -5299,159 +5300,69 @@ function GuestContent() {
         )}
       </div>
 
-      {/* MODAL MÓVIL: Adquisición Rápida de Entradas */}
+      {/* MODAL MÓVIL: Adquisición de Entradas con Métodos de Pago y Comprobante */}
       {selectedBuyEvent && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
-          <div className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <div>
-                <h3 className="text-base font-black text-white flex items-center gap-2">
-                  <Ticket className="w-5 h-5 text-purple-400" />
-                  <span>Adquirir Entrada Oficial</span>
-                </h3>
-                <p className="text-[11px] text-zinc-400 truncate max-w-[260px]">
-                  {selectedBuyEvent.name}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedBuyEvent(null)}
-                className="text-zinc-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Selector de Entradas */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-zinc-300 block">
-                Selecciona Tipo de Entrada:
-              </label>
-              {(selectedBuyEvent.tiers || []).map((tier: any) => {
-                const count = mobileSelectedTiers[tier.id] || 0;
-                return (
-                  <div
-                    key={tier.id}
-                    className="p-3 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-between gap-3"
-                  >
-                    <div>
-                      <h4 className="text-xs font-black text-white">{tier.name}</h4>
-                      <span className="text-[10px] text-zinc-400 block">{tier.available} disponibles</span>
-                      <span className="text-xs font-mono font-bold text-purple-400">{tier.formattedPrice}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 bg-black border border-zinc-800 rounded-xl p-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setMobileSelectedTiers((prev) => ({
-                            ...prev,
-                            [tier.id]: Math.max(0, (prev[tier.id] || 0) - 1),
-                          }))
-                        }
-                        className="w-6 h-6 rounded flex items-center justify-center text-zinc-400 hover:text-white text-xs cursor-pointer"
-                      >
-                        -
-                      </button>
-                      <span className="w-5 text-center text-xs font-black text-white">{count}</span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setMobileSelectedTiers((prev) => ({
-                            ...prev,
-                            [tier.id]: (prev[tier.id] || 0) + 1,
-                          }))
-                        }
-                        className="w-6 h-6 rounded flex items-center justify-center text-zinc-400 hover:text-white text-xs cursor-pointer"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Buyer fields */}
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="text-zinc-300 font-bold block mb-1">Tu Nombre Completo *</label>
-                <input
-                  type="text"
-                  value={mobileBuyerName}
-                  onChange={(e) => setMobileBuyerName(e.target.value)}
-                  placeholder="Ej: Juan Pérez"
-                  className="w-full px-3 py-2 rounded-xl bg-black border border-zinc-800 text-white text-xs outline-none focus:border-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-zinc-300 font-bold block mb-1">Documento (CI / DNI) *</label>
-                <input
-                  type="text"
-                  value={mobileBuyerDoc}
-                  onChange={(e) => setMobileBuyerDoc(e.target.value)}
-                  placeholder="Ej: 4.512.890"
-                  className="w-full px-3 py-2 rounded-xl bg-black border border-zinc-800 text-white text-xs outline-none focus:border-purple-500"
-                />
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-zinc-800 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedBuyEvent(null)}
-                className="px-3 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-bold"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                disabled={isBuyingMobileTicket}
-                onClick={() => {
-                  if (!mobileBuyerName.trim() || !mobileBuyerDoc.trim()) {
-                    alert("Completa tu Nombre y Documento CI para el boleto.");
-                    return;
-                  }
-                  setIsBuyingMobileTicket(true);
-                  const selectedTier = selectedBuyEvent.tiers?.[0] || {
-                    name: "ACCESO GENERAL",
-                    price: 25000,
-                    formattedPrice: "Gs. 25.000",
-                  };
-                  const tktNumber = Math.floor(100000 + Math.random() * 900000);
-                  const newTkt = {
-                    id: `VID-${selectedBuyEvent.code.slice(0, 8)}-${tktNumber}`,
-                    eventCode: selectedBuyEvent.code,
-                    eventName: selectedBuyEvent.name,
-                    tierName: selectedTier.name,
-                    tierPrice: selectedTier.price,
-                    formattedPrice: selectedTier.formattedPrice,
-                    buyerName: mobileBuyerName.trim(),
-                    buyerDoc: mobileBuyerDoc.trim(),
-                    venueName: selectedBuyEvent.locationName,
-                    eventDate: selectedBuyEvent.timeSchedule || "Próximamente",
-                    purchaseDate: new Date().toLocaleDateString("es-PY"),
-                    qrPayload: `VIDJS_AUTH:${selectedBuyEvent.code}:${tktNumber}:${mobileBuyerDoc.trim()}:VALID`,
-                  };
-
-                  const updated = [newTkt, ...myStoredTickets];
-                  setMyStoredTickets(updated);
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem("vidjs_purchased_tickets", JSON.stringify(updated));
-                  }
-                  setIsBuyingMobileTicket(false);
-                  setSelectedBuyEvent(null);
-                  setGuestEventsTab("wallet");
-                  setActiveQrModalTicket(newTkt);
-                }}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-black text-xs shadow-md shadow-purple-900/40"
-              >
-                {isBuyingMobileTicket ? "Generando..." : "Confirmar y Generar QR"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <TicketPaymentModal
+          isOpen={Boolean(selectedBuyEvent)}
+          onClose={() => setSelectedBuyEvent(null)}
+          event={{
+            id: selectedBuyEvent.id,
+            code: selectedBuyEvent.code,
+            name: selectedBuyEvent.name,
+            locationName: selectedBuyEvent.locationName,
+            timeSchedule: selectedBuyEvent.timeSchedule,
+            bannerUrl: selectedBuyEvent.bannerUrl,
+          }}
+          selectedTiers={
+            Object.entries(mobileSelectedTiers).filter(([_, count]) => count > 0).length > 0
+              ? Object.entries(mobileSelectedTiers)
+                  .filter(([_, count]) => count > 0)
+                  .map(([tierId, count]) => {
+                    const tier = (selectedBuyEvent.tiers || []).find((t: any) => t.id === tierId) || {
+                      id: tierId,
+                      name: "ACCESO GENERAL",
+                      price: 25000,
+                      formattedPrice: "Gs. 25.000",
+                    };
+                    return {
+                      id: tier.id,
+                      name: tier.name,
+                      price: tier.price,
+                      count,
+                      formattedPrice: tier.formattedPrice,
+                    };
+                  })
+              : [
+                  {
+                    id: selectedBuyEvent.tiers?.[0]?.id || "default",
+                    name: selectedBuyEvent.tiers?.[0]?.name || "ACCESO GENERAL",
+                    price: selectedBuyEvent.tiers?.[0]?.price || 25000,
+                    count: 1,
+                    formattedPrice: selectedBuyEvent.tiers?.[0]?.formattedPrice || "Gs. 25.000",
+                  },
+                ]
+          }
+          totalAmount={
+            Object.entries(mobileSelectedTiers).filter(([_, count]) => count > 0).length > 0
+              ? Object.entries(mobileSelectedTiers)
+                  .filter(([_, count]) => count > 0)
+                  .reduce((sum, [tierId, count]) => {
+                    const tier = (selectedBuyEvent.tiers || []).find((t: any) => t.id === tierId);
+                    return sum + (tier ? tier.price * count : 25000 * count);
+                  }, 0)
+              : (selectedBuyEvent.tiers?.[0]?.price || 25000)
+          }
+          initialBuyerName={session?.guestName || mobileBuyerName}
+          initialBuyerDoc={mobileBuyerDoc}
+          onTicketPurchased={(tickets) => {
+            setMyStoredTickets((prev) => [...tickets, ...prev]);
+            setGuestEventsTab("wallet");
+            if (tickets.length > 0) {
+              setActiveQrModalTicket(tickets[0]);
+            }
+            setSelectedBuyEvent(null);
+          }}
+        />
       )}
 
       {/* MODAL MÓVIL: Mostrar QR en Puerta (Pantalla Completa) */}
