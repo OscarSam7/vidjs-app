@@ -52,6 +52,9 @@ import {
   Upload,
   FileCheck,
   ListMusic,
+  Ticket,
+  ChevronRight,
+  Wallet,
 } from "lucide-react";
 import { VipSelectModal, type VipSelectOption } from "@/components/ui/VipSelectModal";
 import { QsrModal } from "@/components/guest/QsrModal";
