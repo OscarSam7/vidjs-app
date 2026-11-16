@@ -51,6 +51,7 @@ import {
   Calendar,
   Upload,
   FileCheck,
+  ListMusic,
 } from "lucide-react";
 import { VipSelectModal, type VipSelectOption } from "@/components/ui/VipSelectModal";
 import { QsrModal } from "@/components/guest/QsrModal";
@@ -293,7 +294,7 @@ function GuestContent() {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<"hub" | "catalog" | "my-requests" | "playlist" | "contest">("hub");
+  const [activeTab, setActiveTab] = useState<"hub" | "catalog" | "my-requests" | "queue" | "playlist" | "contest">("hub");
 
   // 🎵 Playlist Personal del Cliente (Pistas DJ y Karaoke)
   interface GuestPlaylistItem {
@@ -396,6 +397,63 @@ function GuestContent() {
   const [branding, setBranding] = useState<BrandingInfo | null>(null);
   const [copiedWifi, setCopiedWifi] = useState(false);
   const [loadingSession, setLoadingSession] = useState(true);
+
+  // 📋 Cola Pública en Vivo (DJ & Karaoke)
+  interface LiveQueueEntry {
+    id: string;
+    turnNumber: number;
+    songTitle: string;
+    artistName: string;
+    mode: "DJ" | "KARAOKE";
+    tableLabel: string;
+    guestName?: string | null;
+    coverUrl?: string | null;
+    youtubeId?: string | null;
+    isMyTable: boolean;
+    estimatedWaitMinutes: number;
+    createdAt: string;
+  }
+
+  interface LiveCurrentTrack {
+    id: string;
+    songTitle: string;
+    artistName: string;
+    mode: "DJ" | "KARAOKE";
+    tableLabel: string;
+    guestName?: string | null;
+    coverUrl?: string | null;
+    youtubeId?: string | null;
+    isMyTable: boolean;
+    duration?: number | null;
+  }
+
+  const [liveQueue, setLiveQueue] = useState<LiveQueueEntry[]>([]);
+  const [liveCurrentPlaying, setLiveCurrentPlaying] = useState<LiveCurrentTrack | null>(null);
+  const [queueFilterMode, setQueueFilterMode] = useState<"ALL" | "DJ" | "KARAOKE">("ALL");
+  const [queueCounts, setQueueCounts] = useState({ total: 0, dj: 0, karaoke: 0 });
+  const [isQueueLoading, setIsQueueLoading] = useState(false);
+
+  const fetchLiveQueue = async () => {
+    try {
+      setIsQueueLoading(true);
+      const code = eventParam || "";
+      const tId = session?.table?.id || "";
+      const res = await fetch(
+        `/api/v1/guest/queue?code=${encodeURIComponent(code)}&tableId=${encodeURIComponent(tId)}`
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data) {
+        setLiveQueue(data.queue || []);
+        setLiveCurrentPlaying(data.currentPlaying || null);
+        setQueueCounts(data.counts || { total: 0, dj: 0, karaoke: 0 });
+      }
+    } catch (e) {
+      console.error("Error al consultar cola en vivo:", e);
+    } finally {
+      setIsQueueLoading(false);
+    }
+  };
 
   // 🏆 Información del Certamen de Karaoke Activo esta Noche
   const [activeContestInfo, setActiveContestInfo] = useState<{
@@ -901,7 +959,14 @@ function GuestContent() {
     loadSessionAndRequests();
     fetchPublicActiveContest();
     loadPublicTables();
+    fetchLiveQueue();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "queue") {
+      fetchLiveQueue();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (isManageTableOpen || !session) {
@@ -1028,6 +1093,7 @@ function GuestContent() {
             }
           }
         } catch {}
+        fetchLiveQueue();
       } else if (
         type === "CONTEST_STAGE_CHANGE" ||
         type === "CONTEST_PERFORMANCE_UPDATE" ||
@@ -2385,12 +2451,12 @@ function GuestContent() {
 
       {/* 3. Contenido Principal de "Mi Noche" */}
       <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto w-full overflow-x-hidden space-y-4">
-        {/* Sub-navegación interna dentro de "Mi Noche": Inicio, Catálogo y Mis Pedidos */}
-        <div className="p-1.5 rounded-2xl bg-zinc-900/95 border border-zinc-800 flex items-center gap-1.5 shadow-inner">
+        {/* Sub-navegación interna dentro de "Mi Noche": Inicio, Catálogo, Mis Pedidos, Cola, Playlist y Concurso */}
+        <div className="p-1.5 rounded-2xl bg-zinc-900/95 border border-zinc-800 flex items-center gap-1.5 shadow-inner overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveTab("hub")}
-            className={`flex-1 py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 min-w-[70px] py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === "hub"
                 ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-900/50"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
@@ -2403,7 +2469,7 @@ function GuestContent() {
           <button
             type="button"
             onClick={() => setActiveTab("catalog")}
-            className={`flex-1 py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 min-w-[80px] py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === "catalog"
                 ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-900/50"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
@@ -2416,7 +2482,7 @@ function GuestContent() {
           <button
             type="button"
             onClick={() => setActiveTab("my-requests")}
-            className={`flex-1 py-2.5 px-1.5 sm:px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 min-w-[95px] py-2.5 px-1.5 sm:px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === "my-requests"
                 ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-900/50"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
@@ -2439,8 +2505,32 @@ function GuestContent() {
 
           <button
             type="button"
+            onClick={() => setActiveTab("queue")}
+            className={`flex-1 min-w-[75px] py-2.5 px-1.5 sm:px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+              activeTab === "queue"
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-900/50"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
+            }`}
+          >
+            <ListMusic className="w-3.5 h-3.5 shrink-0" />
+            <span>Cola</span>
+            {liveQueue.length > 0 && (
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                  activeTab === "queue"
+                    ? "bg-white text-emerald-700"
+                    : "bg-emerald-600 text-white"
+                }`}
+              >
+                {liveQueue.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab("playlist")}
-            className={`flex-1 py-2.5 px-1.5 sm:px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 min-w-[80px] py-2.5 px-1.5 sm:px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
               activeTab === "playlist"
                 ? "bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-md shadow-pink-900/50"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
@@ -2465,7 +2555,7 @@ function GuestContent() {
             <button
               type="button"
               onClick={() => setActiveTab("contest")}
-              className={`flex-1 py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 min-w-[85px] py-2.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 activeTab === "contest"
                   ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-md shadow-amber-900/50"
                   : "text-amber-400 hover:text-amber-200 hover:bg-amber-950/30"
@@ -3902,6 +3992,304 @@ function GuestContent() {
                   ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* PESTAÑA: COLA DE REPRODUCCIÓN EN VIVO (DJ Y KARAOKE) */}
+        {activeTab === "queue" && (
+          <div className="space-y-4 animate-fadeIn">
+            {/* Cabecera de la Cola */}
+            <div className="p-4 rounded-3xl bg-gradient-to-br from-emerald-950/60 via-zinc-950 to-zinc-900 border border-emerald-500/30 shadow-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 flex items-center justify-center text-white shadow-lg shadow-emerald-900/40">
+                    <ListMusic className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-white flex items-center gap-2">
+                      Cola en Vivo
+                      <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        Al Aire
+                      </span>
+                    </h2>
+                    <p className="text-xs text-zinc-400">
+                      Canciones en espera y sonando en la cabina del DJ y Karaoke
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => fetchLiveQueue()}
+                  disabled={isQueueLoading}
+                  className="p-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700/60 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-md"
+                  title="Refrescar lista de cola"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isQueueLoading ? "animate-spin text-emerald-400" : ""}`} />
+                </button>
+              </div>
+
+              {/* Filtro de Cola: Todas, DJ, Karaoke */}
+              <div className="flex items-center gap-2 pt-1 border-t border-zinc-800/80 overflow-x-auto no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setQueueFilterMode("ALL")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                    queueFilterMode === "ALL"
+                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-950/40 font-extrabold"
+                      : "bg-zinc-800/60 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                  }`}
+                >
+                  <span>Todas</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/40">
+                    {queueCounts.total}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setQueueFilterMode("DJ")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                    queueFilterMode === "DJ"
+                      ? "bg-amber-600 text-black shadow-md shadow-amber-950/40 font-extrabold"
+                      : "bg-zinc-800/60 text-amber-400/80 hover:text-amber-300 hover:bg-zinc-800"
+                  }`}
+                >
+                  <Headphones className="w-3.5 h-3.5" />
+                  <span>Pistas DJ</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/40">
+                    {queueCounts.dj}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setQueueFilterMode("KARAOKE")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                    queueFilterMode === "KARAOKE"
+                      ? "bg-cyan-600 text-white shadow-md shadow-cyan-950/40 font-extrabold"
+                      : "bg-zinc-800/60 text-cyan-400/80 hover:text-cyan-300 hover:bg-zinc-800"
+                  }`}
+                >
+                  <Mic className="w-3.5 h-3.5" />
+                  <span>Karaoke</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/40">
+                    {queueCounts.karaoke}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Tarjeta HERO: Sonando Ahora en Cabina / Pantalla */}
+            <div className="p-4 rounded-3xl bg-gradient-to-br from-purple-950/40 via-zinc-900 to-zinc-950 border border-purple-500/30 shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/10 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-purple-300 flex items-center gap-2">
+                  <span className="flex gap-0.5 items-end h-3">
+                    <span className="w-1 bg-purple-400 rounded-full animate-bounce h-3" />
+                    <span className="w-1 bg-purple-400 rounded-full animate-bounce [animation-delay:150ms] h-2" />
+                    <span className="w-1 bg-purple-400 rounded-full animate-bounce [animation-delay:300ms] h-3" />
+                  </span>
+                  Sonando Ahora Mismo
+                </span>
+
+                {liveCurrentPlaying && (
+                  <span
+                    className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                      liveCurrentPlaying.mode === "DJ"
+                        ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                        : "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"
+                    }`}
+                  >
+                    {liveCurrentPlaying.mode === "DJ" ? "🎧 Pista DJ" : "🎤 Karaoke"}
+                  </span>
+                )}
+              </div>
+
+              {liveCurrentPlaying ? (
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center shrink-0 shadow-lg relative overflow-hidden">
+                    <Disc3 className="w-6 h-6 text-purple-400 animate-spin [animation-duration:4s]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-black text-white truncate">
+                      {liveCurrentPlaying.songTitle}
+                    </h3>
+                    <p className="text-xs text-zinc-300 font-medium truncate">
+                      {liveCurrentPlaying.artistName}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[11px] text-zinc-400">
+                        {liveCurrentPlaying.tableLabel}
+                      </span>
+                      {liveCurrentPlaying.guestName && (
+                        <>
+                          <span className="text-zinc-600">•</span>
+                          <span className="text-[11px] text-zinc-400 truncate">
+                            {liveCurrentPlaying.guestName}
+                          </span>
+                        </>
+                      )}
+                      {liveCurrentPlaying.isMyTable && (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 border border-amber-400/40 animate-pulse">
+                          🌟 ¡Tu Mesa al Aire!
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-2 flex items-center gap-3 text-zinc-400">
+                  <Disc3 className="w-5 h-5 text-zinc-500 shrink-0" />
+                  <p className="text-xs">
+                    La cabina está en transición o esperando la siguiente pista de la noche.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Lista de Próximos Turnos */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-zinc-400" />
+                  Próximos en Cola ({
+                    liveQueue.filter(
+                      (item) => queueFilterMode === "ALL" || item.mode === queueFilterMode
+                    ).length
+                  })
+                </h3>
+                <span className="text-[11px] text-zinc-500">
+                  Actualización en tiempo real
+                </span>
+              </div>
+
+              {liveQueue.filter(
+                (item) => queueFilterMode === "ALL" || item.mode === queueFilterMode
+              ).length === 0 ? (
+                <div className="p-8 rounded-3xl bg-zinc-900/40 border border-zinc-800/60 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-800/80 flex items-center justify-center mx-auto text-zinc-500">
+                    <ListMusic className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-white">
+                      No hay temas en espera
+                    </h4>
+                    <p className="text-xs text-zinc-400 max-w-xs mx-auto">
+                      ¡Aprovecha que la cabina está libre! Pide tu canción favorita de DJ o Karaoke y suena de inmediato.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("catalog")}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all cursor-pointer shadow-lg shadow-emerald-950/40"
+                  >
+                    Pedir una Canción Ahora
+                  </button>
+                </div>
+              ) : (
+                liveQueue
+                  .filter(
+                    (item) => queueFilterMode === "ALL" || item.mode === queueFilterMode
+                  )
+                  .map((item, idx) => (
+                    <div
+                      key={item.id}
+                      className={`p-3.5 rounded-2xl transition-all flex items-center justify-between gap-3 ${
+                        item.isMyTable
+                          ? "bg-gradient-to-r from-amber-950/40 via-zinc-900 to-purple-950/40 border-2 border-amber-500/60 shadow-lg shadow-amber-950/20"
+                          : "bg-zinc-900/80 border border-zinc-800/80 hover:border-zinc-700/80"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Turno badge */}
+                        <div
+                          className={`w-9 h-9 rounded-xl flex flex-col items-center justify-center shrink-0 border font-black text-xs ${
+                            idx === 0
+                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm"
+                              : item.isMyTable
+                              ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                              : "bg-zinc-800 text-zinc-300 border-zinc-700/60"
+                          }`}
+                        >
+                          <span className="text-[9px] uppercase font-bold text-zinc-400 leading-none">
+                            {idx === 0 ? "SIG" : "#"}
+                          </span>
+                          <span className="leading-tight">{item.turnNumber}</span>
+                        </div>
+
+                        {/* Info de la pista */}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <h4 className="text-sm font-bold text-white truncate">
+                              {item.songTitle}
+                            </h4>
+                            {item.isMyTable && (
+                              <span className="text-[10px] font-black px-1.5 py-0.2 rounded-md bg-amber-400 text-black shrink-0">
+                                ⭐ Tu Pedido
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 text-xs text-zinc-400 mt-0.5">
+                            <span className="truncate">{item.artistName}</span>
+                            <span>•</span>
+                            <span className="text-zinc-300 font-medium">
+                              {item.tableLabel}
+                            </span>
+                            {item.guestName && (
+                              <>
+                                <span>•</span>
+                                <span className="truncate">{item.guestName}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Lado derecho: Modo y tiempo estimado */}
+                      <div className="flex flex-col items-end shrink-0 gap-1">
+                        <span
+                          className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
+                            item.mode === "DJ"
+                              ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                              : "bg-cyan-500/10 text-cyan-300 border-cyan-500/30"
+                          }`}
+                        >
+                          {item.mode === "DJ" ? (
+                            <>
+                              <Headphones className="w-3 h-3" />
+                              DJ
+                            </>
+                          ) : (
+                            <>
+                              <Mic className="w-3 h-3" />
+                              Karaoke
+                            </>
+                          )}
+                        </span>
+                        <span className="text-[10px] text-zinc-500 font-mono">
+                          ~{item.estimatedWaitMinutes} min
+                        </span>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+
+            {/* Botón flotante para pedir canción desde la cola */}
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => setActiveTab("catalog")}
+                className="w-full py-3 px-4 rounded-2xl bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700/60 text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md"
+              >
+                <Music className="w-4 h-4 text-emerald-400" />
+                <span>Explorar Catálogo y Agregar a la Cola</span>
+              </button>
+            </div>
           </div>
         )}
 
