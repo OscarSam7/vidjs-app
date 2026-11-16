@@ -21,7 +21,26 @@ export async function POST(req: NextRequest) {
       isAnonymous = true,
       customerName,
       customerPhone,
+      verificationType,
+      verificationBadge,
+      ticketCode,
+      ticketEventName,
     } = body;
+
+    // Validación de Cliente Verificado (Mesa ocupada, Entrada adquirida o Sesión activa)
+    const hasTable = Boolean(rawTableId || rawTableNumber);
+    const hasTicket = Boolean(ticketCode || verificationType === "TICKET");
+    const hasGuestSession = Boolean(rawGuestSessionId);
+
+    if (!hasTable && !hasTicket && !hasGuestSession) {
+      return NextResponse.json(
+        {
+          error:
+            "Acceso restringido: El Buzón QSR está habilitado exclusivamente para clientes verificados del establecimiento (con mesa ocupada, entrada oficial adquirida o consumo activo).",
+        },
+        { status: 403 }
+      );
+    }
 
     if (!comment || typeof comment !== "string" || comment.trim().length < 3) {
       return NextResponse.json(
@@ -101,6 +120,12 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Crear Ticket QSR
+    const verificationMeta = ticketCode
+      ? `[Verificado por Entrada Oficial] Código: ${ticketCode}${ticketEventName ? ` | Evento: ${ticketEventName}` : ""}`
+      : hasTable
+      ? `[Verificado por Mesa Presencial] Mesa: ${resolvedTableNumber || resolvedTableName || "En Local"}`
+      : `[Verificado por Sesión Activa de Consumo]`;
+
     const ticket = await prisma.qsrTicket.create({
       data: {
         tenantId: resolvedTenantId,
@@ -119,6 +144,15 @@ export async function POST(req: NextRequest) {
         customerName: !isAnonymous && customerName ? sanitizeText(customerName).slice(0, 100) : null,
         customerPhone: !isAnonymous && customerPhone ? sanitizeText(customerPhone).slice(0, 40) : null,
         status: "PENDING",
+        internalNotes: JSON.stringify([
+          {
+            id: "verif-init",
+            text: `Validación automática: ${verificationMeta}`,
+            authorRole: "SYSTEM_GATE",
+            authorName: "Auditoría de Acceso QSR",
+            createdAt: new Date().toISOString(),
+          },
+        ]),
       },
     });
 

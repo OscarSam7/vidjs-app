@@ -2283,6 +2283,9 @@ function GuestContent() {
             >
               <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
               <span>Buzón QSR</span>
+              {(session?.table || myStoredTickets.length > 0 || myRequests.length > 0) && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" title="Cliente Verificado" />
+              )}
             </button>
           </div>
 
@@ -6203,6 +6206,9 @@ function GuestContent() {
         tableNumber={session?.table ? String(session.table.number) : null}
         tableName={session?.table?.label || null}
         guestSessionId={null}
+        purchasedTickets={myStoredTickets}
+        hasActiveConsumption={Boolean(myRequests && myRequests.length > 0)}
+        onRequestSelectTable={() => setIsManageTableOpen(true)}
       />
 
       {/* Footer link to DJ / Staff Login & Buzón QSR */}
