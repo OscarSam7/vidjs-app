@@ -57,7 +57,10 @@ import {
   ChevronLeft,
   Pause,
   Wallet,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext";
 import { VipSelectModal, type VipSelectOption } from "@/components/ui/VipSelectModal";
 import { QsrModal } from "@/components/guest/QsrModal";
 import { TicketPaymentModal } from "@/components/events/TicketPaymentModal";
@@ -229,6 +232,7 @@ function compressImageFile(file: File, maxWidth = 1200, maxHeight = 1200, qualit
 }
 
 function GuestContent() {
+  const { theme, setTheme } = useTheme();
   const searchParams = useSearchParams();
   const errorParam = searchParams.get("error");
   const venueParam = searchParams.get("venue");
@@ -668,7 +672,7 @@ function GuestContent() {
       shortLabel: "Playlist",
       icon: Heart,
       badge: guestPlaylist.length > 0 ? guestPlaylist.length : undefined,
-      badgeTone: "bg-pink-600 text-white",
+      badgeTone: "bg-pink-500/30 text-pink-300 border border-pink-500/40 font-extrabold",
     },
     {
       id: "events",
@@ -678,8 +682,8 @@ function GuestContent() {
       badge: myStoredTickets.length > 0 ? myStoredTickets.length : "En Venta",
       badgeTone:
         myStoredTickets.length > 0
-          ? "bg-emerald-500 text-black"
-          : "bg-gradient-to-r from-red-500 to-pink-500 text-white",
+          ? "bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-extrabold"
+          : "bg-purple-500/30 text-purple-300 border border-purple-500/40 font-bold",
     },
     ...(activeContestInfo
       ? [
@@ -2476,6 +2480,30 @@ function GuestContent() {
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" title="Cliente Verificado" />
               )}
             </button>
+
+            {/* 🎨 Selector de Tema para el Cliente (Oscuro / Azul Francia / Claro) */}
+            <button
+              type="button"
+              onClick={() => {
+                const nextTheme = theme === "dark" ? "blue" : theme === "blue" ? "light" : "dark";
+                setTheme(nextTheme);
+              }}
+              className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/60 hover:border-purple-500/50 text-[11px] font-semibold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 active:scale-95"
+              title={`Color del tema: ${
+                theme === "light" ? "Modo Claro" : theme === "blue" ? "Azul Francia" : "Modo Oscuro"
+              }. Toca para cambiar.`}
+            >
+              {theme === "light" ? (
+                <Sun className="w-3.5 h-3.5 text-amber-400" />
+              ) : theme === "blue" ? (
+                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+              ) : (
+                <Moon className="w-3.5 h-3.5 text-purple-400" />
+              )}
+              <span>
+                {theme === "light" ? "Claro" : theme === "blue" ? "Azul" : "Oscuro"}
+              </span>
+            </button>
           </div>
 
           {/* Instalar App PWA */}
@@ -2707,11 +2735,12 @@ function GuestContent() {
             {/* Pestañas de Navegación del Carrusel con Desplazamiento Centrado Suave y Separación Amplia */}
             <div
               ref={tabBarScrollRef}
-              className="flex-1 p-1.5 rounded-xl bg-zinc-900/95 border border-zinc-800 flex items-center gap-3 sm:gap-4 shadow-inner overflow-x-auto no-scrollbar scroll-smooth px-2.5"
+              className="flex-1 p-1.5 rounded-xl bg-zinc-900/95 border border-zinc-800 flex items-center gap-3.5 sm:gap-5 shadow-inner overflow-x-auto no-scrollbar scroll-smooth px-3"
             >
               {CAROUSEL_TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
                 const Icon = tab.icon;
+                const isEventsTab = tab.id === "events";
 
                 return (
                   <button
@@ -2719,19 +2748,21 @@ function GuestContent() {
                     id={`carousel-nav-tab-${tab.id}`}
                     type="button"
                     onClick={() => goToSlide(tab.id)}
-                    className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
+                    className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
+                      isEventsTab ? "ml-1.5" : ""
+                    } ${
                       isActive
                         ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white shadow-lg shadow-purple-900/50 ring-2 ring-purple-400/40"
-                        : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/70 border border-transparent hover:border-zinc-700/60"
+                        : "bg-zinc-950/70 text-zinc-300 hover:text-white hover:bg-zinc-800/80 border border-zinc-800/90 hover:border-purple-500/40 shadow-sm"
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5 shrink-0" />
                     <span>{tab.shortLabel}</span>
                     {tab.badge !== undefined && (
                       <span
-                        className={`ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-black shrink-0 shadow-sm ${
+                        className={`ml-2 px-2 py-0.5 rounded-full text-[9px] font-black shrink-0 shadow-sm ${
                           isActive
-                            ? "bg-white text-purple-700 font-extrabold"
+                            ? "bg-white text-purple-700 font-extrabold shadow-sm"
                             : tab.badgeTone || "bg-purple-600 text-white"
                         }`}
                       >

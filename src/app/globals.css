@@ -58,6 +58,34 @@ html.blue {
   --brand-red: #f87171;
 }
 
+/* ========================================================================= */
+/* MODO CLARO (LIGHT THEME)                                                 */
+/* ========================================================================= */
+html.light {
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --sidebar-bg: #FFFFFF;
+  --card-bg: #FFFFFF;
+  --card-bg-elevated: #F1F5F9;
+  --card-bg-subtle: #F8FAFC;
+  --card-border: #E2E8F0;
+  --card-border-subtle: #EDF2F7;
+  --card-border-hover: #CBD5E1;
+
+  --text-heading: #0F172A;
+  --text-body: #1E293B;
+  --text-muted: #64748B;
+  --text-subtle: #94A3B8;
+
+  --brand-purple: #7C3AED;
+  --brand-purple-dark: #6D28D9;
+  --brand-cyan: #0284C7;
+  --brand-amber: #D97706;
+  --brand-emerald: #059669;
+  --brand-pink: #DB2777;
+  --brand-red: #DC2626;
+}
+
 body {
   color: var(--foreground);
   background-color: var(--background);
@@ -309,4 +337,168 @@ html.blue:not(:has([data-display="tv"])) #bottom-navigation-dock-toast {
   border-color: #2563eb !important;
   color: #f0f6ff !important;
   box-shadow: 0 10px 30px rgba(4, 10, 24, 0.9) !important;
+}
+
+/* ========================================================================= */
+/* ESTILOS Y CONTRASTE PARA MODO CLARO (LIGHT THEME)                        */
+/* ========================================================================= */
+
+html.light body:not(:has([data-display="tv"])) {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* 1. FONDOS GENERALES DE PÁGINA */
+html.light:not(:has([data-display="tv"])) .bg-\[\#070709\],
+html.light:not(:has([data-display="tv"])) .bg-\[\#080F1F\],
+html.light:not(:has([data-display="tv"])) .bg-\[\#09090b\],
+html.light:not(:has([data-display="tv"])) .bg-\[\#050507\],
+html.light:not(:has([data-display="tv"])) .bg-\[\#0A1322\],
+html.light:not(:has([data-display="tv"])) .bg-\[\#0D1930\],
+html.light:not(:has([data-display="tv"])) .bg-zinc-950\/95,
+html.light:not(:has([data-display="tv"])) .bg-black {
+  background-color: #f8fafc !important;
+}
+
+/* 2. TARJETAS Y CONTENEDORES PRINCIPALES */
+html.light:not(:has([data-display="tv"])) .bg-zinc-950,
+html.light:not(:has([data-display="tv"])) .bg-zinc-900,
+html.light:not(:has([data-display="tv"])) .bg-\[\#111F38\],
+html.light:not(:has([data-display="tv"])) .bg-\[\#0F1E36\],
+html.light:not(:has([data-display="tv"])) [class^="bg-zinc-950"]:not([class*="hover:"]),
+html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-950"]:not([class*="hover:"]),
+html.light:not(:has([data-display="tv"])) [class^="bg-zinc-900"]:not([class*="hover:"]),
+html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-900"]:not([class*="hover:"]) {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06);
+}
+
+/* 3. CONTENEDORES SECUNDARIOS / TABLAS / WELLS */
+html.light:not(:has([data-display="tv"])) .bg-zinc-850,
+html.light:not(:has([data-display="tv"])) .bg-zinc-800,
+html.light:not(:has([data-display="tv"])) .bg-\[\#080F1F\],
+html.light:not(:has([data-display="tv"])) [class^="bg-zinc-850"]:not([class*="hover:"]),
+html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-850"]:not([class*="hover:"]),
+html.light:not(:has([data-display="tv"])) [class^="bg-zinc-800"]:not([class*="hover:"]),
+html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-800"]:not([class*="hover:"]) {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* 4. HOVER EN MODO CLARO */
+html.light:not(:has([data-display="tv"])) .hover\:bg-zinc-900:hover,
+html.light:not(:has([data-display="tv"])) [class*="hover:bg-zinc-900"]:hover,
+html.light:not(:has([data-display="tv"])) .hover\:bg-zinc-800:hover,
+html.light:not(:has([data-display="tv"])) [class*="hover:bg-zinc-800"]:hover {
+  background-color: #f1f5f9 !important;
+}
+
+html.light:not(:has([data-display="tv"])) .hover\:border-zinc-700:hover,
+html.light:not(:has([data-display="tv"])) [class*="hover:border-zinc-700"]:hover,
+html.light:not(:has([data-display="tv"])) .hover\:border-zinc-800:hover,
+html.light:not(:has([data-display="tv"])) [class*="hover:border-zinc-800"]:hover {
+  border-color: #94a3b8 !important;
+}
+
+/* 5. BORDES EN MODO CLARO */
+html.light:not(:has([data-display="tv"])) .border-zinc-800,
+html.light:not(:has([data-display="tv"])) .border-zinc-850,
+html.light:not(:has([data-display="tv"])) .border-zinc-750,
+html.light:not(:has([data-display="tv"])) .border-zinc-700,
+html.light:not(:has([data-display="tv"])) .border-\[\#263858\],
+html.light:not(:has([data-display="tv"])) [class*="border-zinc-800"],
+html.light:not(:has([data-display="tv"])) [class*="border-zinc-850"],
+html.light:not(:has([data-display="tv"])) [class*="border-zinc-700"] {
+  border-color: #e2e8f0 !important;
+}
+
+/* 6. TIPOGRAFÍA EN MODO CLARO */
+html.light:not(:has([data-display="tv"])) h1,
+html.light:not(:has([data-display="tv"])) h2,
+html.light:not(:has([data-display="tv"])) h3,
+html.light:not(:has([data-display="tv"])) h4,
+html.light:not(:has([data-display="tv"])) h5,
+html.light:not(:has([data-display="tv"])) h6,
+html.light:not(:has([data-display="tv"])) .text-white {
+  color: #0f172a !important;
+}
+
+html.light:not(:has([data-display="tv"])) p,
+html.light:not(:has([data-display="tv"])) .text-zinc-100,
+html.light:not(:has([data-display="tv"])) .text-zinc-200,
+html.light:not(:has([data-display="tv"])) .text-slate-200 {
+  color: #1e293b !important;
+}
+
+html.light:not(:has([data-display="tv"])) .text-zinc-300,
+html.light:not(:has([data-display="tv"])) .text-slate-300 {
+  color: #334155 !important;
+}
+
+html.light:not(:has([data-display="tv"])) .text-zinc-400,
+html.light:not(:has([data-display="tv"])) .text-slate-400 {
+  color: #64748b !important;
+}
+
+html.light:not(:has([data-display="tv"])) .text-zinc-500,
+html.light:not(:has([data-display="tv"])) .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+/* 7. FORMULARIOS E INPUTS EN MODO CLARO */
+html.light:not(:has([data-display="tv"])) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+html.light:not(:has([data-display="tv"])) select,
+html.light:not(:has([data-display="tv"])) textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light:not(:has([data-display="tv"])) input::placeholder,
+html.light:not(:has([data-display="tv"])) textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light:not(:has([data-display="tv"])) input:focus,
+html.light:not(:has([data-display="tv"])) select:focus,
+html.light:not(:has([data-display="tv"])) textarea:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
+}
+
+/* 8. SIDEBAR Y HEADER EN MODO CLARO */
+html.light:not(:has([data-display="tv"])) aside {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light:not(:has([data-display="tv"])) header {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* 9. NAVEGACIÓN DOCK INFERIOR EN MODO CLARO */
+html.light:not(:has([data-display="tv"])) #bottom-navigation-dock,
+html.light:not(:has([data-display="tv"])) [data-dock="navigation"] > div {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light:not(:has([data-display="tv"])) #bottom-navigation-dock button,
+html.light:not(:has([data-display="tv"])) [data-dock="navigation"] button {
+  color: #334155 !important;
+}
+
+html.light:not(:has([data-display="tv"])) #bottom-navigation-dock button:hover,
+html.light:not(:has([data-display="tv"])) [data-dock="navigation"] button:hover {
+  background-color: #f1f5f9 !important;
+}
+
+html.light:not(:has([data-display="tv"])) #bottom-navigation-dock-toast {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12) !important;
 }

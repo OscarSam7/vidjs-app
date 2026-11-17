@@ -62,6 +62,7 @@ import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType, NextTurnCountdownPayload } from "@/lib/realtime/event-bus";
 import { parseQueuePolicy, QueuePolicy } from "@/lib/dj/rotation";
 import PwaInstallButton from "@/components/pwa/PwaInstallButton";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 interface SongRequestData {
   id: string;
@@ -1595,6 +1596,10 @@ export default function DjBoothPage() {
 
                   <div className="shrink-0 whitespace-nowrap">
                     <PwaInstallButton variant="dj" />
+                  </div>
+
+                  <div className="shrink-0 whitespace-nowrap">
+                    <ThemeToggle variant="dropdown" />
                   </div>
                 </>
               )}

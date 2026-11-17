@@ -2,12 +2,12 @@
 
 import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
 
-export type Theme = "dark" | "blue";
+export type Theme = "dark" | "blue" | "light";
 
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  resolvedTheme: "dark" | "blue";
+  resolvedTheme: "dark" | "blue" | "light";
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -16,11 +16,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
 
-  // Cargar preferencia guardada de localStorage al montar (migrando sistema/claro -> oscuro/azul)
+  // Cargar preferencia guardada de localStorage al montar
   useEffect(() => {
     try {
       const saved = localStorage.getItem("vidjeis_theme");
-      if (saved === "blue" || saved === "french-blue" || saved === "light") {
+      if (saved === "light") {
+        setThemeState("light");
+      } else if (saved === "blue" || saved === "french-blue") {
         setThemeState("blue");
       } else {
         setThemeState("dark");
@@ -30,27 +32,25 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  const resolvedTheme: "dark" | "blue" = useMemo(() => {
-    return theme === "blue" ? "blue" : "dark";
+  const resolvedTheme: "dark" | "blue" | "light" = useMemo(() => {
+    if (theme === "light") return "light";
+    if (theme === "blue") return "blue";
+    return "dark";
   }, [theme]);
 
   useEffect(() => {
     if (!mounted) return;
     const root = document.documentElement;
-    root.classList.remove("light");
-    if (resolvedTheme === "blue") {
-      root.classList.remove("dark");
-      root.classList.add("blue");
-    } else {
-      root.classList.remove("blue");
-      root.classList.add("dark");
-    }
+    root.classList.remove("dark", "blue", "light");
+    root.classList.add(resolvedTheme);
   }, [resolvedTheme, mounted]);
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
     try {
       localStorage.setItem("vidjeis_theme", newTheme);
+      // Notificar a otras ventanas o pestañas si es necesario
+      window.dispatchEvent(new CustomEvent("vidjeis-theme-changed", { detail: { theme: newTheme } }));
     } catch {}
   };
 

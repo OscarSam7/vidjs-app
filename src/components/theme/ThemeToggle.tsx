@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Moon, Sparkles, Check } from "lucide-react";
+import { Moon, Sparkles, Sun, Check } from "lucide-react";
 import { useTheme, Theme } from "@/context/ThemeContext";
 
 interface ThemeToggleProps {
@@ -25,7 +25,7 @@ export function ThemeToggle({ variant = "dropdown", className = "" }: ThemeToggl
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const options: { value: Theme; label: string; desc: string; icon: typeof Moon }[] = [
+  const options: { value: Theme; label: string; desc: string; icon: any }[] = [
     {
       value: "dark",
       label: "Modo Oscuro",
@@ -37,6 +37,12 @@ export function ThemeToggle({ variant = "dropdown", className = "" }: ThemeToggl
       label: "Azul Francia",
       desc: "Estilo sofisticado en azul francia real de alto contraste",
       icon: Sparkles,
+    },
+    {
+      value: "light",
+      label: "Modo Claro",
+      desc: "Interfaz diurna limpia con fondo blanco y alta luminosidad",
+      icon: Sun,
     },
   ];
 
@@ -51,9 +57,11 @@ export function ThemeToggle({ variant = "dropdown", className = "" }: ThemeToggl
               key={opt.value}
               type="button"
               onClick={() => setTheme(opt.value)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                 isActive
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                  ? opt.value === "light"
+                    ? "bg-amber-500 text-black shadow-md shadow-amber-500/30 font-bold"
+                    : "bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               }`}
               title={opt.desc}
@@ -69,7 +77,7 @@ export function ThemeToggle({ variant = "dropdown", className = "" }: ThemeToggl
 
   if (variant === "cards") {
     return (
-      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3.5 ${className}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3.5 ${className}`}>
         {options.map((opt) => {
           const Icon = opt.icon;
           const isActive = theme === opt.value;
@@ -88,7 +96,9 @@ export function ThemeToggle({ variant = "dropdown", className = "" }: ThemeToggl
                 <div
                   className={`p-2.5 rounded-xl border ${
                     isActive
-                      ? "bg-blue-600 text-white border-blue-400"
+                      ? opt.value === "light"
+                        ? "bg-amber-500 text-black border-amber-400"
+                        : "bg-blue-600 text-white border-blue-400"
                       : "bg-zinc-800 text-zinc-300 border-zinc-700"
                   }`}
                 >
@@ -114,6 +124,11 @@ export function ThemeToggle({ variant = "dropdown", className = "" }: ThemeToggl
                     <div className="w-12 h-2.5 bg-[#1d4ed8] rounded" />
                     <div className="w-5 h-2.5 bg-[#3b82f6] rounded" />
                   </div>
+                ) : opt.value === "light" ? (
+                  <div className="w-full h-full bg-[#f8fafc] rounded-lg p-1.5 flex items-center justify-between border border-[#cbd5e1]">
+                    <div className="w-12 h-2.5 bg-[#ffffff] border border-[#e2e8f0] rounded" />
+                    <div className="w-5 h-2.5 bg-[#3b82f6] rounded" />
+                  </div>
                 ) : (
                   <div className="w-full h-full bg-zinc-950 rounded-lg p-1.5 flex items-center justify-between border border-zinc-800">
                     <div className="w-12 h-2.5 bg-zinc-800 rounded" />
@@ -129,7 +144,7 @@ export function ThemeToggle({ variant = "dropdown", className = "" }: ThemeToggl
   }
 
   // Variant Dropdown (para Topbar)
-  const CurrentIcon = theme === "blue" ? Sparkles : Moon;
+  const CurrentIcon = theme === "light" ? Sun : theme === "blue" ? Sparkles : Moon;
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -137,12 +152,22 @@ export function ThemeToggle({ variant = "dropdown", className = "" }: ThemeToggl
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900 border border-zinc-800 transition-colors shrink-0 cursor-pointer flex items-center gap-1.5"
-        title={`Tema de aplicación: ${theme === "blue" ? "Azul Francia" : "Modo Oscuro"}`}
+        title={`Tema de aplicación: ${
+          theme === "light" ? "Modo Claro" : theme === "blue" ? "Azul Francia" : "Modo Oscuro"
+        }`}
         aria-label="Cambiar tema de la aplicación"
       >
-        <CurrentIcon className={`w-4 h-4 ${theme === "blue" ? "text-blue-400" : "text-purple-400"}`} />
+        <CurrentIcon
+          className={`w-4 h-4 ${
+            theme === "light"
+              ? "text-amber-400"
+              : theme === "blue"
+              ? "text-blue-400"
+              : "text-purple-400"
+          }`}
+        />
         <span className="hidden sm:inline text-xs font-semibold text-zinc-300">
-          {theme === "blue" ? "Azul Francia" : "Oscuro"}
+          {theme === "light" ? "Claro" : theme === "blue" ? "Azul Francia" : "Oscuro"}
         </span>
       </button>
 
@@ -169,7 +194,15 @@ export function ThemeToggle({ variant = "dropdown", className = "" }: ThemeToggl
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-blue-400" : "text-zinc-400"}`} />
+                  <Icon
+                    className={`w-3.5 h-3.5 ${
+                      isSelected
+                        ? opt.value === "light"
+                          ? "text-amber-400"
+                          : "text-blue-400"
+                        : "text-zinc-400"
+                    }`}
+                  />
                   <span>{opt.label}</span>
                 </div>
                 {isSelected && <Check className="w-3.5 h-3.5 text-blue-400" />}

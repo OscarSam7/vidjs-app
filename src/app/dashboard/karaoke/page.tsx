@@ -38,6 +38,7 @@ import {
   BookmarkCheck,
   Loader2,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import KaraokeVideoModal from "@/components/dj/KaraokeVideoModal";
 import DjSoundboard from "@/components/dj/DjSoundboard";
 import ManualRequestModal from "@/components/dj/ManualRequestModal";
@@ -795,6 +796,9 @@ export default function KaraokeBoothPage() {
 
           {/* Botones de Cabecera */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Selector de Tema */}
+            <ThemeToggle variant="dropdown" />
+
             {/* Cambiar a Cabina DJ */}
             <Link
               href="/dashboard/dj"

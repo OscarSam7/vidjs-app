@@ -44,7 +44,10 @@ export default function RootLayout({
             __html: `
               try {
                 const storedTheme = localStorage.getItem('vidjeis_theme') || 'dark';
-                if (storedTheme === 'blue' || storedTheme === 'french-blue' || storedTheme === 'light') {
+                if (storedTheme === 'light') {
+                  document.documentElement.classList.remove('dark', 'blue');
+                  document.documentElement.classList.add('light');
+                } else if (storedTheme === 'blue' || storedTheme === 'french-blue') {
                   document.documentElement.classList.remove('dark', 'light');
                   document.documentElement.classList.add('blue');
                 } else {
