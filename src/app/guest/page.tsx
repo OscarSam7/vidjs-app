@@ -2704,10 +2704,10 @@ function GuestContent() {
               </span>
             </button>
 
-            {/* Pestañas de Navegación del Carrusel con Desplazamiento Centrado Suave */}
+            {/* Pestañas de Navegación del Carrusel con Desplazamiento Centrado Suave y Separación Amplia */}
             <div
               ref={tabBarScrollRef}
-              className="flex-1 p-1 rounded-xl bg-zinc-900/90 border border-zinc-800 flex items-center gap-1.5 shadow-inner overflow-x-auto no-scrollbar scroll-smooth"
+              className="flex-1 p-1.5 rounded-xl bg-zinc-900/95 border border-zinc-800 flex items-center gap-3 sm:gap-4 shadow-inner overflow-x-auto no-scrollbar scroll-smooth px-2.5"
             >
               {CAROUSEL_TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
@@ -2719,19 +2719,19 @@ function GuestContent() {
                     id={`carousel-nav-tab-${tab.id}`}
                     type="button"
                     onClick={() => goToSlide(tab.id)}
-                    className={`flex-1 min-w-[76px] py-2 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                    className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
                       isActive
-                        ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white shadow-md shadow-purple-900/50 scale-[1.02]"
-                        : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
+                        ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white shadow-lg shadow-purple-900/50 ring-2 ring-purple-400/40"
+                        : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/70 border border-transparent hover:border-zinc-700/60"
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5 shrink-0" />
                     <span>{tab.shortLabel}</span>
                     {tab.badge !== undefined && (
                       <span
-                        className={`px-1.5 py-0.2 rounded-full text-[9px] font-black ${
+                        className={`ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-black shrink-0 shadow-sm ${
                           isActive
-                            ? "bg-white text-purple-700"
+                            ? "bg-white text-purple-700 font-extrabold"
                             : tab.badgeTone || "bg-purple-600 text-white"
                         }`}
                       >
