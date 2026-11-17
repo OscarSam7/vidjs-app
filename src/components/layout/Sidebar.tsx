@@ -46,6 +46,7 @@ import {
   SlidersHorizontal,
   Lock,
   MessageSquareWarning,
+  BellRing,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -187,6 +188,15 @@ export function Sidebar({
           icon: Receipt,
           href: "/dashboard/gastronomy/cashier",
           active: pathname.startsWith("/dashboard/gastronomy/cashier"),
+          requiredPlan: "STARTER",
+        },
+        {
+          name: "Llamadores (Beeper)",
+          icon: BellRing,
+          href: "/dashboard/beeper",
+          active: pathname.startsWith("/dashboard/beeper"),
+          badge: "BEEPER",
+          badgeVariant: "dj",
           requiredPlan: "STARTER",
         },
         {
@@ -521,11 +531,11 @@ export function Sidebar({
     const collapsed = !isMobile && isCollapsed;
 
     return (
-      <div className="flex flex-col h-full bg-[#0D1930] text-[#F8FAFC]">
+      <div className="flex flex-col h-full bg-[var(--sidebar-bg,#0D1930)] text-[var(--foreground,#F8FAFC)] border-r border-[var(--card-border,#263858)]">
         {/* Brand Header */}
         <div
           className={cn(
-            "h-16 flex items-center border-b border-[#263858] shrink-0 transition-all px-3 sm:px-4",
+            "h-16 flex items-center border-b border-[var(--card-border,#263858)] shrink-0 transition-all px-3 sm:px-4",
             collapsed ? "justify-center px-2" : "justify-between"
           )}
         >
@@ -558,10 +568,10 @@ export function Sidebar({
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <span className="font-bold text-sm tracking-wide text-[#F8FAFC] block leading-tight truncate">
+                  <span className="font-bold text-sm tracking-wide text-[var(--text-heading,#F8FAFC)] block leading-tight truncate">
                     {tenantName || "VIDJSPRO"}
                   </span>
-                  <span className="text-[10px] text-purple-400 font-medium block truncate">
+                  <span className="text-[10px] text-purple-500 font-bold block truncate">
                     {planName}
                   </span>
                 </div>
@@ -571,7 +581,7 @@ export function Sidebar({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800 transition-colors shrink-0"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-[var(--text-heading)] hover:bg-[var(--card-bg-elevated)] transition-colors shrink-0"
                   aria-label="Cerrar menú"
                 >
                   <X className="w-5 h-5" />
@@ -585,25 +595,25 @@ export function Sidebar({
         {collapsed ? (
           <Link
             href="/dashboard/subscription"
-            className="mx-auto my-3 w-10 h-10 rounded-xl bg-navy-850 border border-navy-700 shrink-0 flex items-center justify-center relative group overflow-hidden"
+            className="mx-auto my-3 w-10 h-10 rounded-xl bg-[var(--card-bg-elevated)] border border-[var(--card-border)] shrink-0 flex items-center justify-center relative group overflow-hidden"
             title={`${tenantName} • Plan ${PLAN_LABELS[activePlan]}`}
           >
-            <Building2 className="w-4 h-4 text-slate-300 group-hover:text-purple-300 transition-colors" />
+            <Building2 className="w-4 h-4 text-slate-400 group-hover:text-purple-400 transition-colors" />
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse absolute top-1.5 right-1.5" />
           </Link>
         ) : (
           <Link
             href="/dashboard/subscription"
             onClick={() => isMobile && onClose?.()}
-            className="p-3 mx-3 my-2.5 rounded-xl bg-[#111F38] hover:bg-[#162747] border border-[#263858] shrink-0 transition-colors block"
+            className="p-3 mx-3 my-2.5 rounded-xl bg-[var(--card-bg-elevated)] hover:bg-[var(--card-bg-subtle)] border border-[var(--card-border)] shrink-0 transition-colors block shadow-sm"
           >
-            <div className="flex items-center justify-between gap-2 text-[10px] uppercase font-bold text-[#94A3B8] tracking-wider mb-1">
+            <div className="flex items-center justify-between gap-2 text-[10px] uppercase font-bold text-[var(--text-muted)] tracking-wider mb-1">
               <span className="truncate">Plan Activo</span>
-              <span className="px-1.5 py-0.5 rounded bg-purple-600/25 text-purple-300 border border-purple-500/40 font-mono text-[9px] shrink-0">
+              <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/30 font-mono text-[9px] font-bold shrink-0">
                 {PLAN_LABELS[activePlan]}
               </span>
             </div>
-            <div className="text-xs font-semibold text-[#F8FAFC] truncate">
+            <div className="text-xs font-semibold text-[var(--text-heading,#F8FAFC)] truncate">
               {tenantName}
             </div>
           </Link>
@@ -689,8 +699,8 @@ export function Sidebar({
                 className={cn(
                   "rounded-xl border transition-colors",
                   isExpanded || hasActiveChild
-                    ? "bg-[#111F38]/70 border-[#263858]"
-                    : "bg-transparent border-transparent hover:bg-[#111F38]/40"
+                    ? "bg-[var(--card-bg-elevated)] border-[var(--card-border)]"
+                    : "bg-transparent border-transparent hover:bg-[var(--card-bg-elevated)]/50"
                 )}
               >
                 <button
@@ -699,10 +709,10 @@ export function Sidebar({
                   className={cn(
                     "w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs transition-all cursor-pointer text-left",
                     hasActiveChild
-                      ? "text-white font-bold"
+                      ? "text-[var(--text-heading,#F8FAFC)] font-bold"
                       : groupUnlocked
-                      ? "text-slate-200 hover:text-white font-semibold"
-                      : "text-slate-400 hover:text-slate-200 font-medium"
+                      ? "text-[var(--text-body,#E2E8F0)] hover:text-[var(--text-heading,#F8FAFC)] font-semibold"
+                      : "text-[var(--text-muted,#94A3B8)] hover:text-[var(--text-body,#E2E8F0)] font-medium"
                   )}
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -710,9 +720,9 @@ export function Sidebar({
                       className={cn(
                         "w-4 h-4 shrink-0",
                         hasActiveChild
-                          ? "text-purple-400"
+                          ? "text-purple-500"
                           : groupUnlocked
-                          ? "text-slate-400"
+                          ? "text-slate-400 dark:text-slate-400"
                           : "text-slate-500"
                       )}
                     />
@@ -721,7 +731,7 @@ export function Sidebar({
 
                   <div className="flex items-center gap-1.5 shrink-0">
                     {!groupUnlocked && (
-                      <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold uppercase">
+                      <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500 border border-amber-500/30 font-bold uppercase">
                         <Lock className="w-2.5 h-2.5" />
                         <span>{PLAN_LABELS[group.requiredPlan]}</span>
                       </span>
@@ -751,10 +761,10 @@ export function Sidebar({
                           className={cn(
                             "flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs transition-all relative",
                             item.active && !isLocked
-                              ? "bg-purple-600/25 text-white border border-purple-500/40 font-semibold"
+                              ? "bg-purple-600 text-white font-bold shadow-md shadow-purple-600/30"
                               : isLocked
-                              ? "text-slate-500 hover:text-amber-200 hover:bg-amber-950/20 border border-transparent"
-                              : "text-slate-300 hover:text-white hover:bg-[#162747] border border-transparent"
+                              ? "text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 border border-transparent"
+                              : "text-[var(--text-muted,#94A3B8)] hover:text-[var(--text-heading,#F8FAFC)] hover:bg-[var(--card-bg-subtle)] border border-transparent font-medium"
                           )}
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -762,9 +772,9 @@ export function Sidebar({
                               className={cn(
                                 "w-3.5 h-3.5 shrink-0",
                                 item.active && !isLocked
-                                  ? "text-purple-300"
+                                  ? "text-white"
                                   : isLocked
-                                  ? "text-slate-600"
+                                  ? "text-slate-400"
                                   : "text-slate-400"
                               )}
                             />

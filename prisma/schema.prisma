@@ -54,6 +54,8 @@ model Tenant {
   gastroCashShifts      GastroCashRegisterShift[]
   gastroPendingSales    GastroPendingInvoiceSale[]
   qsrTickets            QsrTicket[]
+  beeperConfig          BeeperConfig?
+  beeperTickets         BeeperTicket[]
 
   @@index([status])
   @@index([slug])
@@ -124,6 +126,8 @@ model Venue {
   gastroCashShifts      GastroCashRegisterShift[]
   gastroPendingSales    GastroPendingInvoiceSale[]
   qsrTickets            QsrTicket[]
+  beeperTickets         BeeperTicket[]
+  beeperConfigs         BeeperConfig[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -1772,6 +1776,75 @@ model QsrTicket {
   @@index([priority])
   @@index([createdAt])
 }
+
+// 52. BeeperConfig (Configuración White-Label de Llamadores Virtuales por Locatario)
+model BeeperConfig {
+  id                 String       @id @default(cuid())
+  tenantId           String       @unique
+  tenant             Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId            String?
+  venue              Venue?       @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  
+  enabled            Boolean      @default(false)
+  defaultPrepMinutes Int          @default(15)
+  soundType          String       @default("CHIME") // CHIME, BELL, DIGITAL, VIBRANT
+  googleReviewUrl    String?
+  promoBannersJson   String?      @db.Text // JSON array: [{ id, title, imageUrl, linkUrl, active }]
+  
+  // Parámetros de aviso
+  callTimeoutSeconds Int          @default(120)
+  autoVibrate        Boolean      @default(true)
+  customWelcomeMsg   String?
+  customReadyMsg     String?
+  
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([tenantId])
+  @@index([enabled])
+}
+
+// 53. BeeperTicket (Llamadores Virtuales / Beepers de Pedidos en Tiempo Real)
+model BeeperTicket {
+  id                 String       @id @default(cuid())
+  tenantId           String
+  tenant             Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId            String?
+  venue              Venue?       @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  
+  shortCode          String       // Ej: "101", "102" (3 dígitos de turno)
+  qrToken            String       @unique @default(cuid()) // Token UUID/cuid único para URL del cliente
+  
+  customerName       String?
+  customerPhone      String?
+  tableOrOrderNumber String?      // Comanda / Pedido / Mesa referencial
+  
+  // Estados: PREPARING (En preparación), READY (Listo / Llamando), ACKNOWLEDGED (Voy en camino), DELIVERED (Entregado), EXPIRED (Cancelado)
+  status             String       @default("PREPARING")
+  
+  ringCount          Int          @default(0) // Contador de llamadas/re-llamadas
+  lastRingAt         DateTime?
+  
+  pushSubscriptionJson String?    @db.Text // Suscripción Web Push API (JSON)
+  
+  // Encuesta exprés al entregar
+  rating             Int?         // 1 a 5 estrellas
+  feedbackComment    String?
+  
+  estimatedReadyAt   DateTime?
+  readyAt            DateTime?
+  deliveredAt        DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([qrToken])
+  @@index([status])
+  @@index([shortCode])
+  @@index([createdAt])
+}
+
 
 
 

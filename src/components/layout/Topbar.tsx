@@ -98,13 +98,13 @@ export function Topbar({
 
   return (
     <>
-      <header className="h-14 bg-[#080F1F]/90 backdrop-blur-md border-b border-[#263858] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20 shrink-0 transition-colors">
+      <header className="h-14 bg-[var(--background,#080F1F)]/95 backdrop-blur-md border-b border-[var(--card-border,#263858)] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20 shrink-0 transition-colors">
         {/* Left section: Sidebar toggle & Venue Selector */}
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-white hover:bg-navy-800 border border-navy-700 transition-colors shrink-0 cursor-pointer flex items-center justify-center"
+            className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-[var(--text-heading)] hover:bg-[var(--card-bg-elevated)] border border-[var(--card-border)] transition-colors shrink-0 cursor-pointer flex items-center justify-center"
             aria-label={isSidebarCollapsed ? "Expandir menú de módulos" : "Minimizar menú de módulos"}
             title={isSidebarCollapsed ? "Expandir menú" : "Minimizar menú"}
           >
@@ -121,17 +121,17 @@ export function Topbar({
               <button
                 type="button"
                 onClick={() => setVenuePickerOpen(true)}
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#111F38] to-[#0D1930] hover:from-purple-950/60 hover:to-[#111F38] border border-purple-500/40 hover:border-purple-400 text-xs font-bold text-slate-100 flex items-center gap-2 shadow-md transition-all cursor-pointer active:scale-95 max-w-[175px] sm:max-w-[230px]"
+                className="px-3 py-1.5 rounded-xl bg-[var(--card-bg-elevated)] hover:bg-[var(--card-bg-subtle)] border border-purple-500/30 hover:border-purple-400 text-xs font-bold text-[var(--text-heading)] flex items-center gap-2 shadow-sm transition-all cursor-pointer active:scale-95 max-w-[175px] sm:max-w-[230px]"
                 aria-label="Seleccionar sede o local"
                 title="Cambiar sede o local activo"
               >
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                 <Building2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                 <span className="truncate">{selectedVenue?.name || tenantName}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-purple-300 shrink-0" />
+                <ChevronDown className="w-3.5 h-3.5 text-purple-400 shrink-0" />
               </button>
             ) : (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-navy-850 border border-navy-700 text-slate-200 text-xs font-semibold max-w-[160px] sm:max-w-[240px] truncate shadow-sm">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[var(--card-bg-elevated)] border border-[var(--card-border)] text-[var(--text-body)] text-xs font-semibold max-w-[160px] sm:max-w-[240px] truncate shadow-sm">
                 {tenantLogo ? (
                   <img src={tenantLogo} alt={tenantName} className="w-4 h-4 object-contain rounded shrink-0" />
                 ) : (
@@ -153,15 +153,15 @@ export function Topbar({
         {/* Right section: User info, Role Badge, ThemeToggle, Logout */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* User Card */}
-          <div className="flex items-center gap-2 sm:gap-2.5 pl-2 sm:pl-3 border-l border-navy-700">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-950/80 border border-purple-700/60 flex items-center justify-center text-purple-200 text-xs font-bold shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 pl-2 sm:pl-3 border-l border-[var(--card-border)]">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-600/20 text-purple-600 dark:text-purple-300 border border-purple-500/30 flex items-center justify-center text-xs font-bold shrink-0">
               {user.name ? user.name.charAt(0).toUpperCase() : "U"}
             </div>
             <div className="hidden lg:block text-left">
-              <div className="text-xs font-semibold text-[#F8FAFC] leading-none truncate max-w-[130px]">
+              <div className="text-xs font-semibold text-[var(--text-heading,#F8FAFC)] leading-none truncate max-w-[130px]">
                 {user.name}
               </div>
-              <div className="text-[10px] text-[#94A3B8] font-mono mt-0.5 truncate max-w-[130px]">
+              <div className="text-[10px] text-[var(--text-muted,#94A3B8)] font-mono mt-0.5 truncate max-w-[130px]">
                 {user.email}
               </div>
             </div>

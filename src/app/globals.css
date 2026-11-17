@@ -348,13 +348,16 @@ html.light body:not(:has([data-display="tv"])) {
   color: #0f172a !important;
 }
 
-/* 1. FONDOS GENERALES DE PÁGINA */
+/* 1. FONDOS GENERALES DE PÁGINA Y CONTENEDORES MAESTROS */
 html.light:not(:has([data-display="tv"])) .bg-\[\#070709\],
 html.light:not(:has([data-display="tv"])) .bg-\[\#080F1F\],
 html.light:not(:has([data-display="tv"])) .bg-\[\#09090b\],
 html.light:not(:has([data-display="tv"])) .bg-\[\#050507\],
 html.light:not(:has([data-display="tv"])) .bg-\[\#0A1322\],
 html.light:not(:has([data-display="tv"])) .bg-\[\#0D1930\],
+html.light:not(:has([data-display="tv"])) [class*="bg-[#080F1F]"],
+html.light:not(:has([data-display="tv"])) [class*="bg-[#0D1930]"],
+html.light:not(:has([data-display="tv"])) [class*="bg-[#0A1322]"],
 html.light:not(:has([data-display="tv"])) .bg-zinc-950\/95,
 html.light:not(:has([data-display="tv"])) .bg-black {
   background-color: #f8fafc !important;
@@ -363,12 +366,14 @@ html.light:not(:has([data-display="tv"])) .bg-black {
 /* 2. TARJETAS Y CONTENEDORES PRINCIPALES */
 html.light:not(:has([data-display="tv"])) .bg-zinc-950,
 html.light:not(:has([data-display="tv"])) .bg-zinc-900,
-html.light:not(:has([data-display="tv"])) .bg-\[\#111F38\],
-html.light:not(:has([data-display="tv"])) .bg-\[\#0F1E36\],
-html.light:not(:has([data-display="tv"])) [class^="bg-zinc-950"]:not([class*="hover:"]),
-html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-950"]:not([class*="hover:"]),
-html.light:not(:has([data-display="tv"])) [class^="bg-zinc-900"]:not([class*="hover:"]),
-html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-900"]:not([class*="hover:"]) {
+html.light:not(:has([data-display="tv"])) [class*="bg-[#111F38]"],
+html.light:not(:has([data-display="tv"])) [class*="bg-[#0F1E36]"],
+html.light:not(:has([data-display="tv"])) [class*="bg-navy-850"],
+html.light:not(:has([data-display="tv"])) [class*="bg-navy-900"],
+html.light:not(:has([data-display="tv"])) [class^="bg-zinc-950"]:not([class*="hover:"]):not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-950"]:not([class*="hover:"]):not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class^="bg-zinc-900"]:not([class*="hover:"]):not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-900"]:not([class*="hover:"]):not(button):not(a):not(span) {
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
   box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06);
@@ -377,11 +382,11 @@ html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-900"]:not([class*="h
 /* 3. CONTENEDORES SECUNDARIOS / TABLAS / WELLS */
 html.light:not(:has([data-display="tv"])) .bg-zinc-850,
 html.light:not(:has([data-display="tv"])) .bg-zinc-800,
-html.light:not(:has([data-display="tv"])) .bg-\[\#080F1F\],
-html.light:not(:has([data-display="tv"])) [class^="bg-zinc-850"]:not([class*="hover:"]),
-html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-850"]:not([class*="hover:"]),
-html.light:not(:has([data-display="tv"])) [class^="bg-zinc-800"]:not([class*="hover:"]),
-html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-800"]:not([class*="hover:"]) {
+html.light:not(:has([data-display="tv"])) [class*="bg-navy-800"],
+html.light:not(:has([data-display="tv"])) [class^="bg-zinc-850"]:not([class*="hover:"]):not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-850"]:not([class*="hover:"]):not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class^="bg-zinc-800"]:not([class*="hover:"]):not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-800"]:not([class*="hover:"]):not(button):not(a):not(span) {
   background-color: #f1f5f9 !important;
   border-color: #e2e8f0 !important;
 }
@@ -390,7 +395,8 @@ html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-800"]:not([class*="h
 html.light:not(:has([data-display="tv"])) .hover\:bg-zinc-900:hover,
 html.light:not(:has([data-display="tv"])) [class*="hover:bg-zinc-900"]:hover,
 html.light:not(:has([data-display="tv"])) .hover\:bg-zinc-800:hover,
-html.light:not(:has([data-display="tv"])) [class*="hover:bg-zinc-800"]:hover {
+html.light:not(:has([data-display="tv"])) [class*="hover:bg-zinc-800"]:hover,
+html.light:not(:has([data-display="tv"])) [class*="hover:bg-navy-800"]:hover {
   background-color: #f1f5f9 !important;
 }
 
@@ -406,7 +412,9 @@ html.light:not(:has([data-display="tv"])) .border-zinc-800,
 html.light:not(:has([data-display="tv"])) .border-zinc-850,
 html.light:not(:has([data-display="tv"])) .border-zinc-750,
 html.light:not(:has([data-display="tv"])) .border-zinc-700,
-html.light:not(:has([data-display="tv"])) .border-\[\#263858\],
+html.light:not(:has([data-display="tv"])) [class*="border-[#263858]"],
+html.light:not(:has([data-display="tv"])) [class*="border-navy-700"],
+html.light:not(:has([data-display="tv"])) [class*="border-navy-800"],
 html.light:not(:has([data-display="tv"])) [class*="border-zinc-800"],
 html.light:not(:has([data-display="tv"])) [class*="border-zinc-850"],
 html.light:not(:has([data-display="tv"])) [class*="border-zinc-700"] {
@@ -419,14 +427,14 @@ html.light:not(:has([data-display="tv"])) h2,
 html.light:not(:has([data-display="tv"])) h3,
 html.light:not(:has([data-display="tv"])) h4,
 html.light:not(:has([data-display="tv"])) h5,
-html.light:not(:has([data-display="tv"])) h6,
-html.light:not(:has([data-display="tv"])) .text-white {
+html.light:not(:has([data-display="tv"])) h6 {
   color: #0f172a !important;
 }
 
 html.light:not(:has([data-display="tv"])) p,
 html.light:not(:has([data-display="tv"])) .text-zinc-100,
 html.light:not(:has([data-display="tv"])) .text-zinc-200,
+html.light:not(:has([data-display="tv"])) .text-slate-100,
 html.light:not(:has([data-display="tv"])) .text-slate-200 {
   color: #1e293b !important;
 }
@@ -446,7 +454,137 @@ html.light:not(:has([data-display="tv"])) .text-slate-500 {
   color: #94a3b8 !important;
 }
 
-/* 7. FORMULARIOS E INPUTS EN MODO CLARO */
+/* Mantener texto blanco en botones con fondo sólido/gradiente */
+html.light:not(:has([data-display="tv"])) button.text-white,
+html.light:not(:has([data-display="tv"])) a.text-white,
+html.light:not(:has([data-display="tv"])) [class*="bg-purple-600"] .text-white,
+html.light:not(:has([data-display="tv"])) [class*="bg-purple-600"].text-white,
+html.light:not(:has([data-display="tv"])) [class*="bg-pink-600"] .text-white,
+html.light:not(:has([data-display="tv"])) [class*="bg-pink-600"].text-white,
+html.light:not(:has([data-display="tv"])) [class*="bg-cyan-600"] .text-white,
+html.light:not(:has([data-display="tv"])) [class*="bg-cyan-600"].text-white,
+html.light:not(:has([data-display="tv"])) [class*="bg-blue-600"].text-white,
+html.light:not(:has([data-display="tv"])) [class*="bg-emerald-600"].text-white,
+html.light:not(:has([data-display="tv"])) [class*="bg-gradient-to-r"].text-white {
+  color: #ffffff !important;
+}
+
+/* 7. ALTO CONTRASTE PARA BOTONES Y BADGES EN MODO CLARO */
+/* Púrpura */
+html.light:not(:has([data-display="tv"])) [class*="text-purple-200"],
+html.light:not(:has([data-display="tv"])) [class*="text-purple-300"] {
+  color: #6d28d9 !important;
+}
+html.light:not(:has([data-display="tv"])) [class*="bg-purple-950"],
+html.light:not(:has([data-display="tv"])) [class*="bg-purple-600/20"],
+html.light:not(:has([data-display="tv"])) [class*="bg-purple-600/30"] {
+  background-color: #f3e8ff !important;
+  border-color: #d8b4fe !important;
+  color: #6d28d9 !important;
+}
+
+/* Cian / Azul Cielo */
+html.light:not(:has([data-display="tv"])) [class*="text-cyan-200"],
+html.light:not(:has([data-display="tv"])) [class*="text-cyan-300"],
+html.light:not(:has([data-display="tv"])) [class*="text-blue-200"],
+html.light:not(:has([data-display="tv"])) [class*="text-blue-300"] {
+  color: #0284c7 !important;
+}
+html.light:not(:has([data-display="tv"])) [class*="bg-cyan-950"],
+html.light:not(:has([data-display="tv"])) [class*="bg-cyan-600/20"],
+html.light:not(:has([data-display="tv"])) [class*="bg-cyan-600/30"],
+html.light:not(:has([data-display="tv"])) [class*="bg-blue-500/20"],
+html.light:not(:has([data-display="tv"])) [class*="bg-blue-600/20"] {
+  background-color: #e0f2fe !important;
+  border-color: #7dd3fc !important;
+  color: #0284c7 !important;
+}
+
+/* Ámbar / Amarillo / Oro */
+html.light:not(:has([data-display="tv"])) [class*="text-amber-200"],
+html.light:not(:has([data-display="tv"])) [class*="text-amber-300"],
+html.light:not(:has([data-display="tv"])) [class*="text-yellow-200"],
+html.light:not(:has([data-display="tv"])) [class*="text-yellow-300"] {
+  color: #b45309 !important;
+}
+html.light:not(:has([data-display="tv"])) [class*="bg-amber-950"],
+html.light:not(:has([data-display="tv"])) [class*="bg-amber-500/20"],
+html.light:not(:has([data-display="tv"])) [class*="bg-amber-600/20"],
+html.light:not(:has([data-display="tv"])) [class*="bg-amber-600/30"],
+html.light:not(:has([data-display="tv"])) [class*="bg-yellow-950"] {
+  background-color: #fef3c7 !important;
+  border-color: #fcd34d !important;
+  color: #b45309 !important;
+}
+
+/* Rosa / Fucsia */
+html.light:not(:has([data-display="tv"])) [class*="text-pink-200"],
+html.light:not(:has([data-display="tv"])) [class*="text-pink-300"],
+html.light:not(:has([data-display="tv"])) [class*="text-fuchsia-300"] {
+  color: #be185d !important;
+}
+html.light:not(:has([data-display="tv"])) [class*="bg-pink-950"],
+html.light:not(:has([data-display="tv"])) [class*="bg-pink-600/20"],
+html.light:not(:has([data-display="tv"])) [class*="bg-pink-600/30"],
+html.light:not(:has([data-display="tv"])) [class*="bg-fuchsia-600/20"] {
+  background-color: #fce7f3 !important;
+  border-color: #f472b6 !important;
+  color: #be185d !important;
+}
+
+/* Gradientes suaves de botones en modo claro */
+html.light:not(:has([data-display="tv"])) [class*="from-amber-600/30"],
+html.light:not(:has([data-display="tv"])) [class*="from-amber-500/20"] {
+  background-image: linear-gradient(to right, #fef3c7, #fde68a, #fef3c7) !important;
+  border-color: #fcd34d !important;
+  color: #b45309 !important;
+}
+html.light:not(:has([data-display="tv"])) [class*="from-pink-600/30"] {
+  background-image: linear-gradient(to right, #fce7f3, #f3e8ff, #ede9fe) !important;
+  border-color: #f472b6 !important;
+  color: #be185d !important;
+}
+html.light:not(:has([data-display="tv"])) [class*="from-zinc-950"][class*="via-purple-950/20"],
+html.light:not(:has([data-display="tv"])) [class*="from-zinc-950"][class*="via-zinc-900"] {
+  background-image: linear-gradient(to right, #ffffff, #f8fafc, #ffffff) !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Esmeralda / Verde */
+html.light:not(:has([data-display="tv"])) [class*="text-emerald-200"],
+html.light:not(:has([data-display="tv"])) [class*="text-emerald-300"],
+html.light:not(:has([data-display="tv"])) [class*="text-green-300"] {
+  color: #047857 !important;
+}
+html.light:not(:has([data-display="tv"])) [class*="bg-emerald-950"],
+html.light:not(:has([data-display="tv"])) [class*="bg-emerald-600/20"],
+html.light:not(:has([data-display="tv"])) [class*="bg-emerald-500/20"] {
+  background-color: #dcfce7 !important;
+  border-color: #86efac !important;
+  color: #047857 !important;
+}
+
+/* Botones neutros (zinc-900 / zinc-950 en botones o enlaces) */
+html.light:not(:has([data-display="tv"])) button[class*="bg-zinc-900"],
+html.light:not(:has([data-display="tv"])) a[class*="bg-zinc-900"],
+html.light:not(:has([data-display="tv"])) button[class*="bg-zinc-950"],
+html.light:not(:has([data-display="tv"])) a[class*="bg-zinc-950"] {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html.light:not(:has([data-display="tv"])) button[class*="bg-zinc-900"]:hover,
+html.light:not(:has([data-display="tv"])) a[class*="bg-zinc-900"]:hover,
+html.light:not(:has([data-display="tv"])) button[class*="bg-zinc-950"]:hover,
+html.light:not(:has([data-display="tv"])) a[class*="bg-zinc-950"]:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+/* 8. FORMULARIOS E INPUTS EN MODO CLARO */
 html.light:not(:has([data-display="tv"])) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
 html.light:not(:has([data-display="tv"])) select,
 html.light:not(:has([data-display="tv"])) textarea {
@@ -467,7 +605,7 @@ html.light:not(:has([data-display="tv"])) textarea:focus {
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
 }
 
-/* 8. SIDEBAR Y HEADER EN MODO CLARO */
+/* 9. SIDEBAR Y HEADER EN MODO CLARO */
 html.light:not(:has([data-display="tv"])) aside {
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
@@ -478,7 +616,7 @@ html.light:not(:has([data-display="tv"])) header {
   border-color: #e2e8f0 !important;
 }
 
-/* 9. NAVEGACIÓN DOCK INFERIOR EN MODO CLARO */
+/* 10. NAVEGACIÓN DOCK INFERIOR EN MODO CLARO */
 html.light:not(:has([data-display="tv"])) #bottom-navigation-dock,
 html.light:not(:has([data-display="tv"])) [data-dock="navigation"] > div {
   background-color: rgba(255, 255, 255, 0.95) !important;
@@ -501,4 +639,55 @@ html.light:not(:has([data-display="tv"])) #bottom-navigation-dock-toast {
   border-color: #e2e8f0 !important;
   color: #0f172a !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* 11. TABLAS, MODALES Y DROPDOWNS EN MODO CLARO */
+html.light:not(:has([data-display="tv"])) table th {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light:not(:has([data-display="tv"])) table td {
+  border-color: #e2e8f0 !important;
+  color: #1e293b !important;
+}
+
+html.light:not(:has([data-display="tv"])) table tr:hover td {
+  background-color: #f8fafc !important;
+}
+
+html.light:not(:has([data-display="tv"])) [role="dialog"] > div,
+html.light:not(:has([data-display="tv"])) .modal-content,
+html.light:not(:has([data-display="tv"])) [class*="fixed"][class*="z-50"] > div[class*="bg-"] {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
+}
+
+html.light:not(:has([data-display="tv"])) [role="menu"],
+html.light:not(:has([data-display="tv"])) [role="listbox"],
+html.light:not(:has([data-display="tv"])) .dropdown-menu {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 12. CONTRASTE DE ICONOS CLAVE */
+html.light:not(:has([data-display="tv"])) svg.text-purple-400 {
+  color: #7c3aed !important;
+}
+html.light:not(:has([data-display="tv"])) svg.text-cyan-400 {
+  color: #0284c7 !important;
+}
+html.light:not(:has([data-display="tv"])) svg.text-amber-400 {
+  color: #d97706 !important;
+}
+html.light:not(:has([data-display="tv"])) svg.text-pink-400 {
+  color: #db2777 !important;
+}
+html.light:not(:has([data-display="tv"])) svg.text-emerald-400 {
+  color: #059669 !important;
 }

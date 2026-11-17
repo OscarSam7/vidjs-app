@@ -2488,13 +2488,13 @@ function GuestContent() {
                 const nextTheme = theme === "dark" ? "blue" : theme === "blue" ? "light" : "dark";
                 setTheme(nextTheme);
               }}
-              className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-zinc-700/60 hover:border-purple-500/50 text-[11px] font-semibold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 active:scale-95"
+              className="px-2.5 py-1 rounded-lg bg-[var(--card-bg-elevated)] hover:bg-[var(--card-bg-subtle)] text-[var(--text-body)] border border-[var(--card-border)] hover:border-purple-500/50 text-[11px] font-semibold flex items-center gap-1.5 cursor-pointer transition-all shrink-0 active:scale-95 shadow-sm"
               title={`Color del tema: ${
                 theme === "light" ? "Modo Claro" : theme === "blue" ? "Azul Francia" : "Modo Oscuro"
               }. Toca para cambiar.`}
             >
               {theme === "light" ? (
-                <Sun className="w-3.5 h-3.5 text-amber-400" />
+                <Sun className="w-3.5 h-3.5 text-amber-500" />
               ) : theme === "blue" ? (
                 <Sparkles className="w-3.5 h-3.5 text-blue-400" />
               ) : (
