@@ -2505,11 +2505,6 @@ function GuestContent() {
               </span>
             </button>
           </div>
-
-          {/* Instalar App PWA */}
-          <div className="shrink-0">
-            <PwaInstallButton variant="guest" />
-          </div>
         </div>
 
         {/* Notificación de Cambio de Sector o Mesa */}
