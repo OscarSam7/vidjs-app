@@ -6,6 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "ZYNKO",
     description:
       "Plataforma Integral de Gestión, Entretenimiento, Gastronomía y Asistencia para Locales",
+    id: "/",
     start_url: "/",
     scope: "/",
     display: "standalone",

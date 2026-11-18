@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -11,16 +11,21 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
-export function usePwaInstall() {
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
+declare global {
+  interface Window {
+    __PWA_DEFERRED_PROMPT__?: BeforeInstallPromptEvent | null;
+  }
+}
 
+export function usePwaInstall() {
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  // Comprobar estado de instalación inicial
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // 1. Detectar si ya corre en modo app instalada (Standalone)
+    // Detectar si ya corre instalada en pantalla de inicio (Standalone)
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true ||
@@ -31,55 +36,66 @@ export function usePwaInstall() {
       return;
     }
 
-    // 2. Detectar si es dispositivo iOS (iPhone / iPad)
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const isApple = /iphone|ipad|ipod/.test(userAgent);
-    setIsIOS(isApple);
+    // Si ya se capturó el prompt en el head antes del render de React
+    if (window.__PWA_DEFERRED_PROMPT__) {
+      setDeferredPrompt(window.__PWA_DEFERRED_PROMPT__);
+    }
 
-    // 3. Capturar evento de instalación nativo (Chrome / Android / Edge)
-    const handleBeforeInstallPrompt = (e: Event) => {
+    // Escuchar cuando el prompt esté listo
+    const handlePromptReady = () => {
+      if (window.__PWA_DEFERRED_PROMPT__) {
+        setDeferredPrompt(window.__PWA_DEFERRED_PROMPT__);
+      }
+    };
+
+    const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
+      window.__PWA_DEFERRED_PROMPT__ = e as BeforeInstallPromptEvent;
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
     const handleAppInstalled = () => {
       setIsInstalled(true);
+      window.__PWA_DEFERRED_PROMPT__ = null;
       setDeferredPrompt(null);
     };
 
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("pwa-prompt-ready", handlePromptReady);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
     window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("pwa-prompt-ready", handlePromptReady);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
 
-  const promptInstall = async () => {
-    if (deferredPrompt) {
+  // Función de disparo directo al botón
+  const triggerDirectInstall = useCallback(async () => {
+    const promptEvent = deferredPrompt || (typeof window !== "undefined" ? window.__PWA_DEFERRED_PROMPT__ : null);
+
+    if (promptEvent) {
       try {
-        await deferredPrompt.prompt();
-        const choice = await deferredPrompt.userChoice;
+        await promptEvent.prompt();
+        const choice = await promptEvent.userChoice;
         if (choice.outcome === "accepted") {
           setIsInstalled(true);
+          if (typeof window !== "undefined") {
+            window.__PWA_DEFERRED_PROMPT__ = null;
+          }
           setDeferredPrompt(null);
           return true;
         }
-        return false;
-      } catch {
-        return false;
+      } catch (err) {
+        console.warn("Error disparando instalador nativo:", err);
       }
     }
-    // Si no hay prompt nativo (iOS o Chrome suprimido), retorna false para mostrar guía
     return false;
-  };
+  }, [deferredPrompt]);
 
   return {
     isInstalled,
-    isInstallable: !isInstalled,
-    hasNativePrompt: !!deferredPrompt,
-    isIOS,
-    promptInstall,
+    triggerDirectInstall,
   };
 }

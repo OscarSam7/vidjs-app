@@ -42,6 +42,16 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              window.__PWA_DEFERRED_PROMPT__ = null;
+              window.addEventListener('beforeinstallprompt', function(e) {
+                e.preventDefault();
+                window.__PWA_DEFERRED_PROMPT__ = e;
+                window.dispatchEvent(new Event('pwa-prompt-ready'));
+              });
+              window.addEventListener('appinstalled', function() {
+                window.__PWA_DEFERRED_PROMPT__ = null;
+                window.dispatchEvent(new Event('pwa-installed'));
+              });
               try {
                 const storedTheme = localStorage.getItem('vidjeis_theme') || 'dark';
                 if (storedTheme === 'light') {
