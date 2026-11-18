@@ -343,6 +343,15 @@ export function Sidebar({
           requiredPlan: "PERSONAL",
         },
         {
+          name: "Concursos & Votos",
+          icon: Trophy,
+          href: "/dashboard/contest",
+          active: pathname === "/dashboard/contest",
+          badge: "LIVE",
+          badgeVariant: "karaoke",
+          requiredPlan: "PRO",
+        },
+        {
           name: "Biblioteca Musical",
           icon: ListMusic,
           href: "/dashboard/library",
@@ -432,13 +441,6 @@ export function Sidebar({
           icon: BarChart3,
           href: "/dashboard?tab=analytics",
           active: false,
-          requiredPlan: "PRO",
-        },
-        {
-          name: "Concursos & Votos",
-          icon: Trophy,
-          href: "/dashboard/contest",
-          active: pathname === "/dashboard/contest",
           requiredPlan: "PRO",
         },
         {
