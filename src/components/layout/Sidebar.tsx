@@ -335,6 +335,15 @@ export function Sidebar({
           requiredPlan: "PERSONAL",
         },
         {
+          name: "Audio Cabina Pro",
+          icon: Disc3,
+          href: "/dashboard/dj/pro",
+          active: pathname === "/dashboard/dj/pro",
+          badge: "AUTO-DJ",
+          badgeVariant: "dj",
+          requiredPlan: "PERSONAL",
+        },
+        {
           name: "Cabina Karaoke",
           icon: Mic,
           href: "/dashboard/karaoke",

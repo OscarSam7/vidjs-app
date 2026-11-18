@@ -62,6 +62,7 @@ export const PLAN_ROUTE_RULES: PlanModuleRule[] = [
   { prefix: "/dashboard/tables", requiredPlan: "STARTER", title: "Mesas & QR" },
 
   // Disponibles desde Personal
+  { prefix: "/dashboard/dj/pro", requiredPlan: "PERSONAL", title: "Cabina Audio Pro" },
   { prefix: "/dashboard/dj", requiredPlan: "PERSONAL", title: "Cabina DJ" },
   { prefix: "/dashboard/karaoke", requiredPlan: "PERSONAL", title: "Cabina Karaoke" },
   { prefix: "/dashboard/library", requiredPlan: "PERSONAL", title: "Biblioteca Musical" },
