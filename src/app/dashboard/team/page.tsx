@@ -969,7 +969,7 @@ export default function StaffAndAttendanceDashboard() {
                   required
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Ej: Delos Santos Molinas"
+                  placeholder="Ej: Juan Pérez"
                   className="w-full py-2.5 px-3.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-cyan-400"
                 />
               </div>
