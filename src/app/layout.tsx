@@ -12,14 +12,14 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Vidjeis - SaaS para Bares, DJs, Karaokes y Eventos",
+  title: "ZYNKO - Hospitality & Entertainment OS",
   description:
-    "Sistema Operativo Digital del Entretenimiento Nocturno: solicitudes por QR, duelos en vivo, muro de fotos y gestión en caliente para locales y DJs.",
+    "Plataforma Integral de Gestión, Entretenimiento, Gastronomía y Asistencia para Locales.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Vidjeis",
+    title: "ZYNKO",
   },
   icons: {
     icon: [

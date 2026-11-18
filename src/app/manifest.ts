@@ -2,16 +2,16 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Vidjeis - Night Experience OS",
-    short_name: "Vidjeis",
+    name: "ZYNKO - Hospitality & Entertainment OS",
+    short_name: "ZYNKO",
     description:
-      "Sistema Operativo Digital del Entretenimiento Nocturno para Bares, Karaokes, DJs y Eventos",
+      "Plataforma Integral de Gestión, Entretenimiento, Gastronomía y Asistencia para Locales",
     start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "any",
-    background_color: "#040406",
-    theme_color: "#7c3aed",
+    background_color: "#08080d",
+    theme_color: "#e024c3",
     categories: ["entertainment", "music", "nightlife"],
     icons: [
       {

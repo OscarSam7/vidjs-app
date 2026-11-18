@@ -1,44 +1,56 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
+    <!-- Fondo gradiente oscuro profundo -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#040406" />
-      <stop offset="50%" stop-color="#0f0728" />
+      <stop offset="0%" stop-color="#08080d" />
+      <stop offset="50%" stop-color="#11071c" />
       <stop offset="100%" stop-color="#040406" />
     </linearGradient>
-    <linearGradient id="neonPurple" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#a855f7" />
-      <stop offset="50%" stop-color="#7c3aed" />
-      <stop offset="100%" stop-color="#c084fc" />
-    </linearGradient>
-    <linearGradient id="neonCyan" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#06b6d4" />
-      <stop offset="100%" stop-color="#3b82f6" />
-    </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="16" result="blur" />
+
+    <!-- Resplandor neón magenta fucsia -->
+    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur1" />
+      <feGaussianBlur stdDeviation="24" result="blur2" />
       <feMerge>
-        <feMergeNode in="blur" />
+        <feMergeNode in="blur2" />
+        <feMergeNode in="blur1" />
         <feMergeNode in="SourceGraphic" />
       </feMerge>
     </filter>
+
+    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff7bf2" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#e024c3" stop-opacity="0" />
+    </radialGradient>
   </defs>
 
-  <!-- Fondo con esquinas redondeadas -->
-  <rect width="512" height="512" rx="110" fill="url(#bgGrad)" />
-  <rect width="504" height="504" x="4" y="4" rx="106" fill="none" stroke="#7c3aed" stroke-width="6" stroke-opacity="0.5" />
+  <!-- Fondo squircle premium -->
+  <rect width="512" height="512" rx="115" fill="url(#bgGrad)" />
+  <rect width="502" height="502" x="5" y="5" rx="110" fill="none" stroke="#e024c3" stroke-width="4" stroke-opacity="0.35" />
 
-  <!-- Anillos del Vinilo de DJ -->
-  <circle cx="256" cy="256" r="180" fill="none" stroke="#2e1065" stroke-width="4" stroke-opacity="0.8" />
-  <circle cx="256" cy="256" r="145" fill="none" stroke="#3b0764" stroke-width="3" stroke-opacity="0.7" />
-  <circle cx="256" cy="256" r="110" fill="none" stroke="#581c87" stroke-width="2.5" stroke-opacity="0.6" />
+  <!-- Aura de resplandor central -->
+  <circle cx="245" cy="256" r="210" fill="url(#centerGlow)" />
 
-  <!-- Resplandor Neón Central -->
-  <circle cx="256" cy="256" r="75" fill="url(#neonPurple)" filter="url(#glow)" opacity="0.35" />
+  <!-- Grupo del Vinilo Neón con Tonearm (ZYNKO "O") -->
+  <g filter="url(#neonGlow)">
+    <!-- Disco Exterior -->
+    <circle cx="240" cy="260" r="185" fill="none" stroke="#ff6bf0" stroke-width="12" stroke-linecap="round" />
 
-  <!-- Logo V y Rayo de Música -->
-  <path d="M 180 170 L 256 340 L 332 170" fill="none" stroke="url(#neonPurple)" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)" />
-  <circle cx="256" cy="256" r="28" fill="#040406" stroke="url(#neonCyan)" stroke-width="8" filter="url(#glow)" />
+    <!-- Surcos concéntricos del vinilo -->
+    <circle cx="240" cy="260" r="145" fill="none" stroke="#ff6bf0" stroke-width="7" stroke-linecap="round" opacity="0.85" />
+    <circle cx="240" cy="260" r="105" fill="none" stroke="#ff6bf0" stroke-width="7.5" stroke-linecap="round" opacity="0.9" />
+    <circle cx="240" cy="260" r="65" fill="none" stroke="#ff6bf0" stroke-width="7" opacity="0.75" />
 
-  <!-- Rayo / Pulso Nocturno -->
-  <path d="M 285 140 L 260 210 L 290 210 L 235 300 L 248 230 L 220 230 Z" fill="#facc15" filter="url(#glow)" />
+    <!-- Centro y Agujero Spindle -->
+    <circle cx="240" cy="260" r="26" fill="#ffffff" />
+    <circle cx="240" cy="260" r="13" fill="#070709" />
+
+    <!-- Brazo de Tornamesa (Tonearm) -->
+    <!-- Base del brazo en cuadrante superior derecho -->
+    <circle cx="400" cy="140" r="16" fill="#ff7bf2" />
+    <!-- Varilla del brazo -->
+    <path d="M 400 140 L 400 270 L 325 345" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- Cabezal de aguja (Cartridge) -->
+    <rect x="305" y="335" width="36" height="20" rx="7" transform="rotate(-40 305 335)" fill="#ff7bf2" stroke="#ffffff" stroke-width="4" />
+  </g>
 </svg>
