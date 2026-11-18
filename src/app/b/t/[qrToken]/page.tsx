@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ShieldCheck,
 } from "lucide-react";
+import PwaInstallButton from "@/components/pwa/PwaInstallButton";
 import { useBeeperRealtime } from "@/hooks/use-beeper-realtime";
 import {
   startBeeperAlertLoop,
@@ -338,6 +339,13 @@ export default function PublicBeeperTicketPage({
 
       {/* Main Container */}
       <main className="flex-1 px-5 py-6 max-w-md mx-auto w-full flex flex-col justify-center">
+        {/* Banner de Descarga / Instalación PWA (Desaparece automáticamente al instalar) */}
+        {!isDelivered && (
+          <div className="mb-4">
+            <PwaInstallButton variant="banner" />
+          </div>
+        )}
+
         {/* Banner de Permiso Sonoro inicial si no lo ha tocado */}
         {!audioUnlocked && !isDelivered && (
           <div

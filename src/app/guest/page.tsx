@@ -2528,6 +2528,11 @@ function GuestContent() {
           </div>
         )}
 
+        {/* Banner de Descarga / Instalación PWA (Desaparece automáticamente al instalar) */}
+        <div className="mt-3">
+          <PwaInstallButton variant="banner" />
+        </div>
+
         {/* Tarjeta de Cortesía Wi-Fi */}
         {branding?.wifiSsid && (
           <div className="mt-3 px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-between text-xs">

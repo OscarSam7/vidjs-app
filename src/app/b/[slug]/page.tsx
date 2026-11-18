@@ -15,6 +15,7 @@ import {
   Delete,
   Store,
 } from "lucide-react";
+import PwaInstallButton from "@/components/pwa/PwaInstallButton";
 
 interface TenantInfo {
   id: string;
@@ -228,6 +229,11 @@ export default function PublicBeeperCounterPage({
 
       {/* Main Content */}
       <main className="flex-1 px-5 py-6 max-w-md mx-auto w-full flex flex-col justify-center">
+        {/* Banner de Instalación PWA (Desaparece automáticamente al instalar) */}
+        <div className="mb-4">
+          <PwaInstallButton variant="banner" />
+        </div>
+
         {/* Acceso directo si ya tiene un llamador en memoria */}
         {storedToken && (
           <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-emerald-900/20 to-slate-900/60 border border-emerald-500/30 flex items-center justify-between shadow-xl">
