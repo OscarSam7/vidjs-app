@@ -401,10 +401,12 @@ export function Sidebar({
           requiredPlan: "PRO",
         },
         {
-          name: "Equipo & Roles",
+          name: "Equipo y Asistencias",
           icon: Users,
           href: "/dashboard/team",
           active: pathname === "/dashboard/team",
+          badge: "GPS",
+          badgeVariant: "success",
           requiredPlan: "STARTER",
         },
         {

@@ -56,6 +56,8 @@ model Tenant {
   qsrTickets            QsrTicket[]
   beeperConfig          BeeperConfig?
   beeperTickets         BeeperTicket[]
+  staffMembers          StaffMember[]
+  staffAttendances      StaffAttendance[]
 
   @@index([status])
   @@index([slug])
@@ -104,6 +106,11 @@ model Venue {
   bankAlias       String?     // Alias SIPAP / PIX
   whatsappNumber  String?     // WhatsApp oficial para soporte y reservas
 
+  // Coordenadas GPS para Control de Asistencia con Geocerca (100 mts)
+  latitude        Float?
+  longitude       Float?
+  gpsRadiusMeters Int         @default(100)
+
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -128,6 +135,8 @@ model Venue {
   qsrTickets            QsrTicket[]
   beeperTickets         BeeperTicket[]
   beeperConfigs         BeeperConfig[]
+  staffMembers          StaffMember[]
+  staffAttendances      StaffAttendance[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -1844,6 +1853,83 @@ model BeeperTicket {
   @@index([shortCode])
   @@index([createdAt])
 }
+
+// 54. StaffMember (Colaboradores del Negocio y Equipo de Trabajo)
+model StaffMember {
+  id              String            @id @default(cuid())
+  tenantId        String
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId         String?
+  venue           Venue?            @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  userId          String?           // Opcional: enlace a cuenta de usuario User
+  
+  name            String
+  email           String?
+  phone           String?
+  role            String            @default("OPERATOR") // OWNER, MANAGER, WAITER, BARTENDER, KITCHEN, CASHIER, DJ, SECURITY, CLEANING, OPERATOR
+  salaryType      String            @default("MONTHLY")  // MONTHLY (Mensual), DAILY (Jornal), HOURLY (Por hora)
+  salaryAmount    Float?
+  
+  hasApp          Boolean           @default(false)
+  appDeviceId     String?
+  inviteKey       String?           // Clave temporal (24h) para vinculación de App Móvil PWA
+  inviteExpiresAt DateTime?
+  status          String            @default("ACTIVE")   // ACTIVE, INACTIVE
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  attendances     StaffAttendance[]
+
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([inviteKey])
+  @@index([status])
+}
+
+// 55. StaffAttendance (Marcaciones de Asistencia GPS y Planilla Diaria)
+model StaffAttendance {
+  id               String       @id @default(cuid())
+  tenantId         String
+  tenant           Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId          String?
+  venue            Venue?       @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  
+  staffMemberId    String
+  staffMember      StaffMember  @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
+  
+  date             DateTime     // Fecha del día (00:00:00) para control de planilla
+  type             String       @default("GPS") // GPS, MANUAL
+  status           String       @default("PRESENT") // PRESENT, ABSENT, LATE, PERMIT
+  
+  // Marcación Entrada
+  checkInAt        DateTime?
+  checkInLat       Float?
+  checkInLng       Float?
+  checkInDistance  Float?       // Distancia en metros comprobada (ej: 18.5)
+  checkInVerified  Boolean      @default(false)
+  
+  // Marcación Salida
+  checkOutAt       DateTime?
+  checkOutLat      Float?
+  checkOutLng      Float?
+  checkOutDistance Float?
+  checkOutVerified Boolean?
+  
+  // Cálculo interno para administración (no visible para el empleado en la app)
+  workHours        Float?       // Horas trabajadas (ej: 8.25 hrs)
+  notes            String?
+  
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([tenantId])
+  @@index([venueId])
+  @@index([staffMemberId])
+  @@index([date])
+  @@index([status])
+}
+
 
 
 
