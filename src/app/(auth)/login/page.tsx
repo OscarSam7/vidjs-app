@@ -67,7 +67,7 @@ export default function LoginPage() {
         {/* Brand Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-3">
-            <ZynkoLogo size="xl" subtitle="HOSPITALITY & ENTERTAINMENT OS" />
+            <ZynkoLogo size="xl" subtitle="VENUES & ENTERTAINMENT OS" />
           </div>
           <p className="text-xs text-slate-400 mt-2 max-w-xs mx-auto">
             Plataforma Integral de Gestión, Entretenimiento y Asistencia para Locales

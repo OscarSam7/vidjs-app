@@ -12,7 +12,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "ZYNKO - Hospitality & Entertainment OS",
+  title: "ZYNKO - Venues & Entertainment OS",
   description:
     "Plataforma Integral de Gestión, Entretenimiento, Gastronomía y Asistencia para Locales.",
   manifest: "/manifest.webmanifest",
