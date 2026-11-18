@@ -49,6 +49,7 @@ import {
   BellRing,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ZynkoLogo } from "@/components/ui/ZynkoLogo";
 import {
   PlanCode,
   PLAN_LABELS,
@@ -546,37 +547,40 @@ export function Sidebar({
           {collapsed ? (
             tenantLogo ? (
               <div
-                className="w-9 h-9 rounded-xl bg-purple-950/70 border border-purple-700/50 p-1 flex items-center justify-center overflow-hidden shadow-sm shrink-0"
+                className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700/50 p-1 flex items-center justify-center overflow-hidden shadow-sm shrink-0"
                 title={tenantName}
               >
                 <img src={tenantLogo} alt={tenantName} className="max-h-full max-w-full object-contain" />
               </div>
             ) : (
               <div
-                className="w-8 h-8 rounded-xl bg-purple-950/70 border border-purple-700/50 flex items-center justify-center text-purple-300 shadow-sm shrink-0"
-                title="VIDJEIS PRO"
+                className="w-9 h-9 rounded-xl bg-slate-950 border border-fuchsia-900/40 flex items-center justify-center shadow-sm shrink-0"
+                title="ZYNKO OS"
               >
-                <Disc3 className="w-4 h-4 text-purple-400" />
+                <ZynkoLogo variant="icon" size="sm" />
               </div>
             )
           ) : (
             <>
               <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
                 {tenantLogo ? (
-                  <div className="w-9 h-9 rounded-xl bg-purple-950/80 border border-purple-600/50 p-1 flex items-center justify-center overflow-hidden shadow-sm shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700/50 p-1 flex items-center justify-center overflow-hidden shadow-sm shrink-0">
                     <img src={tenantLogo} alt={tenantName} className="max-h-full max-w-full object-contain" />
                   </div>
                 ) : (
-                  <div className="w-8 h-8 rounded-xl bg-purple-950/70 border border-purple-700/50 flex items-center justify-center text-purple-300 shadow-sm shrink-0">
-                    <Disc3 className="w-4 h-4 text-purple-400" />
+                  <div className="w-8 h-8 rounded-xl bg-slate-950 border border-fuchsia-900/40 flex items-center justify-center shadow-sm shrink-0">
+                    <ZynkoLogo variant="icon" size="xs" />
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <span className="font-bold text-sm tracking-wide text-[var(--text-heading,#F8FAFC)] block leading-tight truncate">
-                    {tenantName || "VIDJSPRO"}
-                  </span>
-                  <span className="text-[10px] text-purple-500 font-bold block truncate">
-                    {planName}
+                  <div className="flex items-center justify-between">
+                    <ZynkoLogo size="xs" />
+                    <span className="text-[9px] text-fuchsia-400 font-bold uppercase tracking-wider">
+                      {planName || "PRO"}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-medium block truncate mt-0.5">
+                    {tenantName || "Sede Principal"}
                   </span>
                 </div>
               </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Music, Disc3, ShieldCheck, ArrowRight, Sparkles, Building2, UserCircle2, QrCode } from "lucide-react";
+import { ZynkoLogo } from "@/components/ui/ZynkoLogo";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -64,15 +65,12 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md relative z-10">
         {/* Brand Header */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 mb-4 glow-purple">
-            <Disc3 className="w-8 h-8 animate-spin text-purple-400 [animation-duration:12s]" />
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center mb-3">
+            <ZynkoLogo size="xl" subtitle="HOSPITALITY & ENTERTAINMENT OS" />
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-white flex items-center justify-center gap-2">
-            VIDJEIS <span className="text-xs px-2 py-0.5 rounded-full bg-purple-600/30 text-purple-300 font-semibold border border-purple-500/30">ENTERTAINMENT</span>
-          </h1>
-          <p className="text-sm text-zinc-400 mt-2">
-            Plataforma SaaS para Bares, Karaokes, Clubes y DJs
+          <p className="text-xs text-slate-400 mt-2 max-w-xs mx-auto">
+            Plataforma Integral de Gestión, Entretenimiento y Asistencia para Locales
           </p>
         </div>
 
