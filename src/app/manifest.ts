@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ZYNKO - Venues & Entertainment OS",
-    short_name: "ZYNKO",
+    name: "CYNKO - Venues & Entertainment OS",
+    short_name: "CYNKO",
     description:
       "Plataforma Integral de Gestión, Entretenimiento, Gastronomía y Asistencia para Locales",
     id: "/",

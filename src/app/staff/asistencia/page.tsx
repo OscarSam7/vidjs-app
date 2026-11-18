@@ -293,11 +293,11 @@ export default function StaffAttendanceMobilePage() {
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center font-black text-white text-base shadow-lg shadow-cyan-950/40">
-              Z
+              C
             </div>
             <div>
               <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest block leading-none">
-                ZYNKO STAFF
+                CYNKO STAFF
               </span>
               <h1 className="text-sm font-extrabold text-white leading-tight">Control de Asistencia</h1>
             </div>
@@ -351,7 +351,7 @@ export default function StaffAttendanceMobilePage() {
                     setInviteKey(e.target.value.toUpperCase());
                     setLinkError(null);
                   }}
-                  placeholder="Ej: ZK-8492"
+                  placeholder="Ej: CK-8492"
                   maxLength={10}
                   className="w-full text-center text-3xl font-mono font-black uppercase tracking-widest py-3.5 px-4 bg-[#0D182B] border-2 border-slate-700/80 rounded-2xl text-white focus:outline-none focus:border-cyan-400 transition-colors shadow-2xl"
                 />
@@ -597,7 +597,7 @@ export default function StaffAttendanceMobilePage() {
             <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
             Validación GPS Satelital
           </span>
-          <span className="font-extrabold text-slate-400">ZYNKO OS</span>
+          <span className="font-extrabold text-slate-400">CYNKO OS</span>
         </div>
       </footer>
     </div>

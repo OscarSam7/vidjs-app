@@ -136,12 +136,12 @@ export function ZynkoLogo({
   return (
     <div className={`inline-flex flex-col ${className}`}>
       <div className={`flex items-center gap-1.5 leading-none select-none font-black ${sizeConfig.containerH}`}>
-        {/* Letras Z Y N K en Blanco Titanio Pulido */}
+        {/* Letras C Y N K en Blanco Titanio Pulido */}
         <span
           className={`text-white font-sans ${sizeConfig.text} uppercase font-extrabold tracking-[0.14em] drop-shadow-[0_2px_10px_rgba(255,255,255,0.15)]`}
           style={{ letterSpacing: "0.14em" }}
         >
-          ZYNK
+          CYNK
         </span>
 
         {/* La "O" de Vinilo Neón con Brazo de Tornamesa */}
@@ -168,3 +168,6 @@ export function ZynkoLogo({
     </div>
   );
 }
+
+export const CynkoLogo = ZynkoLogo;
+

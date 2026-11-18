@@ -1127,7 +1127,7 @@ export default function AudioCabinaProView() {
             </button>
             <div className="text-center">
               <ZynkoLogo size="md" subtitle="VENUES & ENTERTAINMENT OS" />
-              <h3 className="text-xl font-black text-white mt-4">ZYNKO Audio Cabina Pro</h3>
+              <h3 className="text-xl font-black text-white mt-4">CYNKO Audio Cabina Pro</h3>
               <p className="text-xs text-zinc-400 mt-2">
                 Desbloquea las dos bandejas táctiles fijadas y el motor de auto-reproducción continua (Auto-DJ) sin pausas ni silencios.
               </p>

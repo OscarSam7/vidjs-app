@@ -12,14 +12,14 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "ZYNKO - Venues & Entertainment OS",
+  title: "CYNKO - Venues & Entertainment OS",
   description:
     "Plataforma Integral de Gestión, Entretenimiento, Gastronomía y Asistencia para Locales.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "ZYNKO",
+    title: "CYNKO",
   },
   icons: {
     icon: [

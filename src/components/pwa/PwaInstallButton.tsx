@@ -48,7 +48,7 @@ export default function PwaInstallButton({
           </div>
           <div className="min-w-0">
             <p className="text-xs font-black text-white truncate leading-tight">
-              Descargar App ZYNKO
+              Descargar App CYNKO
             </p>
             <p className="text-[10px] text-fuchsia-300/80 truncate">
               Instalación automática y directa en tu pantalla

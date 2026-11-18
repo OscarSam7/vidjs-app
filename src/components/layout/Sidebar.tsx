@@ -564,7 +564,7 @@ export function Sidebar({
             ) : (
               <div
                 className="w-9 h-9 rounded-xl bg-slate-950 border border-fuchsia-900/40 flex items-center justify-center shadow-sm shrink-0"
-                title="ZYNKO OS"
+                title="CYNKO OS"
               >
                 <ZynkoLogo variant="icon" size="sm" />
               </div>

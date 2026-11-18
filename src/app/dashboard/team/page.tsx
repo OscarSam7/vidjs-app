@@ -416,7 +416,7 @@ export default function StaffAndAttendanceDashboard() {
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-3">
             <span>Mi Equipo y Asistencias</span>
             <span className="text-xs font-black px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 uppercase tracking-widest">
-              ZYNKO STAFF
+              CYNKO STAFF
             </span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">

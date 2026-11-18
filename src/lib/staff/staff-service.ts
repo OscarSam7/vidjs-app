@@ -73,9 +73,9 @@ export async function getStaffMembers(tenantId: string, venueId?: string) {
  * Generar clave temporal de 24h para vincular app móvil
  */
 export async function generateStaffInviteKey(staffMemberId: string) {
-  // Clave de 6 caracteres: ZK-XXXX
+  // Clave de 6 caracteres: CK-XXXX (CYNKO KEY)
   const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
-  const inviteKey = `ZK-${randomChars}`;
+  const inviteKey = `CK-${randomChars}`;
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 Horas
 
   const updated = await prisma.staffMember.update({
