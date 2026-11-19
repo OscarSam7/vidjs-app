@@ -2,15 +2,34 @@
   <defs>
     <!-- Fondo gradiente oscuro profundo -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#08080d" />
-      <stop offset="50%" stop-color="#11071c" />
-      <stop offset="100%" stop-color="#040406" />
+      <stop offset="0%" stop-color="#0b1020" />
+      <stop offset="50%" stop-color="#11091d" />
+      <stop offset="100%" stop-color="#050509" />
     </linearGradient>
 
-    <!-- Resplandor neón magenta fucsia -->
-    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="10" result="blur1" />
-      <feGaussianBlur stdDeviation="24" result="blur2" />
+    <!-- Borde dual cyan -> magenta -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.5" />
+      <stop offset="50%" stop-color="#818cf8" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#e024c3" stop-opacity="0.55" />
+    </linearGradient>
+
+    <!-- Aura izquierda cyan -->
+    <radialGradient id="auraLeft" cx="35%" cy="50%" r="45%">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Aura derecha magenta -->
+    <radialGradient id="auraRight" cx="65%" cy="50%" r="45%">
+      <stop offset="0%" stop-color="#ff6bf0" stop-opacity="0.24" />
+      <stop offset="100%" stop-color="#e024c3" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Resplandor neón -->
+    <filter id="neonGlow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="8" result="blur1" />
+      <feGaussianBlur stdDeviation="18" result="blur2" />
       <feMerge>
         <feMergeNode in="blur2" />
         <feMergeNode in="blur1" />
@@ -18,39 +37,67 @@
       </feMerge>
     </filter>
 
-    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#ff7bf2" stop-opacity="0.3" />
-      <stop offset="100%" stop-color="#e024c3" stop-opacity="0" />
-    </radialGradient>
+    <!-- Gradientes del emblema (espacio 100x100 escalado) -->
+    <clipPath id="clipL">
+      <rect x="0" y="0" width="50" height="100" />
+    </clipPath>
+    <clipPath id="clipR">
+      <rect x="50" y="0" width="50" height="100" />
+    </clipPath>
+    <linearGradient id="cyaGrad" x1="10" y1="10" x2="50" y2="90" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22d3ee" />
+      <stop offset="55%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+    <linearGradient id="magGrad" x1="50" y1="10" x2="92" y2="90" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ff7bf2" />
+      <stop offset="60%" stop-color="#e024c3" />
+      <stop offset="100%" stop-color="#a2088b" />
+    </linearGradient>
+    <linearGradient id="divGrad" x1="50" y1="0" x2="50" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22d3ee" />
+      <stop offset="50%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#ff6bf0" />
+    </linearGradient>
   </defs>
 
   <!-- Fondo squircle premium -->
   <rect width="512" height="512" rx="115" fill="url(#bgGrad)" />
-  <rect width="502" height="502" x="5" y="5" rx="110" fill="none" stroke="#e024c3" stroke-width="4" stroke-opacity="0.35" />
+  <rect width="502" height="502" x="5" y="5" rx="110" fill="none" stroke="url(#borderGrad)" stroke-width="4" />
 
-  <!-- Aura de resplandor central -->
-  <circle cx="245" cy="256" r="210" fill="url(#centerGlow)" />
+  <!-- Auras duales -->
+  <circle cx="195" cy="256" r="200" fill="url(#auraLeft)" />
+  <circle cx="315" cy="256" r="200" fill="url(#auraRight)" />
 
-  <!-- Grupo del Vinilo Neón con Tonearm (ZYNKO "O") -->
-  <g filter="url(#neonGlow)">
-    <!-- Disco Exterior -->
-    <circle cx="240" cy="260" r="185" fill="none" stroke="#ff6bf0" stroke-width="12" stroke-linecap="round" />
+  <!-- Emblema CYNKO Digital QR + Vinilo Neón (centrado y escalado 4.2x) -->
+  <g transform="translate(46, 46) scale(4.2)" filter="url(#neonGlow)">
+    <!-- Mitad Izquierda: Digital QR -->
+    <g clip-path="url(#clipL)">
+      <circle cx="50" cy="50" r="42" stroke="url(#cyaGrad)" stroke-width="4.2" fill="none" />
+      <rect x="24" y="23" width="11" height="11" rx="2.8" stroke="#22d3ee" stroke-width="2.6" fill="none" />
+      <rect x="27.8" y="26.8" width="3.4" height="3.4" rx="0.8" fill="#ffffff" />
+      <rect x="16" y="44.5" width="11" height="11" rx="2.8" fill="#38bdf8" />
+      <rect x="31.5" y="44.5" width="9.5" height="11" rx="2.5" fill="#22d3ee" opacity="0.45" />
+      <rect x="24" y="66" width="11" height="11" rx="2.8" stroke="#818cf8" stroke-width="2.6" fill="none" />
+      <rect x="27.8" y="69.8" width="3.4" height="3.4" rx="0.8" fill="#818cf8" />
+    </g>
 
-    <!-- Surcos concéntricos del vinilo -->
-    <circle cx="240" cy="260" r="145" fill="none" stroke="#ff6bf0" stroke-width="7" stroke-linecap="round" opacity="0.85" />
-    <circle cx="240" cy="260" r="105" fill="none" stroke="#ff6bf0" stroke-width="7.5" stroke-linecap="round" opacity="0.9" />
-    <circle cx="240" cy="260" r="65" fill="none" stroke="#ff6bf0" stroke-width="7" opacity="0.75" />
+    <!-- Mitad Derecha: Vinilo Neón -->
+    <g clip-path="url(#clipR)">
+      <circle cx="50" cy="50" r="42" stroke="url(#magGrad)" stroke-width="4.2" fill="none" />
+      <circle cx="50" cy="50" r="32" stroke="#ff6bf0" stroke-width="2.3" opacity="0.9" fill="none" />
+      <circle cx="50" cy="50" r="22.5" stroke="#ff6bf0" stroke-width="2.3" opacity="0.95" fill="none" />
+      <circle cx="50" cy="50" r="13.5" stroke="#ff7bf2" stroke-width="2" opacity="0.8" fill="none" />
+    </g>
 
-    <!-- Centro y Agujero Spindle -->
-    <circle cx="240" cy="260" r="26" fill="#ffffff" />
-    <circle cx="240" cy="260" r="13" fill="#070709" />
+    <!-- Brazo de Tornamesa -->
+    <circle cx="87" cy="21" r="3.8" fill="#ff6bf0" />
+    <path d="M87 21 L87 51 L70 68" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+    <rect x="64" y="66" width="9.5" height="5.2" rx="2" transform="rotate(-42 64 66)" fill="#ff7bf2" />
 
-    <!-- Brazo de Tornamesa (Tonearm) -->
-    <!-- Base del brazo en cuadrante superior derecho -->
-    <circle cx="400" cy="140" r="16" fill="#ff7bf2" />
-    <!-- Varilla del brazo -->
-    <path d="M 400 140 L 400 270 L 325 345" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
-    <!-- Cabezal de aguja (Cartridge) -->
-    <rect x="305" y="335" width="36" height="20" rx="7" transform="rotate(-40 305 335)" fill="#ff7bf2" stroke="#ffffff" stroke-width="4" />
+    <!-- División Central Neón + Eje Spindle -->
+    <line x1="50" y1="8" x2="50" y2="92" stroke="url(#divGrad)" stroke-width="1.6" stroke-dasharray="2.5 3" opacity="0.6" />
+    <circle cx="50" cy="50" r="6.8" fill="#ffffff" />
+    <circle cx="50" cy="50" r="3.2" fill="#07070c" />
   </g>
 </svg>

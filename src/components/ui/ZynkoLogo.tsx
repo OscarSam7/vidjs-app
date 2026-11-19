@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useId } from "react";
 
 interface ZynkoLogoProps {
   size?: "xs" | "sm" | "md" | "lg" | "xl";
@@ -38,7 +38,10 @@ export function ZynkoLogo({
       }[module]
     : null;
 
-  // Icono SVG exacto de la "O" de Vinilo con Brazo de Tornamesa
+  const rawId = useId();
+  const uid = rawId.replace(/:/g, "");
+
+  // Icono SVG Oficial CYNKO: Mitad Izquierda Digital QR (Ecosistema OS) + Mitad Derecha Vinilo Neón con Tornamesa
   const VinylIcon = ({ pxSize }: { pxSize: number }) => (
     <svg
       width={pxSize}
@@ -48,80 +51,86 @@ export function ZynkoLogo({
       xmlns="http://www.w3.org/2000/svg"
       className="inline-block shrink-0 transition-transform duration-300 hover:rotate-12"
       style={{
-        filter: "drop-shadow(0 0 7px rgba(224, 36, 195, 0.85)) drop-shadow(0 0 14px rgba(224, 36, 195, 0.4))",
+        filter:
+          "drop-shadow(0 0 6px rgba(34, 211, 238, 0.45)) drop-shadow(0 0 9px rgba(224, 36, 195, 0.55))",
       }}
     >
       <defs>
-        <radialGradient id="vinylGlow" cx="50%" cy="50%" r="50%">
+        <clipPath id={`${uid}_clipL`}>
+          <rect x="0" y="0" width="50" height="100" />
+        </clipPath>
+        <clipPath id={`${uid}_clipR`}>
+          <rect x="50" y="0" width="50" height="100" />
+        </clipPath>
+        <linearGradient id={`${uid}_cya`} x1="10" y1="10" x2="50" y2="90" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#22d3ee" />
+          <stop offset="55%" stopColor="#38bdf8" />
+          <stop offset="100%" stopColor="#818cf8" />
+        </linearGradient>
+        <linearGradient id={`${uid}_mag`} x1="50" y1="10" x2="92" y2="90" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#ff7bf2" />
           <stop offset="60%" stopColor="#e024c3" />
           <stop offset="100%" stopColor="#a2088b" />
-        </radialGradient>
+        </linearGradient>
+        <linearGradient id={`${uid}_div`} x1="50" y1="0" x2="50" y2="100" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#22d3ee" />
+          <stop offset="50%" stopColor="#ffffff" />
+          <stop offset="100%" stopColor="#ff6bf0" />
+        </linearGradient>
       </defs>
 
-      {/* Disco Exterior */}
-      <circle
-        cx="48"
-        cy="50"
-        r="44"
-        stroke="#ff6bf0"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-      />
+      {/* Mitad Izquierda: Digital QR / Ecosistema Integral OS */}
+      <g clipPath={`url(#${uid}_clipL)`}>
+        <circle cx="50" cy="50" r="42" stroke={`url(#${uid}_cya)`} strokeWidth="4.2" fill="none" />
+        <rect x="24" y="23" width="11" height="11" rx="2.8" stroke="#22d3ee" strokeWidth="2.6" fill="none" />
+        <rect x="27.8" y="26.8" width="3.4" height="3.4" rx="0.8" fill="#ffffff" />
+        <rect x="16" y="44.5" width="11" height="11" rx="2.8" fill="#38bdf8" />
+        <rect x="31.5" y="44.5" width="9.5" height="11" rx="2.5" fill="#22d3ee" opacity="0.45" />
+        <rect x="24" y="66" width="11" height="11" rx="2.8" stroke="#818cf8" strokeWidth="2.6" fill="none" />
+        <rect x="27.8" y="69.8" width="3.4" height="3.4" rx="0.8" fill="#818cf8" />
+      </g>
 
-      {/* Surcos Concéntricos del Vinilo */}
-      <circle
-        cx="48"
-        cy="50"
-        r="34"
-        stroke="#ff6bf0"
-        strokeWidth="2"
-        strokeLinecap="round"
-        opacity="0.85"
-      />
-      <circle
-        cx="48"
-        cy="50"
-        r="24"
-        stroke="#ff6bf0"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        opacity="0.9"
-      />
-      <circle
-        cx="48"
-        cy="50"
-        r="15"
-        stroke="#ff6bf0"
-        strokeWidth="2"
-        opacity="0.75"
-      />
-
-      {/* Agujero Central Spindle */}
-      <circle cx="48" cy="50" r="6" fill="#ffffff" />
-      <circle cx="48" cy="50" r="3" fill="#070709" />
+      {/* Mitad Derecha: Vinilo Neón */}
+      <g clipPath={`url(#${uid}_clipR)`}>
+        <circle cx="50" cy="50" r="42" stroke={`url(#${uid}_mag)`} strokeWidth="4.2" fill="none" />
+        <circle cx="50" cy="50" r="32" stroke="#ff6bf0" strokeWidth="2.3" opacity="0.9" fill="none" />
+        <circle cx="50" cy="50" r="22.5" stroke="#ff6bf0" strokeWidth="2.3" opacity="0.95" fill="none" />
+        <circle cx="50" cy="50" r="13.5" stroke="#ff7bf2" strokeWidth="2" opacity="0.8" fill="none" />
+      </g>
 
       {/* Brazo de Tornamesa (Tonearm con Aguja) */}
-      {/* Base superior derecha del brazo */}
-      <circle cx="86" cy="22" r="3.5" fill="#ff6bf0" />
-      {/* Varilla del brazo que entra hacia el surco */}
+      <circle cx="87" cy="21" r="3.8" fill="#ff6bf0" />
       <path
-        d="M86 22 L86 52 L68 70"
+        d="M87 21 L87 51 L70 68"
         stroke="#ffffff"
-        strokeWidth="3"
+        strokeWidth="3.2"
         strokeLinecap="round"
         strokeLinejoin="round"
+        fill="none"
       />
-      {/* Cabezal de la aguja / Cartridge */}
       <rect
-        x="63"
-        y="68"
-        width="9"
-        height="5"
+        x="64"
+        y="66"
+        width="9.5"
+        height="5.2"
         rx="2"
-        transform="rotate(-40 63 68)"
+        transform="rotate(-42 64 66)"
         fill="#ff7bf2"
       />
+
+      {/* División Central Neón + Eje Spindle */}
+      <line
+        x1="50"
+        y1="8"
+        x2="50"
+        y2="92"
+        stroke={`url(#${uid}_div)`}
+        strokeWidth="1.6"
+        strokeDasharray="2.5 3"
+        opacity="0.6"
+      />
+      <circle cx="50" cy="50" r="6.8" fill="#ffffff" />
+      <circle cx="50" cy="50" r="3.2" fill="#07070c" />
     </svg>
   );
 
