@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, QrCode } from "lucide-react";
+import { ArrowRight, QrCode, Sparkles } from "lucide-react";
 import { ZynkoLogo } from "@/components/ui/ZynkoLogo";
 
 export default function LoginPage() {
