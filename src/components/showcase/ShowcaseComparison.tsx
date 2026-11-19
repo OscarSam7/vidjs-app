@@ -5,92 +5,99 @@ import { Check, X, Sparkles, ShieldAlert } from "lucide-react";
 export function ShowcaseComparison() {
   const features = [
     {
-      name: "Consola Dual-Deck Web con Video Streaming HD",
-      vidjs: true,
+      name: "Audio Cabina Pro & Auto-DJ Ping-Pong con EQ 3-Bandas",
+      cynko: true,
       spotify: false,
-      traditionalDj: true,
+      traditionalDj: "Software extra ($300+)",
+      oldKaraoke: false,
+    },
+    {
+      name: "Restaurante POS & Pantalla KDS de Cocina en Tiempo Real",
+      cynko: true,
+      spotify: false,
+      traditionalDj: false,
+      oldKaraoke: false,
+    },
+    {
+      name: "Beeper Digital QR PWA (Localizador Háptico sin Hardware Físico)",
+      cynko: true,
+      spotify: false,
+      traditionalDj: false,
+      oldKaraoke: false,
+    },
+    {
+      name: "Control de Asistencia de Personal con Claves CK-XXXX & GPS",
+      cynko: true,
+      spotify: false,
+      traditionalDj: false,
+      oldKaraoke: false,
+    },
+    {
+      name: "Control de Acceso QR Criptográfico HMAC-SHA256 (0.2s) & Modo Offline",
+      cynko: true,
+      spotify: false,
+      traditionalDj: false,
+      oldKaraoke: false,
+    },
+    {
+      name: "Reservas VIP de Camarotes con Fotos Reales de Decoración",
+      cynko: true,
+      spotify: false,
+      traditionalDj: false,
       oldKaraoke: false,
     },
     {
       name: "Peticiones de Comensales por QR (Cero Apps por Descargar)",
-      vidjs: true,
+      cynko: true,
       spotify: false,
       traditionalDj: false,
       oldKaraoke: false,
     },
     {
       name: "Algoritmo Anti-Monopolio de Micrófono ('Canta y Libera')",
-      vidjs: true,
+      cynko: true,
       spotify: false,
       traditionalDj: false,
       oldKaraoke: false,
     },
     {
       name: "Sistema de 'Super Votos' Condicionados al Consumo en Barra",
-      vidjs: true,
+      cynko: true,
       spotify: false,
       traditionalDj: false,
       oldKaraoke: false,
     },
     {
-      name: "Salida para Pantalla Gigante TV con Publicidad y Letras",
-      vidjs: true,
+      name: "Salida para Pantalla Gigante Smart TV 4K con Letras y Cumpleaños",
+      cynko: true,
       spotify: false,
       traditionalDj: "Requiere hardware extra",
       oldKaraoke: true,
     },
     {
       name: "Transición Automática sin Silencios DJ <-> Karaoke",
-      vidjs: true,
+      cynko: true,
       spotify: false,
       traditionalDj: false,
       oldKaraoke: false,
     },
     {
-      name: "Biblioteca Musical Centralizada Propiedad del Local",
-      vidjs: true,
+      name: "Biblioteca Musical Centralizada Propiedad del Establecimiento",
+      cynko: true,
       spotify: false,
       traditionalDj: false,
       oldKaraoke: false,
     },
     {
-      name: "Panel de Auditoría y Métricas de Consumo en Tiempo Real",
-      vidjs: true,
+      name: "White-Label & PWA Propia con Logo y Paleta Neón del Local",
+      cynko: true,
       spotify: false,
       traditionalDj: false,
       oldKaraoke: false,
     },
     {
-      name: "Control de Acceso QR Criptográfico HMAC-SHA256 (0.2s)",
-      vidjs: true,
-      spotify: false,
-      traditionalDj: false,
-      oldKaraoke: false,
-    },
-    {
-      name: "Modo Offline Resiliente en Puerta con IndexedDB (Sin Caídas de Red)",
-      vidjs: true,
-      spotify: false,
-      traditionalDj: false,
-      oldKaraoke: false,
-    },
-    {
-      name: "Reservas de Mesas VIP con Galería Fotográfica de Ambientación",
-      vidjs: true,
-      spotify: false,
-      traditionalDj: false,
-      oldKaraoke: false,
-    },
-    {
-      name: "Invitaciones Virales por WhatsApp con Pases QR Individuales",
-      vidjs: true,
-      spotify: false,
-      traditionalDj: false,
-      oldKaraoke: false,
-    },
-    {
-      name: "Cero Hardware Costoso ($0 en Consolas de $3.000)",
-      vidjs: true,
+      name: "Cero Hardware Costoso ($0 en Consolas de $3.000 o Beepers)",
+      cynko: true,
       spotify: true,
       traditionalDj: false,
       oldKaraoke: false,
@@ -101,18 +108,18 @@ export function ShowcaseComparison() {
     <section id="comparativa" className="py-24 bg-zinc-950 relative border-t border-zinc-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-950/60 border border-purple-500/30 text-xs font-bold text-purple-300 mb-3">
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fuchsia-950/60 border border-fuchsia-500/30 text-xs font-bold text-fuchsia-300 mb-3">
+            <Sparkles className="w-3.5 h-3.5 text-fuchsia-400" />
             <span>Análisis Comparativo de Mercado</span>
           </div>
           <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-            ¿Por qué Vidjs Pro Aplasta a las{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+            ¿Por qué CYNKO OS Supera a las{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-cyan-400">
               Soluciones Tradicionales?
             </span>
           </h2>
           <p className="mt-3 text-base text-zinc-400">
-            Compara cómo Vidjs Pro une en un solo ecosistema lo que antes requería 4 programas incompatibles y miles de dólares en equipos.
+            Compara cómo CYNKO OS unifica en una sola plataforma cloud lo que antes exigía 5 programas incompatibles, costosos beepers de hardware y miles de dólares en licencias.
           </p>
         </div>
 
@@ -124,12 +131,12 @@ export function ShowcaseComparison() {
                 <th className="py-5 px-6 text-zinc-400 font-bold w-2/5">
                   Funcionalidad / Capacidad
                 </th>
-                <th className="py-5 px-4 text-center bg-purple-950/40 text-purple-300 font-black border-x border-purple-500/30 text-sm">
+                <th className="py-5 px-4 text-center bg-fuchsia-950/40 text-fuchsia-300 font-black border-x border-fuchsia-500/30 text-sm">
                   <div className="flex items-center justify-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span>VIDJS PRO</span>
+                    <span>CYNKO OS</span>
                   </div>
-                  <span className="text-[10px] text-purple-400 block font-normal mt-0.5">
+                  <span className="text-[10px] text-fuchsia-400 block font-normal mt-0.5">
                     Ecosistema 360°
                   </span>
                 </th>
@@ -160,8 +167,8 @@ export function ShowcaseComparison() {
                     {item.name}
                   </td>
 
-                  {/* Vidjs Pro Column (Destacada) */}
-                  <td className="py-4 px-4 text-center bg-purple-950/20 border-x border-purple-500/20">
+                  {/* CYNKO OS Column (Destacada) */}
+                  <td className="py-4 px-4 text-center bg-fuchsia-950/20 border-x border-fuchsia-500/20">
                     <div className="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/40">
                       <Check className="w-4 h-4 stroke-[3]" />
                     </div>

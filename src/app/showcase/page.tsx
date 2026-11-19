@@ -19,8 +19,12 @@ import {
   ExternalLink,
   MessageCircle,
   Menu,
-  X
+  X,
+  UtensilsCrossed,
+  BellRing,
+  UserCheck
 } from "lucide-react";
+import { CynkoLogo } from "@/components/ui/ZynkoLogo";
 
 import { ShowcaseHero } from "@/components/showcase/ShowcaseHero";
 import { ShowcaseMetrics } from "@/components/showcase/ShowcaseMetrics";
@@ -50,22 +54,10 @@ export default function ShowcasePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           {/* Logo Brand */}
           <Link href="/showcase" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-purple-900/40 group-hover:scale-105 transition-transform">
-              <Headphones className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-black tracking-tight text-white font-mono">
-                  VIDJS<span className="text-cyan-400">PRO</span>
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-purple-950/80 text-[10px] font-mono font-bold text-purple-300 border border-purple-800/60 hidden sm:inline">
-                  ECOSYSTEM
-                </span>
-              </div>
-              <p className="text-[10px] text-zinc-400 font-semibold tracking-wider uppercase -mt-0.5">
-                Nightlife Operating System
-              </p>
-            </div>
+            <CynkoLogo size="md" subtitle="Venues & Entertainment OS" />
+            <span className="px-2.5 py-0.5 rounded-full bg-fuchsia-950/80 text-[10px] font-mono font-bold text-fuchsia-300 border border-fuchsia-800/60 hidden sm:inline shadow-sm shadow-fuchsia-900/30">
+              OS ECOSYSTEM
+            </span>
           </Link>
 
           {/* Menú Desktop */}
@@ -104,6 +96,14 @@ export default function ShowcasePage() {
           {/* Botones de Acción */}
           <div className="hidden sm:flex items-center gap-3">
             <Link
+              href="/register"
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-black font-black text-xs shadow-md shadow-emerald-950/40 hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 fill-current" />
+              <span>30 Días Pro Gratis</span>
+            </Link>
+
+            <Link
               href="/login"
               className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-bold border border-zinc-700/80 transition-all flex items-center gap-1.5 cursor-pointer"
             >
@@ -114,7 +114,7 @@ export default function ShowcasePage() {
             <button
               type="button"
               onClick={() => setIsDemoModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white text-xs font-black shadow-md shadow-purple-900/30 hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-cyan-600 hover:from-fuchsia-500 hover:to-cyan-500 text-white text-xs font-black shadow-md shadow-fuchsia-900/30 hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
               <span>Solicitar Demo VIP</span>
@@ -165,6 +165,12 @@ export default function ShowcasePage() {
 
             <div className="pt-3 border-t border-zinc-800 flex flex-col gap-2">
               <Link
+                href="/register"
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-center font-black text-xs text-black"
+              >
+                Probar 30 Días Gratis
+              </Link>
+              <Link
                 href="/login"
                 className="w-full py-2.5 rounded-xl bg-zinc-900 text-center font-bold text-xs text-white border border-zinc-800"
               >
@@ -176,7 +182,7 @@ export default function ShowcasePage() {
                   setIsMobileMenuOpen(false);
                   setIsDemoModalOpen(true);
                 }}
-                className="w-full py-2.5 rounded-xl bg-purple-600 text-center font-bold text-xs text-white"
+                className="w-full py-2.5 rounded-xl bg-fuchsia-600 text-center font-bold text-xs text-white"
               >
                 Solicitar Demo VIP
               </button>
@@ -252,15 +258,10 @@ export default function ShowcasePage() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
             <div className="col-span-2 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center text-white">
-                  <Headphones className="w-4 h-4" />
-                </div>
-                <span className="text-base font-black text-white font-mono">
-                  VIDJS<span className="text-cyan-400">PRO</span>
-                </span>
+                <CynkoLogo size="sm" subtitle="Venues & Entertainment OS" />
               </div>
               <p className="text-zinc-400 max-w-sm leading-relaxed">
-                El sistema operativo todo-en-uno que une a la cabina DJ, la cabina de karaoke, la gerencia de barra y los clientes por código QR.
+                El sistema operativo integral para venues, discotecas, bares y restaurantes. Unifica cabina de Audio Pro, gastronomía POS/KDS, beepers digitales QR, asistencia de staff, karaoke, acreditaciones y reservas VIP.
               </p>
               <div className="flex items-center gap-2 text-[11px] text-emerald-400 font-mono">
                 <ShieldCheck className="w-4 h-4" />
@@ -275,13 +276,27 @@ export default function ShowcasePage() {
               </div>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/dashboard/dj" className="hover:text-cyan-300 transition-colors">
-                    Consola Virtual DJ
+                  <Link href="/dashboard/dj/pro" className="hover:text-fuchsia-300 transition-colors flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400 inline-block"></span>
+                    <span>Audio Cabina Pro (Auto-DJ)</span>
                   </Link>
                 </li>
                 <li>
-                  <Link href="/dashboard/karaoke" className="hover:text-cyan-300 transition-colors">
-                    Karaoke Canta y Libera
+                  <Link href="/dashboard/gastronomy" className="hover:text-emerald-300 transition-colors flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+                    <span>Restaurante POS & KDS</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/dashboard/beeper" className="hover:text-amber-300 transition-colors flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+                    <span>Beeper Digital QR</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/staff/asistencia" className="hover:text-cyan-300 transition-colors flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block"></span>
+                    <span>Asistencia Staff QR</span>
                   </Link>
                 </li>
                 <li>
@@ -291,17 +306,22 @@ export default function ShowcasePage() {
                 </li>
                 <li>
                   <Link href="/reservas" className="hover:text-rose-300 transition-colors">
-                    Reservas VIP & Cumpleaños
+                    Reservas VIP & Camarotes
                   </Link>
                 </li>
                 <li>
-                  <Link href="/dashboard/contest" className="hover:text-cyan-300 transition-colors">
+                  <Link href="/dashboard/dj" className="hover:text-purple-300 transition-colors">
+                    Consola Virtual DJ
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/dashboard/karaoke" className="hover:text-cyan-300 transition-colors">
+                    Karaoke Canta y Libera
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/dashboard/contest" className="hover:text-pink-300 transition-colors">
                     Concursos & Super Votos
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/dashboard/library" className="hover:text-cyan-300 transition-colors">
-                    Biblioteca Musical
                   </Link>
                 </li>
                 <li>
@@ -325,17 +345,27 @@ export default function ShowcasePage() {
                 </li>
                 <li>
                   <Link href="/display/DEMO" className="hover:text-amber-300 transition-colors">
-                    Pantalla Gigante TV
+                    Pantalla Gigante TV 4K
                   </Link>
                 </li>
                 <li>
-                  <Link href="/dashboard/tables" className="hover:text-white transition-colors">
-                    Gestor de Mesas
+                  <Link href="/dashboard/gastronomy/kitchen" className="hover:text-orange-300 transition-colors">
+                    Cocina KDS en Tiempo Real
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/dashboard/gastronomy/bar" className="hover:text-cyan-300 transition-colors">
+                    Barra de Tragos & Coctelería
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/dashboard/gastronomy/tables" className="hover:text-white transition-colors">
+                    Gestor de Mesas & Comandas
                   </Link>
                 </li>
                 <li>
                   <Link href="/dashboard/events" className="hover:text-white transition-colors">
-                    Gestor de Eventos
+                    Gestor de Eventos & Aforo
                   </Link>
                 </li>
               </ul>
@@ -344,9 +374,14 @@ export default function ShowcasePage() {
             {/* Columna Staff & Soporte */}
             <div className="space-y-3">
               <div className="font-bold text-white uppercase tracking-wider text-[11px] font-mono">
-                Acceso & Soporte
+                Acceso & Registro
               </div>
               <ul className="space-y-2">
+                <li>
+                  <Link href="/register" className="hover:text-emerald-300 transition-colors font-bold text-emerald-400">
+                    Registrar Local (30 Días Pro)
+                  </Link>
+                </li>
                 <li>
                   <Link href="/login" className="hover:text-purple-300 transition-colors">
                     Iniciar Sesión Staff
@@ -377,7 +412,7 @@ export default function ShowcasePage() {
 
           <div className="pt-8 border-t border-zinc-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-zinc-500">
             <div>
-              &copy; {new Date().getFullYear()} VIDJS PRO ECOSYSTEM. Todos los derechos reservados.
+              &copy; {new Date().getFullYear()} CYNKO OS (cynko.app) &bull; Venues & Entertainment Operating System. Todos los derechos reservados.
             </div>
             <div className="flex items-center gap-4">
               <span>Cloud Web Architecture</span>

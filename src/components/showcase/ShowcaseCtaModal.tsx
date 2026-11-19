@@ -21,13 +21,13 @@ export function ShowcaseCtaModal({ isOpen, onClose }: ShowcaseCtaModalProps) {
 
   const handleWhatsAppRedirect = () => {
     const text = encodeURIComponent(
-      `¡Hola! Estoy muy interesado en implementar Vidjs Pro en mi local:
+      `¡Hola! Estoy muy interesado en implementar CYNKO OS en mi local:
 - Local: ${venueName || "Mi Establecimiento"}
 - Contacto: ${contactName || "Gerencia"}
 - Ciudad: ${city || "Latinoamérica"}
 - Mesas / Capacidad: ${tables}
 - Interés Principal: ${interest}
-¿Podríamos coordinar una demostración guiada del sistema y conocer las opciones de suscripción?`
+¿Podríamos coordinar una demostración guiada del sistema y conocer los planes para nuestro local?`
     );
     // Número comercial o enlace directo
     window.open(`https://wa.me/?text=${text}`, "_blank");
@@ -78,7 +78,7 @@ export function ShowcaseCtaModal({ isOpen, onClose }: ShowcaseCtaModalProps) {
                 <span>DEMO VIP PERSONALIZADA</span>
               </div>
               <h3 className="text-2xl font-black text-white">
-                Lleva Vidjs Pro a tu Local
+                Lleva CYNKO OS a tu Local
               </h3>
               <p className="text-xs sm:text-sm text-zinc-400 mt-1">
                 Completa estos breves datos para coordinar una prueba en vivo con uno de nuestros asesores de negocio.
@@ -180,20 +180,32 @@ export function ShowcaseCtaModal({ isOpen, onClose }: ShowcaseCtaModalProps) {
                   onChange={(e) => setInterest(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-sm text-white focus:outline-none focus:border-cyan-400"
                 >
-                  <option value="Ecosistema Completo (DJ, Karaoke, Accesos y Reservas)">
-                    🌟 Ecosistema Completo (Todas las Soluciones)
+                  <option value="Ecosistema Completo CYNKO OS (Todas las Soluciones)">
+                    🌟 Ecosistema Completo (Audio Pro, Gastronomía, Staff, Accesos y Reservas)
+                  </option>
+                  <option value="Audio Cabina Pro & Auto-DJ Ping-Pong">
+                    🎧 Audio Cabina Pro & Auto-DJ Ping-Pong con EQ 3-Bandas
+                  </option>
+                  <option value="Restaurante POS, Cocina KDS y Comandero de Mozos">
+                    🍽️ Restaurante POS, Cocina KDS y Barra
+                  </option>
+                  <option value="Beeper Digital QR PWA (Localizador de Pedidos)">
+                    🔔 Beeper Digital QR PWA (Cero Hardware)
+                  </option>
+                  <option value="Control de Asistencia Staff QR (CK-XXXX & GPS)">
+                    👥 Control de Asistencia Staff QR (Claves Dinámicas)
                   </option>
                   <option value="Acreditaciones & Control de Acceso QR Offline (RedTicket Pro)">
                     🎟️ Acreditaciones & Control de Acceso QR Offline
                   </option>
                   <option value="Reservas de Camarotes VIP & Cumpleaños con Fotos">
-                    🍾 Reservas de Camarotes VIP & Paquetes con Fotos
-                  </option>
-                  <option value="Cabina Virtual DJ HD & Streaming">
-                    🎧 Cabina Virtual DJ HD & Streaming
+                    🍾 Reservas de Camarotes VIP & Fotos de Decoración
                   </option>
                   <option value="Karaoke 'Canta y Libera' & Super Votos en Barra">
                     🎤 Karaoke Anti-Monopolio & Super Votos
+                  </option>
+                  <option value="White-Label & PWA Propia con Marca del Local">
+                    🎨 White-Label & Marca Blanca (PWA Propia)
                   </option>
                 </select>
               </div>

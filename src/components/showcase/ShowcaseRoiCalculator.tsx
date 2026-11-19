@@ -123,7 +123,7 @@ export function ShowcaseRoiCalculator({ onOpenDemoModal }: ShowcaseRoiCalculator
 
             <div className="pt-2 border-t border-zinc-800 text-xs text-zinc-400 flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Cálculo fundamentado en casos reales de bares con Vidjs Pro implementado.</span>
+              <span>Cálculo fundamentado en casos reales de bares y boliches con CYNKO OS implementado.</span>
             </div>
           </div>
 

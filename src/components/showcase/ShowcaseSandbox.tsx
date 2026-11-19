@@ -253,7 +253,7 @@ export function ShowcaseSandbox() {
   const activeColors = themeColors[selectedThemePreset] || themeColors["cyber-purple"];
 
   const handleCopySpecs = () => {
-    const specsText = `📐 GUÍA DE ESPECIFICACIONES WHITE-LABEL (VIDJS PRO) PARA DISEÑADOR:
+    const specsText = `📐 GUÍA DE ESPECIFICACIONES WHITE-LABEL (CYNKO OS) PARA DISEÑADOR:
 
 1. LOGOTIPO DEL ESTABLECIMIENTO:
    • Tamaño Recomendado: 512 x 512 px (Cuadrado 1:1) o 800 x 200 px (Horizontal 4:1).
@@ -275,7 +275,7 @@ export function ShowcaseSandbox() {
 4. COMPARTIR EN REDES / WHATSAPP (OPENGRAPH):
    • Tamaño Recomendado: 1200 x 630 px (1.91:1).
 
-Configuración en vivo en: vidjs.com/dashboard/branding`;
+Configuración en vivo en: cynko.app/dashboard/branding`;
 
     if (navigator?.clipboard) {
       navigator.clipboard.writeText(specsText);
@@ -1159,7 +1159,7 @@ Configuración en vivo en: vidjs.com/dashboard/branding`;
                     </div>
 
                     <div className="flex items-center justify-between pt-3 border-t border-zinc-800 text-xs text-zinc-400">
-                      <span className="text-rose-400 font-bold">Anti-Duplicación VIDJS PRO Activo</span>
+                      <span className="text-rose-400 font-bold">Anti-Duplicación CYNKO OS Activo</span>
                       <button
                         type="button"
                         onClick={() =>
@@ -1454,9 +1454,9 @@ Configuración en vivo en: vidjs.com/dashboard/branding`;
                         <span>💬 Mensaje generado para compartir a tus amigos:</span>
                       </div>
                       <p className="text-xs text-zinc-200 leading-relaxed font-sans bg-zinc-900/80 p-2.5 rounded-lg border border-zinc-800">
-                        &quot;¡Hola! Festejo mi cumple este sábado en <strong>VIDJSPRO Club</strong> 🎉. 
+                        &quot;¡Hola! Festejo mi cumple este sábado en <strong>CYNKO Club & Lounge</strong> 🎉. 
                         Estás en mi lista VIP con pase directo. Genera tu QR individual aquí:{" "}
-                        <span className="text-cyan-400 underline">vidjs.com/r/cumple-camila-x9a</span>&quot;
+                        <span className="text-cyan-400 underline">cynko.app/r/cumple-camila-x9a</span>&quot;
                       </p>
                     </div>
 
@@ -2076,7 +2076,7 @@ Configuración en vivo en: vidjs.com/dashboard/branding`;
 
                           <div className="flex items-center gap-1.5 shrink-0 px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-[9px] font-mono font-bold text-white">
                             <QrCode className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>vidjs.com/g/mesa14</span>
+                            <span>cynko.app/guest</span>
                           </div>
                         </div>
                       </div>

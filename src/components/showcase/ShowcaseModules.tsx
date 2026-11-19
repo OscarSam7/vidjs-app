@@ -27,6 +27,12 @@ import {
   WifiOff,
   Palette,
   Image as ImageIcon,
+  UtensilsCrossed,
+  BellRing,
+  UserCheck,
+  Disc3,
+  ChefHat,
+  Smartphone
 } from "lucide-react";
 
 export function ShowcaseModules() {
@@ -34,17 +40,121 @@ export function ShowcaseModules() {
   const [selectedModuleIndex, setSelectedModuleIndex] = useState<number>(0);
 
   const categories = [
-    { id: "all", label: "Todos los Módulos (10)" },
-    { id: "branding", label: "🎨 White-Label & Marca Propia" },
+    { id: "all", label: "Todos los Módulos (12)" },
+    { id: "audio", label: "🎧 DJ & Audio Pro" },
+    { id: "gastro", label: "🍽️ Gastronomía POS & Beepers" },
     { id: "events", label: "🎟️ Acreditaciones & Accesos" },
     { id: "reservations", label: "🍾 Reservas & Camarotes VIP" },
-    { id: "audio", label: "🎧 DJ & Audio Pro" },
+    { id: "staff", label: "👥 Staff & Asistencia QR" },
     { id: "karaoke", label: "🎤 Karaoke & Concursos" },
-    { id: "monetization", label: "💰 Monetización & Mesas" },
     { id: "screens", label: "📺 Pantallas & Gestión" },
+    { id: "branding", label: "🎨 White-Label & Marca Propia" },
   ];
 
   const modules = [
+    {
+      id: "audio-pro",
+      category: "audio",
+      title: "Audio Cabina Pro (Auto-DJ Dual-Deck & Crossfade)",
+      badge: "NUEVO & EXCLUSIVO",
+      badgeColor: "bg-fuchsia-950/80 text-fuchsia-300 border-fuchsia-800/60",
+      accentColor: "from-fuchsia-600 to-pink-600",
+      icon: Disc3,
+      directHref: "/dashboard/dj/pro",
+      directLabel: "Entrar a Cabina Audio Pro",
+      tagline: "Cockpit DJ con crossfade automático por tiempo, ecualizador paramétrico y cero silencios.",
+      description:
+        "Diseñado para bares, lounges y discotecas que necesitan música continua de máxima calidad sin depender de un DJ físico a cada minuto. El motor Auto-DJ Ping-Pong alterna automáticamente entre Deck A y Deck B con curvas de desvanecimiento seleccionables (4s, 8s, 12s, 16s). Incorpora un ecualizador Web Audio API de 3 bandas (Bajos, Medios, Agudos) y medidores visuales reactivos.",
+      features: [
+        "Motor Auto-DJ Ping-Pong con crossfade automático continuo entre bandejas",
+        "Selector de curva de crossfade: 4s (rápido), 8s (estándar), 12s (suave), 16s (lounge)",
+        "Ecualizador Web Audio API de 3 bandas con ganancia paramétrica y VUmeter",
+        "Deck A (Vinilo Neón Fucsia) y Deck B (Vinilo Cian) con control de pitch y loop",
+        "Temporizador en cuenta regresiva para el próximo fade automático",
+        "Cockpit a pantalla completa con cero desplazamiento (fixed full-screen) anti-fatiga",
+        "Buscador instantáneo en YouTube y listas de reproducción de club preconfiguradas",
+      ],
+      businessValue:
+        "Tu local nunca vuelve a quedarse en silencio. Mantiene el ambiente festivo y el ritmo de consumo a tope incluso durante los descansos del DJ o en horarios tempranos.",
+      stats: { label: "Transición sin Silencios", value: "100% Automático" },
+    },
+    {
+      id: "gastronomy-pos",
+      category: "gastro",
+      title: "Restaurante POS & Cocina KDS en Tiempo Real",
+      badge: "SISTEMA INTEGRAL",
+      badgeColor: "bg-emerald-950/80 text-emerald-300 border-emerald-800/60",
+      accentColor: "from-emerald-600 to-teal-600",
+      icon: UtensilsCrossed,
+      directHref: "/dashboard/gastronomy",
+      directLabel: "Ver Módulo Gastronómico",
+      tagline: "Comandero digital, pantalla de cocina KDS, barra de tragos y arqueo de turnos de caja.",
+      description:
+        "La suite gastronómica completa para locales gastronómicos y clubes. Los mozos cargan pedidos desde sus teléfonos o tablets, la comanda aparece de inmediato en la pantalla de cocina KDS dividida por tiempos de preparación, y la barra despacha bebidas con precisión sin duplicar pedidos.",
+      features: [
+        "Comandero digital para mozos con división de mesas y cuentas separadas",
+        "Pantalla KDS de Cocina (/kitchen) con cronómetro por plato (Pendiente, En Marcha, Listo)",
+        "Estación de Barra (/bar) optimizada para salida rápida de cócteles y botellas",
+        "Gestión de caja (/cashier) con arqueo de apertura/cierre, propinas y métodos de pago",
+        "Soporte de pagos con Efectivo, Tarjetas y transferencias QR (SIPAP / PIX)",
+        "Control de inventario, recetas e insumos con alerta de stock crítico",
+        "Menú digital QR público (/menu) sincronizado en tiempo real",
+      ],
+      businessValue:
+        "Reduce los tiempos de espera de platos en un 35%, elimina errores de comandas extraviadas y asegura que cada trago servido esté registrado y cobrado en caja.",
+      stats: { label: "Aceleración de Comandas", value: "-35% Tiempo" },
+    },
+    {
+      id: "beeper-digital",
+      category: "gastro",
+      title: "Beeper Digital QR PWA (Localizador de Pedidos)",
+      badge: "CERO HARDWARE",
+      badgeColor: "bg-amber-950/80 text-amber-300 border-amber-800/60",
+      accentColor: "from-amber-600 to-orange-600",
+      icon: BellRing,
+      directHref: "/dashboard/beeper",
+      directLabel: "Ver Beeper Digital",
+      tagline: "Reemplaza los beepers físicos costosos por alertas vibratorias y sonoras en el móvil del cliente.",
+      description:
+        "Olvídate de comprar y reponer beepers plásticos de $40-$60 USD que se caen, se rompen o los clientes se llevan por error. Con CYNKO, el cliente escanea el QR de su ticket de compra y su teléfono inteligente se convierte en el beeper: vibra, suena y destella cuando su comida o trago está listo.",
+      features: [
+        "Cero descargas: funciona en cualquier navegador móvil iOS y Android como PWA",
+        "Alerta háptica (vibración del dispositivo) y sonido acústico envolvente",
+        "Destello de pantalla a colores y animación de aviso llamativo",
+        "Panel del operador (/dashboard/beeper) con llamada en 1 clic al comensal",
+        "Notificaciones Web Push incluso si el usuario bloquea la pantalla",
+        "Métricas de tiempo promedio de entrega por mesa o mostrador",
+        "Ahorro inmediato de miles de dólares en equipos de radiofrecuencia",
+      ],
+      businessValue:
+        "Ahorro de hasta $2.000 USD en inversión inicial de hardware. Mayor comodidad para el cliente, que puede esperar sentado en su mesa o recorrer el local sin perder su turno.",
+      stats: { label: "Costo de Equipos", value: "$0 en Hardware" },
+    },
+    {
+      id: "staff-attendance",
+      category: "staff",
+      title: "CYNKO Staff & Asistencia QR con Claves Dinámicas",
+      badge: "CONTROL DE EQUIPO",
+      badgeColor: "bg-cyan-950/80 text-cyan-300 border-cyan-800/60",
+      accentColor: "from-cyan-600 to-blue-600",
+      icon: UserCheck,
+      directHref: "/staff/asistencia",
+      directLabel: "Ver Asistencia Staff",
+      tagline: "Fichaje ultrarrápido con códigos CK-XXXX, GPS anti-fraude y registro de turnos.",
+      description:
+        "Gestiona al personal nocturno y de restaurante sin relojes biométricos costosos. Cada empleado ingresa desde su teléfono (/staff/asistencia) con su clave dinámica CK-XXXX para registrar entradas, salidas y pausas con verificación de presencia en el establecimiento.",
+      features: [
+        "Fichaje instantáneo en 3 segundos con clave dinámica CK-XXXX",
+        "Verificación de presencia por geolocalización o red Wi-Fi del establecimiento",
+        "Roles específicos: Mozos, Bartenders, Cocina, DJ, Seguridad y Encargados",
+        "Reportes en tiempo real de quién está activo en el turno de la noche",
+        "Cálculo automatizado de horas nocturnas y horas extra trabajadas",
+        "Auditoría inmutable para evitar fichajes de favor entre compañeros",
+      ],
+      businessValue:
+        "Elimina el ausentismo no detectado y los retrasos del personal en las horas de mayor afluencia. Facilita la liquidación de sueldos y jornales nocturnos sin planillas de papel.",
+      stats: { label: "Tiempo de Fichaje", value: "< 3 Segundos" },
+    },
     {
       id: "dj-console",
       category: "audio",
@@ -75,7 +185,7 @@ export function ShowcaseModules() {
       id: "karaoke-booth",
       category: "karaoke",
       title: "Cabina de Karaoke Inteligente 'Canta y Libera'",
-      badge: "ALGORITMO ANTI-MONOPOLIO",
+      badge: "ANTI-MONOPOLIO",
       badgeColor: "bg-cyan-950/80 text-cyan-300 border-cyan-800/60",
       accentColor: "from-cyan-600 to-teal-600",
       icon: Mic,
@@ -122,8 +232,60 @@ export function ShowcaseModules() {
       stats: { label: "Disparo en Facturación", value: "+38% en Barra" },
     },
     {
+      id: "accreditation-access",
+      category: "events",
+      title: "Acreditaciones & Control de Acceso QR (RedTicket Pro)",
+      badge: "ALTA SEGURIDAD CRIPTO",
+      badgeColor: "bg-emerald-950/80 text-emerald-300 border-emerald-800/60",
+      accentColor: "from-emerald-600 to-teal-600",
+      icon: Ticket,
+      directHref: "/dashboard/accreditation",
+      directLabel: "Ver Módulo de Acreditaciones",
+      tagline: "Gestión masiva de boliches, conciertos y ferias con QR anti-fraude y modo offline.",
+      description:
+        "Inspirado en la potencia de RedTicket Pro pero 100% nativo en la nube de CYNKO. Permite emitir credenciales térmicas, etiquetas o PVC para miles de participantes por categorías (VIP, Prensa, Staff, General). Incluye escáner QR de puerta con cámara web/celular, validación en milisegundos, feedback sonoro y sincronización offline en IndexedDB.",
+      features: [
+        "Dashboard en tiempo real con aforo por puerta, sector y categoría",
+        "Códigos QR únicos con firma criptográfica HMAC-SHA256 anti-clonación",
+        "Escáner QR de alta velocidad con respuesta visual y tonos audibles",
+        "Modo Offline Resiliente: valida localmente y sincroniza por lotes al reconectar",
+        "Diseñador de credenciales e impresión térmica, PVC o A4 masiva",
+        "Portal de auto-registro público (/accreditation/[code]/register)",
+        "Despacho masivo por correo electrónico con credencial digital adjunta",
+      ],
+      businessValue:
+        "Elimina las filas eternas en la entrada, previene el ingreso de colados o credenciales duplicadas y reduce en un 80% los costos de impresión física y logística.",
+      stats: { label: "Velocidad de Escaneo", value: "< 0.2 Segundos" },
+    },
+    {
+      id: "vip-reservations-decorations",
+      category: "reservations",
+      title: "Reservas de Camarotes VIP & Fotos de Decoración",
+      badge: "ALTO VALOR COMERCIAL",
+      badgeColor: "bg-pink-950/80 text-pink-300 border-pink-800/60",
+      accentColor: "from-pink-600 to-purple-600",
+      icon: PartyPopper,
+      directHref: "/reservas",
+      directLabel: "Ver Portal de Reservas",
+      tagline: "Venta anticipada de mesas VIP y combos de cumpleaños con elección fotográfica de ambientación.",
+      description:
+        "Monetiza las noches de tu local días antes de abrir puertas. Los clientes eligen su paquete VIP (con 100% consumo acreditable en barra, alquiler limpio o combo cerrado de botellas) y seleccionan visualmente la decoración de su mesa viendo fotos reales del montaje.",
+      features: [
+        "Portal público mobile-first (/reservas) con selección por fecha y ocasión",
+        "Galería interactiva de opciones de decoración con fotos reales en alta definición",
+        "Modalidades: 100% Consumo Acreditable, Combo Cerrado o Alquiler Limpio",
+        "Subida de foto del cumpleañero para proyección en Smart TV (/display)",
+        "Pasarela para transferencias bancarias (SIPAP / PIX) y subida de comprobante",
+        "Invitaciones por WhatsApp (/r/[inviteToken]): pases QR individuales por amigo",
+        "Panel gerencial con aprobación de comprobantes en 1 clic",
+      ],
+      businessValue:
+        "Asegura ingresos récord garantizados antes del fin de semana. Un camarote reservado con combo de cumpleaños garantiza entre $150 y $1.200 USD de facturación segura por mesa.",
+      stats: { label: "Ingresos Anticipados", value: "100% Cobrado Antes" },
+    },
+    {
       id: "guest-qr",
-      category: "monetization",
+      category: "gastro",
       title: "Portal Web Móvil Comensales (Zero App Install)",
       badge: "100% WEB NATIVO",
       badgeColor: "bg-emerald-950/80 text-emerald-300 border-emerald-800/60",
@@ -133,7 +295,7 @@ export function ShowcaseModules() {
       directLabel: "Ver Portal Comensal",
       tagline: "Cero fricción: el cliente escanea el QR en la mesa y accede en menos de 2 segundos.",
       description:
-        "Tus clientes no tienen que descargar ninguna app de la tienda ni crear contraseñas complicadas. Con solo enfocar la cámara del celular al código QR de su mesa, ingresan al catálogo para pedir canciones, dejar dedicatorias, dar propinas al DJ y votar en concursos.",
+        "Tus clientes no tienen que descargar ninguna app de la tienda ni crear contraseñas. Con solo enfocar la cámara del celular al código QR de su mesa, ingresan al catálogo para pedir canciones, dejar dedicatorias, pedir platos, dar propinas al DJ y votar en concursos.",
       features: [
         "Escaneo de QR físico por mesa con enlace único e intransferible",
         "Buscador instantáneo en catálogo de la casa y YouTube",
@@ -149,7 +311,7 @@ export function ShowcaseModules() {
     {
       id: "tv-display",
       category: "screens",
-      title: "Video Wall & Pantalla Gigante Smart TV",
+      title: "Video Wall & Pantalla Gigante Smart TV 4K",
       badge: "4K READY",
       badgeColor: "bg-amber-950/80 text-amber-300 border-amber-800/60",
       accentColor: "from-amber-600 to-orange-600",
@@ -158,145 +320,39 @@ export function ShowcaseModules() {
       directLabel: "Ver Pantalla en Vivo",
       tagline: "Convierte cualquier Smart TV o proyector en un canal de televisión interactivo.",
       description:
-        "Diseñado específicamente para emitir a proyectores, pantallas LED y Smart TVs conectadas por HDMI o navegador web. Muestra visualizadores de audio reactivos de neón, letras de karaoke, anuncios de promociones del bar y un código QR gigante rotativo.",
+        "Diseñado específicamente para emitir a proyectores, pantallas LED y Smart TVs conectadas por HDMI o navegador web. Muestra visualizadores de audio reactivos de neón, letras de karaoke, anuncios de promociones del bar y fotos de homenajeados.",
       features: [
         "Interfaz ultra limpia sin bordes ni elementos de navegador",
         "Visualizador de audio reactivo con ondas y barras de ecualizador",
         "Cintillo inferior rotativo con promociones de la casa ('Happy Hour 2x1')",
         "Código QR dinámico en esquina para incentivar la participación continua",
         "Modo Karaoke con letras en tipografía gigante de alta legibilidad",
-        "Modo Duelo / Concurso con marcador interactivo y barra de votación viva",
+        "Modo Cumpleaños con foto del agasajado y felicitación en pantalla",
       ],
       businessValue:
         "Monetiza tus pantallas vendiendo espacios publicitarios a marcas patrocinadoras (cervezas, licores, eventos locales) además de promocionar los platos y tragos de mayor margen.",
       stats: { label: "Resolución", value: "Full HD & 4K" },
     },
     {
-      id: "music-library",
-      category: "audio",
-      title: "Biblioteca Musical & Taxonomía Inteligente",
-      badge: "PATRIMONIO DEL LOCAL",
-      badgeColor: "bg-blue-950/80 text-blue-300 border-blue-800/60",
-      accentColor: "from-blue-600 to-indigo-600",
-      icon: ListMusic,
-      directHref: "/dashboard/library",
-      directLabel: "Explorar Biblioteca",
-      tagline: "El repertorio musical y de karaoke de tu local, centralizado y categorizado en la nube.",
-      description:
-        "Organiza la música de tu local por géneros específicos (Cumbia, Reggaeton, Electrónica, Rock, Pop, Karaoke, etc.) con detección automática de BPM y Key. Si contratas un nuevo DJ el fin de semana, encuentra la biblioteca completa lista para sonar según la identidad del bar.",
-      features: [
-        "Categorización automática con tags de acceso rápido",
-        "Guardado inmediato desde la consola DJ o cabina de karaoke",
-        "Almacenamiento de BPM, Tonalidad (Key) y Duración exacta",
-        "Filtros por tipo de pista: DJ, Karaoke o Ambos",
-        "Búsqueda ultra rápida con tolerancia a errores tipográficos",
-        "Historial de éxitos más bailados y más pedidos por el público",
-      ],
-      businessValue:
-        "Protege el activo cultural y musical de tu local. La biblioteca le pertenece al bar, no a la computadora personal del DJ.",
-      stats: { label: "Capacidad Catálogo", value: "Ilimitada" },
-    },
-    {
-      id: "admin-analytics",
-      category: "screens",
-      title: "Panel Gerencial, Analítica & Auditoría",
-      badge: "CONTROL TOTAL",
-      badgeColor: "bg-violet-950/80 text-violet-300 border-violet-800/60",
-      accentColor: "from-violet-600 to-purple-600",
-      icon: BarChart3,
-      directHref: "/dashboard",
-      directLabel: "Ver Panel de Control",
-      tagline: "Toma decisiones basadas en datos reales de consumo y comportamiento de tus comensales.",
-      description:
-        "Conoce exactamente qué canciones llenan la pista de baile, qué mesas consumen más, cuáles son las horas pico de pedidos y cómo se desempeñan tus empleados. Incluye auditoría completa para control de caja y seguridad.",
-      features: [
-        "Métricas en tiempo real de pedidos, votos y canciones en reproducción",
-        "Control granular de roles: Dueño, Administrador, DJ, Bartender, Jurado",
-        "Registro inmutable de auditoría para prevenir fraudes o abusos de staff",
-        "Configuración de consumo mínimo requerido por mesa",
-        "Gestión de múltiples locales (Venues) desde una sola cuenta gerencial",
-        "Exportación de reportes para contabilidad y análisis comercial",
-      ],
-      businessValue:
-        "Paz mental para el dueño o gerente. Puedes supervisar la operación del boliche o bar desde tu celular mientras viajas o descansas.",
-      stats: { label: "Auditoría en Tiempo Real", value: "100% Rastreado" },
-    },
-    {
-      id: "accreditation-access",
-      category: "events",
-      title: "Acreditaciones & Control de Acceso QR (RedTicket Pro)",
-      badge: "ALTA SEGURIDAD CRIPTOGRÁFICA",
-      badgeColor: "bg-emerald-950/80 text-emerald-300 border-emerald-800/60",
-      accentColor: "from-emerald-600 to-teal-600",
-      icon: Ticket,
-      directHref: "/dashboard/accreditation",
-      directLabel: "Ver Módulo de Acreditaciones",
-      tagline: "Gestión masiva de congresos, ferias, conciertos y boliches con QR anti-fraude y modo offline.",
-      description:
-        "Inspirado en la potencia de RedTicket Pro pero 100% nativo en la nube de VIDJSPRO. Permite emitir credenciales térmicas, etiquetas o PVC para miles de participantes por categorías (VIP, Prensa, Staff, Disertante, General). Incluye escáner QR de puerta con cámara web/celular, validación en milisegundos, feedback sonoro y sincronización offline en IndexedDB que sigue operando incluso si se corta internet.",
-      features: [
-        "Dashboard en tiempo real con aforo por puerta, sector y categoría",
-        "Códigos QR únicos con firma criptográfica HMAC-SHA256 (imposibles de clonar o adivinar)",
-        "Escáner QR de alta velocidad con respuesta visual (Verde/Rojo/Amarillo) y tonos audibles",
-        "Modo Offline Resiliente (Fase 11): valida localmente y sincroniza por lotes al reconectar",
-        "Diseñador de credenciales personalizables e impresión térmica, PVC o A4 individual/masiva",
-        "Portal de auto-registro público (/accreditation/[code]/register) con validación automática",
-        "Despacho masivo por correo electrónico con credencial digital adjunta",
-        "Matriz de accesos y puertas (VIP, Escenario, Prensa, Acceso Principal)",
-      ],
-      businessValue:
-        "Elimina las filas eternas en la entrada, previene el ingreso de colados o credenciales duplicadas y reduce en un 80% los costos de impresión física y logística de acreditación en eventos de cualquier escala.",
-      stats: { label: "Velocidad de Escaneo", value: "< 0.2 Segundos" },
-    },
-    {
-      id: "vip-reservations-decorations",
-      category: "reservations",
-      title: "Reservas de Camarotes VIP & Paquetes con Fotos de Decoración",
-      badge: "ALTO VALOR COMERCIAL",
-      badgeColor: "bg-pink-950/80 text-pink-300 border-pink-800/60",
-      accentColor: "from-pink-600 to-purple-600",
-      icon: PartyPopper,
-      directHref: "/reservas",
-      directLabel: "Ver Portal de Reservas",
-      tagline: "Venta anticipada de mesas VIP y combos de cumpleaños con elección fotográfica de ambientación.",
-      description:
-        "Monetiza las noches de tu local días antes de abrir puertas. Los clientes eligen su paquete VIP (con 100% consumo acreditable en barra, alquiler limpio o combo cerrado de botellas) y seleccionan visualmente la decoración de su mesa (Neón Glow, Elegance Dorado, Glamour Rosa) viendo fotos reales del montaje. Además, los cumpleañeros suben su foto para ser proyectada en la pantalla gigante de TV durante el brindis.",
-      features: [
-        "Portal público mobile-first sin fricción (/reservas) con selección por fecha y ocasión",
-        "Galería interactiva de opciones de decoración con fotos reales en alta definición",
-        "Modalidades flexibles: 100% Consumo Acreditable, Combo Cerrado o Alquiler Limpio",
-        "Subida de foto del homenajeado para saludo y proyección en Smart TV (/display)",
-        "Pasarela para transferencias bancarias (SIPAP / PIX) con copiado rápido y subida de comprobante",
-        "Invitaciones virales por WhatsApp (/r/[inviteToken]): cada amigo genera su propio pase QR individual",
-        "Panel gerencial con cola de revisión de comprobantes y aprobación de pagos en 1 clic",
-        "Historial y auditoría de consumos y créditos restantes en cada camarote",
-      ],
-      businessValue:
-        "Asegura ingresos récord garantizados antes del fin de semana. Un camarote reservado con combo de cumpleaños o consumo mínimo garantiza entre $150 y $1.200 USD de facturación segura por mesa.",
-      stats: { label: "Ingresos Anticipados", value: "100% Cobrado Antes" },
-    },
-    {
       id: "white-label-branding",
       category: "branding",
-      title: "White-Label & Branding Total (Logo, Portada & Neón UI)",
-      badge: "MARCA BLANCA EMPRESARIAL",
+      title: "White-Label & Branding Total (PWA Propia)",
+      badge: "MARCA PROPIA",
       badgeColor: "bg-purple-950/80 text-purple-300 border-purple-800/60",
       accentColor: "from-purple-600 via-pink-600 to-cyan-500",
       icon: Palette,
       directHref: "/dashboard/branding",
       directLabel: "Configurar Marca Blanca",
-      tagline: "Convierte Vidjs en la aplicación oficial de tu local con tu propio logotipo, portada y colores.",
+      tagline: "Convierte CYNKO en la aplicación oficial de tu local con tu propio logotipo, portada y colores.",
       description:
-        "Tus clientes y comensales interactúan exclusivamente con la identidad de tu marca. El portal móvil, las pantallas gigantes de televisión, las reservas VIP y los tickets QR llevan el logo de tu empresa, tu banner de bienvenida y la paleta de iluminación neón de tu establecimiento.",
+        "Tus comensales interactúan exclusivamente con la identidad de tu marca. El portal móvil, las pantallas gigantes de televisión, las reservas VIP y los tickets QR llevan el logo de tu empresa, tu banner de bienvenida y la paleta de iluminación neón de tu establecimiento.",
       features: [
-        "Especificación Logo Oficial: 512 × 512 px (1:1) o 800 × 200 px (4:1) en PNG transparente o SVG",
-        "Especificación Portada Móvil: 1200 × 400 px (3:1 panorámico WebP/JPG) con zona segura central del 80%",
-        "Fondo para Pantallas TV / Espera: 1920 × 1080 px Full HD (16:9)",
-        "Motor de Paletas Neón: Cyber Purple, Golden Luxury, Retro Synthwave, Emerald Speakeasy y Midnight Velvet",
-        "Soporte Multi-Sucursal (Multi-Venue): Personalización visual independiente para cada local de la cadena",
-        "Banner promocional interactivo: Anuncio de Happy Hour / Cumpleaños con botón de acción directa a WhatsApp",
-        "Subida directa drag & drop desde cualquier celular o PC (archivos PNG, SVG, WebP y JPG de hasta 10 MB)",
-        "Portal PWA instalable sin tiendas con el nombre e icono oficial de tu negocio",
+        "Logotipo Oficial: 512 × 512 px o panorámico con fondo transparente",
+        "Portada Móvil: 1200 × 400 px con zona segura central para celulares",
+        "Fondo para Pantallas TV / Espera: 1920 × 1080 px Full HD",
+        "Motor de Paletas Neón: Cyber Purple, Golden Luxury, Retro Synthwave, Emerald Speakeasy",
+        "Multi-Sucursal: Personalización visual independiente para cada sucursal",
+        "Portal PWA instalable sin tiendas con el nombre e icono de tu local",
       ],
       businessValue:
         "Genera estatus y pertenencia. Tu establecimiento proyecta una imagen de cadena internacional con software propio de alta gama sin pagar cientos de miles de dólares en desarrollo a medida.",
@@ -314,24 +370,24 @@ export function ShowcaseModules() {
   return (
     <section id="modulos" className="py-24 bg-[#09090d] relative">
       {/* Luz ambiental */}
-      <div className="absolute top-1/3 left-0 w-96 h-96 bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/3 left-0 w-96 h-96 bg-fuchsia-600/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-10 right-0 w-96 h-96 bg-cyan-600/10 rounded-full blur-[140px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Cabecera de la sección */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-950/60 border border-purple-500/30 text-xs font-bold text-purple-300 mb-3">
-            <Layers className="w-3.5 h-3.5 text-purple-400" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-fuchsia-950/60 border border-fuchsia-500/30 text-xs font-bold text-fuchsia-300 mb-3">
+            <Layers className="w-3.5 h-3.5 text-fuchsia-400" />
             <span>Arquitectura Modular Integral</span>
           </div>
           <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
             Cada Componente Diseñado para{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-400">
               Multiplicar tu Negocio
             </span>
           </h2>
           <p className="mt-4 text-base sm:text-lg text-zinc-300">
-            Descubre en detalle cada una de las 9 herramientas integradas que hacen de Vidjs Pro la plataforma líder del mercado nocturno.
+            Descubre en detalle cada una de las 12 herramientas integradas que hacen de CYNKO OS la plataforma líder para venues, discotecas y gastronomía.
           </p>
 
           {/* Filtros de Categoría */}
@@ -349,7 +405,7 @@ export function ShowcaseModules() {
                 }}
                 className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   activeCategory === cat.id
-                    ? "bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-lg shadow-purple-900/40 scale-105"
+                    ? "bg-gradient-to-r from-fuchsia-600 to-cyan-600 text-white shadow-lg shadow-fuchsia-900/40 scale-105"
                     : "bg-zinc-900/90 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800"
                 }`}
               >
@@ -359,8 +415,8 @@ export function ShowcaseModules() {
           </div>
         </div>
 
-        {/* Selector de Módulos (Pestañas horizontales interactivas) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2.5 mb-10">
+        {/* Selector de Módulos (Pestañas interactivas) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 mb-10">
           {modules.map((m, idx) => {
             const Icon = m.icon;
             const isSelected = selectedModuleIndex === idx;
@@ -390,7 +446,7 @@ export function ShowcaseModules() {
                     <Icon className="w-5 h-5" />
                   </div>
                   <span className="text-[10px] font-mono font-bold text-zinc-500">
-                    0{idx + 1}
+                    {idx < 9 ? `0${idx + 1}` : `${idx + 1}`}
                   </span>
                 </div>
                 <div>
@@ -450,7 +506,7 @@ export function ShowcaseModules() {
 
                 <Link
                   href={currentModule.directHref}
-                  className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white font-bold text-sm shadow-lg shadow-cyan-900/40 hover:scale-105 transition-all flex items-center gap-2 group cursor-pointer"
+                  className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-cyan-600 to-fuchsia-600 hover:from-cyan-500 hover:to-fuchsia-500 text-white font-bold text-sm shadow-lg shadow-cyan-900/40 hover:scale-105 transition-all flex items-center gap-2 group cursor-pointer"
                 >
                   <span>{currentModule.directLabel}</span>
                   <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
@@ -462,7 +518,7 @@ export function ShowcaseModules() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-8">
               {/* Columna Izquierda: Checklist de Funcionalidades Técnicas */}
               <div className="lg:col-span-7 space-y-4">
-                <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-purple-400 font-bold">
+                <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-fuchsia-400 font-bold">
                   <Sliders className="w-4 h-4" />
                   <span>Funcionalidades Incluidas en Este Módulo</span>
                 </div>
@@ -480,7 +536,7 @@ export function ShowcaseModules() {
               </div>
 
               {/* Columna Derecha: Beneficio de Negocio & Retorno para el Dueño */}
-              <div className="lg:col-span-5 flex flex-col justify-between p-6 rounded-2xl bg-gradient-to-br from-purple-950/40 via-zinc-950 to-cyan-950/30 border border-purple-500/30 space-y-5">
+              <div className="lg:col-span-5 flex flex-col justify-between p-6 rounded-2xl bg-gradient-to-br from-fuchsia-950/40 via-zinc-950 to-cyan-950/30 border border-fuchsia-500/30 space-y-5">
                 <div>
                   <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-amber-400 font-black mb-3">
                     <Flame className="w-4 h-4" />
