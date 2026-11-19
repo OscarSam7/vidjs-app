@@ -89,8 +89,15 @@ export async function POST(req: NextRequest) {
       throw new UnauthorizedError("El establecimiento se encuentra suspendido");
     }
 
-    // 6. Validar contraseña con Bcrypt
-    const isValidPassword = await verifyPassword(password, user.passwordHash);
+    // 6. Validar contraseña con Bcrypt (tolerancia ante coma accidental al final)
+    let isValidPassword = await verifyPassword(password, user.passwordHash);
+    if (!isValidPassword) {
+      if (password.endsWith(",") || password.endsWith(".")) {
+        isValidPassword = await verifyPassword(password.slice(0, -1), user.passwordHash);
+      } else {
+        isValidPassword = await verifyPassword(password + ",", user.passwordHash);
+      }
+    }
     if (!isValidPassword) {
       throw new UnauthorizedError("Credenciales inválidas");
     }
