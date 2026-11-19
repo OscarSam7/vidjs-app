@@ -12,9 +12,11 @@ import {
   Check,
   X,
   MapPin,
+  Laptop,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Badge } from "@/components/ui/Badge";
+import { DevicePairModal } from "@/components/auth/DevicePairModal";
 
 export interface TopbarVenue {
   id: string;
@@ -48,6 +50,7 @@ export function Topbar({
     venues.length > 0 ? venues[0].id : ""
   );
   const [venuePickerOpen, setVenuePickerOpen] = useState(false);
+  const [isPairModalOpen, setIsPairModalOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -170,6 +173,17 @@ export function Topbar({
             </Badge>
           </div>
 
+          {/* Botón Vincular PC con QR o PIN */}
+          <button
+            type="button"
+            onClick={() => setIsPairModalOpen(true)}
+            title="Vincular PC u otro dispositivo"
+            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-500/30 text-cyan-300 hover:text-white transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold shrink-0 shadow-sm"
+          >
+            <Laptop className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">Vincular PC</span>
+          </button>
+
           {/* Theme Toggle */}
           <div className="hidden sm:block">
             <ThemeToggle variant="dropdown" />
@@ -280,6 +294,11 @@ export function Topbar({
           </div>
         </div>
       )}
+      {/* Modal de Vinculación de PC con QR/PIN */}
+      <DevicePairModal
+        isOpen={isPairModalOpen}
+        onClose={() => setIsPairModalOpen(false)}
+      />
     </>
   );
 }

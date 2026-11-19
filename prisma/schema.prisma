@@ -79,6 +79,7 @@ model User {
   updatedAt     DateTime    @updatedAt
 
   auditLogs     AuditLog[]
+  qrLoginSessions QrLoginSession[]
 
   @@index([tenantId])
   @@index([role])
@@ -1927,6 +1928,27 @@ model StaffAttendance {
   @@index([venueId])
   @@index([staffMemberId])
   @@index([date])
+  @@index([status])
+}
+
+// 48. Sesiones de Inicio de Sesión QR (Vincular PC / Móvil estilo WhatsApp Web)
+model QrLoginSession {
+  id           String    @id @default(cuid())
+  code         String    @unique
+  pin          String    @unique
+  status       String    @default("PENDING") // PENDING, APPROVED, REJECTED, EXPIRED, CONSUMED
+  userAgent    String?
+  ipAddress    String?
+  deviceInfo   String?   // ej: "Chrome en Windows 11"
+  userId       String?
+  user         User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionToken String?   @db.Text
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([code])
+  @@index([pin])
   @@index([status])
 }
 
