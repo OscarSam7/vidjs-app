@@ -69,6 +69,13 @@ export async function POST(req: NextRequest) {
             slug: true,
             status: true,
             logoUrl: true,
+            subscription: {
+              select: {
+                id: true,
+                status: true,
+                currentPeriodEnd: true,
+              },
+            },
           },
         },
       },
@@ -88,11 +95,23 @@ export async function POST(req: NextRequest) {
       throw new UnauthorizedError("La cuenta se encuentra inactiva o suspendida");
     }
 
-    if (user.tenant && user.tenant.status !== "ACTIVE") {
-      if (user.tenant.status === "PENDING_APPROVAL") {
-        throw new UnauthorizedError("El establecimiento se encuentra pendiente de aprobación por el Super Administrador de CYNKO");
+    if (user.role !== "SUPER_ADMIN" && user.tenant) {
+      if (user.tenant.status !== "ACTIVE") {
+        if (user.tenant.status === "PENDING_APPROVAL") {
+          throw new UnauthorizedError("El establecimiento se encuentra pendiente de aprobación por el Super Administrador de CYNKO");
+        }
+        throw new UnauthorizedError("El establecimiento se encuentra suspendido o bloqueado");
       }
-      throw new UnauthorizedError("El establecimiento se encuentra suspendido");
+
+      // Validar si los días asignados por el Super Admin han vencido (bloqueo automático)
+      if (user.tenant.subscription?.currentPeriodEnd) {
+        const isExpired = new Date(user.tenant.subscription.currentPeriodEnd).getTime() <= Date.now();
+        if (isExpired) {
+          throw new UnauthorizedError(
+            `El período de servicio para "${user.tenant.name}" ha finalizado. Por favor contacta al administrador de CYNKO para renovar o habilitar tu acceso.`
+          );
+        }
+      }
     }
 
     // 6. Validar contraseña con Bcrypt (tolerancia ante coma accidental al final)

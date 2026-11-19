@@ -13,7 +13,7 @@ export async function PATCH(
     const { id } = await params;
 
     const body = await req.json();
-    const { status, planCode, extendDays, ownerStatus } = body;
+    const { status, planCode, exactDays, addDays, targetDate, expireNow, ownerStatus } = body;
 
     const tenant = await prisma.tenant.findUnique({
       where: { id },
@@ -52,7 +52,7 @@ export async function PATCH(
       });
     }
 
-    // Actualizar Suscripción
+    // Actualizar Suscripción y Período de Días
     if (tenant.subscription) {
       const subUpdates: any = {};
 
@@ -63,22 +63,62 @@ export async function PATCH(
         }
       }
 
-      if (extendDays && typeof extendDays === "number") {
-        const baseDate = tenant.subscription.currentPeriodEnd > new Date()
-          ? tenant.subscription.currentPeriodEnd
-          : new Date();
-        const newEnd = new Date(baseDate);
-        newEnd.setDate(newEnd.getDate() + extendDays);
+      // A) Bloquear o expirar inmediatamente
+      if (expireNow) {
+        const expiredDate = new Date(Date.now() - 1000 * 60 * 5); // 5 min en el pasado
+        subUpdates.currentPeriodEnd = expiredDate;
+        subUpdates.status = "PAST_DUE";
+      }
+      // B) Asignar cantidad exacta de días a partir de este momento
+      else if (typeof exactDays === "number" && exactDays > 0) {
+        const now = new Date();
+        const newEnd = new Date(now.getTime() + exactDays * 24 * 60 * 60 * 1000);
+        subUpdates.currentPeriodStart = now;
+        subUpdates.currentPeriodEnd = newEnd;
+        subUpdates.status = "ACTIVE";
+
+        // Asegurar que el tenant y usuarios queden en ACTIVE
+        await prisma.tenant.update({
+          where: { id },
+          data: { status: "ACTIVE" },
+        });
+        await prisma.user.updateMany({
+          where: { tenantId: id },
+          data: { status: "ACTIVE" },
+        });
+        await prisma.venue.updateMany({
+          where: { tenantId: id },
+          data: { active: true },
+        });
+      }
+      // C) Asignar fecha específica de corte (calendario)
+      else if (targetDate) {
+        const parsedDate = new Date(targetDate);
+        if (!isNaN(parsedDate.getTime())) {
+          subUpdates.currentPeriodEnd = parsedDate;
+          if (parsedDate > new Date()) {
+            subUpdates.status = "ACTIVE";
+          } else {
+            subUpdates.status = "PAST_DUE";
+          }
+        }
+      }
+      // D) Sumar días al vencimiento existente
+      else if (typeof addDays === "number" && addDays > 0) {
+        const baseDate =
+          tenant.subscription.currentPeriodEnd > new Date()
+            ? tenant.subscription.currentPeriodEnd
+            : new Date();
+        const newEnd = new Date(baseDate.getTime() + addDays * 24 * 60 * 60 * 1000);
         subUpdates.currentPeriodEnd = newEnd;
         subUpdates.status = "ACTIVE";
       }
-
-      // Si se aprueba por primera vez (pasa de PENDING a ACTIVE), dar 30 días a partir de HOY
-      if (status === "ACTIVE" && tenant.status !== "ACTIVE") {
-        const periodEnd = new Date();
-        periodEnd.setDate(periodEnd.getDate() + 30);
+      // E) Si se activa por primera vez sin especificar días, dar 30 días
+      else if (status === "ACTIVE" && tenant.status !== "ACTIVE") {
+        const now = new Date();
+        const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
         subUpdates.status = "ACTIVE";
-        subUpdates.currentPeriodStart = new Date();
+        subUpdates.currentPeriodStart = now;
         subUpdates.currentPeriodEnd = periodEnd;
       } else if (status === "SUSPENDED") {
         subUpdates.status = "CANCELED";
@@ -93,22 +133,25 @@ export async function PATCH(
     }
 
     // Actualizar usuarios del tenant
-    const userStatusToApply =
-      ownerStatus ||
-      (status === "ACTIVE"
-        ? "ACTIVE"
-        : status === "SUSPENDED"
-        ? "SUSPENDED"
-        : "PENDING");
+    if (ownerStatus || status || exactDays || expireNow) {
+      let userStatusToApply = "ACTIVE";
+      if (expireNow || status === "SUSPENDED") {
+        userStatusToApply = "SUSPENDED";
+      } else if (status === "PENDING_APPROVAL") {
+        userStatusToApply = "PENDING";
+      } else {
+        userStatusToApply = ownerStatus || "ACTIVE";
+      }
 
-    await prisma.user.updateMany({
-      where: { tenantId: id },
-      data: { status: userStatusToApply },
-    });
+      await prisma.user.updateMany({
+        where: { tenantId: id },
+        data: { status: userStatusToApply },
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      message: `Establecimiento ${updatedTenant.name} actualizado correctamente a ${status || "guardado"}`,
+      message: `Establecimiento ${updatedTenant.name} actualizado correctamente`,
       data: updatedTenant,
     });
   } catch (error) {

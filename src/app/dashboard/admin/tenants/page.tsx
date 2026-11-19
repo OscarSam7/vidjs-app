@@ -24,7 +24,11 @@ import {
   Disc3,
   UtensilsCrossed,
   Mic,
-  MoreVertical
+  CalendarClock,
+  Lock,
+  X,
+  Sliders,
+  AlertCircle
 } from "lucide-react";
 
 interface TenantData {
@@ -57,6 +61,7 @@ interface TenantData {
     currentPeriodStart: string;
     currentPeriodEnd: string;
     daysRemaining: number;
+    isExpired?: boolean;
   } | null;
 }
 
@@ -65,16 +70,23 @@ interface StatsData {
   active: number;
   pending: number;
   suspended: number;
+  expired: number;
 }
 
 export default function SuperAdminTenantsPage() {
   const [tenants, setTenants] = useState<TenantData[]>([]);
-  const [stats, setStats] = useState<StatsData>({ total: 0, active: 0, pending: 0, suspended: 0 });
+  const [stats, setStats] = useState<StatsData>({ total: 0, active: 0, pending: 0, suspended: 0, expired: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
+  // Estado del Modal de Asignación Manual de Días
+  const [selectedTenantForDays, setSelectedTenantForDays] = useState<TenantData | null>(null);
+  const [customDays, setCustomDays] = useState<number>(7);
+  const [daysMode, setDaysMode] = useState<"fromNow" | "add" | "date">("fromNow");
+  const [customDate, setCustomDate] = useState<string>("");
 
   const fetchTenants = async () => {
     setIsLoading(true);
@@ -83,7 +95,7 @@ export default function SuperAdminTenantsPage() {
       const data = await res.json();
       if (data.success) {
         setTenants(data.data || []);
-        setStats(data.stats || { total: 0, active: 0, pending: 0, suspended: 0 });
+        setStats(data.stats || { total: 0, active: 0, pending: 0, suspended: 0, expired: 0 });
       } else {
         setMessage({ text: data.error || "Error al cargar establecimientos", type: "error" });
       }
@@ -121,26 +133,79 @@ export default function SuperAdminTenantsPage() {
     }
   };
 
-  const handleExtendTrial = async (tenantId: string, days: number = 30) => {
+  const handleApplyDays = async () => {
+    if (!selectedTenantForDays) return;
+    setActionLoadingId(selectedTenantForDays.id);
+    setMessage(null);
+
+    const payload: any = { status: "ACTIVE" };
+
+    if (daysMode === "fromNow") {
+      payload.exactDays = Number(customDays);
+    } else if (daysMode === "add") {
+      payload.addDays = Number(customDays);
+    } else if (daysMode === "date") {
+      payload.targetDate = customDate;
+    }
+
+    try {
+      const res = await fetch(`/api/v1/admin/tenants/${selectedTenantForDays.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage({
+          text: `Días actualizados con éxito para "${selectedTenantForDays.name}". El sistema bloqueará el acceso automáticamente al expirar.`,
+          type: "success",
+        });
+        setSelectedTenantForDays(null);
+        await fetchTenants();
+      } else {
+        setMessage({ text: data.error || "No se pudo actualizar los días", type: "error" });
+      }
+    } catch (err) {
+      setMessage({ text: "Error de conexión", type: "error" });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleExpireNow = async (tenantId: string) => {
     setActionLoadingId(tenantId);
     setMessage(null);
     try {
       const res = await fetch(`/api/v1/admin/tenants/${tenantId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ extendDays: days, status: "ACTIVE" }),
+        body: JSON.stringify({ expireNow: true }),
       });
       const data = await res.json();
       if (data.success) {
-        setMessage({ text: `Prueba extendida +${days} días con éxito`, type: "success" });
+        setMessage({ text: "Acceso bloqueado inmediatamente para el establecimiento.", type: "success" });
+        setSelectedTenantForDays(null);
         await fetchTenants();
       } else {
-        setMessage({ text: data.error || "No se pudo extender", type: "error" });
+        setMessage({ text: data.error || "No se pudo bloquear", type: "error" });
       }
     } catch (err) {
       setMessage({ text: "Error de conexión", type: "error" });
     } finally {
       setActionLoadingId(null);
+    }
+  };
+
+  const openDaysModal = (tenant: TenantData) => {
+    setSelectedTenantForDays(tenant);
+    setCustomDays(tenant.subscription?.daysRemaining && tenant.subscription.daysRemaining > 0 ? tenant.subscription.daysRemaining : 7);
+    setDaysMode("fromNow");
+    if (tenant.subscription?.currentPeriodEnd) {
+      setCustomDate(new Date(tenant.subscription.currentPeriodEnd).toISOString().split("T")[0]);
+    } else {
+      const d = new Date();
+      d.setDate(d.getDate() + 7);
+      setCustomDate(d.toISOString().split("T")[0]);
     }
   };
 
@@ -165,10 +230,10 @@ export default function SuperAdminTenantsPage() {
             <span>SUPER ADMINISTRADOR CENTRAL &bull; CYNKO OS</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Gestión Global de Empresas & Locales Clientes
+            Gestión Global de Empresas & Control de Vencimientos
           </h1>
           <p className="text-zinc-400 text-sm mt-1">
-            Supervisa, activa, suspende y gestiona las suscripciones de todos los locales registrados en la plataforma.
+            Activa locales nuevos, asigna cantidad exacta de días de servicio y bloquea accesos automáticamente al vencer el plazo.
           </p>
         </div>
 
@@ -203,51 +268,60 @@ export default function SuperAdminTenantsPage() {
       )}
 
       {/* TARJETAS DE MÉTRICAS GLOBALES */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between">
           <div>
-            <span className="text-xs font-mono uppercase text-zinc-500 font-bold">Total Establecimientos</span>
-            <div className="text-3xl font-black text-white mt-1">{stats.total}</div>
+            <span className="text-[10px] font-mono uppercase text-zinc-500 font-bold">Total Locales</span>
+            <div className="text-2xl font-black text-white mt-0.5">{stats.total}</div>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
-            <Building2 className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+            <Building2 className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between">
           <div>
-            <span className="text-xs font-mono uppercase text-zinc-500 font-bold">Locales Activos</span>
-            <div className="text-3xl font-black text-emerald-400 mt-1">{stats.active}</div>
+            <span className="text-[10px] font-mono uppercase text-zinc-500 font-bold">Activos con Días</span>
+            <div className="text-2xl font-black text-emerald-400 mt-0.5">{stats.active}</div>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-            <CheckCircle2 className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between">
           <div>
-            <span className="text-xs font-mono uppercase text-zinc-500 font-bold">Pendientes de Aprobación</span>
-            <div className="text-3xl font-black text-amber-400 mt-1">{stats.pending}</div>
+            <span className="text-[10px] font-mono uppercase text-zinc-500 font-bold">Pendientes Aprobación</span>
+            <div className="text-2xl font-black text-amber-400 mt-0.5">{stats.pending}</div>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-            <Clock className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <Clock className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between">
           <div>
-            <span className="text-xs font-mono uppercase text-zinc-500 font-bold">Suspendidos / Pausados</span>
-            <div className="text-3xl font-black text-rose-400 mt-1">{stats.suspended}</div>
+            <span className="text-[10px] font-mono uppercase text-zinc-500 font-bold">Días Vencidos</span>
+            <div className="text-2xl font-black text-orange-400 mt-0.5">{stats.expired}</div>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
-            <XCircle className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400">
+            <AlertCircle className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-mono uppercase text-zinc-500 font-bold">Suspendidos</span>
+            <div className="text-2xl font-black text-rose-400 mt-0.5">{stats.suspended}</div>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
+            <XCircle className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* FILTROS Y BÚSQUEDA */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-zinc-900/40 p-4 rounded-2xl border border-zinc-800">
-        {/* Buscador */}
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
           <input
@@ -260,12 +334,12 @@ export default function SuperAdminTenantsPage() {
           />
         </div>
 
-        {/* Pestañas de Filtro */}
         <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
           {[
             { id: "ALL", label: `Todos (${stats.total})` },
-            { id: "ACTIVE", label: `Activos (${stats.active})` },
             { id: "PENDING_APPROVAL", label: `Pendientes (${stats.pending})` },
+            { id: "ACTIVE", label: `Activos (${stats.active})` },
+            { id: "EXPIRED", label: `Vencidos (${stats.expired})` },
             { id: "SUSPENDED", label: `Suspendidos (${stats.suspended})` },
           ].map((tab) => (
             <button
@@ -284,7 +358,7 @@ export default function SuperAdminTenantsPage() {
         </div>
       </div>
 
-      {/* LISTA / TABLA DE EMPRESAS */}
+      {/* LISTA DE EMPRESAS */}
       {isLoading ? (
         <div className="text-center py-16 space-y-3">
           <RefreshCw className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
@@ -295,7 +369,7 @@ export default function SuperAdminTenantsPage() {
           <Building2 className="w-12 h-12 text-zinc-600 mx-auto" />
           <h3 className="text-base font-bold text-white">No se encontraron establecimientos</h3>
           <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-            No hay locales que coincidan con el filtro o la búsqueda actual.
+            No hay locales que coincidan con el filtro actual.
           </p>
         </div>
       ) : (
@@ -304,8 +378,10 @@ export default function SuperAdminTenantsPage() {
             const serviceBadge = getServiceTypeBadge(tenant.serviceType);
             const ServiceIcon = serviceBadge.icon;
             const isPending = tenant.status === "PENDING_APPROVAL";
-            const isActive = tenant.status === "ACTIVE";
             const isSuspended = tenant.status === "SUSPENDED";
+            const daysRemaining = tenant.subscription?.daysRemaining || 0;
+            const isExpired = !isPending && !isSuspended && (tenant.subscription?.isExpired || daysRemaining <= 0);
+            const isActiveWithDays = tenant.status === "ACTIVE" && !isExpired;
             const isActionLoading = actionLoadingId === tenant.id;
 
             return (
@@ -314,13 +390,15 @@ export default function SuperAdminTenantsPage() {
                 className={`p-6 rounded-3xl border transition-all ${
                   isPending
                     ? "bg-amber-950/15 border-amber-500/40 shadow-lg shadow-amber-950/20"
+                    : isExpired
+                    ? "bg-orange-950/15 border-orange-500/40"
                     : isSuspended
                     ? "bg-rose-950/15 border-rose-500/30 opacity-75"
                     : "bg-zinc-900/50 border-zinc-800/80 hover:border-zinc-700"
                 }`}
               >
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                  {/* Info Principal del Local */}
+                  {/* Info Principal */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 flex-wrap">
                       <span className="text-xl font-black text-white">{tenant.name}</span>
@@ -329,18 +407,32 @@ export default function SuperAdminTenantsPage() {
                         cynko.app/r/{tenant.slug}
                       </span>
 
-                      {/* Badge de Estado */}
+                      {/* Badge de Estado Dinámico */}
                       <span
                         className={`px-3 py-1 rounded-full text-[11px] font-mono font-black border flex items-center gap-1.5 ${
-                          isActive
-                            ? "bg-emerald-950 text-emerald-300 border-emerald-500/40"
-                            : isPending
+                          isPending
                             ? "bg-amber-950 text-amber-300 border-amber-500/40 animate-pulse"
-                            : "bg-rose-950 text-rose-300 border-rose-500/40"
+                            : isExpired
+                            ? "bg-orange-950 text-orange-300 border-orange-500/40"
+                            : isSuspended
+                            ? "bg-rose-950 text-rose-300 border-rose-500/40"
+                            : "bg-emerald-950 text-emerald-300 border-emerald-500/40"
                         }`}
                       >
-                        <span className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-400" : isPending ? "bg-amber-400" : "bg-rose-400"}`} />
-                        <span>{isActive ? "ACTIVO" : isPending ? "PENDIENTE APROBACIÓN" : "SUSPENDIDO"}</span>
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            isPending ? "bg-amber-400" : isExpired ? "bg-orange-400" : isSuspended ? "bg-rose-400" : "bg-emerald-400"
+                          }`}
+                        />
+                        <span>
+                          {isPending
+                            ? "PENDIENTE DE APROBACIÓN"
+                            : isExpired
+                            ? "VENCIDO (BLOQUEADO)"
+                            : isSuspended
+                            ? "SUSPENDIDO MANUAL"
+                            : "ACTIVO"}
+                        </span>
                       </span>
 
                       {/* Tipo de Servicio */}
@@ -350,7 +442,7 @@ export default function SuperAdminTenantsPage() {
                       </span>
                     </div>
 
-                    {/* Datos del Dueño / Contacto */}
+                    {/* Datos del Dueño */}
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-zinc-400">
                       {tenant.owner ? (
                         <>
@@ -376,23 +468,32 @@ export default function SuperAdminTenantsPage() {
                       )}
                       <div className="flex items-center gap-1.5 text-zinc-500 font-mono text-[11px]">
                         <Calendar className="w-3.5 h-3.5" />
-                        <span>Registrado: {new Date(tenant.createdAt).toLocaleDateString()}</span>
+                        <span>Alta: {new Date(tenant.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Estado de Suscripción & Botones de Acción */}
+                  {/* Suscripción y Botones de Control */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 shrink-0 pt-4 lg:pt-0 border-t lg:border-t-0 border-zinc-800">
-                    {/* Caja de Plan */}
-                    <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 text-left min-w-[160px]">
-                      <div className="text-[10px] font-mono text-zinc-500 uppercase font-bold">
-                        {tenant.subscription?.planName || "Plan Inicial"}
+                    {/* Caja de Días / Vencimiento */}
+                    <div className="p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800 text-left min-w-[190px]">
+                      <div className="text-[10px] font-mono text-zinc-500 uppercase font-bold flex justify-between items-center">
+                        <span>{tenant.subscription?.planName || "Plan Pro"}</span>
+                        {isExpired && <span className="text-orange-400 font-black">BLOQUEADO</span>}
                       </div>
-                      <div className="text-base font-black text-white mt-0.5">
-                        {tenant.subscription ? `${tenant.subscription.daysRemaining} días restantes` : "Sin suscripción"}
+
+                      <div className={`text-base font-black mt-0.5 ${isExpired ? "text-orange-400" : isPending ? "text-amber-400" : "text-emerald-400"}`}>
+                        {isPending
+                          ? "Sin activar aún"
+                          : isExpired
+                          ? "0 días (Tiempo agotado)"
+                          : `${daysRemaining} días restantes`}
                       </div>
-                      <div className="text-[10px] text-zinc-400">
-                        {tenant.subscription?.status === "ACTIVE" ? "🟢 En período activo" : "🔴 Estado inactivo"}
+
+                      <div className="text-[10px] text-zinc-400 mt-0.5">
+                        {tenant.subscription?.currentPeriodEnd
+                          ? `Corte: ${new Date(tenant.subscription.currentPeriodEnd).toLocaleDateString()}`
+                          : "Sin fecha definida"}
                       </div>
                     </div>
 
@@ -410,45 +511,199 @@ export default function SuperAdminTenantsPage() {
                         </button>
                       )}
 
-                      {isActive && (
+                      {/* Botón Asignar / Editar Días Manualmente */}
+                      <button
+                        type="button"
+                        disabled={isActionLoading}
+                        onClick={() => openDaysModal(tenant)}
+                        className="px-3.5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-cyan-300 hover:text-cyan-200 border border-cyan-500/40 hover:border-cyan-400 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                      >
+                        <CalendarClock className="w-4 h-4 text-cyan-400" />
+                        <span>Editar Días</span>
+                      </button>
+
+                      {isActiveWithDays && (
                         <button
                           type="button"
                           disabled={isActionLoading}
                           onClick={() => handleUpdateStatus(tenant.id, "SUSPENDED")}
-                          className="px-3.5 py-2.5 rounded-xl bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-300 border border-zinc-700 hover:border-rose-500/50 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                          className="px-3 py-2.5 rounded-xl bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-300 border border-zinc-700 hover:border-rose-500/50 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
                         >
                           <XCircle className="w-3.5 h-3.5" />
-                          <span>Suspender Acceso</span>
+                          <span>Suspender</span>
                         </button>
                       )}
 
-                      {isSuspended && (
+                      {(isSuspended || isExpired) && (
                         <button
                           type="button"
                           disabled={isActionLoading}
-                          onClick={() => handleUpdateStatus(tenant.id, "ACTIVE")}
-                          className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
+                          onClick={() => openDaysModal(tenant)}
+                          className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Reactivar Local</span>
+                          <span>Reactivar con Días</span>
                         </button>
                       )}
-
-                      <button
-                        type="button"
-                        disabled={isActionLoading}
-                        onClick={() => handleExtendTrial(tenant.id, 30)}
-                        className="px-3.5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                        <span>+30 Días</span>
-                      </button>
                     </div>
                   </div>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* MODAL PARA ASIGNAR DÍAS MANUALMENTE */}
+      {selectedTenantForDays && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-md rounded-3xl bg-zinc-950 border border-zinc-800 shadow-2xl overflow-hidden p-6 space-y-6">
+            <button
+              type="button"
+              onClick={() => setSelectedTenantForDays(null)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-xs font-mono font-bold text-cyan-300 mb-2">
+                <CalendarClock className="w-3.5 h-3.5" />
+                <span>CONTROL DE TIEMPO & VENCIMIENTO</span>
+              </div>
+              <h3 className="text-xl font-black text-white">
+                Asignar Días de Acceso
+              </h3>
+              <p className="text-xs text-zinc-400 mt-1">
+                Establecimiento: <strong className="text-white">{selectedTenantForDays.name}</strong>
+              </p>
+            </div>
+
+            {/* Accesos Rápidos de Días */}
+            <div>
+              <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                Opciones Rápidas (Desde hoy)
+              </label>
+              <div className="grid grid-cols-5 gap-1.5">
+                {[
+                  { days: 3, label: "3 d" },
+                  { days: 7, label: "7 d" },
+                  { days: 15, label: "15 d" },
+                  { days: 30, label: "30 d" },
+                  { days: 60, label: "60 d" },
+                ].map((item) => (
+                  <button
+                    key={item.days}
+                    type="button"
+                    onClick={() => {
+                      setCustomDays(item.days);
+                      setDaysMode("fromNow");
+                    }}
+                    className={`py-2 px-1 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
+                      daysMode === "fromNow" && customDays === item.days
+                        ? "bg-cyan-600 text-white border-cyan-400 shadow-md shadow-cyan-950"
+                        : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white hover:bg-zinc-800"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Modos de Asignación */}
+            <div className="space-y-3 pt-2 border-t border-zinc-800/80">
+              <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                Cantidad Manual Editable
+              </label>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={customDays}
+                  onChange={(e) => {
+                    setCustomDays(Math.max(1, parseInt(e.target.value) || 1));
+                    if (daysMode === "date") setDaysMode("fromNow");
+                  }}
+                  className="w-24 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-center text-sm font-black text-white focus:outline-none focus:border-cyan-400"
+                />
+                <span className="text-xs text-zinc-300 font-bold">días</span>
+
+                <div className="flex items-center gap-2 ml-auto text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setDaysMode("fromNow")}
+                    className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold cursor-pointer transition-colors ${
+                      daysMode === "fromNow"
+                        ? "bg-cyan-950 text-cyan-300 border-cyan-500/50"
+                        : "bg-zinc-900 text-zinc-500 border-zinc-800"
+                    }`}
+                  >
+                    A partir de hoy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDaysMode("add")}
+                    className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold cursor-pointer transition-colors ${
+                      daysMode === "add"
+                        ? "bg-purple-950 text-purple-300 border-purple-500/50"
+                        : "bg-zinc-900 text-zinc-500 border-zinc-800"
+                    }`}
+                  >
+                    Sumar al actual
+                  </button>
+                </div>
+              </div>
+
+              {/* Selector de Fecha Calendario */}
+              <div className="pt-2">
+                <label className="block text-[11px] text-zinc-500 mb-1">
+                  O fijar fecha exacta de vencimiento:
+                </label>
+                <input
+                  type="date"
+                  value={customDate}
+                  onChange={(e) => {
+                    setCustomDate(e.target.value);
+                    setDaysMode("date");
+                  }}
+                  className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+            </div>
+
+            {/* Aviso de Bloqueo Automático */}
+            <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-[11px] text-zinc-400 flex items-start gap-2">
+              <Clock className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+              <span>
+                Al cumplirse el plazo seleccionado, el sistema bloqueará automáticamente el inicio de sesión y el panel del cliente hasta que le asignes más días.
+              </span>
+            </div>
+
+            {/* Botones del Modal */}
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={handleApplyDays}
+                disabled={actionLoadingId === selectedTenantForDays.id}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-fuchsia-600 hover:from-cyan-500 hover:to-fuchsia-500 text-white font-black text-xs shadow-lg shadow-cyan-950 cursor-pointer transition-all hover:scale-[1.02]"
+              >
+                {actionLoadingId === selectedTenantForDays.id ? "Guardando..." : "Guardar y Habilitar Días"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleExpireNow(selectedTenantForDays.id)}
+                disabled={actionLoadingId === selectedTenantForDays.id}
+                className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-rose-950/50 text-zinc-400 hover:text-rose-300 border border-zinc-800 hover:border-rose-800 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Lock className="w-3.5 h-3.5 text-rose-400" />
+                <span>Bloquear Acceso Inmediatamente (0 días)</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

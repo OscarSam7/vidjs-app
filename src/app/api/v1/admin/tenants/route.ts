@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/session";
-import { handleApiError, NotFoundError } from "@/lib/errors";
+import { handleApiError } from "@/lib/errors";
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,13 +9,20 @@ export async function GET(req: NextRequest) {
     await requireRole(["SUPER_ADMIN"]);
 
     const searchParams = req.nextUrl.searchParams;
-    const status = searchParams.get("status"); // "ACTIVE", "PENDING_APPROVAL", "SUSPENDED"
+    const status = searchParams.get("status"); // "ACTIVE", "PENDING_APPROVAL", "SUSPENDED", "EXPIRED"
     const search = searchParams.get("search");
 
     const where: any = {};
     if (status && status !== "ALL") {
-      where.status = status;
+      if (status === "EXPIRED") {
+        where.subscription = {
+          currentPeriodEnd: { lte: new Date() },
+        };
+      } else {
+        where.status = status;
+      }
     }
+
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
@@ -55,6 +62,8 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
+    const now = Date.now();
+
     const formatted = tenants.map((t) => {
       const owner = t.users.find((u) => u.role === "OWNER") || t.users[0] || null;
       let serviceType = "FULL_VENUE";
@@ -67,9 +76,14 @@ export async function GET(req: NextRequest) {
 
       // Cálculo de días restantes de suscripción
       let daysRemaining = 0;
+      let isExpired = false;
       if (t.subscription?.currentPeriodEnd) {
-        const diffMs = new Date(t.subscription.currentPeriodEnd).getTime() - Date.now();
-        daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        const diffMs = new Date(t.subscription.currentPeriodEnd).getTime() - now;
+        daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        if (daysRemaining <= 0) {
+          daysRemaining = 0;
+          isExpired = true;
+        }
       }
 
       return {
@@ -99,12 +113,13 @@ export async function GET(req: NextRequest) {
         subscription: t.subscription
           ? {
               id: t.subscription.id,
-              status: t.subscription.status,
+              status: isExpired ? "EXPIRED" : t.subscription.status,
               planCode: t.subscription.plan.code,
               planName: t.subscription.plan.name,
               currentPeriodStart: t.subscription.currentPeriodStart,
               currentPeriodEnd: t.subscription.currentPeriodEnd,
               daysRemaining,
+              isExpired,
             }
           : null,
       };
@@ -112,9 +127,20 @@ export async function GET(req: NextRequest) {
 
     // Métricas globales rápidas
     const totalTenants = await prisma.tenant.count();
-    const activeTenants = await prisma.tenant.count({ where: { status: "ACTIVE" } });
+    const activeTenants = await prisma.tenant.count({
+      where: {
+        status: "ACTIVE",
+        subscription: { currentPeriodEnd: { gt: new Date() } },
+      },
+    });
     const pendingTenants = await prisma.tenant.count({ where: { status: "PENDING_APPROVAL" } });
     const suspendedTenants = await prisma.tenant.count({ where: { status: "SUSPENDED" } });
+    const expiredTenants = await prisma.tenant.count({
+      where: {
+        status: "ACTIVE",
+        subscription: { currentPeriodEnd: { lte: new Date() } },
+      },
+    });
 
     return NextResponse.json({
       success: true,
@@ -123,6 +149,7 @@ export async function GET(req: NextRequest) {
         active: activeTenants,
         pending: pendingTenants,
         suspended: suspendedTenants,
+        expired: expiredTenants,
       },
       data: formatted,
     });
