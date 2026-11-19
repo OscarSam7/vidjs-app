@@ -88,6 +88,10 @@ export default function SuperAdminTenantsPage() {
   const [daysMode, setDaysMode] = useState<"fromNow" | "add" | "date">("fromNow");
   const [customDate, setCustomDate] = useState<string>("");
 
+  // Estado del Modal de Reset de Contraseña para Clientes
+  const [pwdModalTenant, setPwdModalTenant] = useState<TenantData | null>(null);
+  const [newPasswordInput, setNewPasswordInput] = useState<string>("");
+
   const fetchTenants = async () => {
     setIsLoading(true);
     try {
@@ -190,6 +194,32 @@ export default function SuperAdminTenantsPage() {
         setMessage({ text: data.error || "No se pudo bloquear", type: "error" });
       }
     } catch (err) {
+      setMessage({ text: "Error de conexión", type: "error" });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!pwdModalTenant || newPasswordInput.trim().length < 6) return;
+    setActionLoadingId(pwdModalTenant.id);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/v1/admin/tenants/${pwdModalTenant.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPassword: newPasswordInput.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage({ text: `Contraseña restablecida exitosamente para ${pwdModalTenant.name}`, type: "success" });
+        setPwdModalTenant(null);
+        setNewPasswordInput("");
+        await fetchTenants();
+      } else {
+        setMessage({ text: data.error || "No se pudo actualizar la contraseña", type: "error" });
+      }
+    } catch {
       setMessage({ text: "Error de conexión", type: "error" });
     } finally {
       setActionLoadingId(null);
@@ -522,6 +552,21 @@ export default function SuperAdminTenantsPage() {
                         <span>Editar Días</span>
                       </button>
 
+                      {/* Botón Restablecer Contraseña del Dueño */}
+                      <button
+                        type="button"
+                        disabled={isActionLoading}
+                        onClick={() => {
+                          setPwdModalTenant(tenant);
+                          setNewPasswordInput("");
+                        }}
+                        className="px-3 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-amber-300 hover:text-amber-200 border border-amber-500/40 hover:border-amber-400 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                        title="Cambiar contraseña del dueño"
+                      >
+                        <Lock className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Reset Clave</span>
+                      </button>
+
                       {isActiveWithDays && (
                         <button
                           type="button"
@@ -701,6 +746,73 @@ export default function SuperAdminTenantsPage() {
               >
                 <Lock className="w-3.5 h-3.5 text-rose-400" />
                 <span>Bloquear Acceso Inmediatamente (0 días)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL SUPER ADMIN: RESTABLECER CONTRASEÑA DE CLIENTE */}
+      {pwdModalTenant && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setPwdModalTenant(null)}
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-3xl bg-zinc-950 border border-amber-500/40 shadow-2xl p-6 text-white space-y-5"
+          >
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-950/80 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Restablecer Contraseña</h3>
+                  <p className="text-[11px] text-zinc-400">Local: {pwdModalTenant.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPwdModalTenant(null)}
+                className="p-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800 text-xs text-zinc-300 space-y-1">
+              <div className="text-[10px] font-mono uppercase text-zinc-500 font-bold">Cuenta de Dueño</div>
+              <div className="font-bold text-white">{pwdModalTenant.owner?.name || "Dueño"}</div>
+              <div className="font-mono text-zinc-400">{pwdModalTenant.owner?.email || "Sin email"}</div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-zinc-300">
+                Escribe la nueva contraseña temporal o definitiva:
+              </label>
+              <input
+                type="text"
+                placeholder="Ej: Acceso2026@"
+                value={newPasswordInput}
+                onChange={(e) => setNewPasswordInput(e.target.value)}
+                className="w-full px-4 py-2.5 bg-zinc-900 border border-zinc-700 rounded-xl text-sm font-mono text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400"
+              />
+              <p className="text-[11px] text-zinc-400">
+                Mínimo 6 caracteres. Al guardar, el cliente podrá ingresar de inmediato con esta nueva clave.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={handleResetPassword}
+                disabled={newPasswordInput.trim().length < 6 || actionLoadingId === pwdModalTenant.id}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs shadow-lg shadow-amber-950 cursor-pointer disabled:opacity-50 transition-all hover:scale-[1.02]"
+              >
+                {actionLoadingId === pwdModalTenant.id ? "Guardando..." : "Guardar y Asignar Contraseña"}
               </button>
             </div>
           </div>

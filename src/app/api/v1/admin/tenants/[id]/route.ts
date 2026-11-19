@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/auth/session";
 import { handleApiError, NotFoundError } from "@/lib/errors";
+import { hashPassword } from "@/lib/auth/password";
 
 export async function PATCH(
   req: NextRequest,
@@ -13,7 +14,7 @@ export async function PATCH(
     const { id } = await params;
 
     const body = await req.json();
-    const { status, planCode, exactDays, addDays, targetDate, expireNow, ownerStatus } = body;
+    const { status, planCode, exactDays, addDays, targetDate, expireNow, ownerStatus, newPassword } = body;
 
     const tenant = await prisma.tenant.findUnique({
       where: { id },
@@ -147,6 +148,21 @@ export async function PATCH(
         where: { tenantId: id },
         data: { status: userStatusToApply },
       });
+    }
+
+    // 4. Restablecer contraseña del dueño por solicitud del Super Admin
+    if (newPassword && typeof newPassword === "string" && newPassword.length >= 6) {
+      const passwordHash = await hashPassword(newPassword);
+      const ownerUser = tenant.users.find((u) => u.role === "OWNER") || tenant.users[0];
+      if (ownerUser) {
+        await prisma.user.update({
+          where: { id: ownerUser.id },
+          data: {
+            passwordHash,
+            tokenVersion: { increment: 1 },
+          },
+        });
+      }
     }
 
     return NextResponse.json({

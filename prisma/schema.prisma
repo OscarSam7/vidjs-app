@@ -80,6 +80,7 @@ model User {
 
   auditLogs     AuditLog[]
   qrLoginSessions QrLoginSession[]
+  passwordResetTokens PasswordResetToken[]
 
   @@index([tenantId])
   @@index([role])
@@ -1950,6 +1951,20 @@ model QrLoginSession {
   @@index([code])
   @@index([pin])
   @@index([status])
+}
+
+// 49. Tokens de Recuperación y Restablecimiento de Contraseña
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  used      Boolean   @default(false)
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([userId])
 }
 
 
