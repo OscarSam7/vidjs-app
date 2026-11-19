@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -36,8 +37,16 @@ export default function LoginPage() {
 
       if (callback) {
         window.location.href = callback;
-      } else if (userRole === "DJ") {
-        window.location.href = "/dashboard/dj";
+      } else if (userRole === "DJ" || userRole === "OPERATOR") {
+        window.location.href = "/dashboard/dj/pro";
+      } else if (userRole === "CAJERO") {
+        window.location.href = "/dashboard/gastronomy/cashier";
+      } else if (userRole === "MOZO") {
+        window.location.href = "/dashboard/gastronomy/waiters";
+      } else if (userRole === "ENCARGADO_COCINA" || userRole === "COCINERO") {
+        window.location.href = "/dashboard/gastronomy/kitchen";
+      } else if (userRole === "ENCARGADO_BARRA" || userRole === "OPERADOR_BARRA") {
+        window.location.href = "/dashboard/gastronomy/bar";
       } else {
         window.location.href = "/dashboard";
       }
@@ -162,65 +171,89 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Quick Access Demo Accounts */}
-          <div className="mt-8 pt-6 border-t border-zinc-800/80">
-            <div className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-              <span>Accesos rápidos de prueba (Demo):</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("owner@retrobar.com")}
-                className="p-2.5 bg-zinc-950/80 hover:bg-purple-950/30 border border-zinc-800/80 hover:border-purple-600/50 rounded-xl text-left transition-all group cursor-pointer"
+          {/* Enlace a Registro de Nuevo Establecimiento */}
+          <div className="mt-5 pt-4 border-t border-zinc-800/80 text-center">
+            <p className="text-xs text-zinc-400">
+              ¿No tienes una cuenta aún?{" "}
+              <Link
+                href="/register"
+                className="text-fuchsia-400 hover:text-fuchsia-300 font-bold underline transition-colors"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-white group-hover:text-purple-300">Owner</span>
-                  <Building2 className="w-3.5 h-3.5 text-purple-400" />
-                </div>
-                <p className="text-[10px] text-zinc-400 truncate mt-0.5">Carlos (Retro Bar)</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("manager@retrobar.com")}
-                className="p-2.5 bg-zinc-950/80 hover:bg-purple-950/30 border border-zinc-800/80 hover:border-purple-600/50 rounded-xl text-left transition-all group cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-white group-hover:text-purple-300">Manager</span>
-                  <UserCircle2 className="w-3.5 h-3.5 text-indigo-400" />
-                </div>
-                <p className="text-[10px] text-zinc-400 truncate mt-0.5">Valeria (Locales)</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("dj@retrobar.com")}
-                className="p-2.5 bg-zinc-950/80 hover:bg-purple-950/30 border border-zinc-800/80 hover:border-purple-600/50 rounded-xl text-left transition-all group cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-white group-hover:text-purple-300">DJ</span>
-                  <Music className="w-3.5 h-3.5 text-cyan-400" />
-                </div>
-                <p className="text-[10px] text-zinc-400 truncate mt-0.5">Alex Beat (Cabina)</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("admin@vidjs.com")}
-                className="p-2.5 bg-zinc-950/80 hover:bg-purple-950/30 border border-zinc-800/80 hover:border-purple-600/50 rounded-xl text-left transition-all group cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-white group-hover:text-purple-300">Super Admin</span>
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                </div>
-                <p className="text-[10px] text-zinc-400 truncate mt-0.5">Plataforma Global</p>
-              </button>
-            </div>
-            <p className="text-[11px] text-zinc-500 text-center mt-3">
-              Contraseña precargada: <code className="text-zinc-400">Password123!</code>
+                Registra tu local aquí
+              </Link>
             </p>
+          </div>
+
+          {/* Quick Access Demo Accounts (Colapsable para producción limpia) */}
+          <div className="mt-6 pt-4 border-t border-zinc-800/60">
+            <button
+              type="button"
+              onClick={() => setShowDemoAccounts((prev) => !prev)}
+              className="w-full flex items-center justify-between text-xs text-zinc-500 hover:text-zinc-300 transition-colors py-1"
+            >
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                <span>Accesos rápidos de prueba (Demo)</span>
+              </div>
+              <span className="text-[10px] text-zinc-500">{showDemoAccounts ? "Ocultar ▲" : "Mostrar ▼"}</span>
+            </button>
+
+            {showDemoAccounts && (
+              <div className="mt-3 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin("owner@retrobar.com")}
+                    className="p-2.5 bg-zinc-950/80 hover:bg-purple-950/30 border border-zinc-800/80 hover:border-purple-600/50 rounded-xl text-left transition-all group cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-white group-hover:text-purple-300">Owner</span>
+                      <Building2 className="w-3.5 h-3.5 text-purple-400" />
+                    </div>
+                    <p className="text-[10px] text-zinc-400 truncate mt-0.5">Carlos (Retro Bar)</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin("manager@retrobar.com")}
+                    className="p-2.5 bg-zinc-950/80 hover:bg-purple-950/30 border border-zinc-800/80 hover:border-purple-600/50 rounded-xl text-left transition-all group cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-white group-hover:text-purple-300">Manager</span>
+                      <UserCircle2 className="w-3.5 h-3.5 text-indigo-400" />
+                    </div>
+                    <p className="text-[10px] text-zinc-400 truncate mt-0.5">Valeria (Locales)</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin("dj@retrobar.com")}
+                    className="p-2.5 bg-zinc-950/80 hover:bg-purple-950/30 border border-zinc-800/80 hover:border-purple-600/50 rounded-xl text-left transition-all group cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-white group-hover:text-purple-300">DJ</span>
+                      <Music className="w-3.5 h-3.5 text-cyan-400" />
+                    </div>
+                    <p className="text-[10px] text-zinc-400 truncate mt-0.5">Alex Beat (Cabina)</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin("admin@vidjs.com")}
+                    className="p-2.5 bg-zinc-950/80 hover:bg-purple-950/30 border border-zinc-800/80 hover:border-purple-600/50 rounded-xl text-left transition-all group cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-white group-hover:text-purple-300">Super Admin</span>
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    </div>
+                    <p className="text-[10px] text-zinc-400 truncate mt-0.5">Plataforma Global</p>
+                  </button>
+                </div>
+                <p className="text-[11px] text-zinc-500 text-center mt-2">
+                  Contraseña: <code className="text-zinc-400">Password123!</code>
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -237,7 +270,7 @@ export default function LoginPage() {
 
         {/* Footer info */}
         <p className="text-center text-xs text-zinc-500 mt-6">
-          Aislamiento seguro multi-tenant a nivel de base de datos &copy; 2026 Vidjs
+          Aislamiento seguro multi-tenant a nivel de base de datos &copy; 2026 CYNKO
         </p>
       </div>
     </div>
