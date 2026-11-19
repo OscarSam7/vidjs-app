@@ -10,6 +10,7 @@ import {
   ListMusic,
   CreditCard,
   ShieldCheck,
+  ShieldAlert,
   Settings,
   Disc3,
   Palette,
@@ -105,6 +106,36 @@ export function Sidebar({
   const activePlan = normalizePlanCode(planCode);
 
   const groups: NavGroup[] = [
+    ...(role === "SUPER_ADMIN"
+      ? [
+          {
+            id: "super_admin",
+            title: "Super Admin Global",
+            icon: ShieldCheck,
+            requiredPlan: "PERSONAL" as PlanCode,
+            items: [
+              {
+                name: "Empresas & Clientes",
+                icon: Building2,
+                href: "/dashboard/admin/tenants",
+                active: pathname.startsWith("/dashboard/admin/tenants"),
+                badge: "SAAS",
+                badgeVariant: "dj" as const,
+                requiredPlan: "PERSONAL" as PlanCode,
+              },
+              {
+                name: "Auditoría Global",
+                icon: ShieldAlert,
+                href: "/dashboard/audit",
+                active: pathname === "/dashboard/audit",
+                badge: "LOGS",
+                badgeVariant: "neutral" as const,
+                requiredPlan: "PERSONAL" as PlanCode,
+              },
+            ],
+          },
+        ]
+      : []),
     {
       id: "dashboard",
       title: "Dashboard",

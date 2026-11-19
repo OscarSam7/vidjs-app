@@ -45,14 +45,14 @@ export default async function DashboardLayout({
       }
     }
   } else if (session.role === "SUPER_ADMIN") {
-    tenantName = "Vidjeis Global SaaS (Admin)";
+    tenantName = "CYNKO Central (Super Admin)";
     const firstTenant = await prisma.tenant.findFirst({
       where: { status: "ACTIVE" },
       select: { id: true, name: true, logoUrl: true, settings: true },
     }).catch(() => null);
     if (firstTenant) {
       tenantId = firstTenant.id;
-      tenantName = `${firstTenant.name} (Global)`;
+      tenantName = `CYNKO Central (${firstTenant.name})`;
       tenantLogo = firstTenant.logoUrl;
       if (!tenantLogo && firstTenant.settings) {
         try {
