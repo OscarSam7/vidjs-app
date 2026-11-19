@@ -78,14 +78,14 @@ export async function POST(req: NextRequest) {
     // 5. Hash seguro de la contraseña
     const passwordHash = await hashPassword(data.password);
 
-    // 6. Transacción atómica: Crear Tenant, Venue principal, Usuario OWNER y Suscripción
+    // 6. Transacción atómica: Crear Tenant en PENDING_APPROVAL, Venue principal, Usuario OWNER PENDING
     const result = await prisma.$transaction(async (tx) => {
-      // A. Crear Tenant
+      // A. Crear Tenant con estado PENDING_APPROVAL
       const tenant = await tx.tenant.create({
         data: {
           name: venueName,
           slug: finalSlug,
-          status: "ACTIVE",
+          status: "PENDING_APPROVAL",
           settings: JSON.stringify({
             serviceType: data.serviceType,
             registeredAt: new Date().toISOString(),
@@ -93,31 +93,31 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // B. Crear Sede / Local Principal
+      // B. Crear Sede / Local Principal (Inactiva hasta aprobación)
       const venue = await tx.venue.create({
         data: {
           tenantId: tenant.id,
           name: venueName,
           slug: finalSlug,
-          active: true,
+          active: false,
           phone: data.phone || null,
         },
       });
 
-      // C. Crear Usuario OWNER
+      // C. Crear Usuario OWNER en estado PENDING
       const user = await tx.user.create({
         data: {
           name: ownerName,
           email,
           passwordHash,
           role: "OWNER",
-          status: "ACTIVE",
+          status: "PENDING",
           phone: data.phone || null,
           tenantId: tenant.id,
         },
       });
 
-      // D. Crear Suscripción (Período activo de 30 días para empezar a operar)
+      // D. Crear Suscripción en estado TRIALING / PENDING_APPROVAL
       if (defaultPlan) {
         const periodEnd = new Date();
         periodEnd.setDate(periodEnd.getDate() + 30);
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
           data: {
             tenantId: tenant.id,
             planId: defaultPlan.id,
-            status: "ACTIVE",
+            status: "TRIALING",
             currentPeriodStart: new Date(),
             currentPeriodEnd: periodEnd,
           },
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
         data: {
           tenantId: tenant.id,
           userId: user.id,
-          action: "AUTH_REGISTER",
+          action: "AUTH_REGISTER_PENDING",
           resource: "TENANT",
           resourceId: tenant.id,
           metadata: JSON.stringify({
@@ -153,22 +153,11 @@ export async function POST(req: NextRequest) {
       return { tenant, venue, user };
     });
 
-    // 7. Generar Token JWT de sesión
-    const token = await signSessionToken({
-      sub: result.user.id,
-      email: result.user.email,
-      name: result.user.name,
-      role: result.user.role as Role,
-      tenantId: result.tenant.id,
-      tokenVersion: result.user.tokenVersion,
-    });
-
-    // 8. Establecer Cookie de Sesión segura
-    await setSessionCookie(token);
-
+    // 7. En Opción A: NO se inicia sesión automática; la cuenta queda a la espera de activación del Super Admin
     return NextResponse.json({
       success: true,
-      message: "¡Establecimiento registrado con éxito!",
+      pendingApproval: true,
+      message: "¡Establecimiento registrado con éxito! Tu solicitud está en revisión. El Super Administrador de CYNKO activará tu acceso en breve.",
       data: {
         userId: result.user.id,
         email: result.user.email,
@@ -177,6 +166,7 @@ export async function POST(req: NextRequest) {
         tenantId: result.tenant.id,
         tenantSlug: result.tenant.slug,
         serviceType: data.serviceType,
+        venueName,
       },
     });
   } catch (error) {

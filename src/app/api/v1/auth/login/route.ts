@@ -82,10 +82,16 @@ export async function POST(req: NextRequest) {
 
     // 5. Validar estado de la cuenta y del establecimiento
     if (user.status !== "ACTIVE") {
+      if (user.status === "PENDING") {
+        throw new UnauthorizedError("Tu cuenta se encuentra pendiente de aprobación y activación por el Super Administrador de CYNKO");
+      }
       throw new UnauthorizedError("La cuenta se encuentra inactiva o suspendida");
     }
 
     if (user.tenant && user.tenant.status !== "ACTIVE") {
+      if (user.tenant.status === "PENDING_APPROVAL") {
+        throw new UnauthorizedError("El establecimiento se encuentra pendiente de aprobación por el Super Administrador de CYNKO");
+      }
       throw new UnauthorizedError("El establecimiento se encuentra suspendido");
     }
 

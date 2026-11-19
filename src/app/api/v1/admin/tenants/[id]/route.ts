@@ -20,6 +20,7 @@ export async function PATCH(
       include: {
         subscription: true,
         users: true,
+        venues: true,
       },
     });
 
@@ -38,8 +39,21 @@ export async function PATCH(
       data: updates,
     });
 
-    // Actualizar Suscripción si se solicita cambio de plan o extensión de días
-    if (tenant.subscription && (planCode || extendDays)) {
+    // Actualizar Sede / Locales (Venues)
+    if (status === "ACTIVE") {
+      await prisma.venue.updateMany({
+        where: { tenantId: id },
+        data: { active: true },
+      });
+    } else if (status === "SUSPENDED") {
+      await prisma.venue.updateMany({
+        where: { tenantId: id },
+        data: { active: false },
+      });
+    }
+
+    // Actualizar Suscripción
+    if (tenant.subscription) {
       const subUpdates: any = {};
 
       if (planCode) {
@@ -59,30 +73,42 @@ export async function PATCH(
         subUpdates.status = "ACTIVE";
       }
 
-      if (status === "ACTIVE") {
+      // Si se aprueba por primera vez (pasa de PENDING a ACTIVE), dar 30 días a partir de HOY
+      if (status === "ACTIVE" && tenant.status !== "ACTIVE") {
+        const periodEnd = new Date();
+        periodEnd.setDate(periodEnd.getDate() + 30);
         subUpdates.status = "ACTIVE";
+        subUpdates.currentPeriodStart = new Date();
+        subUpdates.currentPeriodEnd = periodEnd;
       } else if (status === "SUSPENDED") {
         subUpdates.status = "CANCELED";
       }
 
-      await prisma.subscription.update({
-        where: { id: tenant.subscription.id },
-        data: subUpdates,
-      });
+      if (Object.keys(subUpdates).length > 0) {
+        await prisma.subscription.update({
+          where: { id: tenant.subscription.id },
+          data: subUpdates,
+        });
+      }
     }
 
-    // Actualizar usuarios del tenant si se requiere
-    if (ownerStatus || status) {
-      const userStatusToApply = ownerStatus || (status === "ACTIVE" ? "ACTIVE" : status === "SUSPENDED" ? "SUSPENDED" : "PENDING");
-      await prisma.user.updateMany({
-        where: { tenantId: id },
-        data: { status: userStatusToApply },
-      });
-    }
+    // Actualizar usuarios del tenant
+    const userStatusToApply =
+      ownerStatus ||
+      (status === "ACTIVE"
+        ? "ACTIVE"
+        : status === "SUSPENDED"
+        ? "SUSPENDED"
+        : "PENDING");
+
+    await prisma.user.updateMany({
+      where: { tenantId: id },
+      data: { status: userStatusToApply },
+    });
 
     return NextResponse.json({
       success: true,
-      message: `Establecimiento ${updatedTenant.name} actualizado correctamente`,
+      message: `Establecimiento ${updatedTenant.name} actualizado correctamente a ${status || "guardado"}`,
       data: updatedTenant,
     });
   } catch (error) {
