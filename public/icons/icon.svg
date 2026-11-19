@@ -2,27 +2,28 @@
   <defs>
     <!-- Fondo gradiente oscuro profundo -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0b1020" />
-      <stop offset="50%" stop-color="#11091d" />
-      <stop offset="100%" stop-color="#050509" />
+      <stop offset="0%" stop-color="#14110a" />
+      <stop offset="50%" stop-color="#110918" />
+      <stop offset="100%" stop-color="#06070c" />
     </linearGradient>
 
-    <!-- Borde dual cyan -> magenta -->
+    <!-- Borde Oro VIP -> Titanium -> Magenta -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.5" />
-      <stop offset="50%" stop-color="#818cf8" stop-opacity="0.35" />
+      <stop offset="0%" stop-color="#fde047" stop-opacity="0.55" />
+      <stop offset="50%" stop-color="#cbd5e1" stop-opacity="0.35" />
       <stop offset="100%" stop-color="#e024c3" stop-opacity="0.55" />
     </linearGradient>
 
-    <!-- Aura izquierda cyan -->
+    <!-- Aura izquierda Oro VIP -->
     <radialGradient id="auraLeft" cx="35%" cy="50%" r="45%">
-      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.22" />
-      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0" />
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
     </radialGradient>
 
-    <!-- Aura derecha magenta -->
-    <radialGradient id="auraRight" cx="65%" cy="50%" r="45%">
-      <stop offset="0%" stop-color="#ff6bf0" stop-opacity="0.24" />
+    <!-- Aura derecha Titanium + Magenta -->
+    <radialGradient id="auraRight" cx="68%" cy="50%" r="45%">
+      <stop offset="0%" stop-color="#e024c3" stop-opacity="0.2" />
+      <stop offset="60%" stop-color="#cbd5e1" stop-opacity="0.08" />
       <stop offset="100%" stop-color="#e024c3" stop-opacity="0" />
     </radialGradient>
 
@@ -44,18 +45,18 @@
     <clipPath id="clipR">
       <rect x="50" y="0" width="50" height="100" />
     </clipPath>
-    <linearGradient id="cyaGrad" x1="10" y1="10" x2="50" y2="90" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#22d3ee" />
-      <stop offset="55%" stop-color="#38bdf8" />
-      <stop offset="100%" stop-color="#818cf8" />
+    <linearGradient id="goldGrad" x1="10" y1="10" x2="50" y2="90" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="55%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#f59e0b" />
     </linearGradient>
-    <linearGradient id="magGrad" x1="50" y1="10" x2="92" y2="90" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#ff7bf2" />
-      <stop offset="60%" stop-color="#e024c3" />
-      <stop offset="100%" stop-color="#a2088b" />
+    <linearGradient id="titGrad" x1="50" y1="10" x2="92" y2="90" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#cbd5e1" />
+      <stop offset="100%" stop-color="#94a3b8" />
     </linearGradient>
     <linearGradient id="divGrad" x1="50" y1="0" x2="50" y2="100" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#22d3ee" />
+      <stop offset="0%" stop-color="#fde047" />
       <stop offset="50%" stop-color="#ffffff" />
       <stop offset="100%" stop-color="#ff6bf0" />
     </linearGradient>
@@ -67,36 +68,36 @@
 
   <!-- Auras duales -->
   <circle cx="195" cy="256" r="200" fill="url(#auraLeft)" />
-  <circle cx="315" cy="256" r="200" fill="url(#auraRight)" />
+  <circle cx="320" cy="256" r="200" fill="url(#auraRight)" />
 
-  <!-- Emblema CYNKO Digital QR + Vinilo Neón (centrado y escalado 4.2x) -->
+  <!-- Emblema CYNKO Oro VIP (QR + Nodos) + Vinilo Titanium con acento Magenta -->
   <g transform="translate(46, 46) scale(4.2)" filter="url(#neonGlow)">
-    <!-- Mitad Izquierda: Digital QR -->
+    <!-- Mitad Izquierda: QR + Nodos Oro VIP -->
     <g clip-path="url(#clipL)">
-      <circle cx="50" cy="50" r="42" stroke="url(#cyaGrad)" stroke-width="4.2" fill="none" />
-      <rect x="24" y="23" width="11" height="11" rx="2.8" stroke="#22d3ee" stroke-width="2.6" fill="none" />
-      <rect x="27.8" y="26.8" width="3.4" height="3.4" rx="0.8" fill="#ffffff" />
-      <rect x="16" y="44.5" width="11" height="11" rx="2.8" fill="#38bdf8" />
-      <rect x="31.5" y="44.5" width="9.5" height="11" rx="2.5" fill="#22d3ee" opacity="0.45" />
-      <rect x="24" y="66" width="11" height="11" rx="2.8" stroke="#818cf8" stroke-width="2.6" fill="none" />
-      <rect x="27.8" y="69.8" width="3.4" height="3.4" rx="0.8" fill="#818cf8" />
+      <circle cx="50" cy="50" r="42" stroke="url(#goldGrad)" stroke-width="4.2" fill="none" />
+      <path d="M35 28.5 L42 35 L50 50 M27 50 L50 50 M35 71.5 L42 65 L50 50" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" opacity="0.78" fill="none" />
+      <rect x="22" y="22" width="12" height="12" rx="3" stroke="#fde047" stroke-width="2.6" fill="#07070c" />
+      <rect x="26" y="26" width="4" height="4" rx="1" fill="#ffffff" />
+      <rect x="15" y="44" width="12" height="12" rx="3" fill="#fbbf24" />
+      <rect x="22" y="66" width="12" height="12" rx="3" stroke="#f59e0b" stroke-width="2.6" fill="#07070c" />
+      <rect x="26" y="70" width="4" height="4" rx="1" fill="#f59e0b" />
     </g>
 
-    <!-- Mitad Derecha: Vinilo Neón -->
+    <!-- Mitad Derecha: Vinilo Titanium -->
     <g clip-path="url(#clipR)">
-      <circle cx="50" cy="50" r="42" stroke="url(#magGrad)" stroke-width="4.2" fill="none" />
-      <circle cx="50" cy="50" r="32" stroke="#ff6bf0" stroke-width="2.3" opacity="0.9" fill="none" />
-      <circle cx="50" cy="50" r="22.5" stroke="#ff6bf0" stroke-width="2.3" opacity="0.95" fill="none" />
-      <circle cx="50" cy="50" r="13.5" stroke="#ff7bf2" stroke-width="2" opacity="0.8" fill="none" />
+      <circle cx="50" cy="50" r="42" stroke="url(#titGrad)" stroke-width="4.2" fill="none" />
+      <circle cx="50" cy="50" r="32" stroke="#e2e8f0" stroke-width="2.3" opacity="0.9" fill="none" />
+      <circle cx="50" cy="50" r="22.5" stroke="#cbd5e1" stroke-width="2.3" opacity="0.92" fill="none" />
+      <circle cx="50" cy="50" r="13.5" stroke="#94a3b8" stroke-width="2" opacity="0.85" fill="none" />
     </g>
 
-    <!-- Brazo de Tornamesa -->
+    <!-- Brazo de Tornamesa con acento Magenta Neón -->
     <circle cx="87" cy="21" r="3.8" fill="#ff6bf0" />
     <path d="M87 21 L87 51 L70 68" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
     <rect x="64" y="66" width="9.5" height="5.2" rx="2" transform="rotate(-42 64 66)" fill="#ff7bf2" />
 
     <!-- División Central Neón + Eje Spindle -->
-    <line x1="50" y1="8" x2="50" y2="92" stroke="url(#divGrad)" stroke-width="1.6" stroke-dasharray="2.5 3" opacity="0.6" />
+    <line x1="50" y1="8" x2="50" y2="92" stroke="url(#divGrad)" stroke-width="1.6" stroke-dasharray="2.5 3" opacity="0.65" />
     <circle cx="50" cy="50" r="6.8" fill="#ffffff" />
     <circle cx="50" cy="50" r="3.2" fill="#07070c" />
   </g>

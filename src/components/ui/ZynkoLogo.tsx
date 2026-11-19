@@ -41,7 +41,7 @@ export function ZynkoLogo({
   const rawId = useId();
   const uid = rawId.replace(/:/g, "");
 
-  // Icono SVG Oficial CYNKO: Mitad Izquierda Digital QR (Ecosistema OS) + Mitad Derecha Vinilo Neón con Tornamesa
+  // Icono SVG Oficial CYNKO: Mitad Izquierda QR + Nodos (Oro VIP) + Mitad Derecha Vinilo Titanium con acento Magenta
   const VinylIcon = ({ pxSize }: { pxSize: number }) => (
     <svg
       width={pxSize}
@@ -52,7 +52,7 @@ export function ZynkoLogo({
       className="inline-block shrink-0 transition-transform duration-300 hover:rotate-12"
       style={{
         filter:
-          "drop-shadow(0 0 6px rgba(34, 211, 238, 0.45)) drop-shadow(0 0 9px rgba(224, 36, 195, 0.55))",
+          "drop-shadow(0 0 6px rgba(251, 191, 36, 0.45)) drop-shadow(0 0 8px rgba(224, 36, 195, 0.45))",
       }}
     >
       <defs>
@@ -62,43 +62,53 @@ export function ZynkoLogo({
         <clipPath id={`${uid}_clipR`}>
           <rect x="50" y="0" width="50" height="100" />
         </clipPath>
-        <linearGradient id={`${uid}_cya`} x1="10" y1="10" x2="50" y2="90" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#22d3ee" />
-          <stop offset="55%" stopColor="#38bdf8" />
-          <stop offset="100%" stopColor="#818cf8" />
+        {/* Oro VIP (Mitad Izquierda) */}
+        <linearGradient id={`${uid}_gold`} x1="10" y1="10" x2="50" y2="90" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#fde047" />
+          <stop offset="55%" stopColor="#fbbf24" />
+          <stop offset="100%" stopColor="#f59e0b" />
         </linearGradient>
-        <linearGradient id={`${uid}_mag`} x1="50" y1="10" x2="92" y2="90" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#ff7bf2" />
-          <stop offset="60%" stopColor="#e024c3" />
-          <stop offset="100%" stopColor="#a2088b" />
+        {/* Titanium Metálico (Disco Vinilo Derecho) */}
+        <linearGradient id={`${uid}_tit`} x1="50" y1="10" x2="92" y2="90" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="50%" stopColor="#cbd5e1" />
+          <stop offset="100%" stopColor="#94a3b8" />
         </linearGradient>
+        {/* División Central Oro -> Blanco -> Magenta */}
         <linearGradient id={`${uid}_div`} x1="50" y1="0" x2="50" y2="100" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#22d3ee" />
+          <stop offset="0%" stopColor="#fde047" />
           <stop offset="50%" stopColor="#ffffff" />
           <stop offset="100%" stopColor="#ff6bf0" />
         </linearGradient>
       </defs>
 
-      {/* Mitad Izquierda: Digital QR / Ecosistema Integral OS */}
+      {/* Mitad Izquierda: QR + Nodos en Oro VIP */}
       <g clipPath={`url(#${uid}_clipL)`}>
-        <circle cx="50" cy="50" r="42" stroke={`url(#${uid}_cya)`} strokeWidth="4.2" fill="none" />
-        <rect x="24" y="23" width="11" height="11" rx="2.8" stroke="#22d3ee" strokeWidth="2.6" fill="none" />
-        <rect x="27.8" y="26.8" width="3.4" height="3.4" rx="0.8" fill="#ffffff" />
-        <rect x="16" y="44.5" width="11" height="11" rx="2.8" fill="#38bdf8" />
-        <rect x="31.5" y="44.5" width="9.5" height="11" rx="2.5" fill="#22d3ee" opacity="0.45" />
-        <rect x="24" y="66" width="11" height="11" rx="2.8" stroke="#818cf8" strokeWidth="2.6" fill="none" />
-        <rect x="27.8" y="69.8" width="3.4" height="3.4" rx="0.8" fill="#818cf8" />
+        <circle cx="50" cy="50" r="42" stroke={`url(#${uid}_gold)`} strokeWidth="4.2" fill="none" />
+        <path
+          d="M35 28.5 L42 35 L50 50 M27 50 L50 50 M35 71.5 L42 65 L50 50"
+          stroke="#fbbf24"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          opacity="0.78"
+          fill="none"
+        />
+        <rect x="22" y="22" width="12" height="12" rx="3" stroke="#fde047" strokeWidth="2.6" fill="#07070c" />
+        <rect x="26" y="26" width="4" height="4" rx="1" fill="#ffffff" />
+        <rect x="15" y="44" width="12" height="12" rx="3" fill="#fbbf24" />
+        <rect x="22" y="66" width="12" height="12" rx="3" stroke="#f59e0b" strokeWidth="2.6" fill="#07070c" />
+        <rect x="26" y="70" width="4" height="4" rx="1" fill="#f59e0b" />
       </g>
 
-      {/* Mitad Derecha: Vinilo Neón */}
+      {/* Mitad Derecha: Disco Vinilo Titanium */}
       <g clipPath={`url(#${uid}_clipR)`}>
-        <circle cx="50" cy="50" r="42" stroke={`url(#${uid}_mag)`} strokeWidth="4.2" fill="none" />
-        <circle cx="50" cy="50" r="32" stroke="#ff6bf0" strokeWidth="2.3" opacity="0.9" fill="none" />
-        <circle cx="50" cy="50" r="22.5" stroke="#ff6bf0" strokeWidth="2.3" opacity="0.95" fill="none" />
-        <circle cx="50" cy="50" r="13.5" stroke="#ff7bf2" strokeWidth="2" opacity="0.8" fill="none" />
+        <circle cx="50" cy="50" r="42" stroke={`url(#${uid}_tit)`} strokeWidth="4.2" fill="none" />
+        <circle cx="50" cy="50" r="32" stroke="#e2e8f0" strokeWidth="2.3" opacity="0.9" fill="none" />
+        <circle cx="50" cy="50" r="22.5" stroke="#cbd5e1" strokeWidth="2.3" opacity="0.92" fill="none" />
+        <circle cx="50" cy="50" r="13.5" stroke="#94a3b8" strokeWidth="2" opacity="0.85" fill="none" />
       </g>
 
-      {/* Brazo de Tornamesa (Tonearm con Aguja) */}
+      {/* Brazo de Tornamesa con acento Magenta Neón */}
       <circle cx="87" cy="21" r="3.8" fill="#ff6bf0" />
       <path
         d="M87 21 L87 51 L70 68"
@@ -127,7 +137,7 @@ export function ZynkoLogo({
         stroke={`url(#${uid}_div)`}
         strokeWidth="1.6"
         strokeDasharray="2.5 3"
-        opacity="0.6"
+        opacity="0.65"
       />
       <circle cx="50" cy="50" r="6.8" fill="#ffffff" />
       <circle cx="50" cy="50" r="3.2" fill="#07070c" />
