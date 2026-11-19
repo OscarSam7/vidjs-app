@@ -13,6 +13,7 @@ import {
   X,
   MapPin,
   Laptop,
+  Camera,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Badge } from "@/components/ui/Badge";
@@ -173,15 +174,16 @@ export function Topbar({
             </Badge>
           </div>
 
-          {/* Botón Vincular PC con QR o PIN */}
+          {/* Botón Vincular PC con Cámara QR o PIN */}
           <button
             type="button"
             onClick={() => setIsPairModalOpen(true)}
-            title="Vincular PC u otro dispositivo"
-            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-500/30 text-cyan-300 hover:text-white transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold shrink-0 shadow-sm"
+            title="Escanear QR de PC para entrar"
+            className="px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-gradient-to-r from-cyan-950/80 to-purple-950/80 hover:from-cyan-900 hover:to-purple-900 border border-cyan-500/50 text-cyan-300 hover:text-white transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold shrink-0 shadow-md shadow-cyan-950/50 hover:scale-105 active:scale-95"
           >
-            <Laptop className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">Vincular PC</span>
+            <Camera className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+            <span className="hidden sm:inline">Escanear PC</span>
+            <span className="sm:hidden text-[10px] font-black text-cyan-300">Escanear PC</span>
           </button>
 
           {/* Theme Toggle */}
