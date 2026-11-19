@@ -12,9 +12,66 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "CYNKO - Venues & Entertainment OS",
+  metadataBase: new URL("https://cynko.app"),
+  title: {
+    default: "CYNKO OS - Venues & Entertainment Operating System",
+    template: "%s | CYNKO OS",
+  },
   description:
-    "Plataforma Integral de Gestión, Entretenimiento, Gastronomía y Asistencia para Locales.",
+    "CYNKO OS es el sistema operativo integral en la nube para bares, discotecas, pubs, restaurantes y eventos masivos: Audio Cabina Auto-DJ, Restaurante POS & KDS, Beeper Digital QR, Asistencia Staff con Geocerca y Reservas VIP.",
+  keywords: [
+    "CYNKO",
+    "CYNKO OS",
+    "cynko.app",
+    "software para discotecas",
+    "sistema para bares",
+    "pos restaurantes",
+    "beeper digital qr",
+    "auto dj discotecas",
+    "control de asistencia staff qr",
+    "reservas vip boliches",
+    "software eventos asuncion",
+    "nightlife os",
+  ],
+  authors: [{ name: "CYNKO Team", url: "https://cynko.app" }],
+  creator: "CYNKO OS",
+  alternates: {
+    canonical: "https://cynko.app",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "es_LA",
+    url: "https://cynko.app",
+    title: "CYNKO OS - Venues & Entertainment Operating System",
+    description:
+      "Plataforma Integral de Gestión, Entretenimiento, Gastronomía y Asistencia para Locales y Eventos.",
+    siteName: "CYNKO OS",
+    images: [
+      {
+        url: "/icons/icon-512x512.png",
+        width: 512,
+        height: 512,
+        alt: "CYNKO OS Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CYNKO OS - Venues & Entertainment Operating System",
+    description: "Plataforma Integral para Locales, Bares, Discotecas y Restaurantes.",
+    images: ["/icons/icon-512x512.png"],
+  },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
