@@ -6,6 +6,7 @@ import { signSessionToken } from "@/lib/auth/jwt";
 import { setSessionCookie } from "@/lib/auth/cookies";
 import { Role } from "@/lib/rbac/permissions";
 import { getClientIp, rateLimit } from "@/lib/security/rate-limit";
+import { sendEmail } from "@/lib/email/mailer";
 
 const googleSchema = z.object({
   credential: z.string().optional(), // Google ID Token de Google Identity Services
@@ -158,36 +159,32 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Enviar por correo si está configurado Resend
-        if (process.env.RESEND_API_KEY) {
-          try {
-            await fetch("https://api.resend.com/emails", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                from: process.env.EMAIL_FROM || "CYNKO OS <seguridad@cynko.app>",
-                to: [user.email],
-                subject: `🔐 Tu código de acceso rápido CYNKO: ${randomPin}`,
-                html: `
-                  <div style="font-family:sans-serif;background:#09090b;color:#fff;padding:24px;border-radius:16px;max-width:480px;margin:0 auto;">
-                    <h2 style="color:#22d3ee;margin-top:0;">CYNKO OS</h2>
-                    <p>Hola <strong>${user.name}</strong>, tu código de acceso rápido con Gmail es:</p>
-                    <div style="font-size:32px;font-family:monospace;font-weight:bold;letter-spacing:6px;color:#a855f7;background:#18181b;padding:16px;border-radius:12px;text-align:center;margin:20px 0;">
-                      ${randomPin}
-                    </div>
-                    <p style="font-size:12px;color:#71717a;">Válido por 15 minutos. Si tú no lo solicitaste, ignora este mensaje.</p>
-                  </div>
-                `,
-              }),
-            });
-          } catch (mErr) {
-            console.error("[GMAIL_PIN_EMAIL_ERROR]", mErr);
-          }
-        } else {
-          console.log(`[GMAIL_PIN_FALLBACK] Código para ${user.email}: ${randomPin}`);
+        const mailResult = await sendEmail({
+          to: user.email,
+          subject: `🔐 Tu código de acceso rápido CYNKO: ${randomPin}`,
+          html: `
+            <div style="font-family:sans-serif;background:#09090b;color:#fff;padding:24px;border-radius:16px;max-width:480px;margin:0 auto;">
+              <h2 style="color:#fbbf24;margin-top:0;">CYNKO OS</h2>
+              <p>Hola <strong>${user.name}</strong>, tu código de acceso rápido con Gmail es:</p>
+              <div style="font-size:32px;font-family:monospace;font-weight:bold;letter-spacing:6px;color:#e879f9;background:#18181b;padding:16px;border-radius:12px;text-align:center;margin:20px 0;">
+                ${randomPin}
+              </div>
+              <p style="font-size:12px;color:#71717a;">Válido por 15 minutos. Si tú no lo solicitaste, ignora este mensaje.</p>
+            </div>
+          `,
+          text: `Hola ${user.name}, tu código de acceso rápido a CYNKO OS es: ${randomPin} (válido por 15 minutos).`,
+        });
+
+        if (!mailResult.sent) {
+          return NextResponse.json(
+            {
+              error:
+                mailResult.provider === "none"
+                  ? "El servicio de envío de correos (Gmail SMTP / Resend) aún no está configurado en el servidor."
+                  : `No se pudo enviar el código a tu correo (${mailResult.error || "error de envío"}).`,
+            },
+            { status: 503 }
+          );
         }
 
         return NextResponse.json({

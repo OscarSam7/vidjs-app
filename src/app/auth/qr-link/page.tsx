@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
-import { Laptop, Smartphone, CheckCircle2, XCircle, ShieldCheck, ArrowRight, AlertTriangle, RefreshCw } from "lucide-react";
+import { Laptop, Smartphone, CheckCircle2, XCircle, ShieldCheck, ArrowRight, AlertTriangle, RefreshCw, Eye, EyeOff } from "lucide-react";
 import { CynkoLogo } from "@/components/ui/ZynkoLogo";
 
 interface QrLinkPageProps {
@@ -33,6 +33,7 @@ export default function QrLinkPage(props: QrLinkPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successStatus, setSuccessStatus] = useState<string | null>(null);
 
@@ -348,14 +349,24 @@ export default function QrLinkPage(props: QrLinkPageProps) {
                     <label className="block text-xs font-medium text-zinc-300 mb-1">
                       Contraseña
                     </label>
-                    <input
-                      type="password"
-                      required
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      className="w-full px-3.5 py-2.5 bg-zinc-950/60 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showLoginPassword ? "text" : "password"}
+                        required
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        placeholder="••••••••••••"
+                        className="w-full px-3.5 py-2.5 pr-11 bg-zinc-950/60 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword((prev) => !prev)}
+                        aria-label={showLoginPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors p-1 rounded-lg cursor-pointer"
+                      >
+                        {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
 
                   <button

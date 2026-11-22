@@ -18,7 +18,9 @@ import {
   Clock,
   ShieldCheck,
   MessageCircle,
-  LogIn
+  LogIn,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { ZynkoLogo } from "@/components/ui/ZynkoLogo";
 
@@ -27,6 +29,7 @@ export default function RegisterPage() {
   const [venueName, setVenueName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState("");
   const [serviceType, setServiceType] = useState<"FULL_VENUE" | "AUDIO_CABINA_PRO" | "KARAOKE_BAR">("FULL_VENUE");
   const [isLoading, setIsLoading] = useState(false);
@@ -316,14 +319,22 @@ export default function RegisterPage() {
                     <div className="relative">
                       <Lock className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
                       <input
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         required
                         minLength={8}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••••••"
-                        className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-950/60 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-fuchsia-500 transition-colors"
+                        className="w-full pl-10 pr-11 py-2.5 bg-zinc-950/60 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-fuchsia-500 transition-colors"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors p-1 rounded-lg cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
 
