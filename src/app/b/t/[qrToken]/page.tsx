@@ -556,7 +556,7 @@ export default function PublicBeeperTicketPage({
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             Sin apps requeridas
           </span>
-          <span className="font-extrabold text-slate-400">VIDJS BEEPER</span>
+          <span className="font-extrabold text-slate-400">CYNKO BEEPER</span>
         </div>
       </footer>
     </div>

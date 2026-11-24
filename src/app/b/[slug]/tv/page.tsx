@@ -161,7 +161,7 @@ export default function SaloonTVDisplayPage({
   const preparingTickets = tickets.filter((t) => t.status === "PREPARING");
   const readyTickets = tickets.filter((t) => t.status === "READY" || t.status === "ACKNOWLEDGED");
 
-  const counterQrUrl = typeof window !== "undefined" ? `${window.location.origin}/b/${slug}` : `https://vidjs.app/b/${slug}`;
+  const counterQrUrl = typeof window !== "undefined" ? `${window.location.origin}/b/${slug}` : `https://cynko.app/b/${slug}`;
 
   if (loading) {
     return (
@@ -358,7 +358,7 @@ export default function SaloonTVDisplayPage({
         </div>
 
         <div className="text-right text-[11px] text-slate-500 font-medium">
-          Sistema de Llamadores Virtuales • <span className="text-slate-400 font-bold">Vidjs White-Label</span>
+          Sistema de Llamadores Virtuales • <span className="text-slate-400 font-bold">CYNKO White-Label</span>
         </div>
       </footer>
     </div>

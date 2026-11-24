@@ -273,7 +273,7 @@ export default function BadgeDesignerPage() {
               <BadgeCard
                 format={selectedFormat}
                 participant={sampleParticipant}
-                eventName={activeEvent?.name || "CONGRESO VIDJEIS 2026"}
+                eventName={activeEvent?.name || "EVENTO CYNKO 2026"}
                 showLogo={showLogo}
                 showCompany={showCompany}
                 showJobTitle={showJobTitle}

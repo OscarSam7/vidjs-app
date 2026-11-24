@@ -283,7 +283,7 @@ function ReservasClientContent() {
   // Pre-filled WhatsApp message for support or sharing
   const getWhatsAppShareUrl = (res: any) => {
     const text = encodeURIComponent(
-      `🎉 ¡Estás invitado/a a mi mesa VIP en ${venue?.name || "Vidjeis"}!\n` +
+      `🎉 ¡Estás invitado/a a mi mesa VIP en ${venue?.name || "CYNKO"}!\n` +
         `📅 Fecha: ${new Date(res.reservationDate).toLocaleDateString("es-PY")}\n` +
         `🍾 Paquete: ${res.package?.name || "VIP"}\n` +
         `🎟️ Obtén tu pase de acceso sin fila aquí: ${window.location.origin}/r/${res.inviteToken}`
@@ -311,7 +311,7 @@ function ReservasClientContent() {
 
           <div>
             <span className="text-[10px] uppercase font-bold tracking-widest text-purple-400">
-              {venue?.tenantName || "VIDJEIS VIP"} &bull; {venue?.name}
+              {venue?.tenantName || "CYNKO VIP"} &bull; {venue?.name}
             </span>
             <h1 className="text-2xl font-black text-white mt-1">¡Reserva Registrada!</h1>
             <p className="text-xs text-slate-400 mt-1">
@@ -1135,9 +1135,9 @@ function ReservasClientContent() {
                     {[
                       { label: "Banco", val: venue?.bankName || "Banco Familiar / Ueno Bank" },
                       { label: "Nro. de Cuenta", val: venue?.bankAccount || "01-2345678-9" },
-                      { label: "Titular", val: venue?.bankHolder || "Vidjeis Entretenimiento S.A." },
+                      { label: "Titular", val: venue?.bankHolder || "CYNKO Entretenimiento S.A." },
                       { label: "RUC / Cédula", val: venue?.bankTaxId || "80012345-6" },
-                      { label: "Alias SIPAP / PIX", val: venue?.bankAlias || "pagos@vidjeis.com" },
+                      { label: "Alias SIPAP / PIX", val: venue?.bankAlias || "pagos@cynko.app" },
                     ].map((row, idx) => (
                       <div
                         key={idx}

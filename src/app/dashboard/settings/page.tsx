@@ -432,7 +432,7 @@ export default function SettingsPage() {
                   Tema de la Aplicación
                 </h2>
                 <p className="text-xs text-zinc-400">
-                  Personaliza cómo se visualiza el panel de Vidjeis en tu dispositivo: Modo Oscuro o Azul Francia.
+                  Personaliza cómo se visualiza el panel de CYNKO en tu dispositivo: Modo Oscuro o Azul Francia.
                 </p>
               </div>
             </div>

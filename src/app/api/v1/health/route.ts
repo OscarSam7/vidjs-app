@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>Vidjs &bull; Estado del Sistema</title>
+  <title>CYNKO OS &bull; Estado del Sistema</title>
   <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
         </div>
         <div>
           <h1 class="text-lg font-black text-white tracking-tight flex items-center gap-2">
-            <span>Vidjs</span>
+            <span>CYNKO OS</span>
             <span class="text-xs px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-800 font-mono">v0.1.0</span>
           </h1>
           <p class="text-xs text-zinc-400">Night Experience OS &bull; Producción en la Nube</p>

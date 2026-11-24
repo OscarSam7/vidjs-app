@@ -136,7 +136,7 @@ export function QsrModal({
     if (query.startsWith("VID-") || query.length >= 6) {
       setManualValidatedTicket({
         id: query,
-        eventName: "Evento Oficial VIDJS",
+        eventName: "Evento Oficial CYNKO",
         buyerDoc: query,
       });
       return;

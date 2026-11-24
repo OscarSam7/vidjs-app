@@ -416,7 +416,7 @@ export function TicketPaymentModal({
                       </div>
                       <div>
                         <span className="text-slate-500 block">Titular:</span>
-                        <strong className="text-white">Rumba Stage / Vidjs Suite</strong>
+                        <strong className="text-white">Rumba Stage / CYNKO Suite</strong>
                       </div>
                       <div>
                         <span className="text-slate-500 block">RUC:</span>

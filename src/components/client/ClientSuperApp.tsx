@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import {
   Compass,
@@ -37,9 +38,20 @@ import {
 } from "lucide-react";
 import { CynkoLogo } from "@/components/ui/ZynkoLogo";
 import { QRCodeImage } from "@/components/ui/QRCodeImage";
-import VirtualDjConsole from "@/components/dj/VirtualDjConsole";
 import PwaInstallButton from "@/components/pwa/PwaInstallButton";
-import DevicePairModal from "@/components/auth/DevicePairModal";
+
+const VirtualDjConsole = dynamic(() => import("@/components/dj/VirtualDjConsole"), {
+  ssr: false,
+  loading: () => (
+    <div className="p-10 rounded-2xl bg-zinc-900/70 border border-zinc-800 text-center text-xs text-zinc-400">
+      Cargando Cabina DJ (Bandeja A &amp; B)...
+    </div>
+  ),
+});
+
+const DevicePairModal = dynamic(() => import("@/components/auth/DevicePairModal"), {
+  ssr: false,
+});
 
 interface ClientProfile {
   id: string;

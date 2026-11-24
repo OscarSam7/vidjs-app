@@ -1014,7 +1014,7 @@ export default function ReservationsDashboardPage() {
                 <label className="text-xs font-semibold text-slate-300 block mb-1">Titular / Razón Social</label>
                 <Input
                   type="text"
-                  placeholder="Ej: Vidjeis Bar S.A."
+                  placeholder="Ej: CYNKO Bar S.A."
                   value={bankHolder}
                   onChange={(e) => setBankHolder(e.target.value)}
                   className="bg-[#0A1322] border-[#263858] text-white text-xs"
@@ -1093,7 +1093,7 @@ export default function ReservationsDashboardPage() {
 
                   <div className="flex justify-between items-center bg-[#070E1A] p-2 rounded-lg">
                     <span className="text-slate-400 text-[11px]">Titular:</span>
-                    <span className="font-bold text-white">{bankHolder || "Vidjeis Bar S.A."}</span>
+                    <span className="font-bold text-white">{bankHolder || "CYNKO Bar S.A."}</span>
                   </div>
 
                   <div className="flex justify-between items-center bg-[#070E1A] p-2 rounded-lg">

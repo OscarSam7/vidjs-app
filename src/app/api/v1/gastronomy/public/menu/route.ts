@@ -237,7 +237,7 @@ export async function GET(req: NextRequest) {
       success: true,
       establishment: {
         tenantId: tenant?.id,
-        name: tenant?.name || "VIDJSPRO Gastronomía",
+        name: tenant?.name || "CYNKO Gastronomía",
         slug: tenant?.slug,
         logoUrl: tenant?.logoUrl,
         venueId: venue?.id || activeVenueId,

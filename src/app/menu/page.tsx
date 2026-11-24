@@ -343,7 +343,7 @@ function CustomerMenuPwaContent() {
     return (
       <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-6">
         <div className="w-10 h-10 rounded-full border-2 border-purple-500 border-t-transparent animate-spin mb-3" />
-        <p className="text-sm text-zinc-400">Cargando Menú Digital VIDJSPRO...</p>
+        <p className="text-sm text-zinc-400">Cargando Menú Digital CYNKO...</p>
       </div>
     );
   }
@@ -381,7 +381,7 @@ function CustomerMenuPwaContent() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-bold text-white">
-                  {menuData?.establishment?.name || "VIDJSPRO Gastronomía"}
+                  {menuData?.establishment?.name || "CYNKO Gastronomía"}
                 </h1>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-semibold border border-emerald-500/30">
                   Menú en Vivo

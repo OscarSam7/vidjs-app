@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanEventId = event?.id || `evt_${(rawEventCode || "VIDJS").toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
-    const cleanEventName = event?.name || rawEventName || "Evento Oficial VIDJS";
+    const cleanEventName = event?.name || rawEventName || "Evento Oficial CYNKO";
     const cleanEventCode = rawEventCode || (event ? event.id.slice(0, 8).toUpperCase() : "VIDJS");
 
     // 5. Procesar Entradas solicitadas

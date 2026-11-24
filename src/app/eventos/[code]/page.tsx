@@ -720,7 +720,7 @@ export default function PublicEventLaunchPage({
               <div className="pt-3 border-t border-[#263858] space-y-1.5 text-xs text-slate-400">
                 <div className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-400" />
-                  <span>Pago seguro garantizado con <strong>VIDJS Pay</strong></span>
+                  <span>Pago seguro garantizado con <strong>CYNKO Pay</strong></span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-400" />
@@ -792,7 +792,7 @@ export default function PublicEventLaunchPage({
                   <Ticket className="w-4 h-4" />
                 </div>
                 <span className="text-lg font-black tracking-tight text-white">
-                  VIDJS SUITE
+                  CYNKO SUITE
                 </span>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -834,7 +834,7 @@ export default function PublicEventLaunchPage({
                 <li><span className="hover:underline cursor-pointer">Contacto</span></li>
                 <li><span className="hover:underline cursor-pointer">Términos y condiciones</span></li>
                 <li><span className="hover:underline cursor-pointer">Política de privacidad</span></li>
-                <li><span className="hover:underline cursor-pointer">Privacidad de VIDJS Pay</span></li>
+                <li><span className="hover:underline cursor-pointer">Privacidad de CYNKO Pay</span></li>
                 <li><span className="hover:underline cursor-pointer">Eliminar cuenta</span></li>
               </ul>
             </div>

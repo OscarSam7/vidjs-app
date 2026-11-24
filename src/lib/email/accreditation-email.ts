@@ -81,7 +81,7 @@ export function buildAccreditationEmailHtml(data: AccreditationEmailData, qrData
     </div>
 
     <div class="footer">
-      Sistema de Acreditación Inteligente Vidjs Pro &bull; No compartas tu código QR personal
+      Sistema de Acreditación Inteligente CYNKO OS &bull; No compartas tu código QR personal
     </div>
   </div>
 </body>
@@ -110,7 +110,7 @@ export async function sendAccreditationEmail(data: AccreditationEmailData): Prom
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: process.env.EMAIL_FROM || "Vidjs Pro <acreditaciones@vidjs.com>",
+          from: process.env.EMAIL_FROM || "CYNKO OS <acreditaciones@cynko.app>",
           to: [data.recipientEmail],
           subject: `🎟️ Tu Credencial de Acceso: ${data.eventTitle} (${data.categoryName})`,
           html,

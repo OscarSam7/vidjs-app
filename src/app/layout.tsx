@@ -14,11 +14,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://cynko.app"),
   title: {
-    default: "CYNKO OS (VIDJSPRO) - Venues & Nightlife Operating System",
+    default: "CYNKO OS - Venues & Entertainment Operating System",
     template: "%s | CYNKO OS",
   },
   description:
-    "CYNKO OS (VIDJSPRO Ecosystem) es el sistema operativo integral en la nube para bares, discotecas, pubs, restaurantes y eventos masivos: Audio Cabina Auto-DJ, Restaurante POS & KDS, Beeper Digital QR, Asistencia Staff con Geocerca y Reservas VIP.",
+    "CYNKO OS es la Super App y sistema operativo integral en la nube para bares, discotecas, restaurantes y eventos: Cabina DJ, Entradas QR, CYNKO Club VIP, Restaurante POS & KDS, Beeper Digital y Reservas.",
   keywords: [
     "CYNKO",
     "CYNKO OS",

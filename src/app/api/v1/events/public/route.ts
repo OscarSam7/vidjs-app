@@ -89,17 +89,17 @@ const DEFAULT_SAMPLE_EVENTS: PublicEventItem[] = [
       {
         question: "¿Cómo recibo mis entradas?",
         answer:
-          "Tus entradas se generan al instante con un código QR criptográfico único. Puedes descargarlas en PDF, verlas directamente en la app VIDJS en tu celular o recibirlas por WhatsApp.",
+          "Tus entradas se generan al instante con un código QR criptográfico único. Puedes descargarlas en PDF, verlas directamente en la app CYNKO en tu celular o recibirlas por WhatsApp.",
       },
       {
         question: "¿Qué métodos de pago aceptan?",
         answer:
-          "Aceptamos VIDJS Pay (billetera digital), Tarjetas de Débito/Crédito (Visa, Mastercard), Transferencias Bancarias (SIPAP) y Pix.",
+          "Aceptamos CYNKO Pay (billetera digital), Tarjetas de Débito/Crédito (Visa, Mastercard), Transferencias Bancarias (SIPAP) y Pix.",
       },
       {
         question: "¿Puedo reembolsar o transferir mi entrada?",
         answer:
-          "Puedes transferir tu entrada a otra persona con su número de documento (CI/DNI) hasta 24 horas antes del inicio del evento desde la opción 'Transferir' en tu billetera VIDJS.",
+          "Puedes transferir tu entrada a otra persona con su número de documento (CI/DNI) hasta 24 horas antes del inicio del evento desde la opción 'Transferir' en tu billetera CYNKO.",
       },
       {
         question: "¿Hay descuentos para grupos o menores?",
@@ -109,7 +109,7 @@ const DEFAULT_SAMPLE_EVENTS: PublicEventItem[] = [
       {
         question: "¿Qué pasa si se cancela el evento?",
         answer:
-          "En caso de reprogramación tus entradas mantienen su validez. Si se cancela definitivamente, VIDJS reembolsa el 100% del valor pagado de forma automática.",
+          "En caso de reprogramación tus entradas mantienen su validez. Si se cancela definitivamente, CYNKO reembolsa el 100% del valor pagado de forma automática.",
       },
     ],
   },
@@ -292,7 +292,7 @@ export async function GET(req: NextRequest) {
           id: dbEvent.id,
           name: dbEvent.name,
           code: dbEvent.code,
-          description: dbEvent.description || "Evento exclusivo gestionado en VIDJS Suite.",
+          description: dbEvent.description || "Evento exclusivo gestionado en CYNKO Suite.",
           eventType: dbEvent.eventType || "GENERAL",
           organizerName: dbEvent.organizerName || "Organizador Oficial",
           locationName: dbEvent.locationName || "Sede Oficial",
@@ -334,17 +334,17 @@ export async function GET(req: NextRequest) {
             {
               question: "¿Cómo recibo mis entradas?",
               answer:
-                "Tus entradas se generan al instante con un código QR criptográfico único. Puedes descargarlas en PDF, verlas directamente en la app VIDJS en tu celular o recibirlas por WhatsApp.",
+                "Tus entradas se generan al instante con un código QR criptográfico único. Puedes descargarlas en PDF, verlas directamente en la app CYNKO en tu celular o recibirlas por WhatsApp.",
             },
             {
               question: "¿Qué métodos de pago aceptan?",
               answer:
-                "Aceptamos VIDJS Pay (billetera digital), Tarjetas de Débito/Crédito (Visa, Mastercard), Transferencias Bancarias (SIPAP) y Pix.",
+                "Aceptamos CYNKO Pay (billetera digital), Tarjetas de Débito/Crédito (Visa, Mastercard), Transferencias Bancarias (SIPAP) y Pix.",
             },
             {
               question: "¿Puedo reembolsar o transferir mi entrada?",
               answer:
-                "Puedes transferir tu entrada a otra persona con su número de documento (CI/DNI) hasta 24 horas antes del inicio del evento desde tu billetera VIDJS.",
+                "Puedes transferir tu entrada a otra persona con su número de documento (CI/DNI) hasta 24 horas antes del inicio del evento desde tu billetera CYNKO.",
             },
           ],
         };
@@ -387,7 +387,7 @@ export async function GET(req: NextRequest) {
         id: dbEvent.id,
         name: dbEvent.name,
         code: dbEvent.code,
-        description: dbEvent.description || "Evento oficial gestionado por VIDJS Suite.",
+        description: dbEvent.description || "Evento oficial gestionado por CYNKO Suite.",
         eventType: dbEvent.eventType || "GENERAL",
         organizerName: dbEvent.organizerName || "Organizador Oficial",
         locationName: dbEvent.locationName || "Sede Oficial",

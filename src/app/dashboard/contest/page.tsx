@@ -1519,7 +1519,7 @@ export default function ContestDashboardPage() {
               <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-72 sm:w-80 max-h-80 overflow-y-auto bg-zinc-900/98 backdrop-blur-2xl border border-amber-500/40 rounded-2xl shadow-2xl p-2 z-50 space-y-1 divide-y divide-zinc-800/80 animate-in fade-in zoom-in-95 duration-150">
                 <div className="px-2 py-1 flex items-center justify-between text-[11px] font-bold text-zinc-400">
                   <span>Certámenes Creados ({contests.length})</span>
-                  <span className="text-[10px] text-amber-400 font-mono">Vidjs Pro</span>
+                  <span className="text-[10px] text-amber-400 font-mono">CYNKO OS</span>
                 </div>
 
                 <div className="pt-1 space-y-1">
@@ -3835,7 +3835,7 @@ export default function ContestDashboardPage() {
                   )}
                   <div>
                     <span className="text-[10px] font-mono font-black tracking-[0.2em] uppercase text-amber-400">
-                      REPÚBLICA DEL KARAOKE &bull; SISTEMA NOTARIAL VIDJS PRO
+                      REPÚBLICA DEL KARAOKE &bull; SISTEMA NOTARIAL CYNKO OS
                     </span>
                     <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight uppercase">
                       Acta Oficial de Calificaciones y Premiación

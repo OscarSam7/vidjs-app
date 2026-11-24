@@ -511,7 +511,7 @@ export default function PublicRegistrationPage({
 
               <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500 pt-2">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Emisión segura y encriptada por Vidjeis Pro Security</span>
+                <span>Emisión segura y encriptada por CYNKO OS Security</span>
               </div>
             </form>
           </div>
@@ -520,7 +520,7 @@ export default function PublicRegistrationPage({
 
       {/* Footer */}
       <footer className="mt-12 text-center text-xs text-slate-500">
-        <span>© {new Date().getFullYear()} VIDJEIS PRO • Sistema de Acreditación & Control de Acceso</span>
+        <span>© {new Date().getFullYear()} CYNKO OS • Sistema de Acreditación & Control de Acceso</span>
       </footer>
     </div>
   );

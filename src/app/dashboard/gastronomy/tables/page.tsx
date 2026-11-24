@@ -1106,7 +1106,7 @@ export default function GastronomyTablesAndSectorsPage() {
                 <span className="text-indigo-700">Música en Vivo / Karaoke</span>
               </p>
               <div className="text-[10px] font-mono text-zinc-500">
-                VIDJSPRO • {printingTable.qrToken}
+                CYNKO • {printingTable.qrToken}
               </div>
             </div>
 

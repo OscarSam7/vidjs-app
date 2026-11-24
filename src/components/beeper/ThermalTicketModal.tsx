@@ -154,7 +154,7 @@ export function ThermalTicketModal({
             <div className="pt-2 border-t border-dashed border-zinc-400 text-[9px] text-zinc-600 space-y-0.5">
               <p>Fecha: {new Date(ticket.createdAt).toLocaleString("es-PY")}</p>
               <p className="font-bold">¡Sin descargar apps!</p>
-              <p className="text-[8px] text-zinc-500">Tecnología Vidjs Beeper OS</p>
+              <p className="text-[8px] text-zinc-500">Tecnología CYNKO Beeper OS</p>
             </div>
           </div>
         </div>

@@ -363,7 +363,7 @@ export default function PublicBeeperCounterPage({
       <footer className="px-5 py-4 border-t border-slate-800/60 text-center bg-[#070D18]">
         <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
           <span>Potenciado por</span>
-          <span className="font-extrabold text-slate-400 tracking-wider">VIDJS BEEPER</span>
+          <span className="font-extrabold text-slate-400 tracking-wider">CYNKO BEEPER</span>
           <span>• Sin descargas</span>
         </p>
       </footer>
