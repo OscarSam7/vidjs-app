@@ -262,7 +262,7 @@ export default function NightControlDashboard({
           {/* 12. Accesos Rápidos Principales */}
           <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full lg:w-auto flex-wrap">
             {/* Cabina DJ */}
-            <Link href="/dashboard/dj/pro">
+            <Link href="/dashboard/dj">
               <Button
                 variant="dj"
                 size="sm"
@@ -537,7 +537,7 @@ export default function NightControlDashboard({
               </p>
             </div>
           </div>
-          <Link href="/dashboard/dj/pro" className="shrink-0">
+          <Link href="/dashboard/dj" className="shrink-0">
             <Button variant="dj" size="xs" rightIcon={<ArrowUpRight className="w-3.5 h-3.5" />}>
               Abrir
             </Button>
@@ -683,7 +683,7 @@ export default function NightControlDashboard({
                     </div>
 
                     <Link
-                      href="/dashboard/dj/pro"
+                      href="/dashboard/dj"
                       className="text-xs text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1"
                     >
                       <span>Controlar cabina</span>
@@ -698,7 +698,7 @@ export default function NightControlDashboard({
                     No hay canciones sonando en este momento.
                   </p>
                   <Link
-                    href="/dashboard/dj/pro"
+                    href="/dashboard/dj"
                     className="inline-block text-xs font-semibold text-purple-400 hover:underline"
                   >
                     Ir a cabina y activar cola &rarr;
@@ -755,7 +755,7 @@ export default function NightControlDashboard({
               <div className="pt-3 border-t border-[#263858] flex items-center justify-between text-[11px] text-[#94A3B8]">
                 <span>{data?.stats?.queuedWaiters || 0} canciones esperando</span>
                 <Link
-                  href="/dashboard/dj/pro"
+                  href="/dashboard/dj"
                   className="text-purple-400 hover:text-purple-300 font-semibold"
                 >
                   Ver cola completa &rarr;

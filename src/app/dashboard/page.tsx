@@ -11,9 +11,9 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  // Si el usuario es DJ, enviarlo directamente a Audio Cabina Pro (Auto-DJ)
+  // Si el usuario es DJ, enviarlo directamente a la Cabina del DJ
   if (session.role === "DJ") {
-    redirect("/dashboard/dj/pro");
+    redirect("/dashboard/dj");
   }
 
   // Resolver tenantId contextualmente de forma segura

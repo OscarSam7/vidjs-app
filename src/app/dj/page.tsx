@@ -5,8 +5,8 @@ export default async function DjShortcutPage() {
   const session = await getCurrentSession();
 
   if (!session) {
-    redirect("/dj-personal");
+    redirect("/login?callbackUrl=/dashboard/dj");
   }
 
-  redirect("/dashboard/dj/pro");
+  redirect("/dashboard/dj");
 }
