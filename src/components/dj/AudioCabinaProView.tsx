@@ -398,7 +398,7 @@ export default function AudioCabinaProView() {
       {/* ========================================================= */}
       <header className="h-14 px-4 bg-zinc-950/90 border-b border-zinc-800/80 flex items-center justify-between shrink-0 z-30">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard/dj" className="hover:opacity-80 transition-opacity">
+          <Link href="/dashboard" className="hover:opacity-80 transition-opacity">
             <ZynkoLogo size="xs" />
           </Link>
           <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 text-[10px] font-black text-fuchsia-400">
@@ -474,7 +474,7 @@ export default function AudioCabinaProView() {
           </button>
 
           <Link
-            href="/dashboard/dj"
+            href="/dashboard"
             className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-bold transition-all"
           >
             Salir

@@ -41,10 +41,10 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       {
-        name: "Cabina del DJ",
-        short_name: "DJ Booth",
-        description: "Comandos en vivo, crossfader y cola de reproducción",
-        url: "/dashboard/dj",
+        name: "Cabina DJ Personal (A & B)",
+        short_name: "DJ A&B",
+        description: "Mezcla y escucha tus canciones favoritas en Bandeja A y B",
+        url: "/dj-personal",
         icons: [{ src: "/icons/icon-192x192.png", sizes: "192x192" }],
       },
       {

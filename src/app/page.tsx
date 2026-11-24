@@ -7,7 +7,7 @@ export default async function HomePage() {
   // Si es personal del establecimiento (Owner, DJ, Manager, Super Admin)
   if (staffSession) {
     if (staffSession.role === "DJ") {
-      redirect("/dashboard/dj");
+      redirect("/dashboard/dj/pro");
     }
     redirect("/dashboard");
   }

@@ -357,15 +357,6 @@ export function Sidebar({
       requiredPlan: "PERSONAL",
       items: [
         {
-          name: "Cabina DJ",
-          icon: Headphones,
-          href: "/dashboard/dj",
-          active: pathname === "/dashboard/dj",
-          badge: "DJ",
-          badgeVariant: "dj",
-          requiredPlan: "PERSONAL",
-        },
-        {
           name: "Audio Cabina Pro",
           icon: Disc3,
           href: "/dashboard/dj/pro",

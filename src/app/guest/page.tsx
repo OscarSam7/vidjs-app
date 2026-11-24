@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Play,
@@ -2069,6 +2070,32 @@ function GuestContent() {
           </p>
         </div>
 
+        {/* 🎧 Modo DJ Personal (Solo Bandeja A & B para escuchar y mezclar música) */}
+        <Link
+          href="/dj-personal"
+          className="block p-4 rounded-3xl bg-gradient-to-br from-fuchsia-950/70 via-zinc-950 to-amber-950/40 border border-amber-400/50 hover:border-amber-300 text-left shadow-xl transition-all group active:scale-[0.99]"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400/20 to-fuchsia-500/25 border border-amber-400/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Headphones className="w-5 h-5 text-amber-300" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-sm font-black text-white">Cabina DJ Personal</span>
+                  <span className="text-[9px] font-mono font-black px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                    BANDEJA A &amp; B
+                  </span>
+                </div>
+                <p className="text-[11px] text-zinc-300 mt-0.5 leading-snug">
+                  Sé tu propio DJ: busca y mezcla las canciones que quieras escuchar, sin crear eventos.
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-amber-300 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+          </div>
+        </Link>
+
         {/* 🏆 Tarjeta destacada de Concurso de Karaoke para Participación Presencial o Remota */}
         {activeContestInfo && (
           <div className="p-4 rounded-3xl bg-gradient-to-br from-amber-950/80 via-zinc-950 to-zinc-950 border-2 border-amber-500/70 text-left shadow-xl space-y-2.5">
@@ -2504,6 +2531,15 @@ function GuestContent() {
                 {theme === "light" ? "Claro" : theme === "blue" ? "Azul" : "Oscuro"}
               </span>
             </button>
+
+            <Link
+              href="/dj-personal"
+              className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500/20 to-fuchsia-600/25 hover:from-amber-500/30 hover:to-fuchsia-600/35 text-amber-200 border border-amber-400/40 text-[11px] font-black flex items-center gap-1.5 transition-all shrink-0 active:scale-95 shadow-sm"
+              title="Abrir Cabina DJ Personal (Bandeja A & B) para escuchar y mezclar tu música"
+            >
+              <Headphones className="w-3.5 h-3.5 text-amber-300" />
+              <span>DJ A&amp;B</span>
+            </Link>
           </div>
         </div>
 
