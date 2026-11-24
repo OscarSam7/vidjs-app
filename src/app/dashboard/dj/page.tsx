@@ -1538,14 +1538,6 @@ export default function DjBoothPage() {
             </div>
 
             <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap mt-2">
-              <Link
-                href="/dashboard/dj/pro"
-                className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-fuchsia-600/40 via-purple-600/40 to-indigo-600/40 hover:from-fuchsia-600/60 hover:to-indigo-600/60 border border-fuchsia-500/50 text-fuchsia-200 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-[0_0_12px_rgba(224,36,195,0.2)] whitespace-nowrap shrink-0"
-                title="Abrir la cabina en modo fijo de dos bandejas con Auto-Crossfade continuo"
-              >
-                <Disc3 className="w-3.5 h-3.5 text-fuchsia-400 shrink-0" />
-                <span>⚡ Cabina Audio Pro (Auto-DJ)</span>
-              </Link>
               {data.event && (
                 <>
                   <a

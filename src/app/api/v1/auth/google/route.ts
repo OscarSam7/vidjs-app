@@ -257,7 +257,7 @@ export async function POST(req: NextRequest) {
     const role = user.role;
     let redirectUrl = "/dashboard";
     if (role === "DJ" || role === "OPERATOR") {
-      redirectUrl = "/dashboard/dj/pro";
+      redirectUrl = "/dashboard/dj";
     } else if (role === "CAJERO") {
       redirectUrl = "/dashboard/gastronomy/cashier";
     } else if (role === "MOZO") {

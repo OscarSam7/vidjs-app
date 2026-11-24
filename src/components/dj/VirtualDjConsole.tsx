@@ -129,6 +129,7 @@ interface VirtualDjConsoleProps {
   onSkipQueueEntry?: (queueEntryId: string) => Promise<void>;
   onCallSinger?: (requestOrEntry?: any) => Promise<void>;
   zone?: "DJ" | "KARAOKE";
+  personalMode?: boolean;
 }
 
 interface DeckPlayerProps {
@@ -451,6 +452,7 @@ export default function VirtualDjConsole({
   onSkipQueueEntry,
   onCallSinger,
   zone = "DJ",
+  personalMode = false,
 }: VirtualDjConsoleProps) {
   // ==================== MASTER AUDIO CABINA STATE ====================
   const [isMasterMuted, setIsMasterMuted] = useState(false);
@@ -4502,6 +4504,7 @@ export default function VirtualDjConsole({
               <span>{isCockpitLocked ? "✕ Soltar Cabina" : "📌 Fijar Cabina"}</span>
             </button>
 
+            {!personalMode && (
             <button
               type="button"
               onClick={() => {
@@ -4534,8 +4537,9 @@ export default function VirtualDjConsole({
                 LIVE
               </span>
             </button>
+            )}
 
-            {isLibraryOpen && (
+            {!personalMode && isLibraryOpen && (
               <div className="hidden sm:flex items-center bg-zinc-900 border border-zinc-700 rounded-xl p-0.5 text-[11px] font-bold">
                 <button
                   type="button"
@@ -4568,6 +4572,7 @@ export default function VirtualDjConsole({
           </div>
 
           {/* BOTÓN POR DEBAJO MISMO: COLA DE PEDIDOS & SOLICITUDES ENTRANTES */}
+          {!personalMode && (
           <button
             type="button"
             onClick={() => {
@@ -4624,6 +4629,7 @@ export default function VirtualDjConsole({
               Q
             </kbd>
           </button>
+          )}
         </div>
 
         <div className="flex items-center gap-4 text-xs font-mono">
@@ -4885,7 +4891,7 @@ export default function VirtualDjConsole({
 
             {/* Acciones Deck A: Guardar en Biblioteca, Limpiar y Cargar Pista */}
             <div className="flex items-center gap-1.5 flex-wrap justify-end">
-              {trackA && (
+              {!personalMode && trackA && (
                 <button
                   type="button"
                   onClick={() => handleSaveDeckToLibrary("A")}
@@ -6175,7 +6181,7 @@ export default function VirtualDjConsole({
 
             {/* Acciones Deck B: Guardar en Biblioteca, Limpiar y Cargar Pista */}
             <div className="flex items-center gap-1.5 flex-wrap justify-end">
-              {trackB && (
+              {!personalMode && trackB && (
                 <button
                   type="button"
                   onClick={() => handleSaveDeckToLibrary("B")}

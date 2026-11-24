@@ -293,7 +293,7 @@ export default function LoginPage() {
       if (callback) {
         window.location.href = callback;
       } else if (userRole === "DJ" || userRole === "OPERATOR") {
-        window.location.href = "/dashboard/dj/pro";
+        window.location.href = "/dashboard/dj";
       } else if (userRole === "CAJERO") {
         window.location.href = "/dashboard/gastronomy/cashier";
       } else if (userRole === "MOZO") {

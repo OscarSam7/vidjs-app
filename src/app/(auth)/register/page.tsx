@@ -79,7 +79,7 @@ export default function RegisterPage() {
 
       // Redirección si se activase automáticamente
       if (serviceType === "AUDIO_CABINA_PRO") {
-        window.location.href = "/dashboard/dj/pro";
+        window.location.href = "/dashboard/dj";
       } else {
         window.location.href = "/dashboard";
       }

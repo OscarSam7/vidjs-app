@@ -12,6 +12,6 @@ export default async function HomePage() {
     redirect("/dashboard");
   }
 
-  // Por defecto para clientes, comensales y visitantes de la app -> al Portal de Invitados
-  redirect("/guest");
+  // Por defecto para clientes y visitantes de la app -> a la Super App CYNKO (Explorar, Mi Mesa, Cabina DJ, Club VIP)
+  redirect("/app");
 }

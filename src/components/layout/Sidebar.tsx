@@ -366,15 +366,6 @@ export function Sidebar({
           requiredPlan: "PERSONAL",
         },
         {
-          name: "Audio Cabina Pro",
-          icon: Disc3,
-          href: "/dashboard/dj/pro",
-          active: pathname === "/dashboard/dj/pro",
-          badge: "AUTO-DJ",
-          badgeVariant: "dj",
-          requiredPlan: "PERSONAL",
-        },
-        {
           name: "Cabina Karaoke",
           icon: Mic,
           href: "/dashboard/karaoke",
@@ -416,6 +407,15 @@ export function Sidebar({
       icon: Building2,
       requiredPlan: "PERSONAL",
       items: [
+        {
+          name: "CYNKO Club & Deals",
+          icon: Trophy,
+          href: "/dashboard/club",
+          active: pathname.startsWith("/dashboard/club"),
+          badge: "VIP",
+          badgeVariant: "karaoke",
+          requiredPlan: "PERSONAL",
+        },
         {
           name: "Locales & Sedes",
           icon: Building2,

@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
       const role = session.user.role;
       let redirectUrl = "/dashboard";
       if (role === "DJ" || role === "OPERATOR") {
-        redirectUrl = "/dashboard/dj/pro";
+        redirectUrl = "/dashboard/dj";
       } else if (role === "CAJERO") {
         redirectUrl = "/dashboard/gastronomy/cashier";
       } else if (role === "MOZO") {

@@ -59,6 +59,13 @@ model Tenant {
   staffMembers          StaffMember[]
   staffAttendances      StaffAttendance[]
 
+  // Relaciones Super App Cliente & CYNKO Club
+  clientMemberships     ClientVenueMembership[]
+  clubPointTransactions ClubPointTransaction[]
+  clubRewards           ClubReward[]
+  clubRedemptions       ClubRedemption[]
+  clubFlashDeals        ClubFlashDeal[]
+
   @@index([status])
   @@index([slug])
 }
@@ -1965,6 +1972,125 @@ model PasswordResetToken {
 
   @@index([token])
   @@index([userId])
+}
+
+// 50. Miembro Cliente CYNKO (Cuenta gratuita de la Super App del Cliente - CYNKO ID)
+model ClientMember {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  name            String
+  phone           String?
+  cynkoCode       String    @unique // ej: "CYK-8492A" para mostrar QR en caja y sumar puntos
+  referralCode    String    @unique // ej: "OSCAR7X" para invitar amigos
+  referredById    String?
+  globalPoints    Int       @default(100) // 100 puntos de bienvenida al registrarse
+  lifetimePoints  Int       @default(100)
+  tier            String    @default("BRONCE") // BRONCE, PLATA, ORO, BLACK
+  status          String    @default("ACTIVE") // ACTIVE, SUSPENDED
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  venueMemberships ClientVenueMembership[]
+  pointTransactions ClubPointTransaction[]
+  redemptions      ClubRedemption[]
+
+  @@index([email])
+  @@index([cynkoCode])
+  @@index([referralCode])
+}
+
+// 51. Puntos y Visitas del Cliente por Local (Fidelidad por Establecimiento)
+model ClientVenueMembership {
+  id              String       @id @default(cuid())
+  clientId        String
+  client          ClientMember @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tenantId        String
+  tenant          Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  points          Int          @default(0)
+  visits          Int          @default(0)
+  totalSpentCents Int          @default(0)
+  lastVisitAt     DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([clientId, tenantId])
+  @@index([tenantId])
+}
+
+// 52. Historial de Movimientos de Puntos CYNKO Club
+model ClubPointTransaction {
+  id          String       @id @default(cuid())
+  clientId    String
+  client      ClientMember @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tenantId    String?
+  tenant      Tenant?      @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  points      Int          // Positivo = ganado, Negativo = canjeado
+  type        String       // WELCOME, CONSUMPTION, TICKET, REFERRAL, REDEMPTION, BONUS
+  description String
+  amountCents Int?
+  createdAt   DateTime     @default(now())
+
+  @@index([clientId])
+  @@index([tenantId])
+  @@index([createdAt])
+}
+
+// 53. Catálogo de Premios Canjeables (Global o por Local)
+model ClubReward {
+  id          String           @id @default(cuid())
+  tenantId    String?          // Null = premio global de CYNKO Club
+  tenant      Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  pointsCost  Int
+  category    String           @default("DRINK") // DRINK, TICKET, VIP, FASTPASS, DISCOUNT
+  active      Boolean          @default(true)
+  stock       Int?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  redemptions ClubRedemption[]
+
+  @@index([tenantId])
+  @@index([active])
+}
+
+// 54. Canjes de Premios (Cupones QR generados por el cliente)
+model ClubRedemption {
+  id          String       @id @default(cuid())
+  code        String       @unique // ej: "RDM-92A4K"
+  clientId    String
+  client      ClientMember @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  rewardId    String
+  reward      ClubReward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  tenantId    String?
+  tenant      Tenant?      @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  pointsSpent Int
+  status      String       @default("ACTIVE") // ACTIVE, USED, EXPIRED
+  usedAt      DateTime?
+  createdAt   DateTime     @default(now())
+
+  @@index([clientId])
+  @@index([tenantId])
+  @@index([code])
+}
+
+// 55. Flash Deals de Último Minuto lanzados por Locales para Clientes CYNKO
+model ClubFlashDeal {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title         String
+  subtitle      String?
+  discountLabel String   // ej: "2x1 CHOPP", "30% OFF", "FREE PASS"
+  minTier       String   @default("BRONCE") // BRONCE, PLATA, ORO, BLACK
+  active        Boolean  @default(true)
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([active, expiresAt])
 }
 
 
