@@ -32,11 +32,14 @@ import {
   Building2,
   Clock,
   Store,
+  Camera,
+  Laptop,
 } from "lucide-react";
 import { CynkoLogo } from "@/components/ui/ZynkoLogo";
 import { QRCodeImage } from "@/components/ui/QRCodeImage";
 import VirtualDjConsole from "@/components/dj/VirtualDjConsole";
 import PwaInstallButton from "@/components/pwa/PwaInstallButton";
+import DevicePairModal from "@/components/auth/DevicePairModal";
 
 interface ClientProfile {
   id: string;
@@ -189,6 +192,7 @@ export default function ClientSuperApp() {
 
   // UI Helpers
   const [copiedRef, setCopiedRef] = useState(false);
+  const [isPairPcOpen, setIsPairPcOpen] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
 
   const showToast = useCallback((type: "success" | "error" | "info", text: string) => {
@@ -569,7 +573,14 @@ export default function ClientSuperApp() {
         </button>
       </form>
 
-      <div className="pt-3 border-t border-zinc-800 text-center">
+      <div className="pt-3 border-t border-zinc-800 space-y-2 text-center">
+        <Link
+          href="/login"
+          className="w-full py-2.5 px-3 rounded-xl bg-cyan-950/50 hover:bg-cyan-900/60 border border-cyan-500/40 text-cyan-200 text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+        >
+          <Laptop className="w-4 h-4 text-cyan-400" />
+          <span>¿Ya tienes sesión en tu celular? Entrar en PC con QR</span>
+        </Link>
         <Link
           href="/login"
           className="text-[11px] text-zinc-400 hover:text-amber-300 transition-colors inline-flex items-center gap-1"
@@ -590,17 +601,28 @@ export default function ClientSuperApp() {
 
           <div className="flex items-center gap-2">
             {client ? (
-              <button
-                type="button"
-                onClick={() => setActiveTab("club")}
-                className="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-fuchsia-500/20 border border-amber-400/40 text-xs font-black text-amber-200 flex items-center gap-1.5 cursor-pointer hover:border-amber-300 transition-all"
-              >
-                <Crown className="w-3.5 h-3.5 text-amber-400" />
-                <span>{client.globalPoints} pts</span>
-                <span className="hidden sm:inline text-[10px] px-1.5 py-0.2 rounded-full bg-black/40 text-fuchsia-300">
-                  {client.tier}
-                </span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsPairPcOpen(true)}
+                  className="px-2.5 py-1.5 rounded-xl bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-400/50 text-xs font-black text-cyan-200 flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(34,211,238,0.2)] transition-all"
+                  title="Escanea el código QR de tu PC para abrir tu cuenta y Cabina DJ en la computadora"
+                >
+                  <Camera className="w-3.5 h-3.5 text-cyan-300" />
+                  <span>Escanear PC</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("club")}
+                  className="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-fuchsia-500/20 border border-amber-400/40 text-xs font-black text-amber-200 flex items-center gap-1.5 cursor-pointer hover:border-amber-300 transition-all"
+                >
+                  <Crown className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{client.globalPoints} pts</span>
+                  <span className="hidden sm:inline text-[10px] px-1.5 py-0.2 rounded-full bg-black/40 text-fuchsia-300">
+                    {client.tier}
+                  </span>
+                </button>
+              </>
             ) : (
               <button
                 type="button"
@@ -1003,6 +1025,14 @@ export default function ClientSuperApp() {
                       <div className="flex flex-wrap gap-2 pt-1">
                         <button
                           type="button"
+                          onClick={() => setIsPairPcOpen(true)}
+                          className="px-3.5 py-2 rounded-xl bg-cyan-600/25 hover:bg-cyan-600/40 border border-cyan-400/50 text-xs font-black text-cyan-200 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-cyan-300" />
+                          <span>Conectar PC (QR)</span>
+                        </button>
+                        <button
+                          type="button"
                           onClick={downloadStoryCard}
                           className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer"
                         >
@@ -1259,6 +1289,8 @@ export default function ClientSuperApp() {
           </button>
         </div>
       </nav>
+      {/* Modal Escáner de Cámara en Vivo para Conectar PC con QR */}
+      <DevicePairModal isOpen={isPairPcOpen} onClose={() => setIsPairPcOpen(false)} />
     </div>
   );
 }

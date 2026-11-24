@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { setSessionCookie } from "@/lib/auth/cookies";
+import { setClientSessionCookie, verifyClientToken } from "@/lib/client/client-auth";
 
 export async function GET(req: NextRequest) {
   try {
@@ -52,6 +53,37 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ status: "REJECTED" });
     }
 
+    // Caso A: Autorización desde la Super App de Cliente CYNKO (ClientMember)
+    if (session.status === "APPROVED" && session.sessionToken?.startsWith("CLIENT:")) {
+      const rawClientToken = session.sessionToken.slice("CLIENT:".length);
+      const clientPayload = await verifyClientToken(rawClientToken);
+
+      if (clientPayload) {
+        await setClientSessionCookie(rawClientToken);
+
+        await prisma.qrLoginSession.update({
+          where: { id: session.id },
+          data: {
+            status: "CONSUMED",
+            sessionToken: null,
+          },
+        });
+
+        return NextResponse.json({
+          status: "APPROVED",
+          redirectUrl: "/app?tab=dj",
+          user: {
+            id: clientPayload.sub,
+            name: clientPayload.name,
+            email: clientPayload.email,
+            role: "CYNKO CLUB",
+            establishment: "CYNKO Super App",
+          },
+        });
+      }
+    }
+
+    // Caso B: Autorización desde Staff / Dueño de Establecimiento (User)
     if (session.status === "APPROVED" && session.sessionToken && session.user) {
       // Establecer la cookie de sesión directamente en el navegador de la PC
       await setSessionCookie(session.sessionToken);

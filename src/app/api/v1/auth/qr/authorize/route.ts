@@ -5,6 +5,7 @@ import { verifySessionToken, signSessionToken } from "@/lib/auth/jwt";
 import { verifyPassword } from "@/lib/auth/password";
 import { getClientIp } from "@/lib/security/rate-limit";
 import { Role } from "@/lib/rbac/permissions";
+import { getCurrentClientSession, signClientToken } from "@/lib/client/client-auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -80,6 +81,45 @@ export async function POST(req: NextRequest) {
     }
 
     if (!authenticatedUserId) {
+      // C) Verificar si es un Cliente registrado en la Super App CYNKO (cynko_client_session)
+      const clientSession = await getCurrentClientSession();
+      if (clientSession?.sub) {
+        const clientMember = await prisma.clientMember.findUnique({
+          where: { id: clientSession.sub },
+        });
+        if (clientMember && clientMember.status === "ACTIVE") {
+          const pcClientToken = await signClientToken({
+            sub: clientMember.id,
+            email: clientMember.email,
+            name: clientMember.name,
+            cynkoCode: clientMember.cynkoCode,
+            type: "CLIENT_MEMBER",
+          });
+
+          await prisma.qrLoginSession.update({
+            where: { id: session.id },
+            data: {
+              status: "APPROVED",
+              userId: null,
+              sessionToken: `CLIENT:${pcClientToken}`,
+            },
+          });
+
+          return NextResponse.json({
+            success: true,
+            status: "APPROVED",
+            message: `¡Acceso concedido a ${session.deviceInfo || "PC"}!`,
+            user: {
+              name: clientMember.name,
+              email: clientMember.email,
+              role: "CYNKO CLUB",
+              establishment: "CYNKO Super App",
+            },
+            pcDeviceInfo: session.deviceInfo || "PC",
+          });
+        }
+      }
+
       return NextResponse.json(
         {
           error: "No hay una sesión activa en este teléfono. Por favor inicia sesión primero.",
