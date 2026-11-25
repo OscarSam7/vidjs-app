@@ -65,6 +65,7 @@ model Tenant {
   clubRewards           ClubReward[]
   clubRedemptions       ClubRedemption[]
   clubFlashDeals        ClubFlashDeal[]
+  venueReviews          VenueReview[]
 
   @@index([status])
   @@index([slug])
@@ -114,6 +115,7 @@ model Venue {
   bankTaxId       String?
   bankAlias       String?     // Alias SIPAP / PIX
   whatsappNumber  String?     // WhatsApp oficial para soporte y reservas
+  googleReviewUrl String?     // Enlace directo de reseñas de Google Maps (ej: https://g.page/r/.../review)
 
   // Coordenadas GPS para Control de Asistencia con Geocerca (100 mts)
   latitude        Float?
@@ -2091,6 +2093,22 @@ model ClubFlashDeal {
 
   @@index([tenantId])
   @@index([active, expiresAt])
+}
+
+// 56. Reseñas y Calificaciones Verificadas de Clientes por Local
+model VenueReview {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clientId   String?
+  authorName String
+  rating     Int      // 1 a 5 estrellas
+  comment    String?  @db.Text
+  source     String   @default("APP") // APP, TABLE, BEEPER
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([createdAt])
 }
 
 

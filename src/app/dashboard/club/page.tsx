@@ -14,6 +14,8 @@ import {
   Users,
   Sparkles,
   Ticket,
+  Star,
+  ExternalLink,
 } from "lucide-react";
 
 interface ClubDashboardData {
@@ -85,6 +87,15 @@ export default function DashboardClubPage() {
   const [dealHours, setDealHours] = useState("3");
   const [creatingDeal, setCreatingDeal] = useState(false);
 
+  // Reseñas del Local & Google Maps
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("");
+  const [savingGoogleUrl, setSavingGoogleUrl] = useState(false);
+  const [reviewsData, setReviewsData] = useState<{
+    avgRating: number;
+    reviewsCount: number;
+    reviews: Array<{ id: string; authorName: string; rating: number; comment?: string | null; createdAt: string }>;
+  }>({ avgRating: 0, reviewsCount: 0, reviews: [] });
+
   const showMsg = (type: "success" | "error", text: string) => {
     setFeedback({ type, text });
     setTimeout(() => setFeedback(null), 5000);
@@ -93,15 +104,50 @@ export default function DashboardClubPage() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/v1/dashboard/club", { cache: "no-store" });
-      const json = await res.json();
+      const [clubRes, revRes] = await Promise.all([
+        fetch("/api/v1/dashboard/club", { cache: "no-store" }),
+        fetch("/api/v1/reviews", { cache: "no-store" }),
+      ]);
+      const json = await clubRes.json();
       if (json.success) setData(json.data);
+
+      const revJson = await revRes.json();
+      if (revJson.success && revJson.data) {
+        setGoogleReviewUrl(revJson.data.googleReviewUrl || "");
+        setReviewsData({
+          avgRating: revJson.data.avgRating || 0,
+          reviewsCount: revJson.data.reviewsCount || 0,
+          reviews: revJson.data.reviews || [],
+        });
+      }
     } catch {
       // silent
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const handleSaveGoogleUrl = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingGoogleUrl(true);
+    try {
+      const res = await fetch("/api/v1/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update_google_url",
+          googleReviewUrl: googleReviewUrl.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Error guardando enlace");
+      showMsg("success", json.message || "Enlace de Google Reviews guardado.");
+    } catch (err: unknown) {
+      showMsg("error", err instanceof Error ? err.message : "Error");
+    } finally {
+      setSavingGoogleUrl(false);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -536,6 +582,75 @@ export default function DashboardClubPage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* RESEÑAS DEL LOCAL & GOOGLE MAPS */}
+      <div className="p-5 rounded-3xl bg-zinc-900/90 border border-amber-500/30 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-sm font-black text-white">
+            <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+            <span>Reseñas del Local &amp; Google Maps</span>
+          </div>
+          <span className="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-xs font-black text-amber-300">
+            ⭐ {reviewsData.reviewsCount > 0 ? `${reviewsData.avgRating} / 5 (${reviewsData.reviewsCount} reseñas)` : "Sin reseñas aún"}
+          </span>
+        </div>
+
+        <form onSubmit={handleSaveGoogleUrl} className="space-y-2">
+          <label className="block text-[11px] font-bold text-zinc-300">
+            Enlace directo de Reseñas de Google Business Profile
+          </label>
+          <p className="text-[11px] text-zinc-400">
+            En Google Business Profile toca <strong>&quot;Solicitar reseñas&quot;</strong>, copia tu enlace (<span className="font-mono text-zinc-300">https://g.page/r/.../review</span>) y pégalo aquí. Cuando tus clientes califiquen en CYNKO, les aparecerá el botón directo a tu Google Maps.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="url"
+              value={googleReviewUrl}
+              onChange={(e) => setGoogleReviewUrl(e.target.value)}
+              placeholder="https://g.page/r/tu-codigo/review"
+              className="flex-1 px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400"
+            />
+            <button
+              type="submit"
+              disabled={savingGoogleUrl}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black cursor-pointer shrink-0 disabled:opacity-50"
+            >
+              {savingGoogleUrl ? "Guardando..." : "Guardar Enlace"}
+            </button>
+            {googleReviewUrl && (
+              <a
+                href={googleReviewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold inline-flex items-center justify-center gap-1 shrink-0"
+              >
+                <span>Probar</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+          </div>
+        </form>
+
+        {reviewsData.reviews.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-2 border-t border-zinc-800">
+            {reviewsData.reviews.slice(0, 6).map((rev) => (
+              <div
+                key={rev.id}
+                className="p-3 rounded-2xl bg-zinc-950/70 border border-zinc-800 space-y-1 text-xs"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-white truncate">{rev.authorName}</span>
+                  <span className="text-amber-400 font-black shrink-0">{"★".repeat(rev.rating)}</span>
+                </div>
+                {rev.comment && <p className="text-[11px] text-zinc-300 leading-snug">{rev.comment}</p>}
+                <div className="text-[10px] text-zinc-500">
+                  {new Date(rev.createdAt).toLocaleDateString("es-PY", { day: "numeric", month: "short" })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* CLIENTES FRECUENTES DEL LOCAL */}

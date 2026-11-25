@@ -35,6 +35,9 @@ import {
   Store,
   Camera,
   Laptop,
+  Star,
+  ExternalLink,
+  X,
 } from "lucide-react";
 import { CynkoLogo } from "@/components/ui/ZynkoLogo";
 import { QRCodeImage } from "@/components/ui/QRCodeImage";
@@ -134,6 +137,9 @@ interface ExploreData {
     slug: string;
     logoUrl?: string | null;
     address?: string | null;
+    googleReviewUrl?: string | null;
+    avgRating?: number;
+    reviewsCount?: number;
     hasLiveEvent: boolean;
     rewardsCount: number;
   }>;
@@ -206,6 +212,18 @@ export default function ClientSuperApp() {
   const [copiedRef, setCopiedRef] = useState(false);
   const [isPairPcOpen, setIsPairPcOpen] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+
+  // Modal de Reseña Express + Enlace Google Reviews
+  const [reviewVenue, setReviewVenue] = useState<{
+    id: string;
+    name: string;
+    googleReviewUrl?: string | null;
+  } | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewAuthor, setReviewAuthor] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSubmittedGoogleUrl, setReviewSubmittedGoogleUrl] = useState<string | null | undefined>(undefined);
 
   const showToast = useCallback((type: "success" | "error" | "info", text: string) => {
     setToast({ type, text });
@@ -345,6 +363,43 @@ export default function ClientSuperApp() {
     setCopiedRef(true);
     showToast("success", "¡Enlace de invitación copiado!");
     setTimeout(() => setCopiedRef(false), 2500);
+  };
+
+  const openReviewModal = (venue: { id: string; name: string; googleReviewUrl?: string | null }) => {
+    setReviewVenue(venue);
+    setReviewRating(5);
+    setReviewComment("");
+    setReviewAuthor(client?.name || "");
+    setReviewSubmittedGoogleUrl(undefined);
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewVenue) return;
+    setSubmittingReview(true);
+    try {
+      const res = await fetch("/api/v1/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "submit",
+          tenantId: reviewVenue.id,
+          rating: reviewRating,
+          comment: reviewComment.trim() || undefined,
+          authorName: reviewAuthor.trim() || undefined,
+          source: "APP",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "No se pudo guardar tu reseña");
+      setReviewSubmittedGoogleUrl(json.googleReviewUrl || reviewVenue.googleReviewUrl || null);
+      showToast("success", "¡Gracias por calificar tu experiencia!");
+      fetchExplore();
+    } catch (err: unknown) {
+      showToast("error", err instanceof Error ? err.message : "Error enviando reseña");
+    } finally {
+      setSubmittingReview(false);
+    }
   };
 
   // Generador de Tarjeta VIP para Instagram Stories (PNG 1080x1920 escalado a 540x960)
@@ -889,25 +944,43 @@ export default function ClientSuperApp() {
                   {exploreData.venues.map((v) => (
                     <div
                       key={v.id}
-                      className="p-3.5 rounded-2xl bg-zinc-900/75 border border-zinc-800 flex items-center justify-between gap-3"
+                      className="p-3.5 rounded-2xl bg-zinc-900/75 border border-zinc-800 flex flex-col justify-between gap-2.5"
                     >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-black text-white truncate">{v.name}</h3>
-                          {v.hasLiveEvent && (
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse" title="Evento en vivo" />
-                          )}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-black text-white truncate">{v.name}</h3>
+                            {v.hasLiveEvent && (
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse" title="Evento en vivo" />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                            {v.address || "Local adherido CYNKO Club"}
+                          </p>
                         </div>
-                        <p className="text-[11px] text-zinc-400 truncate mt-0.5">
-                          {v.address || "Local adherido CYNKO Club"}
-                        </p>
+                        <span className="px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-400/30 text-[11px] font-black text-amber-300 inline-flex items-center gap-1 shrink-0">
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                          <span>{v.reviewsCount && v.reviewsCount > 0 ? `${v.avgRating} (${v.reviewsCount})` : "Nuevo"}</span>
+                        </span>
                       </div>
-                      <Link
-                        href={`/reservas/${v.slug}`}
-                        className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-fuchsia-600 text-white text-[11px] font-bold transition-colors shrink-0"
-                      >
-                        Reservar
-                      </Link>
+
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-800/80">
+                        <button
+                          type="button"
+                          onClick={() => openReviewModal(v)}
+                          className="px-2.5 py-1.5 rounded-xl bg-zinc-800/90 hover:bg-amber-500/20 border border-zinc-700 hover:border-amber-400/50 text-amber-200 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <Star className="w-3 h-3 text-amber-400" />
+                          <span>Opinar</span>
+                        </button>
+
+                        <Link
+                          href={`/reservas/${v.slug}`}
+                          className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-fuchsia-600 text-white text-[11px] font-bold transition-colors shrink-0"
+                        >
+                          Reservar
+                        </Link>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1303,6 +1376,118 @@ export default function ClientSuperApp() {
       </nav>
       {/* Modal Escáner de Cámara en Vivo para Conectar PC con QR */}
       <DevicePairModal isOpen={isPairPcOpen} onClose={() => setIsPairPcOpen(false)} />
+
+      {/* Modal de Reseña Express + Enlace Directo a Google Maps */}
+      {reviewVenue && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-zinc-900 border border-amber-400/40 p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h3 className="text-base font-black text-white">Calificar a {reviewVenue.name}</h3>
+                <p className="text-[11px] text-zinc-400">Tu opinión ayuda al local y a toda la comunidad CYNKO</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReviewVenue(null)}
+                className="p-1.5 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {reviewSubmittedGoogleUrl !== undefined ? (
+              <div className="text-center space-y-4 py-2">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-7 h-7" />
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-white">¡Gracias por tu calificación!</h4>
+                  <p className="text-xs text-zinc-300 mt-1">
+                    Tu opinión ya quedó registrada en CYNKO.
+                  </p>
+                </div>
+
+                {reviewSubmittedGoogleUrl && (
+                  <a
+                    href={reviewSubmittedGoogleUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 px-4 rounded-xl bg-white hover:bg-zinc-100 text-zinc-900 font-black text-xs flex items-center justify-center gap-2 shadow-lg transition-all"
+                  >
+                    <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                    <span>Publicar también en Google Maps</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
+                  </a>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setReviewVenue(null)}
+                  className="text-xs text-zinc-400 hover:text-white font-semibold cursor-pointer"
+                >
+                  Cerrar
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitReview} className="space-y-4">
+                {/* Selector de 1 a 5 estrellas */}
+                <div className="flex items-center justify-center gap-2 py-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewRating(star)}
+                      className="p-1.5 transition-transform hover:scale-110 cursor-pointer"
+                    >
+                      <Star
+                        className={`w-8 h-8 ${
+                          star <= reviewRating
+                            ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
+                            : "text-zinc-600"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+
+                {!client && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-zinc-300 mb-1">Tu Nombre (Opcional)</label>
+                    <input
+                      type="text"
+                      value={reviewAuthor}
+                      onChange={(e) => setReviewAuthor(e.target.value)}
+                      placeholder="Ej: Sofía"
+                      className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[11px] font-bold text-zinc-300 mb-1">
+                    Comentario sobre música, atención o ambiente (Opcional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder="¿Qué te gustó más o qué podría mejorar?"
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400 resize-none"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submittingReview}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-fuchsia-600 hover:from-amber-400 hover:to-fuchsia-500 text-white font-black text-xs shadow-lg cursor-pointer disabled:opacity-50"
+                >
+                  {submittingReview ? "Enviando..." : "Enviar Calificación"}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

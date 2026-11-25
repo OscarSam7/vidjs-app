@@ -62,8 +62,11 @@ export async function GET() {
           logoUrl: true,
           venues: {
             where: { active: true },
-            select: { id: true, name: true, address: true, whatsappNumber: true },
+            select: { id: true, name: true, address: true, whatsappNumber: true, googleReviewUrl: true },
             take: 1,
+          },
+          venueReviews: {
+            select: { rating: true },
           },
           _count: {
             select: {
@@ -116,16 +119,30 @@ export async function GET() {
           expiresAt: d.expiresAt,
           tenant: d.tenant,
         })),
-        venues: tenants.map((t) => ({
-          id: t.id,
-          name: t.name,
-          slug: t.slug,
-          logoUrl: t.logoUrl,
-          address: t.venues[0]?.address || null,
-          whatsappNumber: t.venues[0]?.whatsappNumber || null,
-          hasLiveEvent: (t._count?.events || 0) > 0,
-          rewardsCount: t._count?.clubRewards || 0,
-        })),
+        venues: tenants.map((t) => {
+          const revCount = t.venueReviews?.length || 0;
+          const avgRating =
+            revCount > 0
+              ? Number(
+                  (
+                    t.venueReviews.reduce((acc, r) => acc + r.rating, 0) / revCount
+                  ).toFixed(1)
+                )
+              : 0;
+          return {
+            id: t.id,
+            name: t.name,
+            slug: t.slug,
+            logoUrl: t.logoUrl,
+            address: t.venues[0]?.address || null,
+            whatsappNumber: t.venues[0]?.whatsappNumber || null,
+            googleReviewUrl: t.venues[0]?.googleReviewUrl || null,
+            avgRating,
+            reviewsCount: revCount,
+            hasLiveEvent: (t._count?.events || 0) > 0,
+            rewardsCount: t._count?.clubRewards || 0,
+          };
+        }),
       },
     });
   } catch (error) {
