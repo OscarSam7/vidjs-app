@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { ZynkoLogo } from "@/components/ui/ZynkoLogo";
 import { QRCodeImage } from "@/components/ui/QRCodeImage";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 interface QrSessionData {
   code: string;
@@ -323,7 +324,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070709] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,50,220,0.25),rgba(255,255,255,0))] flex flex-col justify-center items-center px-4 py-12">
+    <div className="min-h-screen bg-[#070709] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,50,220,0.25),rgba(255,255,255,0))] flex flex-col justify-center items-center px-4 py-12 relative">
+      {/* Selector de idioma global (ES / PT / EN) */}
+      <div className="fixed top-4 right-4 z-30">
+        <LanguageSwitcher variant="pills" />
+      </div>
+
       {/* Glow decorative elements */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
 

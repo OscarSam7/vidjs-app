@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 export default function PublicEventsDirectoryPage() {
   const [events, setEvents] = useState<any[]>([]);
@@ -72,6 +73,7 @@ export default function PublicEventsDirectoryPage() {
           </Link>
 
           <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             <Link
               href="/guest"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600/20 text-purple-300 border border-purple-500/30 text-xs font-bold hover:bg-purple-600/30 transition-colors"

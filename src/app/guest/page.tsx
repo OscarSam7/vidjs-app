@@ -70,6 +70,7 @@ import { TicketPaymentModal } from "@/components/events/TicketPaymentModal";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType, NextTurnCountdownPayload } from "@/lib/realtime/event-bus";
 import PwaInstallButton from "@/components/pwa/PwaInstallButton";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 const GuestQrScannerModal = dynamic(
   () => import("@/components/guest/GuestQrScannerModal").then((mod) => mod.GuestQrScannerModal),
@@ -2136,13 +2137,16 @@ function GuestContent() {
             <span>Volver</span>
           </button>
 
-          <Link
-            href="/app"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-fuchsia-600/25 hover:from-amber-500/30 hover:to-fuchsia-600/35 border border-amber-400/40 text-amber-200 text-xs font-black transition-all shadow-sm"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>Super App &amp; Club</span>
-          </Link>
+          <div className="flex items-center gap-1.5">
+            <LanguageSwitcher />
+            <Link
+              href="/app"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-fuchsia-600/25 hover:from-amber-500/30 hover:to-fuchsia-600/35 border border-amber-400/40 text-amber-200 text-xs font-black transition-all shadow-sm"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>Super App &amp; Club</span>
+            </Link>
+          </div>
         </div>
 
         <div className="w-14 h-14 rounded-2xl bg-purple-600/10 border border-purple-500/30 text-purple-400 mx-auto flex items-center justify-center glow-purple">

@@ -51,6 +51,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ZynkoLogo } from "@/components/ui/ZynkoLogo";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import {
   PlanCode,
   PLAN_LABELS,
@@ -864,19 +865,28 @@ export function Sidebar({
           })}
         </nav>
 
-        {/* Footer Session Info */}
-        <div className="p-3 border-t border-[#263858] shrink-0 bg-[#0D1930]">
+        {/* Footer Session Info & Language Switcher */}
+        <div className="p-3 border-t border-[#263858] shrink-0 bg-[#0D1930] space-y-2">
           {collapsed ? (
-            <div className="flex flex-col items-center justify-center text-[10px] text-[#94A3B8] font-mono py-1">
+            <div className="flex flex-col items-center justify-center gap-1.5 text-[10px] text-[#94A3B8] font-mono py-1">
+              <LanguageSwitcher />
               <span className="text-purple-400 font-bold">v1.0</span>
             </div>
           ) : (
-            <div className="flex items-center justify-between gap-2 text-[11px] text-[#94A3B8] px-1 py-1">
-              <span className="truncate">
-                Rol: <strong className="text-[#F8FAFC] font-semibold">{role}</strong>
-              </span>
-              <span className="text-[#94A3B8] font-mono shrink-0">v1.0 SaaS</span>
-            </div>
+            <>
+              <div className="flex items-center justify-between gap-2 px-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Idioma
+                </span>
+                <LanguageSwitcher variant="pills" />
+              </div>
+              <div className="flex items-center justify-between gap-2 text-[11px] text-[#94A3B8] px-1 pt-1 border-t border-[#263858]/60">
+                <span className="truncate">
+                  Rol: <strong className="text-[#F8FAFC] font-semibold">{role}</strong>
+                </span>
+                <span className="text-[#94A3B8] font-mono shrink-0">v1.0 SaaS</span>
+              </div>
+            </>
           )}
         </div>
       </div>

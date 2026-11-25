@@ -25,6 +25,7 @@ import {
   UserCheck
 } from "lucide-react";
 import { CynkoLogo } from "@/components/ui/ZynkoLogo";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 import { ShowcaseHero } from "@/components/showcase/ShowcaseHero";
 import { ShowcaseMetrics } from "@/components/showcase/ShowcaseMetrics";
@@ -95,6 +96,7 @@ export default function ShowcasePage() {
 
           {/* Botones de Acción */}
           <div className="hidden sm:flex items-center gap-3">
+            <LanguageSwitcher />
             <Link
               href="/register"
               className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-black font-black text-xs shadow-md shadow-emerald-950/40 hover:scale-105 transition-all flex items-center gap-1.5 cursor-pointer"

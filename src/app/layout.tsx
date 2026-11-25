@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import PwaRegistrar from "@/components/pwa/PwaRegistrar";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 
 export const viewport: Viewport = {
   themeColor: "#040406",
@@ -125,6 +126,10 @@ export default function RootLayout({
                   document.documentElement.classList.remove('blue', 'light');
                   document.documentElement.classList.add('dark');
                 }
+                const storedLang = localStorage.getItem('cynko_locale');
+                if (storedLang === 'pt' || storedLang === 'en' || storedLang === 'es') {
+                  document.documentElement.lang = storedLang;
+                }
               } catch (e) {}
             `,
           }}
@@ -132,8 +137,10 @@ export default function RootLayout({
       </head>
       <body className="bg-[var(--background)] text-[var(--foreground)] antialiased selection:bg-purple-600 selection:text-white transition-colors duration-200">
         <ThemeProvider>
-          <PwaRegistrar />
-          {children}
+          <LanguageProvider>
+            <PwaRegistrar />
+            {children}
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

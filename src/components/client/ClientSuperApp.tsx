@@ -42,6 +42,7 @@ import {
 import { CynkoLogo } from "@/components/ui/ZynkoLogo";
 import { QRCodeImage } from "@/components/ui/QRCodeImage";
 import PwaInstallButton from "@/components/pwa/PwaInstallButton";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 const VirtualDjConsole = dynamic(() => import("@/components/dj/VirtualDjConsole"), {
   ssr: false,
@@ -668,6 +669,7 @@ export default function ClientSuperApp() {
           <CynkoLogo size="sm" subtitle="SUPER APP" />
 
           <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             {client ? (
               <>
                 <button

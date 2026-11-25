@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { TicketPaymentModal } from "@/components/events/TicketPaymentModal";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 interface TierSelection {
   [tierId: string]: number;
@@ -278,8 +279,9 @@ export default function PublicEventLaunchPage({
             </div>
           </nav>
 
-          {/* Right actions: Theme toggle + Profile / Billetera */}
-          <div className="flex items-center gap-3">
+          {/* Right actions: Language + Theme toggle + Profile / Billetera */}
+          <div className="flex items-center gap-2.5">
+            <LanguageSwitcher />
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className={cn(
