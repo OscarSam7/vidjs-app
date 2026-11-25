@@ -52,9 +52,10 @@ const VirtualDjConsole = dynamic(() => import("@/components/dj/VirtualDjConsole"
   ),
 });
 
-const DevicePairModal = dynamic(() => import("@/components/auth/DevicePairModal"), {
-  ssr: false,
-});
+const DevicePairModal = dynamic(
+  () => import("@/components/auth/DevicePairModal").then((mod) => mod.DevicePairModal),
+  { ssr: false }
+);
 
 interface ClientProfile {
   id: string;
