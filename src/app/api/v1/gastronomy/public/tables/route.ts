@@ -12,13 +12,23 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const code = searchParams.get("code");
     const slug = searchParams.get("slug");
+    const explicit = searchParams.get("explicit") === "1";
 
     const guestSession = await getCurrentGuestSession().catch(() => null);
     const userSession = await getCurrentSession().catch(() => null);
 
-    let tenantId: string | null =
-      guestSession?.tenant.id || userSession?.tenantId || null;
+    let tenantId: string | null = null;
 
+    // 1. Prioridad máxima: slug de local explícito elegido por el cliente
+    if (slug) {
+      const ten = await prisma.tenant.findUnique({
+        where: { slug },
+        select: { id: true },
+      });
+      if (ten) tenantId = ten.id;
+    }
+
+    // 2. Código de evento explícito
     if (!tenantId && code) {
       const ev = await prisma.event.findFirst({
         where: { code: code.toUpperCase() },
@@ -27,12 +37,25 @@ export async function GET(req: NextRequest) {
       if (ev) tenantId = ev.tenantId;
     }
 
-    if (!tenantId && slug) {
-      const ten = await prisma.tenant.findUnique({
-        where: { slug },
-        select: { id: true },
+    // 3. Sesión activa de mesa del cliente
+    if (!tenantId && guestSession?.tenant?.id) {
+      tenantId = guestSession.tenant.id;
+    }
+
+    // 4. Si se pidió modo explícito (sin adivinar local) y no hay local resuelto, devolver vacío
+    if (!tenantId && explicit) {
+      return NextResponse.json({
+        success: true,
+        tenant: null,
+        sectors: [],
+        tables: [],
+        activeEvent: null,
       });
-      if (ten) tenantId = ten.id;
+    }
+
+    // 5. Fallback legacy para vistas administrativas o accesos directos antiguos
+    if (!tenantId && userSession?.tenantId) {
+      tenantId = userSession.tenantId;
     }
 
     if (!tenantId) {
@@ -53,6 +76,7 @@ export async function GET(req: NextRequest) {
     if (!tenantId) {
       return NextResponse.json({
         success: true,
+        tenant: null,
         sectors: [],
         tables: [],
         activeEvent: null,
@@ -61,7 +85,21 @@ export async function GET(req: NextRequest) {
 
     await ensureGastronomySeeded(tenantId);
 
-    const [sectors, tables, activeEvent] = await Promise.all([
+    const [tenantInfo, sectors, tables, activeEvent] = await Promise.all([
+      prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          logoUrl: true,
+          venues: {
+            where: { active: true },
+            select: { address: true },
+            take: 1,
+          },
+        },
+      }),
       prisma.gastroSector.findMany({
         where: { tenantId, active: true },
         select: { id: true, name: true, colorHex: true },
@@ -106,6 +144,15 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      tenant: tenantInfo
+        ? {
+            id: tenantInfo.id,
+            name: tenantInfo.name,
+            slug: tenantInfo.slug,
+            logoUrl: tenantInfo.logoUrl,
+            address: tenantInfo.venues?.[0]?.address || null,
+          }
+        : null,
       sectors: populatedSectors,
       tables: normalizedTables,
       activeEvent: activeEvent || null,

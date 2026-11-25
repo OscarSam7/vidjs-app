@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import {
   Play,
@@ -60,6 +61,7 @@ import {
   Wallet,
   Sun,
   Moon,
+  Store,
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { VipSelectModal, type VipSelectOption } from "@/components/ui/VipSelectModal";
@@ -68,6 +70,11 @@ import { TicketPaymentModal } from "@/components/events/TicketPaymentModal";
 import { useRealtime } from "@/hooks/use-realtime";
 import { RealtimeEventType, NextTurnCountdownPayload } from "@/lib/realtime/event-bus";
 import PwaInstallButton from "@/components/pwa/PwaInstallButton";
+
+const GuestQrScannerModal = dynamic(
+  () => import("@/components/guest/GuestQrScannerModal").then((mod) => mod.GuestQrScannerModal),
+  { ssr: false }
+);
 
 interface Song {
   id: string;
@@ -828,12 +835,64 @@ function GuestContent() {
   const [selectedTableSector, setSelectedTableSector] = useState<string>("ALL");
   const [loadingPublicTables, setLoadingPublicTables] = useState(false);
 
-  const loadPublicTables = async () => {
+  // Selector de Local + Escáner QR para "Conéctate a tu Mesa"
+  const [selectedConnectVenueSlug, setSelectedConnectVenueSlug] = useState<string | null>(
+    venueParam || null
+  );
+  const [resolvedPublicTenant, setResolvedPublicTenant] = useState<{
+    id: string;
+    name: string;
+    slug: string;
+    logoUrl?: string | null;
+    address?: string | null;
+  } | null>(null);
+  const [availableVenues, setAvailableVenues] = useState<
+    Array<{
+      id: string;
+      name: string;
+      slug: string;
+      logoUrl?: string | null;
+      address?: string | null;
+      hasLiveEvent: boolean;
+    }>
+  >([]);
+  const [loadingVenues, setLoadingVenues] = useState(false);
+  const [venueSearchQuery, setVenueSearchQuery] = useState("");
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
+
+  const loadAvailableVenues = async () => {
+    setLoadingVenues(true);
+    try {
+      const res = await fetch("/api/v1/client/explore", { cache: "no-store" });
+      if (res.ok) {
+        const json = await res.json();
+        setAvailableVenues(json.data?.venues || []);
+      }
+    } catch {
+      // Silencioso
+    } finally {
+      setLoadingVenues(false);
+    }
+  };
+
+  const loadPublicTables = async (overrideSlug?: string | null) => {
+    const effectiveSlug =
+      overrideSlug !== undefined ? overrideSlug : selectedConnectVenueSlug || venueParam;
+
+    // Si el cliente aún no tiene sesión ni eligió un local o evento, no adivinar mesas de otro local
+    if (!session && !effectiveSlug && !eventParam) {
+      setPublicTables([]);
+      setPublicSectors([]);
+      setResolvedPublicTenant(null);
+      return;
+    }
+
     setLoadingPublicTables(true);
     try {
       const qs = new URLSearchParams();
       if (eventParam) qs.set("code", eventParam);
-      if (venueParam) qs.set("slug", venueParam);
+      if (effectiveSlug) qs.set("slug", effectiveSlug);
+      if (!session) qs.set("explicit", "1");
       const res = await fetch(`/api/v1/gastronomy/public/tables?${qs.toString()}`, {
         cache: "no-store",
       });
@@ -841,6 +900,7 @@ function GuestContent() {
         const json = await res.json();
         setPublicTables(json.tables || []);
         setPublicSectors(json.sectors || []);
+        setResolvedPublicTenant(json.tenant || null);
       }
     } catch {
       // Silencioso
@@ -1165,6 +1225,7 @@ function GuestContent() {
   useEffect(() => {
     loadSessionAndRequests();
     fetchPublicActiveContest();
+    loadAvailableVenues();
     loadPublicTables();
     fetchLiveQueue();
   }, []);
@@ -1204,7 +1265,7 @@ function GuestContent() {
     if (isManageTableOpen || !session) {
       loadPublicTables();
     }
-  }, [isManageTableOpen, session]);
+  }, [isManageTableOpen, session, selectedConnectVenueSlug]);
 
   useEffect(() => {
     if (session?.table?.label && (activeContestInfo?.id || activeContestVote?.contestId)) {
@@ -2040,10 +2101,26 @@ function GuestContent() {
   }
 
   if (!loadingSession && !session && !dismissConnectScreen) {
+    const hasSelectedVenue = Boolean(selectedConnectVenueSlug || eventParam || resolvedPublicTenant);
     const filteredTables = publicTables.filter(
       (t) => selectedTableSector === "ALL" || t.sectorId === selectedTableSector || t.sectorName === selectedTableSector
     );
     const availableCount = filteredTables.filter((t) => t.isAvailable).length;
+
+    const normalizedVenueQuery = venueSearchQuery.trim().toLowerCase();
+    const filteredVenues = availableVenues.filter((v) => {
+      if (!normalizedVenueQuery) return true;
+      return (
+        v.name.toLowerCase().includes(normalizedVenueQuery) ||
+        (v.address || "").toLowerCase().includes(normalizedVenueQuery) ||
+        v.slug.toLowerCase().includes(normalizedVenueQuery)
+      );
+    });
+
+    const activeVenueDisplay =
+      resolvedPublicTenant ||
+      availableVenues.find((v) => v.slug === selectedConnectVenueSlug) ||
+      null;
 
     return (
       <div className="p-5 text-center my-auto space-y-5 max-w-md mx-auto w-full">
@@ -2074,9 +2151,21 @@ function GuestContent() {
         <div>
           <h2 className="text-xl font-black text-white">¡Conéctate a tu Mesa!</h2>
           <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
-            Selecciona tu mesa disponible directamente aquí, escanea el QR físico o ingresa el código de la TV.
+            {hasSelectedVenue
+              ? "Elige tu mesa disponible en este local o escanea el QR físico de tu mesa."
+              : "Escanea el QR del local o de tu mesa para entrar al instante, o busca el local donde te encuentras."}
           </p>
         </div>
+
+        {/* Botón Principal: Escanear QR con la Cámara */}
+        <button
+          type="button"
+          onClick={() => setIsQrScannerOpen(true)}
+          className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-600 via-fuchsia-600 to-amber-500 hover:from-purple-500 hover:via-fuchsia-500 hover:to-amber-400 text-white font-black text-sm shadow-lg shadow-purple-900/40 flex items-center justify-center gap-2.5 transition-all cursor-pointer active:scale-[0.98]"
+        >
+          <Camera className="w-5 h-5" />
+          <span>Escanear QR del Local o Mesa</span>
+        </button>
 
         {/* 🏆 Tarjeta destacada de Concurso de Karaoke para Participación Presencial o Remota */}
         {activeContestInfo && (
@@ -2123,110 +2212,230 @@ function GuestContent() {
           </div>
         )}
 
-        {/* Selector en vivo de Mesas Unificadas Disponibles */}
-        <div className="pt-2 border-t border-zinc-800/80 text-left space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-bold text-white flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>Mesas Disponibles ({availableCount})</span>
-            </span>
-            <button
-              type="button"
-              onClick={loadPublicTables}
-              className="text-[11px] text-purple-300 hover:text-white flex items-center gap-1 cursor-pointer"
-            >
-              <RefreshCw className={`w-3 h-3 ${loadingPublicTables ? "animate-spin" : ""}`} />
-              <span>Actualizar</span>
-            </button>
-          </div>
-
-          {publicSectors.length > 0 && (
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
+        {/* PASO 1: Elegir Local si todavía no seleccionó uno */}
+        {!hasSelectedVenue ? (
+          <div className="pt-2 border-t border-zinc-800/80 text-left space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-black text-white flex items-center gap-1.5">
+                <Store className="w-4 h-4 text-cyan-400" />
+                <span>Paso 1: ¿En qué local estás?</span>
+              </span>
               <button
                 type="button"
-                onClick={() => setSelectedTableSector("ALL")}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 border transition-all cursor-pointer ${
-                  selectedTableSector === "ALL"
-                    ? "bg-purple-600 text-white border-purple-500"
-                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
-                }`}
+                onClick={loadAvailableVenues}
+                className="text-[11px] text-purple-300 hover:text-white flex items-center gap-1 cursor-pointer"
               >
-                Todos ({publicTables.length})
+                <RefreshCw className={`w-3 h-3 ${loadingVenues ? "animate-spin" : ""}`} />
+                <span>Actualizar</span>
               </button>
-              {publicSectors.map((sec) => (
+            </div>
+
+            {/* Buscador de locales */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={venueSearchQuery}
+                onChange={(e) => setVenueSearchQuery(e.target.value)}
+                placeholder="Buscar local por nombre o dirección..."
+                className="w-full pl-9 pr-3 py-2.5 bg-zinc-900/90 border border-zinc-800 focus:border-purple-500 rounded-xl text-xs text-white placeholder:text-zinc-500 focus:outline-none"
+              />
+            </div>
+
+            {loadingVenues && availableVenues.length === 0 ? (
+              <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center text-xs text-zinc-400">
+                Buscando locales CYNKO disponibles...
+              </div>
+            ) : filteredVenues.length === 0 ? (
+              <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center text-xs text-zinc-400">
+                No encontramos locales con ese nombre. Puedes escanear el QR físico del local arriba.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-0.5">
+                {filteredVenues.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTableSector("ALL");
+                      setSelectedConnectVenueSlug(v.slug);
+                    }}
+                    className="w-full p-3 rounded-2xl bg-zinc-900/90 hover:bg-purple-950/40 border border-zinc-800 hover:border-purple-400/70 transition-all flex items-center justify-between gap-3 text-left cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {v.logoUrl ? (
+                        <img
+                          src={v.logoUrl}
+                          alt={v.name}
+                          className="w-10 h-10 rounded-xl object-cover border border-zinc-700 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600/30 to-fuchsia-600/30 border border-purple-500/40 flex items-center justify-center text-sm font-black text-purple-200 shrink-0">
+                          {v.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-black text-white truncate group-hover:text-purple-200">
+                            {v.name}
+                          </span>
+                          {v.hasLiveEvent && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-black text-emerald-300 shrink-0">
+                              EN VIVO
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-zinc-400 truncate mt-0.5 flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-zinc-500 shrink-0" />
+                          <span className="truncate">{v.address || "Local adherido CYNKO"}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-bold text-purple-300 group-hover:text-white inline-flex items-center gap-0.5 shrink-0">
+                      <span>Elegir</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* PASO 2: Local seleccionado -> Selector en vivo de Mesas Disponibles de ESE local */
+          <div className="pt-2 border-t border-zinc-800/80 text-left space-y-3">
+            {/* Banner del local activo + botón Cambiar local */}
+            <div className="p-3 rounded-2xl bg-purple-950/35 border border-purple-500/40 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-purple-600/25 border border-purple-400/40 flex items-center justify-center text-purple-200 shrink-0">
+                  <Store className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple-300 block">
+                    Local seleccionado
+                  </span>
+                  <div className="text-xs font-black text-white truncate">
+                    {activeVenueDisplay?.name || selectedConnectVenueSlug || "Local activo"}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedConnectVenueSlug(null);
+                  setResolvedPublicTenant(null);
+                  setPublicTables([]);
+                  setPublicSectors([]);
+                  setSelectedTableSector("ALL");
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-[11px] font-bold text-zinc-200 hover:text-white shrink-0 cursor-pointer transition-colors"
+              >
+                Cambiar local
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>Paso 2: Elige tu mesa ({availableCount} disponibles)</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => loadPublicTables()}
+                className="text-[11px] text-purple-300 hover:text-white flex items-center gap-1 cursor-pointer"
+              >
+                <RefreshCw className={`w-3 h-3 ${loadingPublicTables ? "animate-spin" : ""}`} />
+                <span>Actualizar</span>
+              </button>
+            </div>
+
+            {publicSectors.length > 0 && (
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
                 <button
-                  key={sec.id}
                   type="button"
-                  onClick={() => setSelectedTableSector(sec.id)}
+                  onClick={() => setSelectedTableSector("ALL")}
                   className={`px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 border transition-all cursor-pointer ${
-                    selectedTableSector === sec.id
+                    selectedTableSector === "ALL"
                       ? "bg-purple-600 text-white border-purple-500"
                       : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
                   }`}
                 >
-                  {sec.name}
+                  Todos ({publicTables.length})
                 </button>
-              ))}
-            </div>
-          )}
-
-          {loadingPublicTables && publicTables.length === 0 ? (
-            <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center text-xs text-zinc-400">
-              Cargando mesas disponibles...
-            </div>
-          ) : filteredTables.length === 0 ? (
-            <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center text-xs text-zinc-400">
-              No hay mesas activas registradas en este sector.
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-0.5">
-              {[...filteredTables]
-                .sort((a, b) => (a.isAvailable === b.isAvailable ? a.number - b.number : a.isAvailable ? -1 : 1))
-                .map((tbl) => (
-                  <a
-                    key={tbl.id}
-                    href={`/qr/${tbl.qrToken}`}
-                    className={`p-2.5 rounded-xl border transition-all flex flex-col justify-between text-left ${
-                      tbl.isAvailable
-                        ? "bg-zinc-900/90 hover:bg-purple-950/40 border-emerald-500/40 hover:border-purple-400"
-                        : "bg-zinc-950/70 hover:bg-zinc-900 border-zinc-800/80 opacity-75"
+                {publicSectors.map((sec) => (
+                  <button
+                    key={sec.id}
+                    type="button"
+                    onClick={() => setSelectedTableSector(sec.id)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 border transition-all cursor-pointer ${
+                      selectedTableSector === sec.id
+                        ? "bg-purple-600 text-white border-purple-500"
+                        : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-[10px] font-mono font-bold text-purple-300 px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800">
-                        #{tbl.number}
-                      </span>
-                      <span
-                        className={`text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase ${
-                          tbl.isAvailable
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                            : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
-                        }`}
-                      >
-                        {tbl.isAvailable ? "Disponible" : "Ocupada"}
-                      </span>
-                    </div>
-                    <div className="mt-1.5 text-xs font-bold text-white truncate">{tbl.label}</div>
-                    <div className="mt-1 flex items-center justify-between text-[10px] text-zinc-400">
-                      <span className="inline-flex items-center gap-1 truncate">
-                        <MapPin className="w-2.5 h-2.5 text-purple-400 shrink-0" />
-                        <span className="truncate">{tbl.sectorName}</span>
-                      </span>
-                      <span className="inline-flex items-center gap-0.5 shrink-0 text-zinc-500">
-                        <Users className="w-2.5 h-2.5" />
-                        {tbl.capacity}p
-                      </span>
-                    </div>
-                  </a>
+                    {sec.name}
+                  </button>
                 ))}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+
+            {loadingPublicTables && publicTables.length === 0 ? (
+              <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center text-xs text-zinc-400">
+                Cargando mesas de {activeVenueDisplay?.name || "este local"}...
+              </div>
+            ) : filteredTables.length === 0 ? (
+              <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 text-center text-xs text-zinc-400">
+                No hay mesas activas registradas en este sector.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-0.5">
+                {[...filteredTables]
+                  .sort((a, b) => (a.isAvailable === b.isAvailable ? a.number - b.number : a.isAvailable ? -1 : 1))
+                  .map((tbl) => (
+                    <a
+                      key={tbl.id}
+                      href={`/qr/${tbl.qrToken}`}
+                      className={`p-2.5 rounded-xl border transition-all flex flex-col justify-between text-left ${
+                        tbl.isAvailable
+                          ? "bg-zinc-900/90 hover:bg-purple-950/40 border-emerald-500/40 hover:border-purple-400"
+                          : "bg-zinc-950/70 hover:bg-zinc-900 border-zinc-800/80 opacity-75"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] font-mono font-bold text-purple-300 px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800">
+                          #{tbl.number}
+                        </span>
+                        <span
+                          className={`text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase ${
+                            tbl.isAvailable
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                              : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                          }`}
+                        >
+                          {tbl.isAvailable ? "Disponible" : "Ocupada"}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 text-xs font-bold text-white truncate">{tbl.label}</div>
+                      <div className="mt-1 flex items-center justify-between text-[10px] text-zinc-400">
+                        <span className="inline-flex items-center gap-1 truncate">
+                          <MapPin className="w-2.5 h-2.5 text-purple-400 shrink-0" />
+                          <span className="truncate">{tbl.sectorName}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-0.5 shrink-0 text-zinc-500">
+                          <Users className="w-2.5 h-2.5" />
+                          {tbl.capacity}p
+                        </span>
+                      </div>
+                    </a>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Input de Código de Evento */}
         <form onSubmit={handleJoinByCode} className="space-y-2 text-left bg-zinc-900/60 p-3.5 rounded-xl border border-zinc-800">
           <label className="text-[11px] font-bold text-zinc-300 block">
-            ¿Prefieres ingresar por Código de Pantalla TV?
+            ¿Tienes un Código de Pantalla TV?
           </label>
           <div className="flex gap-2">
             <input
@@ -2256,6 +2465,19 @@ function GuestContent() {
             <span>Volver a la pantalla principal</span>
           </button>
         </div>
+
+        {/* Modal Escáner QR de Cámara para Local o Mesa */}
+        <GuestQrScannerModal
+          isOpen={isQrScannerOpen}
+          onClose={() => setIsQrScannerOpen(false)}
+          onVenueScanned={(slug) => {
+            setSelectedTableSector("ALL");
+            setSelectedConnectVenueSlug(slug);
+          }}
+          onEventCodeScanned={(code) => {
+            window.location.href = `/display/${code}/tables`;
+          }}
+        />
       </div>
     );
   }
@@ -6254,7 +6476,7 @@ function GuestContent() {
                     </span>
                     <button
                       type="button"
-                      onClick={loadPublicTables}
+                      onClick={() => loadPublicTables()}
                       className="text-[10px] text-purple-300 hover:text-white flex items-center gap-1 cursor-pointer"
                     >
                       <RefreshCw className={`w-3 h-3 ${loadingPublicTables ? "animate-spin" : ""}`} />

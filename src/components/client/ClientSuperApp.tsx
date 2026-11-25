@@ -975,12 +975,22 @@ export default function ClientSuperApp() {
                           <span>Opinar</span>
                         </button>
 
-                        <Link
-                          href={`/reservas/${v.slug}`}
-                          className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-fuchsia-600 text-white text-[11px] font-bold transition-colors shrink-0"
-                        >
-                          Reservar
-                        </Link>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Link
+                            href={`/guest?venue=${v.slug}`}
+                            className="px-2.5 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600 border border-purple-500/40 text-purple-200 hover:text-white text-[11px] font-bold inline-flex items-center gap-1 transition-colors"
+                          >
+                            <QrCode className="w-3 h-3" />
+                            <span>Mesa</span>
+                          </Link>
+
+                          <Link
+                            href={`/reservas/${v.slug}`}
+                            className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-fuchsia-600 text-white text-[11px] font-bold transition-colors"
+                          >
+                            Reservar
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   ))}
