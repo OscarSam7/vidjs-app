@@ -112,8 +112,8 @@ export default function PublicEventLaunchPage({
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: event?.name || "Evento VIDJS",
-        text: `¡Mira este evento en VIDJS: ${event?.name}!`,
+        title: event?.name || "Evento CYNKO",
+        text: `¡Mira este evento en CYNKO: ${event?.name}!`,
         url: window.location.href,
       });
     } else {
@@ -207,7 +207,7 @@ export default function PublicEventLaunchPage({
         isDarkMode ? "bg-[#080F1F] text-slate-100" : "bg-[#F8FAFC] text-slate-900"
       )}
     >
-      {/* 1. Header / Navbar con Logo VIDJS */}
+      {/* 1. Header / Navbar con Logo CYNKO */}
       <header
         className={cn(
           "sticky top-0 z-40 border-b backdrop-blur-md px-4 sm:px-8 py-3 transition-colors",
@@ -217,7 +217,7 @@ export default function PublicEventLaunchPage({
         )}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          {/* Logo VIDJS */}
+          {/* Logo CYNKO */}
           <Link href="/guest" className="flex items-center gap-2.5 group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-pink-500 flex items-center justify-center text-white font-black shadow-lg shadow-purple-900/40 group-hover:scale-105 transition-transform">
               <Ticket className="w-5 h-5 -rotate-12" />
@@ -225,17 +225,17 @@ export default function PublicEventLaunchPage({
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xl font-black tracking-tight bg-gradient-to-r from-purple-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">
-                  VIDJS
+                  CYNKO
                 </span>
                 <span
                   className={cn(
-                    "text-[10px] font-black uppercase px-1.5 py-0.2 rounded border font-mono tracking-tighter",
+                    "text-[10px] font-black uppercase px-1.5 py-0.5 rounded border font-mono tracking-tighter",
                     isDarkMode
                       ? "bg-purple-950/60 text-purple-300 border-purple-500/40"
                       : "bg-purple-100 text-purple-700 border-purple-300"
                   )}
                 >
-                  TICKETS
+                  PASS
                 </span>
               </div>
               <span className="text-[9px] text-slate-400 block -mt-1 tracking-wider uppercase">
@@ -776,7 +776,7 @@ export default function PublicEventLaunchPage({
         </div>
       </main>
 
-      {/* 4. Footer con Branding VIDJS (Replica from video) */}
+      {/* 4. Footer con Branding CYNKO (Cynko Pass Suite) */}
       <footer
         className={cn(
           "mt-16 border-t pt-12 pb-8 px-4 sm:px-8 transition-colors",
@@ -799,7 +799,7 @@ export default function PublicEventLaunchPage({
                 Tu plataforma de entradas, experiencias y entretenimiento gastronómico y nocturno en Paraguay.
               </p>
               <div className="text-[11px] text-purple-400 font-mono">
-                Powered by VIDJS RedTicket Suite
+                Powered by Cynko · Pass Suite
               </div>
             </div>
 
@@ -841,7 +841,7 @@ export default function PublicEventLaunchPage({
           </div>
 
           <div className="pt-6 border-t border-[#263858] flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500">
-            <span>© {new Date().getFullYear()} VIDJS Inc. Todos los derechos reservados.</span>
+            <span>© {new Date().getFullYear()} CYNKO OS Inc. Todos los derechos reservados.</span>
             <span>Sistema Multisede de Acreditación y Taquilla Digital</span>
           </div>
         </div>

@@ -234,7 +234,7 @@ export function ShowcaseModules() {
     {
       id: "accreditation-access",
       category: "events",
-      title: "Acreditaciones & Control de Acceso QR (RedTicket Pro)",
+      title: "Acreditaciones & Control de Acceso QR (Cynko Pass Suite)",
       badge: "ALTA SEGURIDAD CRIPTO",
       badgeColor: "bg-emerald-950/80 text-emerald-300 border-emerald-800/60",
       accentColor: "from-emerald-600 to-teal-600",
@@ -243,7 +243,7 @@ export function ShowcaseModules() {
       directLabel: "Ver Módulo de Acreditaciones",
       tagline: "Gestión masiva de boliches, conciertos y ferias con QR anti-fraude y modo offline.",
       description:
-        "Inspirado en la potencia de RedTicket Pro pero 100% nativo en la nube de CYNKO. Permite emitir credenciales térmicas, etiquetas o PVC para miles de participantes por categorías (VIP, Prensa, Staff, General). Incluye escáner QR de puerta con cámara web/celular, validación en milisegundos, feedback sonoro y sincronización offline en IndexedDB.",
+        "Tecnología integral de control de accesos 100% nativa en la nube de CYNKO. Permite emitir credenciales térmicas, etiquetas o PVC para miles de participantes por categorías (VIP, Prensa, Staff, General). Incluye escáner QR de puerta con cámara web/celular, validación en milisegundos, feedback sonoro y sincronización offline en IndexedDB.",
       features: [
         "Dashboard en tiempo real con aforo por puerta, sector y categoría",
         "Códigos QR únicos con firma criptográfica HMAC-SHA256 anti-clonación",

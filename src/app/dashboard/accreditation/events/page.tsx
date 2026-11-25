@@ -410,7 +410,7 @@ export default function EventsManagementPage() {
                         </span>
                       </div>
 
-                      {/* Financials Box (Vendidos, Ingresos Brutos, Comisión Redticket) */}
+                      {/* Financials Box (Vendidos, Ingresos Brutos, Comisión Cynko Pass) */}
                       <div className="space-y-1 pt-2 font-sans text-xs">
                         <div className="flex items-center gap-2 text-slate-300">
                           <Ticket className="w-3.5 h-3.5 text-slate-400 shrink-0" />

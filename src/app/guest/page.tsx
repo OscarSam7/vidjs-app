@@ -2403,9 +2403,9 @@ function GuestContent() {
                 </span>
               </div>
               <div className="text-sm sm:text-base font-black text-white tracking-wide truncate leading-tight drop-shadow-sm">
-                {(branding?.welcomeTitle || session?.tenant.name || "Vidjs Karaoke")
+                {(branding?.welcomeTitle || session?.tenant.name || "CYNKO Live")
                   .replace(/^¡?bienvenidos?\s*(?:a\s*)?/i, "")
-                  .trim() || session?.tenant.name || "Vidjs Karaoke"}
+                  .trim() || session?.tenant.name || "CYNKO Live"}
               </div>
               <div className="text-[10px] sm:text-[11px] text-zinc-400 font-medium truncate flex items-center gap-1.5 mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
@@ -2933,7 +2933,7 @@ function GuestContent() {
                       Cartelera Oficial en Vivo
                     </span>
                     <span className="px-1.5 py-0.2 rounded text-[8px] font-black bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono">
-                      VIDJS
+                      CYNKO PASS
                     </span>
                   </div>
                   <h3 className="text-sm sm:text-base font-black text-white">
@@ -5317,7 +5317,7 @@ function GuestContent() {
                   </div>
                   <div>
                     <span className="text-[10px] font-black uppercase text-purple-400 tracking-wider block">
-                      VIDJS TICKET SUITE • CARTELERA MÓVIL
+                      CYNKO PASS SUITE • CARTELERA MÓVIL
                     </span>
                     <h2 className="text-base sm:text-lg font-black text-white">
                       Eventos, Fiestas & Entradas Oficiales
@@ -5625,7 +5625,7 @@ function GuestContent() {
           <div className="w-full max-w-sm bg-white text-black rounded-3xl p-6 space-y-4 shadow-2xl text-center">
             <div className="flex items-center justify-between border-b pb-2">
               <span className="text-[10px] font-black uppercase text-purple-700 font-mono tracking-widest">
-                PASE OFICIAL VIDJS
+                PASE OFICIAL CYNKO
               </span>
               <button
                 type="button"

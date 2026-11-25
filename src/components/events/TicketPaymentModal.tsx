@@ -428,7 +428,7 @@ export function TicketPaymentModal({
                       </div>
                       <div className="col-span-2">
                         <span className="text-slate-500 block">Alias SIPAP / Email:</span>
-                        <strong className="font-mono text-emerald-300">pagos@vidjs.com</strong>
+                        <strong className="font-mono text-emerald-300">pagos@cynko.app</strong>
                       </div>
                     </div>
                   </div>
@@ -442,7 +442,7 @@ export function TicketPaymentModal({
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleCopy("pix@vidjs.com", "pix")}
+                        onClick={() => handleCopy("pix@cynko.app", "pix")}
                         className="text-[10px] text-teal-400 hover:text-teal-300 flex items-center gap-1 cursor-pointer font-bold"
                       >
                         {copiedKey === "pix" ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -453,14 +453,14 @@ export function TicketPaymentModal({
                     <div className="p-2.5 rounded-xl bg-black/60 border border-teal-500/30 flex items-center justify-between gap-2">
                       <div>
                         <span className="text-[10px] text-zinc-400 block">Chave Aleatória / Email:</span>
-                        <span className="font-mono font-bold text-teal-300 text-xs">pix@vidjs.com</span>
+                        <span className="font-mono font-bold text-teal-300 text-xs">pix@cynko.app</span>
                       </div>
                       <span className="px-2 py-0.5 rounded-lg bg-teal-500/20 text-teal-300 text-[10px] font-mono font-bold">
                         R$ {amountBRL}
                       </span>
                     </div>
                     <p className="text-[10px] text-slate-400">
-                      Beneficiário: <strong>Vidjs Entertainment - Rumba Stage</strong>. Paga a través de tu app bancaria (Nubank, Itaú, Bradesco, Inter, etc.).
+                      Beneficiário: <strong>CYNKO Entertainment - Rumba Stage</strong>. Paga a través de tu app bancaria (Nubank, Itaú, Bradesco, Inter, etc.).
                     </p>
                   </div>
                 )}
@@ -502,7 +502,7 @@ export function TicketPaymentModal({
                       </div>
                       <div>
                         <span className="text-slate-500 block">Titular:</span>
-                        <strong className="text-white">Operaciones Vidjs</strong>
+                        <strong className="text-white">Operaciones CYNKO</strong>
                       </div>
                     </div>
                     <p className="text-[10px] text-slate-400">
@@ -673,7 +673,7 @@ export function TicketPaymentModal({
                 ¡Comprobante Recibido & Boleta Emitida!
               </h3>
               <p className="text-xs text-slate-400">
-                Tu boleto oficial ha sido emitido con firma criptográfica y guardado en tu Billetera Móvil VIDJS.
+                Tu boleto oficial ha sido emitido con firma criptográfica y guardado en tu Billetera Móvil CYNKO.
               </p>
             </div>
 
@@ -728,7 +728,7 @@ export function TicketPaymentModal({
                         <QrCode className="w-full h-full text-zinc-900" />
                       )}
                       <span className="text-[7px] text-purple-800 font-mono font-bold">
-                        VIDJS QR OFICIAL
+                        CYNKO PASS QR OFICIAL
                       </span>
                     </div>
                   </div>

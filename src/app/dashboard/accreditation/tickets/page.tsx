@@ -61,7 +61,7 @@ export interface TicketTemplate {
 const DEFAULT_TEMPLATES: TicketTemplate[] = [
   {
     id: "tpl_flyer_default",
-    name: "Flyer + Datos (Estándar RedTicket)",
+    name: "Flyer + Datos (Estándar CYNKO Pass)",
     format: "100x200",
     font: "Concierto Bold",
     accentColor: "#DC2626", // Red-600
@@ -99,7 +99,7 @@ const DEFAULT_TEMPLATES: TicketTemplate[] = [
     showDocument: true,
     showOrganizer: true,
     showTerms: true,
-    termsText: "ENTRADA OFICIAL REDTICKET - CONSERVE ESTE COMPROBANTE AL INGRESAR",
+    termsText: "ENTRADA OFICIAL CYNKO PASS - CONSERVE ESTE COMPROBANTE AL INGRESAR",
     flyerUrl: "",
   },
   {
@@ -252,7 +252,7 @@ export default function TicketTemplatesPage() {
       showDocument: true,
       showOrganizer: true,
       showTerms: true,
-      termsText: "Boleto emitido por RedTicket Suite. Entrada intransferible.",
+      termsText: "Boleto emitido por Cynko · Pass Suite. Entrada intransferible.",
       flyerUrl:
         "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80",
     };
@@ -290,7 +290,7 @@ export default function TicketTemplatesPage() {
               Plantillas de Ticket
             </h1>
             <Badge variant="primary" className="text-[10px] font-mono px-2 py-0.5">
-              RedTicket Print Engine
+              Cynko · Pass Print Engine
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">

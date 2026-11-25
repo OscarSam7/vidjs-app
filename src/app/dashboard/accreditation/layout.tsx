@@ -83,7 +83,7 @@ function AccreditationHeader() {
                   Acreditaciones & Control de Acceso
                 </h1>
                 <Badge variant="primary" className="text-[10px] uppercase font-mono px-2 py-0.5">
-                  Pro RedTicket Suite
+                  Cynko · Pass Suite
                 </Badge>
               </div>
               <p className="text-xs text-slate-400">

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Pide tu Canción | Vidjs Live",
+  title: "CYNKO Live | Pide tu Canción & Entradas",
   description: "Selecciona canciones y pistas de karaoke directamente desde tu mesa.",
 };
 

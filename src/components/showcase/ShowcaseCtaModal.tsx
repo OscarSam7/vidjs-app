@@ -195,7 +195,7 @@ export function ShowcaseCtaModal({ isOpen, onClose }: ShowcaseCtaModalProps) {
                   <option value="Control de Asistencia Staff QR (CK-XXXX & GPS)">
                     👥 Control de Asistencia Staff QR (Claves Dinámicas)
                   </option>
-                  <option value="Acreditaciones & Control de Acceso QR Offline (RedTicket Pro)">
+                  <option value="Acreditaciones & Control de Acceso QR Offline (Cynko Pass Suite)">
                     🎟️ Acreditaciones & Control de Acceso QR Offline
                   </option>
                   <option value="Reservas de Camarotes VIP & Cumpleaños con Fotos">

@@ -875,7 +875,7 @@ Configuración en vivo en: cynko.app/dashboard/branding`;
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-white flex items-center gap-2">
-                      <span>Terminal de Acceso Inteligente (RedTicket Pro)</span>
+                      <span>Terminal de Acceso Inteligente (Cynko Pass Suite)</span>
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-teal-950/80 text-teal-300 border border-teal-800/60 font-bold">
                         T-01 • PUERTA NORTE VIP
                       </span>

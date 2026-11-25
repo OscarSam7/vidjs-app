@@ -240,7 +240,7 @@ export function ShowcaseHero({ onOpenDemoModal, onScrollToSection }: ShowcaseHer
                 <Ticket className="w-5 h-5" />
               </div>
               <span className="text-[9px] font-mono font-bold text-teal-300 bg-teal-950/60 px-1.5 py-0.5 rounded border border-teal-800/50">
-                REDTICKET
+                CYNKO PASS
               </span>
             </div>
             <div className="font-bold text-white text-xs group-hover:text-teal-300 transition-colors">

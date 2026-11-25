@@ -64,9 +64,9 @@ export default function PublicEventsDirectoryPage() {
               <Ticket className="w-5 h-5 -rotate-12" />
             </div>
             <div>
-              <span className="text-xl font-black tracking-tight text-white">VIDJS</span>
+              <span className="text-xl font-black tracking-tight text-white">CYNKO</span>
               <span className="text-[10px] font-mono text-purple-400 block -mt-1 font-bold">
-                TICKETS & EVENTS
+                PASS & EVENTS SUITE
               </span>
             </div>
           </Link>

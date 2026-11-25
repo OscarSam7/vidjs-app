@@ -301,7 +301,7 @@ export default function ShowcasePage() {
                 </li>
                 <li>
                   <Link href="/dashboard/accreditation" className="hover:text-teal-300 transition-colors">
-                    Acreditaciones QR (RedTicket)
+                    Acreditaciones QR (Cynko Pass)
                   </Link>
                 </li>
                 <li>
