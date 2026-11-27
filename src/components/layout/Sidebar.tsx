@@ -400,7 +400,7 @@ export function Sidebar({
       requiredPlan: "PERSONAL",
       items: [
         {
-          name: "CYNKO Club & Deals",
+          name: "CYNKO Club & Ofertas",
           icon: Trophy,
           href: "/dashboard/club",
           active: pathname.startsWith("/dashboard/club"),

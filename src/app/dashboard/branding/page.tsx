@@ -779,7 +779,7 @@ export default function BrandingSettingsPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Flame className="w-4 h-4 text-amber-400" />
-                <h2 className="text-sm font-bold text-white">Promoción Activa de Barra & Ofertas (Flash Deals)</h2>
+                <h2 className="text-sm font-bold text-white">Promoción Activa de Barra &amp; Ofertas Relámpago</h2>
               </div>
               <span className="text-[10px] text-amber-400 bg-amber-950/60 border border-amber-800/60 px-2 py-0.5 rounded-full font-bold">
                 TV & Móvil

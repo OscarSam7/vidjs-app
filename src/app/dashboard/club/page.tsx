@@ -258,8 +258,8 @@ export default function DashboardClubPage() {
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Error lanzando Flash Deal");
-      showMsg("success", "⚡ Flash Deal publicado en vivo en la Super App CYNKO.");
+      if (!res.ok) throw new Error(json.error || "Error lanzando Oferta Relámpago");
+      showMsg("success", "⚡ Oferta Relámpago publicada en vivo en la Super App CYNKO.");
       setDealTitle("");
       setDealSubtitle("");
       await loadData();
@@ -286,7 +286,7 @@ export default function DashboardClubPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-[var(--text-heading)] flex items-center gap-2">
             <Crown className="w-6 h-6 text-amber-400" />
-            <span>CYNKO Club &amp; Flash Deals</span>
+            <span>CYNKO Club &amp; Ofertas Relámpago</span>
           </h1>
           <p className="text-xs text-[var(--text-muted)] mt-1">
             Acredita puntos por consumo, valida cupones de premios y lanza promociones Flash en vivo para todos los clientes de la App CYNKO.
@@ -496,7 +496,7 @@ export default function DashboardClubPage() {
         <div className="p-5 rounded-3xl bg-zinc-900/90 border border-zinc-800 space-y-4">
           <div className="flex items-center gap-2 text-sm font-black text-white">
             <Zap className="w-4 h-4 text-amber-400" />
-            <span>Flash Deals en Vivo (Rescate de Noches Flojas)</span>
+            <span>Ofertas Relámpago en Vivo (Rescate de Noches Flojas)</span>
           </div>
 
           <form onSubmit={handleCreateDeal} className="space-y-3">
@@ -545,7 +545,7 @@ export default function DashboardClubPage() {
               className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black inline-flex items-center gap-1.5 cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{creatingDeal ? "Publicando..." : "⚡ Lanzar Flash Deal Ahora"}</span>
+              <span>{creatingDeal ? "Publicando..." : "⚡ Lanzar Oferta Relámpago Ahora"}</span>
             </button>
           </form>
 
@@ -571,14 +571,14 @@ export default function DashboardClubPage() {
                     type="button"
                     onClick={() => handleDeleteDeal(d.id)}
                     className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 cursor-pointer"
-                    title="Finalizar Flash Deal"
+                    title="Finalizar Oferta Relámpago"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ))
             ) : (
-              <p className="text-xs text-zinc-500">No hay Flash Deals activos en este momento.</p>
+              <p className="text-xs text-zinc-500">No hay ofertas relámpago activas en este momento.</p>
             )}
           </div>
         </div>

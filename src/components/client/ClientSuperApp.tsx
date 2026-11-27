@@ -782,7 +782,7 @@ export default function ClientSuperApp() {
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-black uppercase tracking-wider text-amber-300 flex items-center gap-2">
                     <Zap className="w-4 h-4 fill-amber-400 text-amber-400 animate-pulse" />
-                    <span>Flash Deals de Último Minuto</span>
+                    <span>Ofertas Relámpago de Último Minuto</span>
                   </h2>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

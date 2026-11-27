@@ -813,7 +813,7 @@ export default function SettingsPage() {
                     <Sparkles className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-white">Promoción Activa de Barra & Ofertas (Flash Deals)</div>
+                    <div className="text-xs font-bold text-white">Promoción Activa de Barra &amp; Ofertas Relámpago</div>
                     <div className="text-[11px] text-zinc-400">
                       Personaliza los tragos 2x1, happy hour, descuentos y textos de la marquesina en TV y celular.
                     </div>
