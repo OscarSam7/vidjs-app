@@ -402,6 +402,18 @@ html.light:not(:has([data-display="tv"])) [class*=" bg-slate-800"]:not([class*="
   border-color: #e2e8f0 !important;
 }
 
+/* Badges y píldoras neutras (<span> con fondo oscuro como Género, etiquetas, contadores) */
+html.light:not(:has([data-display="tv"])) span[class*="bg-zinc-800"],
+html.light:not(:has([data-display="tv"])) span[class*="bg-zinc-900"],
+html.light:not(:has([data-display="tv"])) span[class*="bg-zinc-950"],
+html.light:not(:has([data-display="tv"])) span[class*="bg-slate-800"],
+html.light:not(:has([data-display="tv"])) span[class*="bg-slate-900"],
+html.light:not(:has([data-display="tv"])) span[class*="bg-black/"] {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
 /* 4. HOVER EN MODO CLARO */
 html.light:not(:has([data-display="tv"])) .hover\:bg-zinc-900:hover,
 html.light:not(:has([data-display="tv"])) [class*="hover:bg-zinc-900"]:hover,
