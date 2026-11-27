@@ -610,23 +610,50 @@ html.light:not(:has([data-display="tv"])) [class*="bg-rose-950"] {
   color: #b91c1c !important;
 }
 
-/* Gradientes suaves de botones en modo claro */
+/* Gradientes oscuros (-950 / -900) convertidos a gradientes claros suaves en modo claro */
 html.light:not(:has([data-display="tv"])) [class*="from-amber-600/30"],
-html.light:not(:has([data-display="tv"])) [class*="from-amber-500/20"] {
-  background-image: linear-gradient(to right, #fef3c7, #fde68a, #fef3c7) !important;
+html.light:not(:has([data-display="tv"])) [class*="from-amber-500/20"],
+html.light:not(:has([data-display="tv"])) [class*="from-amber-950"] {
+  background-image: linear-gradient(to right, #fef3c7, #fde68a, #fef9c3) !important;
   border-color: #fcd34d !important;
-  color: #b45309 !important;
+  color: #92400e !important;
 }
-html.light:not(:has([data-display="tv"])) [class*="from-pink-600/30"] {
+html.light:not(:has([data-display="tv"])) [class*="from-pink-600/30"],
+html.light:not(:has([data-display="tv"])) [class*="from-pink-950"],
+html.light:not(:has([data-display="tv"])) [class*="from-fuchsia-950"] {
   background-image: linear-gradient(to right, #fce7f3, #f3e8ff, #ede9fe) !important;
   border-color: #f472b6 !important;
-  color: #be185d !important;
+  color: #9d174d !important;
 }
-html.light:not(:has([data-display="tv"])) [class*="from-zinc-950"][class*="via-purple-950/20"],
-html.light:not(:has([data-display="tv"])) [class*="from-zinc-950"][class*="via-zinc-900"],
-html.light:not(:has([data-display="tv"])) [class*="from-purple-950"] {
+html.light:not(:has([data-display="tv"])) [class*="from-cyan-950"],
+html.light:not(:has([data-display="tv"])) [class*="from-cyan-900"],
+html.light:not(:has([data-display="tv"])) [class*="from-teal-950"],
+html.light:not(:has([data-display="tv"])) [class*="from-blue-950"] {
+  background-image: linear-gradient(to right, #e0f2fe, #f3e8ff) !important;
+  border-color: #38bdf8 !important;
+  color: #0369a1 !important;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12) !important;
+}
+html.light:not(:has([data-display="tv"])) [class*="from-emerald-950"],
+html.light:not(:has([data-display="tv"])) [class*="from-green-950"] {
+  background-image: linear-gradient(to right, #dcfce7, #d1fae5) !important;
+  border-color: #6ee7b7 !important;
+  color: #047857 !important;
+}
+html.light:not(:has([data-display="tv"])) [class*="from-rose-950"],
+html.light:not(:has([data-display="tv"])) [class*="from-red-950"] {
+  background-image: linear-gradient(to right, #ffe4e6, #fee2e2) !important;
+  border-color: #fda4af !important;
+  color: #b91c1c !important;
+}
+html.light:not(:has([data-display="tv"])) [class*="from-zinc-950"],
+html.light:not(:has([data-display="tv"])) [class*="from-zinc-900"],
+html.light:not(:has([data-display="tv"])) [class*="from-slate-950"],
+html.light:not(:has([data-display="tv"])) [class*="from-slate-900"],
+html.light:not(:has([data-display="tv"])) [class*="from-purple-950"],
+html.light:not(:has([data-display="tv"])) [class*="from-indigo-950"] {
   background-image: linear-gradient(to right, #ffffff, #f8fafc, #f3e8ff) !important;
-  border-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
 }
 
 /* Esmeralda / Verde */
