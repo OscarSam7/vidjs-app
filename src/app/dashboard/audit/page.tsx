@@ -65,6 +65,171 @@ export default function AuditPage() {
   const [selectedAction, setSelectedAction] = useState("ALL");
   const [selectedLog, setSelectedLog] = useState<AuditItem | null>(null);
 
+  const ACTION_LABELS: Record<string, string> = {
+    GASTRO_PRODUCT_CREATED: "Producto creado",
+    GASTRO_PRODUCT_UPDATED: "Producto actualizado",
+    GASTRO_PRODUCT_ARCHIVED: "Producto archivado",
+    GASTRO_PRODUCT_DELETED: "Producto eliminado",
+    GASTRO_CATEGORY_CREATED: "Categoría creada",
+    GASTRO_CATEGORY_UPDATED: "Categoría actualizada",
+    GASTRO_ORDER_CREATED: "Pedido registrado",
+    GASTRO_ORDER_UPDATED: "Pedido actualizado",
+    GASTRO_ORDER_CANCELLED: "Pedido cancelado",
+    GASTRO_PAYMENT_CONFIRMED: "Pago confirmado",
+    GASTRO_SHIFT_OPENED: "Apertura de caja",
+    GASTRO_SHIFT_CLOSED: "Cierre de caja",
+    AUTH_LOGIN: "Inicio de sesión",
+    USER_LOGIN: "Inicio de sesión",
+    AUTH_LOGOUT: "Cierre de sesión",
+    USER_CREATED: "Usuario creado",
+    USER_UPDATED: "Usuario actualizado",
+    USER_DELETED: "Usuario eliminado",
+    SETTINGS_UPDATED: "Configuración actualizada",
+    RESERVATION_CREATED: "Reserva registrada",
+    RESERVATION_APPROVED: "Reserva aprobada",
+    RESERVATION_REJECTED: "Reserva rechazada",
+    EVENT_CREATED: "Evento creado",
+    EVENT_UPDATED: "Evento actualizado",
+  };
+
+  const RESOURCE_LABELS: Record<string, string> = {
+    GASTRO_PRODUCT: "Producto de Gastronomía",
+    GASTRO_CATEGORY: "Categoría de Menú",
+    GASTRO_ORDER: "Pedido / Comanda",
+    GASTRO_PAYMENT: "Pago / Cobro",
+    GASTRO_SHIFT: "Turno de Caja",
+    USER: "Usuario / Personal",
+    AUTH: "Acceso al Sistema",
+    TENANT: "Configuración del Local",
+    EVENT: "Evento",
+    RESERVATION: "Reserva VIP",
+    TABLE: "Mesa",
+    CLUB: "CYNKO Club VIP",
+  };
+
+  const FIELD_LABELS: Record<string, string> = {
+    productName: "Producto",
+    name: "Nombre",
+    title: "Título",
+    mode: "Acción realizada",
+    performedBy: "Realizado por",
+    role: "Rol",
+    email: "Correo electrónico",
+    orderNumber: "N° de Pedido",
+    tableLabel: "Mesa",
+    tableName: "Mesa",
+    sectorName: "Sector",
+    reason: "Motivo",
+    cancelReason: "Motivo de cancelación",
+    status: "Estado",
+    previousStatus: "Estado anterior",
+    newStatus: "Nuevo estado",
+    paymentMethod: "Medio de pago",
+    amountCents: "Monto",
+    totalCents: "Total",
+    priceCents: "Precio",
+    discountCents: "Descuento",
+    quantity: "Cantidad",
+    stockQuantity: "Stock",
+    categoryName: "Categoría",
+    ip: "Dirección IP",
+    ipAddress: "Dirección IP",
+    userAgent: "Dispositivo / Navegador",
+    eventName: "Evento",
+    venueName: "Local",
+    description: "Descripción",
+  };
+
+  const VALUE_LABELS: Record<string, string> = {
+    archived: "Archivado",
+    deleted: "Eliminado",
+    created: "Creado",
+    updated: "Actualizado",
+    active: "Activo",
+    inactive: "Inactivo",
+    OWNER: "Propietario",
+    MANAGER: "Gerente",
+    SUPERVISOR: "Supervisor",
+    DJ: "DJ / Cabina",
+    CAJERO: "Cajero",
+    ENCARGADO_BARRA: "Encargado de Barra",
+    MOZO: "Mozo",
+    OPERATOR: "Operador",
+    SUPERADMIN: "Administrador General",
+    CASH: "Efectivo",
+    CARD: "Tarjeta",
+    TRANSFER: "Transferencia",
+    QR: "Pago QR",
+  };
+
+  const formatAuditAction = (action: string) => {
+    if (ACTION_LABELS[action]) return ACTION_LABELS[action];
+    return action
+      .replace(/^GASTRO_/, "")
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/^\w/, (c) => c.toUpperCase());
+  };
+
+  const formatAuditResource = (resource: string) => {
+    if (RESOURCE_LABELS[resource]) return RESOURCE_LABELS[resource];
+    return resource
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/^\w/, (c) => c.toUpperCase());
+  };
+
+  const formatMetadataKey = (key: string) => {
+    if (FIELD_LABELS[key]) return FIELD_LABELS[key];
+    return key
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/_/g, " ")
+      .replace(/^\w/, (c) => c.toUpperCase());
+  };
+
+  const formatMetadataValue = (key: string, val: unknown): string => {
+    if (val === null || val === undefined || val === "") return "—";
+    if (typeof val === "boolean") return val ? "Sí" : "No";
+    if (typeof val === "number") {
+      if (key.toLowerCase().includes("cents") || key.toLowerCase().includes("price") || key.toLowerCase().includes("amount")) {
+        return `Gs. ${Math.round(val).toLocaleString("es-PY")}`;
+      }
+      return val.toLocaleString("es-PY");
+    }
+    if (typeof val === "string") {
+      if (VALUE_LABELS[val]) return VALUE_LABELS[val];
+      if (VALUE_LABELS[val.toLowerCase()]) return VALUE_LABELS[val.toLowerCase()];
+      return val;
+    }
+    if (Array.isArray(val)) {
+      return val.map((item) => (typeof item === "object" ? Object.values(item || {}).join(" · ") : String(item))).join(", ");
+    }
+    if (typeof val === "object") {
+      return Object.entries(val as Record<string, unknown>)
+        .map(([k, v]) => `${formatMetadataKey(k)}: ${formatMetadataValue(k, v)}`)
+        .join(" | ");
+    }
+    return String(val);
+  };
+
+  const parseMetadataEntries = (raw: unknown): Array<[string, unknown]> => {
+    if (!raw) return [];
+    let obj: unknown = raw;
+    if (typeof raw === "string") {
+      try {
+        obj = JSON.parse(raw);
+      } catch {
+        return [["Detalle", raw]];
+      }
+    }
+    if (obj && typeof obj === "object" && !Array.isArray(obj)) {
+      return Object.entries(obj as Record<string, unknown>).filter(
+        ([, v]) => v !== null && v !== undefined && v !== ""
+      );
+    }
+    return [["Detalle", obj]];
+  };
+
   const fetchLogs = useCallback(async () => {
     try {
       setLoading(true);
@@ -419,61 +584,144 @@ export default function AuditPage() {
         )}
       </div>
 
-      {/* 5. Modal de Inspección Forense de Metadata */}
+      {/* 5. Modal de Detalle de Actividad (Vista Ejecutiva Amigable) */}
       {selectedLog && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-150">
-            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-purple-400" />
-                <h3 className="text-sm font-bold text-white">Inspección de Registro #{selectedLog.id}</h3>
+        <div
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setSelectedLog(null)}
+        >
+          <div
+            className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-150 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-zinc-800 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-400 shrink-0">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-black text-white truncate">
+                    Detalle de Actividad
+                  </h3>
+                  <p className="text-[11px] text-zinc-400 truncate">
+                    {formatAuditAction(selectedLog.action)}
+                  </p>
+                </div>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedLog(null)}
-                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
+                aria-label="Cerrar detalle"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-zinc-900 border border-zinc-800">
+            <div className="p-5 overflow-y-auto space-y-4 text-xs">
+              {/* Resumen Principal */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-zinc-900 border border-zinc-800">
                 <div>
-                  <span className="text-zinc-500 block text-[10px] uppercase font-bold">Acción</span>
-                  <span className="font-bold text-white">{selectedLog.action}</span>
-                </div>
-                <div>
-                  <span className="text-zinc-500 block text-[10px] uppercase font-bold">Recurso</span>
-                  <span className="font-mono text-purple-300">{selectedLog.resource}</span>
-                </div>
-                <div>
-                  <span className="text-zinc-500 block text-[10px] uppercase font-bold">Usuario</span>
-                  <span className="text-zinc-200">
-                    {selectedLog.user ? `${selectedLog.user.name} (${selectedLog.user.email})` : "Sistema"}
+                  <span className="text-zinc-500 block text-[10px] uppercase font-bold tracking-wider">
+                    Actividad
+                  </span>
+                  <span className="font-bold text-white text-sm mt-0.5 block">
+                    {formatAuditAction(selectedLog.action)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-zinc-500 block text-[10px] uppercase font-bold">Fecha Criptográfica</span>
-                  <span className="text-zinc-200">{new Date(selectedLog.createdAt).toISOString()}</span>
+                  <span className="text-zinc-500 block text-[10px] uppercase font-bold tracking-wider">
+                    Sección / Área
+                  </span>
+                  <span className="font-bold text-purple-300 mt-0.5 block">
+                    {formatAuditResource(selectedLog.resource)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block text-[10px] uppercase font-bold tracking-wider">
+                    Responsable
+                  </span>
+                  <span className="text-zinc-200 font-semibold mt-0.5 block">
+                    {selectedLog.user ? selectedLog.user.name : "Sistema automático"}
+                  </span>
+                  {selectedLog.user?.email && (
+                    <span className="text-[11px] text-zinc-400 block">{selectedLog.user.email}</span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-zinc-500 block text-[10px] uppercase font-bold tracking-wider">
+                    Fecha y Hora
+                  </span>
+                  <span className="text-zinc-200 font-semibold mt-0.5 block">
+                    {new Date(selectedLog.createdAt).toLocaleDateString("es-PY", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <span className="text-[11px] text-zinc-400 block">
+                    {new Date(selectedLog.createdAt).toLocaleTimeString("es-PY", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    })}{" "}
+                    hs
+                  </span>
                 </div>
               </div>
 
+              {/* Detalles en Lenguaje Claro (sin JSON crudo) */}
               <div>
-                <span className="text-zinc-400 block text-[11px] font-bold uppercase tracking-wider mb-1.5">
-                  Payload Metadata (JSON Crudo)
+                <span className="text-zinc-400 block text-[11px] font-bold uppercase tracking-wider mb-2">
+                  Resumen de lo ocurrido
                 </span>
-                <pre className="p-4 rounded-xl bg-zinc-900/90 border border-zinc-800 font-mono text-[11px] text-purple-200 overflow-x-auto whitespace-pre-wrap max-h-60">
-                  {typeof selectedLog.metadata === "object"
-                    ? JSON.stringify(selectedLog.metadata, null, 2)
-                    : selectedLog.metadata || "Sin metadata adjunta"}
-                </pre>
+                {(() => {
+                  const entries = parseMetadataEntries(selectedLog.metadata);
+                  if (entries.length === 0) {
+                    return (
+                      <div className="p-4 rounded-2xl bg-zinc-900/70 border border-zinc-800 text-zinc-400 text-center">
+                        No hay detalles adicionales registrados para este movimiento.
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="rounded-2xl bg-zinc-900/80 border border-zinc-800 divide-y divide-zinc-800/80 overflow-hidden">
+                      {entries.map(([key, val]) => (
+                        <div
+                          key={key}
+                          className="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1"
+                        >
+                          <span className="text-[11px] font-semibold text-zinc-400">
+                            {formatMetadataKey(key)}
+                          </span>
+                          <span className="text-xs font-bold text-white sm:text-right break-words">
+                            {formatMetadataValue(key, val)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
+
+              {/* Referencia técnica oculta (solo para soporte) */}
+              <details className="pt-1">
+                <summary className="text-[11px] text-zinc-500 hover:text-zinc-300 cursor-pointer select-none font-medium">
+                  Ver referencia técnica para soporte
+                </summary>
+                <div className="mt-2 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-[10px] font-mono text-zinc-400 space-y-1">
+                  <div>ID: {selectedLog.id}</div>
+                  <div>Código: {selectedLog.action} ({selectedLog.resource})</div>
+                  <div>Marca UTC: {new Date(selectedLog.createdAt).toISOString()}</div>
+                </div>
+              </details>
             </div>
 
             <div className="p-4 border-t border-zinc-800 flex justify-end">
               <button
+                type="button"
                 onClick={() => setSelectedLog(null)}
-                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-white cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white cursor-pointer transition-colors"
               >
                 Cerrar
               </button>
