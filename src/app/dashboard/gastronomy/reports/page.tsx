@@ -6,6 +6,8 @@ import {
   Download,
   FileSpreadsheet,
   Printer,
+  Calendar,
+  RefreshCw,
 } from "lucide-react";
 import {
   formatGuaranies,
@@ -50,25 +52,66 @@ const REPORT_TABS: { id: ReportType; label: string }[] = [
   { id: "PENDING_INVOICING", label: "16. Pendientes Facturación" },
 ];
 
+function toLocalInputDate(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export default function GastronomyReportsPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [activeReport, setActiveReport] = useState<ReportType>("BY_DAY");
 
-  const loadData = useCallback(async () => {
+  const [dateFrom, setDateFrom] = useState<string>(() => {
+    const now = new Date();
+    return toLocalInputDate(new Date(now.getFullYear(), now.getMonth(), 1));
+  });
+  const [dateTo, setDateTo] = useState<string>(() => toLocalInputDate(new Date()));
+
+  const loadData = useCallback(async (fromVal: string, toVal: string, silent = false) => {
+    if (!silent) setRefreshing(true);
     try {
-      const res = await fetch("/api/v1/gastronomy/bootstrap", { cache: "no-store" });
+      const qs = new URLSearchParams();
+      if (fromVal) qs.set("from", fromVal);
+      if (toVal) qs.set("to", toVal);
+      const queryStr = qs.toString();
+      const res = await fetch(`/api/v1/gastronomy/bootstrap${queryStr ? `?${queryStr}` : ""}`, {
+        cache: "no-store",
+      });
       if (res.ok) {
         setData(await res.json());
       }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadData(dateFrom, dateTo, true);
+  }, [loadData, dateFrom, dateTo]);
+
+  const applyPreset = (preset: "TODAY" | "LAST_7" | "THIS_MONTH" | "ALL") => {
+    const now = new Date();
+    if (preset === "TODAY") {
+      const today = toLocalInputDate(now);
+      setDateFrom(today);
+      setDateTo(today);
+    } else if (preset === "LAST_7") {
+      const start = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
+      setDateFrom(toLocalInputDate(start));
+      setDateTo(toLocalInputDate(now));
+    } else if (preset === "THIS_MONTH") {
+      setDateFrom(toLocalInputDate(new Date(now.getFullYear(), now.getMonth(), 1)));
+      setDateTo(toLocalInputDate(now));
+    } else {
+      setDateFrom("");
+      setDateTo("");
+    }
+  };
 
   const computeRows = (): { columns: string[]; rows: (string | number)[][] } => {
     if (!data) return { columns: [], rows: [] };
@@ -96,18 +139,23 @@ export default function GastronomyReportsPage() {
         };
       }
       case "BY_SHIFT": {
-        if (!activeShift) return { columns: ["Turno", "Estado"], rows: [] };
+        const shiftList: any[] =
+          Array.isArray(data.shifts) && data.shifts.length > 0
+            ? data.shifts
+            : activeShift
+            ? [activeShift]
+            : [];
+        if (shiftList.length === 0) return { columns: ["Fecha", "Turno", "Cajero", "Estado", "Apertura (Gs.)", "Efectivo Esperado (Gs.)"], rows: [] };
         return {
-          columns: ["Turno", "Cajero", "Estado", "Apertura (Gs.)", "Efectivo Esperado (Gs.)"],
-          rows: [
-            [
-              activeShift.shiftName,
-              activeShift.openedByName,
-              activeShift.status,
-              formatGuaranies(activeShift.openingCashCents || 0),
-              formatGuaranies(activeShift.expectedCashCents || 0),
-            ],
-          ],
+          columns: ["Fecha", "Turno", "Cajero", "Estado", "Apertura (Gs.)", "Efectivo Esperado (Gs.)"],
+          rows: shiftList.map((sh) => [
+            new Date(sh.openedAt || sh.createdAt).toLocaleDateString("es-PY"),
+            sh.shiftName,
+            sh.openedByName,
+            sh.status,
+            formatGuaranies(sh.openingCashCents || 0),
+            formatGuaranies(sh.expectedCashCents || 0),
+          ]),
         };
       }
       case "BY_SECTOR": {
@@ -336,7 +384,9 @@ export default function GastronomyReportsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `reporte_gastronomico_${activeReport.toLowerCase()}.${extension}`;
+    const rangeSuffix =
+      dateFrom || dateTo ? `_${dateFrom || "inicio"}_a_${dateTo || "hoy"}` : "_historico";
+    a.download = `reporte_gastronomico_${activeReport.toLowerCase()}${rangeSuffix}.${extension}`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -365,24 +415,96 @@ export default function GastronomyReportsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => exportCsv("csv")}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs text-zinc-200"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs text-zinc-200 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-emerald-400" />
             Exportar CSV
           </button>
           <button
             onClick={() => exportCsv("xls")}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs text-zinc-200"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs text-zinc-200 cursor-pointer"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-blue-400" />
             Exportar Excel
           </button>
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs text-white font-semibold"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs text-white font-semibold cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5" />
             Exportar PDF
+          </button>
+        </div>
+      </div>
+
+      {/* Filtro de Período: Fecha Desde / Hasta + Atajos rápidos */}
+      <div className="p-4 rounded-2xl bg-zinc-900/70 border border-white/10 flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-[11px] font-semibold text-zinc-400 mb-1 flex items-center gap-1">
+              <Calendar className="w-3 h-3 text-purple-400" />
+              Desde
+            </label>
+            <input
+              type="date"
+              value={dateFrom}
+              max={dateTo || undefined}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-700 text-xs text-white focus:outline-none focus:border-purple-500"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-zinc-400 mb-1 flex items-center gap-1">
+              <Calendar className="w-3 h-3 text-purple-400" />
+              Hasta
+            </label>
+            <input
+              type="date"
+              value={dateTo}
+              min={dateFrom || undefined}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-700 text-xs text-white focus:outline-none focus:border-purple-500"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => loadData(dateFrom, dateTo)}
+            disabled={refreshing}
+            className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer disabled:opacity-60 transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            <span>{refreshing ? "Extrayendo..." : "Extraer Reporte"}</span>
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => applyPreset("TODAY")}
+            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 border border-zinc-700 text-[11px] font-semibold text-zinc-300 cursor-pointer transition-colors"
+          >
+            Hoy
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset("LAST_7")}
+            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 border border-zinc-700 text-[11px] font-semibold text-zinc-300 cursor-pointer transition-colors"
+          >
+            Últimos 7 días
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset("THIS_MONTH")}
+            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 border border-zinc-700 text-[11px] font-semibold text-zinc-300 cursor-pointer transition-colors"
+          >
+            Este Mes
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset("ALL")}
+            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 hover:bg-zinc-800 border border-zinc-700 text-[11px] font-semibold text-zinc-300 cursor-pointer transition-colors"
+          >
+            Todo
           </button>
         </div>
       </div>
@@ -406,10 +528,20 @@ export default function GastronomyReportsPage() {
 
       {/* Report Data Table */}
       <div className="p-5 rounded-2xl bg-zinc-900/70 border border-white/10 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-white">
-            {REPORT_TABS.find((t) => t.id === activeReport)?.label}
-          </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-semibold text-white">
+              {REPORT_TABS.find((t) => t.id === activeReport)?.label}
+            </h2>
+            <p className="text-[11px] text-zinc-400 mt-0.5">
+              Período:{" "}
+              <strong className="text-zinc-200">
+                {dateFrom || dateTo
+                  ? `${dateFrom || "Inicio"} hasta ${dateTo || "Hoy"}`
+                  : "Histórico completo"}
+              </strong>
+            </p>
+          </div>
           <span className="text-xs text-zinc-400">{rows.length} registros</span>
         </div>
 

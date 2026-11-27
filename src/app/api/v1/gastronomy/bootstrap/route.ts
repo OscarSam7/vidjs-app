@@ -11,6 +11,29 @@ export async function GET(req: NextRequest) {
     const { session, tenantId } = await requireTenantContext();
     const { searchParams } = new URL(req.url);
     const venueIdParam = searchParams.get("venueId") || undefined;
+    const fromParam = searchParams.get("from") || undefined;
+    const toParam = searchParams.get("to") || undefined;
+
+    const parseDateBound = (raw: string | undefined, endOfDay: boolean): Date | undefined => {
+      if (!raw) return undefined;
+      const trimmed = raw.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        const d = new Date(`${trimmed}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}-03:00`);
+        return Number.isNaN(d.getTime()) ? undefined : d;
+      }
+      const d = new Date(trimmed);
+      return Number.isNaN(d.getTime()) ? undefined : d;
+    };
+
+    const fromDate = parseDateBound(fromParam, false);
+    const toDate = parseDateBound(toParam, true);
+    const hasDateFilter = Boolean(fromDate || toDate);
+    const dateRange = hasDateFilter
+      ? {
+          ...(fromDate ? { gte: fromDate } : {}),
+          ...(toDate ? { lte: toDate } : {}),
+        }
+      : undefined;
 
     const seededInfo = await ensureGastronomySeeded(tenantId, venueIdParam);
     const activeVenueId = venueIdParam || seededInfo?.venueId;
@@ -29,6 +52,7 @@ export async function GET(req: NextRequest) {
       tables,
       waiters,
       activeShift,
+      shifts,
     ] = await Promise.all([
       prisma.venue.findMany({
         where: { tenantId, active: true },
@@ -61,7 +85,11 @@ export async function GET(req: NextRequest) {
         ? prisma.gastroDeliveryConfig.findUnique({ where: { venueId: activeVenueId } })
         : prisma.gastroDeliveryConfig.findFirst({ where: { tenantId } }),
       prisma.gastroOrder.findMany({
-        where: { tenantId, ...(venueIdParam ? { venueId: venueIdParam } : {}) },
+        where: {
+          tenantId,
+          ...(venueIdParam ? { venueId: venueIdParam } : {}),
+          ...(dateRange ? { receivedAt: dateRange } : {}),
+        },
         include: {
           items: true,
           payments: true,
@@ -76,22 +104,34 @@ export async function GET(req: NextRequest) {
           },
         },
         orderBy: { receivedAt: "desc" },
-        take: 150,
+        take: hasDateFilter ? 2000 : 150,
       }),
       prisma.gastroPayment.findMany({
-        where: { tenantId, ...(venueIdParam ? { venueId: venueIdParam } : {}) },
+        where: {
+          tenantId,
+          ...(venueIdParam ? { venueId: venueIdParam } : {}),
+          ...(dateRange ? { createdAt: dateRange } : {}),
+        },
         orderBy: { createdAt: "desc" },
-        take: 100,
+        take: hasDateFilter ? 2000 : 100,
       }),
       prisma.gastroCustomerDeposit.findMany({
-        where: { tenantId, ...(venueIdParam ? { venueId: venueIdParam } : {}) },
+        where: {
+          tenantId,
+          ...(venueIdParam ? { venueId: venueIdParam } : {}),
+          ...(dateRange ? { depositDate: dateRange } : {}),
+        },
         orderBy: { depositDate: "desc" },
-        take: 50,
+        take: hasDateFilter ? 500 : 50,
       }),
       prisma.gastroPendingInvoiceSale.findMany({
-        where: { tenantId, ...(venueIdParam ? { venueId: venueIdParam } : {}) },
+        where: {
+          tenantId,
+          ...(venueIdParam ? { venueId: venueIdParam } : {}),
+          ...(dateRange ? { saleDate: dateRange } : {}),
+        },
         orderBy: { saleDate: "desc" },
-        take: 100,
+        take: hasDateFilter ? 1000 : 100,
       }),
       prisma.gastroInventoryItem.findMany({
         where: { tenantId },
@@ -127,6 +167,15 @@ export async function GET(req: NextRequest) {
         },
         orderBy: { openedAt: "desc" },
       }),
+      prisma.gastroCashRegisterShift.findMany({
+        where: {
+          tenantId,
+          ...(venueIdParam ? { venueId: venueIdParam } : {}),
+          ...(dateRange ? { openedAt: dateRange } : {}),
+        },
+        orderBy: { openedAt: "desc" },
+        take: hasDateFilter ? 200 : 20,
+      }),
     ]);
 
     const normalizedOrders = orders.map((ord) => ({
@@ -158,6 +207,7 @@ export async function GET(req: NextRequest) {
       tables,
       waiters,
       activeShift,
+      shifts,
     });
   } catch (error) {
     return handleApiError(error);
