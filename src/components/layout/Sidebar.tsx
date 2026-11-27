@@ -391,15 +391,6 @@ export function Sidebar({
           active: pathname === "/dashboard/library",
           requiredPlan: "PERSONAL",
         },
-        {
-          name: "Pantalla TV",
-          icon: Tv,
-          href: "/display/DEMO",
-          active: pathname.startsWith("/display"),
-          badge: "TV",
-          badgeVariant: "success",
-          requiredPlan: "PERSONAL",
-        },
       ],
     },
     {
