@@ -349,24 +349,28 @@ html.light body:not(:has([data-display="tv"])) {
 }
 
 /* 1. FONDOS GENERALES DE PÁGINA Y CONTENEDORES MAESTROS */
-html.light:not(:has([data-display="tv"])) .bg-\[\#070709\],
-html.light:not(:has([data-display="tv"])) .bg-\[\#080F1F\],
-html.light:not(:has([data-display="tv"])) .bg-\[\#09090b\],
-html.light:not(:has([data-display="tv"])) .bg-\[\#050507\],
-html.light:not(:has([data-display="tv"])) .bg-\[\#070D1B\],
-html.light:not(:has([data-display="tv"])) .bg-\[\#0A1322\],
-html.light:not(:has([data-display="tv"])) .bg-\[\#0D1930\],
-html.light:not(:has([data-display="tv"])) [class*="bg-[#080F1F]"],
-html.light:not(:has([data-display="tv"])) [class*="bg-[#0D1930]"],
-html.light:not(:has([data-display="tv"])) [class*="bg-[#0A1322]"],
-html.light:not(:has([data-display="tv"])) [class*="bg-[#070D1B]"],
+html.light:not(:has([data-display="tv"])) [class*="bg-[#0"],
 html.light:not(:has([data-display="tv"])) .bg-zinc-950\/95,
 html.light:not(:has([data-display="tv"])) .bg-slate-950,
 html.light:not(:has([data-display="tv"])) .bg-black {
   background-color: #f8fafc !important;
 }
 
-/* 2. TARJETAS Y CONTENEDORES PRINCIPALES */
+/* 2. TARJETAS, WELLS Y PÍLDORAS CON FONDOS OSCUROS (#1xxxxx, zinc-900/950, slate-900) */
+html.light:not(:has([data-display="tv"])) [class*="bg-[#1"]:not([class*="bg-[#1d4ed8]"]):not([class*="bg-[#1e428a]"]) {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+/* Contenedores flotantes bg-black/60 sobre fotos (ej. botones editar/eliminar en banners) */
+html.light:not(:has([data-display="tv"])) div[class*="bg-black/"]:not(.fixed) {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12) !important;
+}
+
 html.light:not(:has([data-display="tv"])) .bg-zinc-950,
 html.light:not(:has([data-display="tv"])) .bg-zinc-900,
 html.light:not(:has([data-display="tv"])) .bg-slate-900,
