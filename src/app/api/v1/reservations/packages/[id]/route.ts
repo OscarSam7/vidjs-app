@@ -8,7 +8,7 @@ const decorationSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, "El nombre de la decoración es obligatorio"),
   description: z.string().optional(),
-  imageUrl: z.string().min(1, "La foto de la decoración es obligatoria"),
+  imageUrl: z.string().optional().default(""),
   extraPriceCents: z.coerce.number().int().min(0).default(0),
 });
 

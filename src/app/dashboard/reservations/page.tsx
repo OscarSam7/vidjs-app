@@ -117,6 +117,7 @@ export default function ReservationsDashboardPage() {
   // Upload States & Lightbox
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isUploadingDeco, setIsUploadingDeco] = useState(false);
+  const [uploadingDecoIdx, setUploadingDecoIdx] = useState<number | null>(null);
   const [previewModalImg, setPreviewModalImg] = useState<{ url: string; title: string } | null>(null);
 
   // File Upload Helper
@@ -163,7 +164,31 @@ export default function ReservationsDashboardPage() {
       if (uploadedUrl) setNewDecoImg(uploadedUrl);
     } finally {
       setIsUploadingDeco(false);
+      e.target.value = "";
     }
+  };
+
+  const handleReplaceDecorationImage = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingDecoIdx(index);
+    try {
+      const uploadedUrl = await uploadImageFile(file, "decoration");
+      if (uploadedUrl) {
+        setDecorations((prev) =>
+          prev.map((d, i) => (i === index ? { ...d, imageUrl: uploadedUrl } : d))
+        );
+      }
+    } finally {
+      setUploadingDecoIdx(null);
+      e.target.value = "";
+    }
+  };
+
+  const handleClearDecorationImage = (index: number) => {
+    setDecorations((prev) =>
+      prev.map((d, i) => (i === index ? { ...d, imageUrl: "" } : d))
+    );
   };
 
   // Settings Form
@@ -322,8 +347,8 @@ export default function ReservationsDashboardPage() {
 
   // Add Decoration Option
   const handleAddDecoration = () => {
-    if (!newDecoName.trim() || !newDecoImg.trim()) {
-      alert("Ingresa el nombre y la URL de la foto de la decoración");
+    if (!newDecoName.trim()) {
+      alert("Ingresa el nombre del estilo o temática de la decoración");
       return;
     }
     setDecorations((prev) => [
@@ -704,18 +729,31 @@ export default function ReservationsDashboardPage() {
                             {pkg.decorations.map((deco, idx) => (
                               <div
                                 key={idx}
-                                onClick={() => setPreviewModalImg({ url: deco.imageUrl, title: `${pkg.name} • ${deco.name}` })}
-                                className="group/deco relative rounded-lg overflow-hidden border border-[#263858] bg-[#0A1322] text-center cursor-pointer hover:border-pink-500/60 transition-all shadow-sm"
-                                title="Clic para ampliar foto"
+                                onClick={() =>
+                                  deco.imageUrl &&
+                                  setPreviewModalImg({ url: deco.imageUrl, title: `${pkg.name} • ${deco.name}` })
+                                }
+                                className={`group/deco relative rounded-lg overflow-hidden border border-[#263858] bg-[#0A1322] text-center transition-all shadow-sm ${
+                                  deco.imageUrl ? "cursor-pointer hover:border-pink-500/60" : ""
+                                }`}
+                                title={deco.imageUrl ? "Clic para ampliar foto" : deco.name}
                               >
-                                <img
-                                  src={deco.imageUrl}
-                                  alt={deco.name}
-                                  className="w-full h-14 object-cover group-hover/deco:scale-110 transition-transform duration-300"
-                                />
-                                <div className="absolute top-1 left-1 bg-black/60 backdrop-blur-xs rounded p-0.5 opacity-0 group-hover/deco:opacity-100 transition-opacity">
-                                  <Eye className="w-2.5 h-2.5 text-pink-300" />
-                                </div>
+                                {deco.imageUrl ? (
+                                  <>
+                                    <img
+                                      src={deco.imageUrl}
+                                      alt={deco.name}
+                                      className="w-full h-14 object-cover group-hover/deco:scale-110 transition-transform duration-300"
+                                    />
+                                    <div className="absolute top-1 left-1 bg-black/60 backdrop-blur-xs rounded p-0.5 opacity-0 group-hover/deco:opacity-100 transition-opacity">
+                                      <Eye className="w-2.5 h-2.5 text-pink-300" />
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="w-full h-14 flex items-center justify-center bg-[#14233C] text-slate-400">
+                                    <Sparkles className="w-4 h-4 text-pink-400/70" />
+                                  </div>
+                                )}
                                 <div className="p-1">
                                   <span className="text-[9px] font-bold text-white block truncate">
                                     {deco.name}
@@ -1516,31 +1554,76 @@ export default function ReservationsDashboardPage() {
                   {decorations.map((deco, idx) => (
                     <div
                       key={idx}
-                      className="group/item relative bg-[#0A1322] border border-[#263858] rounded-xl overflow-hidden shadow-sm hover:border-pink-500/50 transition-all"
+                      className="group/item relative bg-[#0A1322] border border-[#263858] rounded-xl overflow-hidden shadow-sm hover:border-pink-500/50 transition-all flex flex-col justify-between"
                     >
-                      <img
-                        src={deco.imageUrl}
-                        alt={deco.name}
-                        className="w-full h-24 object-cover cursor-pointer group-hover/item:scale-105 transition-transform"
-                        onClick={() => setPreviewModalImg({ url: deco.imageUrl, title: deco.name })}
-                      />
-                      <div className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-sm rounded-md px-1.5 py-0.5 text-[9px] text-white flex items-center gap-1">
-                        <Eye className="w-2.5 h-2.5 text-pink-400" />
-                        <span>Zoom</span>
+                      <div className="relative">
+                        {deco.imageUrl ? (
+                          <>
+                            <img
+                              src={deco.imageUrl}
+                              alt={deco.name}
+                              className="w-full h-24 object-cover cursor-pointer group-hover/item:scale-105 transition-transform"
+                              onClick={() => setPreviewModalImg({ url: deco.imageUrl, title: deco.name })}
+                            />
+                            <div className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-sm rounded-md px-1.5 py-0.5 text-[9px] text-white flex items-center gap-1">
+                              <Eye className="w-2.5 h-2.5 text-pink-400" />
+                              <span>Zoom</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="w-full h-24 bg-[#14233C] flex flex-col items-center justify-center gap-1 text-slate-400">
+                            <ImageIcon className="w-5 h-5 opacity-60" />
+                            <span className="text-[10px] font-semibold">Sin imagen</span>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDecoration(idx)}
+                          className="absolute top-1.5 right-1.5 bg-red-600/90 hover:bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] cursor-pointer shadow"
+                          title="Eliminar esta opción de decoración"
+                        >
+                          ✕
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveDecoration(idx)}
-                        className="absolute top-1.5 right-1.5 bg-black/70 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]"
-                        title="Eliminar opción"
-                      >
-                        ✕
-                      </button>
-                      <div className="p-2">
-                        <span className="font-bold text-white text-xs block truncate">{deco.name}</span>
-                        <span className="text-[10px] text-pink-300 font-mono">
-                          {deco.extraPriceCents > 0 ? `+${formatMoney(deco.extraPriceCents)}` : "Incluida en el combo"}
-                        </span>
+
+                      <div className="p-2 space-y-2">
+                        <div>
+                          <span className="font-bold text-white text-xs block truncate">{deco.name}</span>
+                          <span className="text-[10px] text-pink-300 font-mono">
+                            {deco.extraPriceCents > 0 ? `+${formatMoney(deco.extraPriceCents)}` : "Incluida en el combo"}
+                          </span>
+                        </div>
+
+                        {/* Controles directos por decoración: Reemplazar o Borrar/Omitir Foto */}
+                        <div className="flex items-center gap-1.5 pt-1.5 border-t border-[#263858]/70">
+                          <label className="flex-1 cursor-pointer px-2 py-1 rounded-lg bg-purple-600/20 hover:bg-purple-600/35 border border-purple-500/40 text-purple-200 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors">
+                            {uploadingDecoIdx === idx ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <UploadCloud className="w-3 h-3" />
+                            )}
+                            <span>{uploadingDecoIdx === idx ? "Subiendo..." : deco.imageUrl ? "Cambiar" : "Subir foto"}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingDecoIdx === idx}
+                              onChange={(e) => handleReplaceDecorationImage(idx, e)}
+                            />
+                          </label>
+
+                          {deco.imageUrl && (
+                            <button
+                              type="button"
+                              onClick={() => handleClearDecorationImage(idx)}
+                              className="px-2 py-1 rounded-lg bg-red-950/40 hover:bg-red-600 border border-red-500/40 text-red-300 hover:text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Borrar/omitir la imagen de esta decoración"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Quitar</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
