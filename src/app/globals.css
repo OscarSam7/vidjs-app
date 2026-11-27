@@ -380,12 +380,12 @@ html.light:not(:has([data-display="tv"])) [class*="bg-[#162644]"],
 html.light:not(:has([data-display="tv"])) [class*="bg-[#1A2C4E]"],
 html.light:not(:has([data-display="tv"])) [class*="bg-navy-850"],
 html.light:not(:has([data-display="tv"])) [class*="bg-navy-900"],
-html.light:not(:has([data-display="tv"])) [class^="bg-zinc-950"]:not([class*="hover:"]):not(button):not(a):not(span),
-html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-950"]:not([class*="hover:"]):not(button):not(a):not(span),
-html.light:not(:has([data-display="tv"])) [class^="bg-zinc-900"]:not([class*="hover:"]):not(button):not(a):not(span),
-html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-900"]:not([class*="hover:"]):not(button):not(a):not(span),
-html.light:not(:has([data-display="tv"])) [class^="bg-slate-900"]:not([class*="hover:"]):not(button):not(a):not(span),
-html.light:not(:has([data-display="tv"])) [class*=" bg-slate-900"]:not([class*="hover:"]):not(button):not(a):not(span) {
+html.light:not(:has([data-display="tv"])) [class^="bg-zinc-950"]:not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-950"]:not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class^="bg-zinc-900"]:not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-900"]:not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class^="bg-slate-900"]:not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class*=" bg-slate-900"]:not(button):not(a):not(span) {
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
   box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06);
@@ -396,12 +396,12 @@ html.light:not(:has([data-display="tv"])) .bg-zinc-850,
 html.light:not(:has([data-display="tv"])) .bg-zinc-800,
 html.light:not(:has([data-display="tv"])) .bg-slate-800,
 html.light:not(:has([data-display="tv"])) [class*="bg-navy-800"],
-html.light:not(:has([data-display="tv"])) [class^="bg-zinc-850"]:not([class*="hover:"]):not(button):not(a):not(span),
-html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-850"]:not([class*="hover:"]):not(button):not(a):not(span),
-html.light:not(:has([data-display="tv"])) [class^="bg-zinc-800"]:not([class*="hover:"]):not(button):not(a):not(span),
-html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-800"]:not([class*="hover:"]):not(button):not(a):not(span),
-html.light:not(:has([data-display="tv"])) [class^="bg-slate-800"]:not([class*="hover:"]):not(button):not(a):not(span),
-html.light:not(:has([data-display="tv"])) [class*=" bg-slate-800"]:not([class*="hover:"]):not(button):not(a):not(span) {
+html.light:not(:has([data-display="tv"])) [class^="bg-zinc-850"]:not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-850"]:not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class^="bg-zinc-800"]:not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class*=" bg-zinc-800"]:not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class^="bg-slate-800"]:not(button):not(a):not(span),
+html.light:not(:has([data-display="tv"])) [class*=" bg-slate-800"]:not(button):not(a):not(span) {
   background-color: #f1f5f9 !important;
   border-color: #e2e8f0 !important;
 }
@@ -750,6 +750,8 @@ html.light:not(:has([data-display="tv"])) [class*="bg-gradient-to-r"][class*="fr
 html.light:not(:has([data-display="tv"])) [class*="bg-gradient-to-r"][class*="from-amber-500"]:not([class*="from-amber-500/"]):not(.text-black) *,
 html.light:not(:has([data-display="tv"])) [class*="bg-gradient-to-r"][class*="from-fuchsia-600"],
 html.light:not(:has([data-display="tv"])) [class*="bg-gradient-to-r"][class*="from-fuchsia-600"] *,
+html.light:not(:has([data-display="tv"])) [class*="bg-gradient-to-r"][class*="from-pink-600"]:not([class*="from-pink-600/"]),
+html.light:not(:has([data-display="tv"])) [class*="bg-gradient-to-r"][class*="from-pink-600"]:not([class*="from-pink-600/"]) *,
 html.light:not(:has([data-display="tv"])) [class*="bg-gradient-to-r"][class*="from-emerald-600"],
 html.light:not(:has([data-display="tv"])) [class*="bg-gradient-to-r"][class*="from-emerald-600"] *,
 html.light:not(:has([data-display="tv"])) [class*="bg-gradient-to-r"][class*="from-cyan-600"],
