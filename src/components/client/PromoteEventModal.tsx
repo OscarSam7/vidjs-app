@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   X,
   Sparkles,
@@ -22,6 +22,10 @@ import {
   ChevronRight,
   Minus,
   Plus,
+  Upload,
+  Image as ImageIcon,
+  Trash2,
+  Link2,
 } from "lucide-react";
 
 interface PromoteEventModalProps {
@@ -138,6 +142,10 @@ export function PromoteEventModal({
   const [city, setCity] = useState("Asunción");
   const [ticketPriceLabel, setTicketPriceLabel] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
+  const [bannerFileName, setBannerFileName] = useState("");
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [bannerInputMode, setBannerInputMode] = useState<"file" | "url">("file");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [description, setDescription] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"TRANSFER" | "QR_PAGOS" | "PIX">("TRANSFER");
   const [paymentReference, setPaymentReference] = useState("");
@@ -222,6 +230,69 @@ export function PromoteEventModal({
 
   const adjustMinute = (delta: number) => {
     setSelectedMinute((prev) => (prev + delta + 60) % 60);
+  };
+
+  const handleFlyerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError(null);
+
+    if (!file.type.startsWith("image/")) {
+      setError("Selecciona un archivo de imagen válido (JPG, PNG o WebP).");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError("El flyer no puede superar los 10 MB.");
+      return;
+    }
+
+    setUploadingBanner(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
+        reader.onload = () => {
+          const img = new Image();
+          img.onerror = () => reject(new Error("La imagen está dañada o no es compatible."));
+          img.onload = () => {
+            const maxW = 1200;
+            const maxH = 1200;
+            let { width, height } = img;
+            if (width > maxW || height > maxH) {
+              const ratio = Math.min(maxW / width, maxH / height);
+              width = Math.round(width * ratio);
+              height = Math.round(height * ratio);
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+              resolve(String(reader.result));
+              return;
+            }
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL("image/jpeg", 0.82));
+          };
+          img.src = String(reader.result);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      setBannerUrl(dataUrl);
+      setBannerFileName(file.name);
+    } catch (err: any) {
+      setError(err?.message || "No se pudo procesar el flyer.");
+    } finally {
+      setUploadingBanner(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveFlyer = () => {
+    setBannerUrl("");
+    setBannerFileName("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -628,7 +699,7 @@ export function PromoteEventModal({
                       className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-amber-400"
                     />
                   </div>
-                  <div>
+                  <div className="sm:col-span-2">
                     <label className="block text-[11px] font-bold text-zinc-300 mb-1">Precio Entrada (Opcional)</label>
                     <input
                       type="text"
@@ -638,15 +709,136 @@ export function PromoteEventModal({
                       className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-amber-400"
                     />
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-zinc-300 mb-1">URL del Flyer / Banner (Opcional)</label>
+
+                  {/* Subir Archivo del Flyer / Banner */}
+                  <div className="sm:col-span-2 p-3.5 rounded-2xl bg-zinc-900/75 border border-zinc-800 space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <label className="text-[11px] font-black uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Flyer / Banner del Evento (Opcional)</span>
+                      </label>
+                      <div className="flex items-center gap-1 bg-zinc-950 p-0.5 rounded-lg border border-zinc-800">
+                        <button
+                          type="button"
+                          onClick={() => setBannerInputMode("file")}
+                          className={`px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors ${
+                            bannerInputMode === "file"
+                              ? "bg-purple-600 text-white"
+                              : "text-zinc-400 hover:text-white"
+                          }`}
+                        >
+                          <Upload className="w-3 h-3" />
+                          <span>Subir archivo</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBannerInputMode("url")}
+                          className={`px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors ${
+                            bannerInputMode === "url"
+                              ? "bg-purple-600 text-white"
+                              : "text-zinc-400 hover:text-white"
+                          }`}
+                        >
+                          <Link2 className="w-3 h-3" />
+                          <span>Pegar enlace</span>
+                        </button>
+                      </div>
+                    </div>
+
                     <input
-                      type="url"
-                      value={bannerUrl}
-                      onChange={(e) => setBannerUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-amber-400"
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      onChange={handleFlyerFileChange}
+                      className="hidden"
                     />
+
+                    {bannerInputMode === "file" ? (
+                      bannerUrl ? (
+                        <div className="relative rounded-xl overflow-hidden border border-amber-400/40 bg-zinc-950">
+                          <img
+                            src={bannerUrl}
+                            alt="Vista previa del flyer"
+                            className="w-full h-36 sm:h-44 object-cover"
+                          />
+                          <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-bold text-white truncate">
+                              {bannerFileName || "Flyer cargado"}
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="px-2.5 py-1 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-white/20 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                              >
+                                <Upload className="w-3 h-3 text-amber-400" />
+                                <span>Cambiar</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleRemoveFlyer}
+                                className="px-2.5 py-1 rounded-lg bg-red-600/90 hover:bg-red-500 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                <span>Quitar</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={uploadingBanner}
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full py-5 px-4 rounded-xl border-2 border-dashed border-zinc-700 hover:border-amber-400/70 bg-zinc-950/60 hover:bg-zinc-900/80 transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          {uploadingBanner ? (
+                            <>
+                              <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+                              <span className="text-xs font-bold text-amber-300">Optimizando flyer...</span>
+                            </>
+                          ) : (
+                            <>
+                              <div className="w-10 h-10 rounded-xl bg-amber-400/15 border border-amber-400/30 text-amber-300 flex items-center justify-center">
+                                <Upload className="w-5 h-5" />
+                              </div>
+                              <span className="text-xs font-black text-white">
+                                Toca para subir el flyer desde tu dispositivo
+                              </span>
+                              <span className="text-[10px] text-zinc-400">
+                                JPG, PNG o WebP • Se optimiza automáticamente para el Carrusel
+                              </span>
+                            </>
+                          )}
+                        </button>
+                      )
+                    ) : (
+                      <div className="space-y-2">
+                        <input
+                          type="url"
+                          value={bannerUrl.startsWith("data:") ? "" : bannerUrl}
+                          onChange={(e) => {
+                            setBannerUrl(e.target.value);
+                            setBannerFileName("");
+                          }}
+                          placeholder="https://ejemplo.com/mi-flyer.jpg"
+                          className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-amber-400"
+                        />
+                        {bannerUrl && !bannerUrl.startsWith("data:") && (
+                          <div className="relative rounded-xl overflow-hidden border border-zinc-800 h-28 bg-zinc-950">
+                            <img src={bannerUrl} alt="Vista previa del flyer" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={handleRemoveFlyer}
+                              className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/75 text-red-300 hover:text-white cursor-pointer"
+                              aria-label="Quitar flyer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="sm:col-span-2">
                     <label className="block text-[11px] font-bold text-zinc-300 mb-1">Descripción breve</label>
