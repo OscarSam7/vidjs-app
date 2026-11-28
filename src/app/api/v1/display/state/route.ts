@@ -245,6 +245,37 @@ export async function GET(req: NextRequest) {
         }
       : null;
 
+    // Detectar si el evento es un cumpleaños, fiesta privada o evento casual para bloquear promociones comerciales
+    const isPersonalOrCasual = (() => {
+      let tSettings: any = {};
+      if (event.tenant?.settings) {
+        try {
+          tSettings = JSON.parse(event.tenant.settings);
+        } catch {}
+      }
+      let evSettings: any = {};
+      if (event.settings) {
+        try {
+          evSettings = JSON.parse(event.settings);
+        } catch {}
+      }
+      const isPersonalParty = tSettings.isPersonalParty === true || evSettings.isPersonalParty === true;
+      const lowerName = (event.name || "").toLowerCase();
+      const lowerTenant = (event.tenant?.name || "").toLowerCase();
+      const type = (event.eventType || "").toUpperCase();
+      return (
+        isPersonalParty ||
+        type === "PRIVADO" ||
+        type === "FIESTA" ||
+        lowerName.includes("cumple") ||
+        lowerName.includes("asado") ||
+        lowerName.includes("casual") ||
+        lowerName.includes("quincho") ||
+        lowerName.includes("amigos") ||
+        lowerTenant.includes("cumple")
+      );
+    })();
+
     return NextResponse.json({
       success: true,
       data: {
@@ -271,14 +302,16 @@ export async function GET(req: NextRequest) {
           tipAmountCents: item.songRequest.tipAmountCents || 0,
           isFastPass: (item.songRequest.tipAmountCents || 0) > 0,
         })),
-        flashDeal: getActiveFlashDeal(
-          calculateNightPulse({
-            activeTables: 5,
-            requestsLast15m: 3,
-            queuedWaiters: upcomingQueue.length,
-          }).level,
-          branding.activePromo
-        ),
+        flashDeal: isPersonalOrCasual
+          ? null
+          : getActiveFlashDeal(
+              calculateNightPulse({
+                activeTables: 5,
+                requestsLast15m: 3,
+                queuedWaiters: upcomingQueue.length,
+              }).level,
+              branding.activePromo
+            ),
         qr: {
           scanUrl,
           dataUrl: qrDataUrl,

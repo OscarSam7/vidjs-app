@@ -2139,13 +2139,15 @@ function GuestContent() {
 
           <div className="flex items-center gap-1.5">
             <LanguageSwitcher />
-            <Link
-              href="/app"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-fuchsia-600/25 hover:from-amber-500/30 hover:to-fuchsia-600/35 border border-amber-400/40 text-amber-200 text-xs font-black transition-all shadow-sm"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Super App &amp; Club</span>
-            </Link>
+            {!(branding as any)?.hideClub && !(branding as any)?.isCasualEvent && (
+              <Link
+                href="/app"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-fuchsia-600/25 hover:from-amber-500/30 hover:to-fuchsia-600/35 border border-amber-400/40 text-amber-200 text-xs font-black transition-all shadow-sm"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>Super App &amp; Club</span>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -3498,8 +3500,8 @@ function GuestContent() {
               </div>
             </div>
 
-            {/* Promo Flash Deal de Barra (Pulse) */}
-            {flashDeal && (
+            {/* Promo Flash Deal de Barra (Pulse) - Bloqueado en cumpleaños y eventos casuales */}
+            {!(branding as any)?.isCasualEvent && flashDeal && (
               <div
                 className={`p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r ${flashDeal.bannerBg} border ${flashDeal.color} flex items-center justify-between gap-2 shadow-xl animate-fadeIn w-full`}
               >

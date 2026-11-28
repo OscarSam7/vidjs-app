@@ -74,6 +74,16 @@ export default function PublicEventLaunchPage({
   const [purchasedTickets, setPurchasedTickets] = useState<any[] | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
 
+  // RSVP state for Birthday / Casual Private events
+  const [rsvpName, setRsvpName] = useState("");
+  const [rsvpPhone, setRsvpPhone] = useState("");
+  const [rsvpHasCompanion, setRsvpHasCompanion] = useState(false);
+  const [rsvpCompanionName, setRsvpCompanionName] = useState("");
+  const [rsvpNote, setRsvpNote] = useState("");
+  const [isSubmittingRsvp, setIsSubmittingRsvp] = useState(false);
+  const [confirmedRsvp, setConfirmedRsvp] = useState<any | null>(null);
+  const [rsvpError, setRsvpError] = useState<string | null>(null);
+
   useEffect(() => {
     setIsLoading(true);
     fetch(`/api/v1/events/public?code=${code}`)
@@ -189,6 +199,82 @@ export default function PublicEventLaunchPage({
       alert("Error al procesar la adquisición. Intenta nuevamente.");
     } finally {
       setIsPurchasing(false);
+    }
+  };
+
+  const handleConfirmRsvp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rsvpName.trim()) {
+      setRsvpError("Por favor ingresa tu nombre y apellido completo.");
+      return;
+    }
+    if (rsvpHasCompanion && !rsvpCompanionName.trim()) {
+      setRsvpError("Por favor ingresa el nombre de tu acompañante.");
+      return;
+    }
+
+    setIsSubmittingRsvp(true);
+    setRsvpError(null);
+
+    try {
+      const slug = event.tenantSlug || event.code;
+      const res = await fetch("/api/v1/client/party-rsvp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenantSlug: slug,
+          guestName: rsvpName.trim(),
+          guestPhone: rsvpPhone.trim(),
+          hasCompanion: rsvpHasCompanion,
+          companionName: rsvpHasCompanion ? rsvpCompanionName.trim() : "",
+          note: rsvpNote.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo registrar tu confirmación.");
+      }
+
+      const ticketNumber = Math.floor(100000 + Math.random() * 900000);
+      const tktId = `VID-CUMPLE-${event.code.slice(0, 6)}-${ticketNumber}`;
+      const generatedPass = {
+        id: tktId,
+        eventCode: event.code,
+        eventName: event.name,
+        tierName: "Invitado de Honor (Confirmado)",
+        tierPrice: 0,
+        formattedPrice: "Acceso Gratuito",
+        buyerName: rsvpName.trim(),
+        buyerDoc: "CONFIRMADO",
+        buyerPhone: rsvpPhone.trim(),
+        venueName: event.locationName,
+        eventDate: event.timeSchedule || "Horario confirmado",
+        hasCompanion: rsvpHasCompanion,
+        companionName: rsvpHasCompanion ? rsvpCompanionName.trim() : null,
+        isPrivatePending: event.partyVisibility === "PRIVATE",
+        purchaseDate: new Date().toLocaleDateString("es-PY", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        qrPayload: `VIDJS_PARTY_AUTH:${event.code}:${tktId}:${rsvpName.trim()}:VALID`,
+      };
+
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("vidjs_purchased_tickets");
+        const existing = stored ? JSON.parse(stored) : [];
+        localStorage.setItem("vidjs_purchased_tickets", JSON.stringify([generatedPass, ...existing]));
+      }
+
+      setConfirmedRsvp(generatedPass);
+    } catch (err: any) {
+      console.error(err);
+      setRsvpError(err.message || "Error al conectar con el servidor.");
+    } finally {
+      setIsSubmittingRsvp(false);
     }
   };
 
@@ -514,6 +600,13 @@ export default function PublicEventLaunchPage({
                 <div className="pt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                   {(event.highlights && event.highlights.length > 0
                     ? event.highlights
+                    : event.isPersonalParty || event.isPersonalOrCasual
+                    ? [
+                        { icon: "🥩", label: "Asado Libre" },
+                        { icon: "🎂", label: "Cumpleaños" },
+                        { icon: "🍹", label: "Barra de Tragos" },
+                        { icon: "🪪", label: "Acceso con QR" },
+                      ]
                     : [
                         { icon: "🍹", label: "Open Bar" },
                         { icon: "🍲", label: "Feijoada Libre" },
@@ -565,7 +658,9 @@ export default function PublicEventLaunchPage({
                       <span>{event.locationName}</span>
                     </h4>
                     <p className="text-xs text-slate-400">{event.address}</p>
-                    <p className="text-xs text-slate-400">{event.city}, Paraguay</p>
+                    {(!event.address || !event.address.toLowerCase().includes(event.city.toLowerCase())) && (
+                      <p className="text-xs text-slate-400">{event.city}, Paraguay</p>
+                    )}
                   </div>
 
                   <a
@@ -624,8 +719,198 @@ export default function PublicEventLaunchPage({
             </div>
           </div>
 
-          {/* Right Column: Sticky Purchase Box ("Elegí tus entradas") */}
+          {/* Right Column: Sticky Purchase or RSVP Box */}
           <div className="lg:col-span-5 lg:sticky lg:top-20 space-y-4">
+            {event.isPersonalParty || event.isPersonalOrCasual ? (
+              <div
+                className={cn(
+                  "p-5 sm:p-6 rounded-3xl border shadow-2xl space-y-5",
+                  isDarkMode
+                    ? "bg-[#0A1322] border-[#263858]"
+                    : "bg-white border-slate-200"
+                )}
+              >
+                {confirmedRsvp ? (
+                  <div className="space-y-4 animate-fadeIn text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto text-2xl shadow-lg shadow-emerald-950/40">
+                      🎉
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-black tracking-widest text-emerald-400 bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-800/40">
+                        {confirmedRsvp.isPrivatePending ? "Presencia Registrada" : "¡Lugar Confirmado!"}
+                      </span>
+                      <h3 className="text-xl font-black text-white mt-2">
+                        ¡Te esperamos, {confirmedRsvp.buyerName}!
+                      </h3>
+                      <p className="text-xs text-slate-300 mt-1">
+                        {confirmedRsvp.isPrivatePending
+                          ? "El anfitrión confirmará y reservará tu lugar oficial en breve."
+                          : `Tu lugar en ${event.locationName || "el evento"} está reservado.`}
+                      </p>
+                      {confirmedRsvp.companionName && (
+                        <p className="text-xs text-purple-300 font-bold mt-1">
+                          + Acompañante: {confirmedRsvp.companionName}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* QR Card */}
+                    <div className="p-4 rounded-2xl bg-[#080F1F] border border-[#263858] space-y-3">
+                      <div className="bg-white p-3 rounded-xl inline-block shadow-inner">
+                        <QrCode className="w-28 h-28 text-slate-900 mx-auto" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="text-[11px] font-mono text-purple-300 font-bold">
+                          {confirmedRsvp.id}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Pase digital personal de invitado
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-1">
+                      <Button
+                        size="sm"
+                        onClick={handleShare}
+                        className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2.5 rounded-xl gap-1.5 cursor-pointer"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>Compartir por WhatsApp</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setConfirmedRsvp(null)}
+                        className="w-full text-slate-400 hover:text-white border-[#263858] text-xs py-2 rounded-xl cursor-pointer"
+                      >
+                        <span>Confirmar a otro invitado</span>
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleConfirmRsvp} className="space-y-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">🎂</span>
+                        <h3 className="text-lg font-black text-white tracking-tight">
+                          Confirmar Mi Presencia
+                        </h3>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Celebración exclusiva • Acceso libre y gratuito para invitados
+                      </p>
+                      {event.partyVisibility === "PRIVATE" && (
+                        <div className="mt-2.5 px-3 py-1.5 rounded-xl bg-purple-950/40 border border-purple-800/40 text-[11px] text-purple-300 font-medium flex items-center gap-1.5">
+                          <span>🔒</span>
+                          <span>Evento Privado: El anfitrión te confirmará tu lugar reservado.</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {rsvpError && (
+                      <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-800/50 text-rose-300 text-xs">
+                        {rsvpError}
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-bold text-slate-300 block mb-1">
+                          Tu Nombre y Apellido <span className="text-rose-400">*</span>
+                        </label>
+                        <Input
+                          value={rsvpName}
+                          onChange={(e) => setRsvpName(e.target.value)}
+                          placeholder="Ej: Sofía Benítez"
+                          required
+                          className="bg-[#080F1F] border-[#263858] text-white text-xs h-10 rounded-xl"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-300 block mb-1">
+                          Teléfono / WhatsApp (Opcional)
+                        </label>
+                        <Input
+                          value={rsvpPhone}
+                          onChange={(e) => setRsvpPhone(e.target.value)}
+                          placeholder="Ej: 0981 123 456"
+                          className="bg-[#080F1F] border-[#263858] text-white text-xs h-10 rounded-xl"
+                        />
+                      </div>
+
+                      {event.allowPlusOne !== false && (
+                        <div className="p-3 rounded-xl bg-[#080F1F] border border-[#263858] space-y-2">
+                          <label className="flex items-center gap-2 text-xs font-bold text-slate-200 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={rsvpHasCompanion}
+                              onChange={(e) => setRsvpHasCompanion(e.target.checked)}
+                              className="w-4 h-4 rounded text-purple-600 border-slate-700 bg-slate-900 focus:ring-purple-500 cursor-pointer"
+                            />
+                            <span>¿Venís con un acompañante? (+1)</span>
+                          </label>
+
+                          {rsvpHasCompanion && (
+                            <div className="pt-2 animate-fadeIn">
+                              <label className="text-[11px] font-bold text-purple-300 block mb-1">
+                                Nombre del Acompañante
+                              </label>
+                              <Input
+                                value={rsvpCompanionName}
+                                onChange={(e) => setRsvpCompanionName(e.target.value)}
+                                placeholder="Nombre y apellido de tu acompañante"
+                                className="bg-[#0A1322] border-purple-500/40 text-white text-xs h-9 rounded-xl"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-300 block mb-1">
+                          Mensaje o Saludo para el anfitrión (Opcional)
+                        </label>
+                        <Input
+                          value={rsvpNote}
+                          onChange={(e) => setRsvpNote(e.target.value)}
+                          placeholder="Ej: ¡Feliz cumple Nico, ahí estaremos!"
+                          className="bg-[#080F1F] border-[#263858] text-white text-xs h-9 rounded-xl"
+                        />
+                      </div>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      size="lg"
+                      disabled={isSubmittingRsvp}
+                      className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm py-3 rounded-2xl shadow-xl shadow-emerald-950/40 gap-2 cursor-pointer transition-all"
+                    >
+                      {isSubmittingRsvp ? (
+                        <span>Confirmando tu lugar...</span>
+                      ) : (
+                        <>
+                          <span>🎉 Confirmar Mi Presencia</span>
+                          <Check className="w-4 h-4" />
+                        </>
+                      )}
+                    </Button>
+
+                    <div className="pt-2 border-t border-[#263858] space-y-1.5 text-xs text-slate-400">
+                      <div className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>Invitación oficial sin costo</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>Pase QR digital generado al instante</span>
+                      </div>
+                    </div>
+                  </form>
+                )}
+              </div>
+            ) : (
             <div
               className={cn(
                 "p-5 sm:p-6 rounded-3xl border shadow-2xl space-y-5",
@@ -789,6 +1074,7 @@ export default function PublicEventLaunchPage({
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
       </main>

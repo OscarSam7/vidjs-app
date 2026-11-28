@@ -24,6 +24,11 @@ export interface PublicEventItem {
   interestedCount: number;
   friendsGoingCount: number;
   likesCount: number;
+  isPersonalParty?: boolean;
+  isPersonalOrCasual?: boolean;
+  allowPlusOne?: boolean;
+  partyVisibility?: "PUBLIC" | "PRIVATE";
+  tenantSlug?: string;
   tiers: {
     id: string;
     name: string;
@@ -266,6 +271,45 @@ const DEFAULT_SAMPLE_EVENTS: PublicEventItem[] = [
   },
 ];
 
+// Helper to resolve city cleanly without hardcoding
+function resolveEventCity(address?: string | null, locationName?: string | null, customCity?: string | null): string {
+  if (customCity && customCity.trim()) return customCity.trim();
+  const lowerAddr = (address || "").toLowerCase();
+  const lowerLoc = (locationName || "").toLowerCase();
+  if (lowerAddr.includes("asunción") || lowerAddr.includes("asuncion") || lowerLoc.includes("asunción") || lowerLoc.includes("asuncion")) {
+    return "Asunción";
+  }
+  if (lowerAddr.includes("san bernardino") || lowerLoc.includes("san bernardino")) {
+    return "San Bernardino";
+  }
+  if (lowerAddr.includes("encarnación") || lowerAddr.includes("encarnacion")) {
+    return "Encarnación";
+  }
+  if (lowerAddr.includes("luque")) {
+    return "Luque";
+  }
+  if (lowerAddr.includes("mariano") || lowerAddr.includes("mra")) {
+    return "Mariano Roque Alonso";
+  }
+  if (lowerAddr.includes("lambaré") || lowerAddr.includes("lambare")) {
+    return "Lambaré";
+  }
+  if (lowerAddr.includes("fernando")) {
+    return "Fernando de la Mora";
+  }
+  if (lowerAddr.includes("hernandarias")) {
+    return "Hernandarias";
+  }
+  if (lowerAddr.includes("cde") || lowerAddr.includes("ciudad del este") || lowerLoc.includes("ciudad del este")) {
+    return "Ciudad del Este";
+  }
+  if (address && address.split(",").length > 1) {
+    const parts = address.split(",");
+    return parts[parts.length - 1].trim();
+  }
+  return "Asunción";
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -281,6 +325,14 @@ export async function GET(req: NextRequest) {
           status: { in: ["ACTIVE", "PUBLISHED", "DRAFT"] },
         },
         include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              settings: true,
+            },
+          },
           accreditationTypes: {
             where: { active: true },
             orderBy: { orderIndex: "asc" },
@@ -292,34 +344,135 @@ export async function GET(req: NextRequest) {
       });
 
       if (dbEvent) {
-        let eventHighlights: Array<{ icon: string; label: string }> = [
-          { icon: "🍹", label: "Open Bar" },
-          { icon: "🍲", label: "Feijoada Libre" },
-          { icon: "🎸", label: "Pagode en Vivo" },
-          { icon: "🪪", label: "Acceso con QR" },
-        ];
-
+        let parsedSettings: any = {};
         if (dbEvent.settings) {
           try {
-            const parsed = JSON.parse(dbEvent.settings);
-            if (Array.isArray(parsed.highlights) && parsed.highlights.length > 0) {
-              eventHighlights = parsed.highlights;
-            }
-          } catch (e) {
-            // keep default
-          }
+            parsedSettings = JSON.parse(dbEvent.settings);
+          } catch {}
+        }
+        let tenantSettings: any = {};
+        if (dbEvent.tenant?.settings) {
+          try {
+            tenantSettings = JSON.parse(dbEvent.tenant.settings);
+          } catch {}
+        }
+
+        const lowerName = (dbEvent.name || "").toLowerCase();
+        const lowerLoc = (dbEvent.locationName || "").toLowerCase();
+        const lowerAddr = (dbEvent.address || "").toLowerCase();
+        const eventType = (dbEvent.eventType || "").toUpperCase();
+
+        const isPersonalOrCasual = Boolean(
+          parsedSettings.isPersonalParty === true ||
+          tenantSettings.isPersonalParty === true ||
+          eventType === "PRIVADO" ||
+          lowerName.includes("cumple") ||
+          lowerName.includes("asado") ||
+          lowerName.includes("casual") ||
+          lowerName.includes("quincho") ||
+          lowerName.includes("amigos")
+        );
+
+        const allowPlusOne =
+          typeof parsedSettings?.partyInvite?.allowCompanions === "boolean"
+            ? parsedSettings.partyInvite.allowCompanions
+            : typeof tenantSettings?.partyInvite?.allowCompanions === "boolean"
+            ? tenantSettings.partyInvite.allowCompanions
+            : true;
+
+        const partyVisibility: "PUBLIC" | "PRIVATE" =
+          parsedSettings?.partyInvite?.visibility === "PRIVATE" ||
+          tenantSettings?.partyInvite?.visibility === "PRIVATE" ||
+          eventType === "PRIVADO"
+            ? "PRIVATE"
+            : "PUBLIC";
+
+        const resolvedCity = resolveEventCity(
+          dbEvent.address,
+          dbEvent.locationName,
+          parsedSettings.city
+        );
+
+        // Context-aware highlights
+        let eventHighlights: Array<{ icon: string; label: string }> = [];
+        if (Array.isArray(parsedSettings.highlights) && parsedSettings.highlights.length > 0) {
+          eventHighlights = parsedSettings.highlights;
+        } else if (isPersonalOrCasual) {
+          eventHighlights = [
+            { icon: "🥩", label: "Asado Libre" },
+            { icon: "🎂", label: "Cumpleaños" },
+            { icon: "🍹", label: "Barra de Tragos" },
+            { icon: "🪪", label: "Acceso con QR" },
+          ];
+        } else {
+          eventHighlights = [
+            { icon: "🍹", label: "Open Bar" },
+            { icon: "🍲", label: "Feijoada Libre" },
+            { icon: "🎸", label: "Pagode en Vivo" },
+            { icon: "🪪", label: "Acceso con QR" },
+          ];
+        }
+
+        // Context-aware FAQs (No commercial ticket questions for birthdays/casual private events)
+        let eventFaq: Array<{ question: string; answer: string }> = [];
+        if (Array.isArray(parsedSettings.faq) && parsedSettings.faq.length > 0) {
+          eventFaq = parsedSettings.faq;
+        } else if (isPersonalOrCasual) {
+          eventFaq = [
+            {
+              question: "¿Cómo confirmo mi asistencia al evento?",
+              answer:
+                "Solo debes ingresar tu nombre en la sección de confirmación de esta invitación oficial. Recibirás tu pase de acceso con QR al instante.",
+            },
+            {
+              question: "¿Puedo llevar un acompañante?",
+              answer: allowPlusOne
+                ? "Sí, puedes registrar a tu acompañante al momento de confirmar tu presencia si hay cupos habilitados."
+                : "Esta invitación es personal y exclusiva para el invitado confirmado.",
+            },
+            {
+              question: "¿Tiene algún costo la entrada?",
+              answer: "¡No! Es una celebración privada sin costo para los invitados especiales.",
+            },
+            {
+              question: "¿Qué necesito presentar al llegar?",
+              answer: `Presenta tu código QR de invitado o di tu nombre en el acceso de ${dbEvent.locationName || "la sede"}.`,
+            },
+          ];
+        } else {
+          eventFaq = [
+            {
+              question: "¿Cómo recibo mis entradas?",
+              answer:
+                "Tus entradas se generan al instante con un código QR criptográfico único. Puedes descargarlas en PDF, verlas directamente en la app CYNKO en tu celular o recibirlas por WhatsApp.",
+            },
+            {
+              question: "¿Qué métodos de pago aceptan?",
+              answer:
+                "Aceptamos CYNKO Pay (billetera digital), Tarjetas de Débito/Crédito (Visa, Mastercard), Transferencias Bancarias (SIPAP) y Pix.",
+            },
+            {
+              question: "¿Puedo reembolsar o transferir mi entrada?",
+              answer:
+                "Puedes transferir tu entrada a otra persona con su número de documento (CI/DNI) hasta 24 horas antes del inicio del evento desde tu billetera CYNKO.",
+            },
+          ];
         }
 
         const publicEvent: PublicEventItem = {
           id: dbEvent.id,
           name: dbEvent.name,
           code: dbEvent.code,
-          description: dbEvent.description || "Evento exclusivo gestionado en CYNKO Suite.",
-          eventType: dbEvent.eventType || "GENERAL",
-          organizerName: dbEvent.organizerName || "Organizador Oficial",
+          description:
+            dbEvent.description ||
+            (isPersonalOrCasual
+              ? "¡Te espero para celebrar juntos mi cumpleaños con un gran asado, buena música y amigos!"
+              : "Evento exclusivo gestionado en CYNKO Suite."),
+          eventType: dbEvent.eventType || (isPersonalOrCasual ? "FIESTA" : "GENERAL"),
+          organizerName: dbEvent.organizerName || (isPersonalOrCasual ? "Anfitrión Oficial" : "Organizador Oficial"),
           locationName: dbEvent.locationName || "Sede Oficial",
-          address: dbEvent.address || "Ciudad del Este, Paraguay",
-          city: "Ciudad del Este",
+          address: dbEvent.address || "Asunción, Paraguay",
+          city: resolvedCity,
           startsAt: dbEvent.startsAt.toISOString(),
           endsAt: dbEvent.endsAt ? dbEvent.endsAt.toISOString() : null,
           timeSchedule: dbEvent.timeSchedule || "Horario a confirmar",
@@ -327,11 +480,16 @@ export async function GET(req: NextRequest) {
             dbEvent.bannerUrl ||
             "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80",
           maxCapacity: dbEvent.maxCapacity || 500,
-          rating: 4.7,
+          rating: 4.8,
           reviewCount: 42,
           interestedCount: 1500,
           friendsGoingCount: 8,
           likesCount: 95,
+          isPersonalParty: isPersonalOrCasual,
+          isPersonalOrCasual,
+          allowPlusOne,
+          partyVisibility,
+          tenantSlug: dbEvent.tenant?.slug,
           highlights: eventHighlights,
           tiers: dbEvent.accreditationTypes.map((t) => {
             const count = t._count.participants;
@@ -353,23 +511,7 @@ export async function GET(req: NextRequest) {
               description: t.description || undefined,
             };
           }),
-          faq: [
-            {
-              question: "¿Cómo recibo mis entradas?",
-              answer:
-                "Tus entradas se generan al instante con un código QR criptográfico único. Puedes descargarlas en PDF, verlas directamente en la app CYNKO en tu celular o recibirlas por WhatsApp.",
-            },
-            {
-              question: "¿Qué métodos de pago aceptan?",
-              answer:
-                "Aceptamos CYNKO Pay (billetera digital), Tarjetas de Débito/Crédito (Visa, Mastercard), Transferencias Bancarias (SIPAP) y Pix.",
-            },
-            {
-              question: "¿Puedo reembolsar o transferir mi entrada?",
-              answer:
-                "Puedes transferir tu entrada a otra persona con su número de documento (CI/DNI) hasta 24 horas antes del inicio del evento desde tu billetera CYNKO.",
-            },
-          ],
+          faq: eventFaq,
         };
 
         return NextResponse.json({ success: true, event: publicEvent });
@@ -393,6 +535,14 @@ export async function GET(req: NextRequest) {
         status: { in: ["ACTIVE", "PUBLISHED"] },
       },
       include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            settings: true,
+          },
+        },
         accreditationTypes: {
           where: { active: true },
           orderBy: { orderIndex: "asc" },
@@ -406,22 +556,58 @@ export async function GET(req: NextRequest) {
     });
 
     const formattedDbEvents: PublicEventItem[] = dbEvents.map((dbEvent) => {
-      let eventHighlights: Array<{ icon: string; label: string }> = [
-        { icon: "🍹", label: "Open Bar" },
-        { icon: "🍲", label: "Feijoada Libre" },
-        { icon: "🎸", label: "Pagode en Vivo" },
-        { icon: "🪪", label: "Acceso con QR" },
-      ];
-
+      let parsedSettings: any = {};
       if (dbEvent.settings) {
         try {
-          const parsed = JSON.parse(dbEvent.settings);
-          if (Array.isArray(parsed.highlights) && parsed.highlights.length > 0) {
-            eventHighlights = parsed.highlights;
-          }
-        } catch (e) {
-          // keep default
-        }
+          parsedSettings = JSON.parse(dbEvent.settings);
+        } catch {}
+      }
+      let tenantSettings: any = {};
+      if (dbEvent.tenant?.settings) {
+        try {
+          tenantSettings = JSON.parse(dbEvent.tenant.settings);
+        } catch {}
+      }
+
+      const lowerName = (dbEvent.name || "").toLowerCase();
+      const lowerLoc = (dbEvent.locationName || "").toLowerCase();
+      const lowerAddr = (dbEvent.address || "").toLowerCase();
+      const eventType = (dbEvent.eventType || "").toUpperCase();
+
+      const isPersonalOrCasual = Boolean(
+        parsedSettings.isPersonalParty === true ||
+        tenantSettings.isPersonalParty === true ||
+        eventType === "PRIVADO" ||
+        lowerName.includes("cumple") ||
+        lowerName.includes("asado") ||
+        lowerName.includes("casual") ||
+        lowerName.includes("quincho") ||
+        lowerName.includes("amigos")
+      );
+
+      const resolvedCity = resolveEventCity(
+        dbEvent.address,
+        dbEvent.locationName,
+        parsedSettings.city
+      );
+
+      let eventHighlights: Array<{ icon: string; label: string }> = [];
+      if (Array.isArray(parsedSettings.highlights) && parsedSettings.highlights.length > 0) {
+        eventHighlights = parsedSettings.highlights;
+      } else if (isPersonalOrCasual) {
+        eventHighlights = [
+          { icon: "🥩", label: "Asado Libre" },
+          { icon: "🎂", label: "Cumpleaños" },
+          { icon: "🍹", label: "Barra de Tragos" },
+          { icon: "🪪", label: "Acceso con QR" },
+        ];
+      } else {
+        eventHighlights = [
+          { icon: "🍹", label: "Open Bar" },
+          { icon: "🍲", label: "Feijoada Libre" },
+          { icon: "🎸", label: "Pagode en Vivo" },
+          { icon: "🪪", label: "Acceso con QR" },
+        ];
       }
 
       return {
@@ -429,11 +615,11 @@ export async function GET(req: NextRequest) {
         name: dbEvent.name,
         code: dbEvent.code,
         description: dbEvent.description || "Evento oficial gestionado por CYNKO Suite.",
-        eventType: dbEvent.eventType || "GENERAL",
+        eventType: dbEvent.eventType || (isPersonalOrCasual ? "FIESTA" : "GENERAL"),
         organizerName: dbEvent.organizerName || "Organizador Oficial",
         locationName: dbEvent.locationName || "Sede Oficial",
-        address: dbEvent.address || "Ciudad del Este, Paraguay",
-        city: "Ciudad del Este",
+        address: dbEvent.address || "Asunción, Paraguay",
+        city: resolvedCity,
         startsAt: dbEvent.startsAt.toISOString(),
         endsAt: dbEvent.endsAt ? dbEvent.endsAt.toISOString() : null,
         timeSchedule: dbEvent.timeSchedule || "Horario a confirmar",
@@ -446,6 +632,8 @@ export async function GET(req: NextRequest) {
         interestedCount: 1200,
         friendsGoingCount: 6,
         likesCount: 88,
+        isPersonalParty: isPersonalOrCasual,
+        isPersonalOrCasual,
         highlights: eventHighlights,
         tiers: dbEvent.accreditationTypes.map((t) => {
           const count = t._count.participants;
@@ -466,7 +654,19 @@ export async function GET(req: NextRequest) {
             description: t.description || undefined,
           };
         }),
-        faq: DEFAULT_SAMPLE_EVENTS[0].faq,
+        faq: isPersonalOrCasual
+          ? [
+              {
+                question: "¿Cómo confirmo mi asistencia al evento?",
+                answer:
+                  "Solo debes ingresar tu nombre en la sección de confirmación de esta invitación oficial. Recibirás tu pase de acceso con QR al instante.",
+              },
+              {
+                question: "¿Puedo llevar un acompañante?",
+                answer: "Puedes registrar a tu acompañante al momento de confirmar tu presencia si hay cupos habilitados.",
+              },
+            ]
+          : DEFAULT_SAMPLE_EVENTS[0].faq,
       };
     });
 
@@ -489,5 +689,63 @@ export async function GET(req: NextRequest) {
       events: DEFAULT_SAMPLE_EVENTS,
       total: DEFAULT_SAMPLE_EVENTS.length,
     });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { code, description, highlights, address, locationName, city } = body;
+
+    if (!code) {
+      return NextResponse.json({ error: "Código de evento requerido" }, { status: 400 });
+    }
+
+    const cleanCode = code.trim().toUpperCase();
+    const event = await prisma.event.findFirst({
+      where: { code: cleanCode },
+    });
+
+    if (!event) {
+      return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+    }
+
+    let existingSettings: any = {};
+    if (event.settings) {
+      try {
+        existingSettings = JSON.parse(event.settings);
+      } catch {}
+    }
+
+    if (Array.isArray(highlights)) {
+      existingSettings.highlights = highlights;
+    }
+    if (city) {
+      existingSettings.city = city;
+    }
+
+    const updated = await prisma.event.update({
+      where: { id: event.id },
+      data: {
+        description: typeof description === "string" ? description : event.description,
+        locationName: typeof locationName === "string" ? locationName : event.locationName,
+        address: typeof address === "string" ? address : event.address,
+        settings: JSON.stringify(existingSettings),
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      event: {
+        id: updated.id,
+        code: updated.code,
+        name: updated.name,
+        description: updated.description,
+        highlights: existingSettings.highlights || [],
+      },
+    });
+  } catch (error) {
+    console.error("Error updating public event details:", error);
+    return NextResponse.json({ error: "Error al actualizar evento" }, { status: 500 });
   }
 }

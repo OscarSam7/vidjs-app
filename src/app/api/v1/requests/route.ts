@@ -491,7 +491,41 @@ export async function GET() {
       guestSession.tenant.logoUrl
     );
 
-    // 4. Calcular Flash Deals según Night Pulse de la noche
+    // Detectar si el evento es un cumpleaños, fiesta privada o evento casual para bloquear promociones comerciales
+    const isPersonalOrCasual = (() => {
+      let tSettings: any = {};
+      if (guestSession.tenant?.settings) {
+        try {
+          tSettings = JSON.parse(guestSession.tenant.settings);
+        } catch {}
+      }
+      let evSettings: any = {};
+      if (guestSession.event?.settings) {
+        try {
+          evSettings = JSON.parse(guestSession.event.settings);
+        } catch {}
+      }
+      const isPersonalParty = tSettings.isPersonalParty === true || evSettings.isPersonalParty === true;
+      const lowerEvent = (guestSession.event?.name || "").toLowerCase();
+      const lowerTenant = (guestSession.tenant?.name || "").toLowerCase();
+      const eventType = (guestSession.event?.eventType || "").toUpperCase();
+      return (
+        isPersonalParty ||
+        eventType === "PRIVADO" ||
+        eventType === "FIESTA" ||
+        lowerEvent.includes("cumple") ||
+        lowerEvent.includes("asado") ||
+        lowerEvent.includes("casual") ||
+        lowerEvent.includes("quincho") ||
+        lowerEvent.includes("amigos") ||
+        lowerTenant.includes("cumple")
+      );
+    })();
+
+    (branding as any).isCasualEvent = isPersonalOrCasual;
+    (branding as any).hideClub = isPersonalOrCasual;
+
+    // 4. Calcular Flash Deals según Night Pulse de la noche (Bloqueado en cumpleaños y eventos casuales)
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
     const recentRequestsCount = await prisma.songRequest.count({
       where: {
@@ -506,7 +540,9 @@ export async function GET() {
       requestsLast15m: recentRequestsCount,
       queuedWaiters: queuedEntries.length,
     });
-    const flashDeal = getActiveFlashDeal(pulse.level, branding.activePromo);
+    const flashDeal = isPersonalOrCasual
+      ? null
+      : getActiveFlashDeal(pulse.level, branding.activePromo);
 
     // 5. Consultar Concurso de Karaoke Activo o en Registro para la noche o establecimiento
     let activeContest = await prisma.karaokeContest.findFirst({

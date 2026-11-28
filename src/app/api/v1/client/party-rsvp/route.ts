@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Parámetro slug requerido" }, { status: 400 });
     }
 
-    const tenant = await prisma.tenant.findUnique({
+    let tenant = await prisma.tenant.findUnique({
       where: { slug },
       select: {
         id: true,
@@ -50,6 +50,28 @@ export async function GET(req: NextRequest) {
         },
       },
     });
+
+    if (!tenant) {
+      const ev = await prisma.event.findFirst({
+        where: { code: slug.toUpperCase() },
+        select: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              settings: true,
+              privatePartyRsvps: {
+                select: { id: true, hasCompanion: true },
+              },
+            },
+          },
+        },
+      });
+      if (ev?.tenant) {
+        tenant = ev.tenant;
+      }
+    }
 
     if (!tenant) {
       return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
@@ -87,10 +109,20 @@ export async function POST(req: NextRequest) {
     }
 
     const d = parsed.data;
-    const tenant = await prisma.tenant.findUnique({
+    let tenant = await prisma.tenant.findUnique({
       where: { slug: d.tenantSlug },
       select: { id: true, name: true, slug: true, settings: true },
     });
+
+    if (!tenant) {
+      const ev = await prisma.event.findFirst({
+        where: { code: d.tenantSlug.toUpperCase() },
+        select: { tenant: { select: { id: true, name: true, slug: true, settings: true } } },
+      });
+      if (ev?.tenant) {
+        tenant = ev.tenant;
+      }
+    }
 
     if (!tenant) {
       return NextResponse.json({ error: "Fiesta o evento no encontrado" }, { status: 404 });

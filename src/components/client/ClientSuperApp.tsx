@@ -233,7 +233,7 @@ export default function ClientSuperApp() {
   const [loadingExplore, setLoadingExplore] = useState(true);
   const [exploreSearch, setExploreSearch] = useState("");
   const [exploreCategory, setExploreCategory] = useState<
-    "ALL" | "LOCALES" | "RESERVAS" | "KARAOKE" | "DISCOTECAS" | "EVENTOS" | "CONCURSOS" | "OFERTAS"
+    "ALL" | "LOCALES" | "RESERVAS" | "KARAOKE" | "DISCOTECAS" | "EVENTOS" | "CONCURSOS" | "OFERTAS" | "CUMPLES"
   >("ALL");
   const [rewards, setRewards] = useState<ClubRewardItem[]>([]);
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
@@ -818,26 +818,30 @@ export default function ClientSuperApp() {
                   <Camera className="w-3.5 h-3.5 text-cyan-300" />
                   <span>Escanear PC</span>
                 </button>
+                {exploreCategory !== "CUMPLES" && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("club")}
+                    className="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-fuchsia-500/20 border border-amber-400/40 text-xs font-black text-amber-200 flex items-center gap-1.5 cursor-pointer hover:border-amber-300 transition-all"
+                  >
+                    <Crown className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{client.globalPoints} pts</span>
+                    <span className="hidden sm:inline text-[10px] px-1.5 py-0.2 rounded-full bg-black/40 text-fuchsia-300">
+                      {client.tier}
+                    </span>
+                  </button>
+                )}
+              </>
+            ) : (
+              exploreCategory !== "CUMPLES" && (
                 <button
                   type="button"
                   onClick={() => setActiveTab("club")}
-                  className="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-fuchsia-500/20 border border-amber-400/40 text-xs font-black text-amber-200 flex items-center gap-1.5 cursor-pointer hover:border-amber-300 transition-all"
+                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-fuchsia-600 text-white text-xs font-black cursor-pointer shadow-md"
                 >
-                  <Crown className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{client.globalPoints} pts</span>
-                  <span className="hidden sm:inline text-[10px] px-1.5 py-0.2 rounded-full bg-black/40 text-fuchsia-300">
-                    {client.tier}
-                  </span>
+                  Unirme Gratis
                 </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setActiveTab("club")}
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-fuchsia-600 text-white text-xs font-black cursor-pointer shadow-md"
-              >
-                Unirme Gratis
-              </button>
+              )
             )}
           </div>
         </div>
@@ -888,6 +892,9 @@ export default function ClientSuperApp() {
               v.slug.toLowerCase().includes(q);
             if (!matchesText) return false;
             const cats = v.categories || [];
+            if (exploreCategory === "CUMPLES") {
+              return v.isPersonalParty || cats.includes("FIESTAS") || v.name.toLowerCase().includes("cumple") || v.name.toLowerCase().includes("asado");
+            }
             if (exploreCategory === "ALL" || exploreCategory === "LOCALES") return true;
             if (exploreCategory === "RESERVAS") return cats.includes("RESERVAS") || (v.tablesCount || 0) > 0 || (v.reservationPackagesCount || 0) > 0;
             if (exploreCategory === "KARAOKE") return cats.includes("KARAOKE") || cats.includes("BARES");
@@ -903,6 +910,9 @@ export default function ClientSuperApp() {
               (ev.locationName || "").toLowerCase().includes(q) ||
               ev.tenant.name.toLowerCase().includes(q);
             if (!matchesText) return false;
+            if (exploreCategory === "CUMPLES") {
+              return ev.eventType === "PRIVADO" || ev.eventType === "FIESTA" || ev.name.toLowerCase().includes("cumple") || ev.name.toLowerCase().includes("asado");
+            }
             if (exploreCategory === "ALL" || exploreCategory === "EVENTOS") return true;
             if (exploreCategory === "KARAOKE") return ev.name.toLowerCase().includes("karaoke");
             if (exploreCategory === "DISCOTECAS") return ev.name.toLowerCase().includes("dj") || ev.name.toLowerCase().includes("electro") || ev.name.toLowerCase().includes("fiesta");
@@ -915,6 +925,7 @@ export default function ClientSuperApp() {
               c.name.toLowerCase().includes(q) ||
               c.tenant.name.toLowerCase().includes(q);
             if (!matchesText) return false;
+            if (exploreCategory === "CUMPLES") return false;
             return exploreCategory === "ALL" || exploreCategory === "CONCURSOS" || exploreCategory === "KARAOKE";
           });
 
@@ -925,6 +936,7 @@ export default function ClientSuperApp() {
               (d.subtitle || "").toLowerCase().includes(q) ||
               d.tenant.name.toLowerCase().includes(q);
             if (!matchesText) return false;
+            if (exploreCategory === "CUMPLES") return false;
             return exploreCategory === "ALL" || exploreCategory === "OFERTAS";
           });
 
@@ -936,16 +948,19 @@ export default function ClientSuperApp() {
               p.locationName.toLowerCase().includes(q) ||
               p.organizerName.toLowerCase().includes(q);
             if (!matchesText) return false;
+            if (exploreCategory === "CUMPLES") {
+              return p.eventType?.toLowerCase().includes("cumple") || p.eventName.toLowerCase().includes("cumple");
+            }
             if (exploreCategory === "ALL" || exploreCategory === "EVENTOS") return true;
             if (exploreCategory === "KARAOKE") return p.eventName.toLowerCase().includes("karaoke") || p.eventType.toLowerCase().includes("karaoke");
             if (exploreCategory === "DISCOTECAS") return p.eventType.toLowerCase().includes("fiesta") || p.eventType.toLowerCase().includes("festival") || p.eventType.toLowerCase().includes("concierto");
             return false;
           });
 
-          const showVenuesSection = ["ALL", "LOCALES", "RESERVAS", "KARAOKE", "DISCOTECAS"].includes(exploreCategory);
-          const showEventsSection = ["ALL", "EVENTOS", "KARAOKE", "DISCOTECAS"].includes(exploreCategory);
-          const showContestsSection = ["ALL", "CONCURSOS", "KARAOKE"].includes(exploreCategory);
-          const showDealsSection = ["ALL", "OFERTAS"].includes(exploreCategory);
+          const showVenuesSection = ["ALL", "LOCALES", "RESERVAS", "KARAOKE", "DISCOTECAS", "CUMPLES"].includes(exploreCategory);
+          const showEventsSection = ["ALL", "EVENTOS", "KARAOKE", "DISCOTECAS", "CUMPLES"].includes(exploreCategory);
+          const showContestsSection = ["ALL", "CONCURSOS", "KARAOKE"].includes(exploreCategory) && exploreCategory !== "CUMPLES";
+          const showDealsSection = ["ALL", "OFERTAS"].includes(exploreCategory) && exploreCategory !== "CUMPLES";
 
           const activeHeroSlide = featuredSlides.length > 0 ? featuredSlides[heroSlideIdx % featuredSlides.length] : null;
 
@@ -1028,6 +1043,7 @@ export default function ClientSuperApp() {
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
               {[
                 { id: "ALL", label: "Todos" },
+                { id: "CUMPLES", label: "🎂 Cumpleaños & Casual" },
                 { id: "LOCALES", label: "Locales" },
                 { id: "RESERVAS", label: "Reservar Mesas y Camarotes" },
                 { id: "KARAOKE", label: "Karaoke & Bares" },
@@ -2007,16 +2023,18 @@ export default function ClientSuperApp() {
             <span>Cabina DJ</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("club")}
-            className={`py-1.5 rounded-xl flex flex-col items-center gap-0.5 text-[10px] font-black transition-all cursor-pointer ${
-              activeTab === "club" ? "text-amber-300 bg-amber-400/10" : "text-zinc-400 hover:text-white"
-            }`}
-          >
-            <Crown className="w-5 h-5" />
-            <span>Club VIP</span>
-          </button>
+          {exploreCategory !== "CUMPLES" && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("club")}
+              className={`py-1.5 rounded-xl flex flex-col items-center gap-0.5 text-[10px] font-black transition-all cursor-pointer ${
+                activeTab === "club" ? "text-amber-300 bg-amber-400/10" : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Crown className="w-5 h-5" />
+              <span>Club VIP</span>
+            </button>
+          )}
         </div>
       </nav>
       {/* Modal Escáner de Cámara en Vivo para Conectar PC con QR */}
