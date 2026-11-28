@@ -72,6 +72,9 @@ export async function GET() {
             select: {
               events: { where: { status: "ACTIVE" } },
               clubRewards: { where: { active: true } },
+              reservationPackages: { where: { active: true } },
+              tables: { where: { active: true } },
+              karaokeContests: { where: { status: { in: ["ACTIVE", "REGISTRATION"] } } },
             },
           },
         },
@@ -129,6 +132,24 @@ export async function GET() {
                   ).toFixed(1)
                 )
               : 0;
+          const lowerName = t.name.toLowerCase();
+          const categories: string[] = ["LOCALES"];
+          if (lowerName.includes("karaoke") || (t._count?.karaokeContests || 0) > 0) {
+            categories.push("KARAOKE");
+          }
+          if (lowerName.includes("bar") || lowerName.includes("lounge") || lowerName.includes("pub")) {
+            categories.push("BARES");
+          }
+          if (lowerName.includes("rumba") || lowerName.includes("club") || lowerName.includes("stage") || lowerName.includes("disco")) {
+            categories.push("DISCOTECAS");
+          }
+          if (lowerName.includes("cumple") || lowerName.includes("fiesta") || lowerName.includes("quincho")) {
+            categories.push("FIESTAS");
+          }
+          if ((t._count?.reservationPackages || 0) > 0 || (t._count?.tables || 0) > 0) {
+            categories.push("RESERVAS");
+          }
+
           return {
             id: t.id,
             name: t.name,
@@ -141,6 +162,9 @@ export async function GET() {
             reviewsCount: revCount,
             hasLiveEvent: (t._count?.events || 0) > 0,
             rewardsCount: t._count?.clubRewards || 0,
+            reservationPackagesCount: t._count?.reservationPackages || 0,
+            tablesCount: t._count?.tables || 0,
+            categories,
           };
         }),
       },

@@ -38,6 +38,7 @@ import {
   Star,
   ExternalLink,
   X,
+  Search,
 } from "lucide-react";
 import { CynkoLogo } from "@/components/ui/ZynkoLogo";
 import { QRCodeImage } from "@/components/ui/QRCodeImage";
@@ -144,6 +145,9 @@ interface ExploreData {
     reviewsCount?: number;
     hasLiveEvent: boolean;
     rewardsCount: number;
+    reservationPackagesCount?: number;
+    tablesCount?: number;
+    categories?: string[];
   }>;
 }
 
@@ -204,6 +208,10 @@ export default function ClientSuperApp() {
   // Explore & Club Data
   const [exploreData, setExploreData] = useState<ExploreData | null>(null);
   const [loadingExplore, setLoadingExplore] = useState(true);
+  const [exploreSearch, setExploreSearch] = useState("");
+  const [exploreCategory, setExploreCategory] = useState<
+    "ALL" | "LOCALES" | "RESERVAS" | "KARAOKE" | "DISCOTECAS" | "EVENTOS" | "CONCURSOS" | "OFERTAS"
+  >("ALL");
   const [rewards, setRewards] = useState<ClubRewardItem[]>([]);
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
 
@@ -738,25 +746,112 @@ export default function ClientSuperApp() {
       {/* CONTENIDO PRINCIPAL */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-4 space-y-6">
         {/* ============================================================ */}
-        {/* PESTAÑA 1: EXPLORAR (EVENTOS, CONCURSOS, FLASH DEALS, LOCALES) */}
+        {/* PESTAÑA 1: EXPLORAR (LOCALES, EVENTOS, RESERVAS, CONCURSOS)  */}
         {/* ============================================================ */}
-        {activeTab === "explore" && (
+        {activeTab === "explore" && (() => {
+          const q = exploreSearch.trim().toLowerCase();
+
+          const filteredVenues = (exploreData?.venues || []).filter((v) => {
+            const matchesText =
+              !q ||
+              v.name.toLowerCase().includes(q) ||
+              (v.address || "").toLowerCase().includes(q) ||
+              v.slug.toLowerCase().includes(q);
+            if (!matchesText) return false;
+            const cats = v.categories || [];
+            if (exploreCategory === "ALL" || exploreCategory === "LOCALES") return true;
+            if (exploreCategory === "RESERVAS") return cats.includes("RESERVAS") || (v.tablesCount || 0) > 0 || (v.reservationPackagesCount || 0) > 0;
+            if (exploreCategory === "KARAOKE") return cats.includes("KARAOKE") || cats.includes("BARES");
+            if (exploreCategory === "DISCOTECAS") return cats.includes("DISCOTECAS") || cats.includes("FIESTAS");
+            return false;
+          });
+
+          const filteredEvents = (exploreData?.events || []).filter((ev) => {
+            const matchesText =
+              !q ||
+              ev.name.toLowerCase().includes(q) ||
+              (ev.description || "").toLowerCase().includes(q) ||
+              (ev.locationName || "").toLowerCase().includes(q) ||
+              ev.tenant.name.toLowerCase().includes(q);
+            if (!matchesText) return false;
+            if (exploreCategory === "ALL" || exploreCategory === "EVENTOS") return true;
+            if (exploreCategory === "KARAOKE") return ev.name.toLowerCase().includes("karaoke");
+            if (exploreCategory === "DISCOTECAS") return ev.name.toLowerCase().includes("dj") || ev.name.toLowerCase().includes("electro") || ev.name.toLowerCase().includes("fiesta");
+            return false;
+          });
+
+          const filteredContests = (exploreData?.contests || []).filter((c) => {
+            const matchesText =
+              !q ||
+              c.name.toLowerCase().includes(q) ||
+              c.tenant.name.toLowerCase().includes(q);
+            if (!matchesText) return false;
+            return exploreCategory === "ALL" || exploreCategory === "CONCURSOS" || exploreCategory === "KARAOKE";
+          });
+
+          const filteredDeals = (exploreData?.flashDeals || []).filter((d) => {
+            const matchesText =
+              !q ||
+              d.title.toLowerCase().includes(q) ||
+              (d.subtitle || "").toLowerCase().includes(q) ||
+              d.tenant.name.toLowerCase().includes(q);
+            if (!matchesText) return false;
+            return exploreCategory === "ALL" || exploreCategory === "OFERTAS";
+          });
+
+          const showVenuesSection = ["ALL", "LOCALES", "RESERVAS", "KARAOKE", "DISCOTECAS"].includes(exploreCategory);
+          const showEventsSection = ["ALL", "EVENTOS", "KARAOKE", "DISCOTECAS"].includes(exploreCategory);
+          const showContestsSection = ["ALL", "CONCURSOS", "KARAOKE"].includes(exploreCategory);
+          const showDealsSection = ["ALL", "OFERTAS"].includes(exploreCategory);
+
+          return (
           <div className="space-y-6">
-            {/* Hero Rápido de la Super App */}
+            {/* Hero Rápido de la Super App + Buscador Global */}
             <div className="rounded-3xl bg-gradient-to-br from-fuchsia-950/60 via-zinc-900 to-amber-950/40 border border-white/10 p-5 sm:p-6 shadow-2xl relative overflow-hidden">
-              <div className="max-w-xl space-y-2.5 relative z-10">
+              <div className="max-w-2xl space-y-3 relative z-10">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-300 text-[10px] font-black uppercase tracking-wider">
                   <Flame className="w-3.5 h-3.5" />
                   <span>Tu noche en una sola app</span>
                 </span>
                 <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">
-                  Eventos, Entradas, Cabina DJ y Puntos VIP
+                  Locales, Eventos, Entradas, Cabina DJ y Puntos VIP
                 </h1>
                 <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
-                  Descubre dónde salir hoy, compra tus entradas, mezcla música con tu propia{" "}
-                  <strong className="text-amber-300">Cabina DJ (Bandeja A &amp; B)</strong> y acumula puntos por cada consumo en locales CYNKO.
+                  Explora bares, discotecas y locales CYNKO, reserva mesas o camarotes VIP, compra entradas, mezcla en tu{" "}
+                  <strong className="text-amber-300">Cabina DJ (Bandeja A &amp; B)</strong> y acumula puntos.
                 </p>
-                <div className="flex flex-wrap gap-2 pt-2">
+
+                {/* Buscador unificado de Locales, Eventos y Categorías */}
+                <div className="relative pt-1">
+                  <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 mt-0.5 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={exploreSearch}
+                    onChange={(e) => setExploreSearch(e.target.value)}
+                    placeholder="Buscar locales, eventos, karaoke, camarotes o dirección..."
+                    className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-zinc-950/90 border border-white/15 focus:border-amber-400 text-xs sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none shadow-inner"
+                  />
+                  {exploreSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setExploreSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-zinc-400 hover:text-white cursor-pointer"
+                      aria-label="Limpiar búsqueda"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setExploreCategory("RESERVAS")}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white text-xs font-black flex items-center gap-2 cursor-pointer shadow-lg"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span>Reservar Mesa / Camarote</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => setActiveTab("dj")}
@@ -776,8 +871,160 @@ export default function ClientSuperApp() {
               </div>
             </div>
 
-            {/* FLASH DEALS ACTIVOS (FASE 3) */}
-            {exploreData && exploreData.flashDeals.length > 0 && (
+            {/* Píldoras de Categorías */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {[
+                { id: "ALL", label: "Todos" },
+                { id: "LOCALES", label: "Locales" },
+                { id: "RESERVAS", label: "Reservar Mesas y Camarotes" },
+                { id: "KARAOKE", label: "Karaoke & Bares" },
+                { id: "DISCOTECAS", label: "Discotecas & Fiestas" },
+                { id: "EVENTOS", label: "Eventos & Entradas" },
+                { id: "CONCURSOS", label: "Concursos" },
+                { id: "OFERTAS", label: "Ofertas Relámpago" },
+              ].map((cat) => {
+                const active = exploreCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setExploreCategory(cat.id as any)}
+                    className={`px-3.5 py-2 rounded-full text-xs font-black whitespace-nowrap shrink-0 border transition-all cursor-pointer ${
+                      active
+                        ? "bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white border-purple-400 shadow-md"
+                        : "bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 border-zinc-800 hover:text-white"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* LOCALES EN CYNKO — RESERVAR MESAS Y CAMAROTES VIP */}
+            {showVenuesSection && (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                    <Store className="w-4 h-4 text-cyan-400" />
+                    <span>
+                      {exploreCategory === "RESERVAS"
+                        ? "Reserva tu Mesa o Camarote VIP"
+                        : "Locales en CYNKO · Mesas y Camarotes"}
+                    </span>
+                  </h2>
+                  <span className="text-[11px] font-bold text-zinc-400">
+                    {filteredVenues.length} {filteredVenues.length === 1 ? "local" : "locales"}
+                  </span>
+                </div>
+
+                {loadingExplore ? (
+                  <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 text-center text-xs text-zinc-400">
+                    Cargando locales CYNKO...
+                  </div>
+                ) : filteredVenues.length === 0 ? (
+                  <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 text-center text-xs text-zinc-400">
+                    No encontramos locales para esta búsqueda o categoría.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                    {filteredVenues.map((v) => (
+                      <div
+                        key={v.id}
+                        className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-purple-500/50 flex flex-col justify-between gap-3 transition-all shadow-lg"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {v.logoUrl ? (
+                                <img
+                                  src={v.logoUrl}
+                                  alt={v.name}
+                                  className="w-10 h-10 rounded-xl object-cover border border-zinc-700 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600/30 to-fuchsia-600/30 border border-purple-500/40 flex items-center justify-center text-xs font-black text-purple-200 shrink-0">
+                                  {v.name.slice(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <h3 className="text-sm font-black text-white truncate">{v.name}</h3>
+                                  {v.hasLiveEvent && (
+                                    <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-black text-emerald-300 shrink-0">
+                                      EN VIVO
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-zinc-400 truncate mt-0.5 flex items-center gap-1">
+                                  <MapPin className="w-3 h-3 text-zinc-500 shrink-0" />
+                                  <span className="truncate">{v.address || "Local adherido CYNKO"}</span>
+                                </p>
+                              </div>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-400/30 text-[11px] font-black text-amber-300 inline-flex items-center gap-1 shrink-0">
+                              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                              <span>{v.reviewsCount && v.reviewsCount > 0 ? `${v.avgRating} (${v.reviewsCount})` : "Nuevo"}</span>
+                            </span>
+                          </div>
+
+                          {/* Insignias de servicios del local */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {(v.reservationPackagesCount || 0) > 0 && (
+                              <span className="px-2 py-0.5 rounded-md bg-fuchsia-500/15 border border-fuchsia-500/30 text-[10px] font-bold text-fuchsia-300">
+                                {v.reservationPackagesCount} Combos / Camarotes VIP
+                              </span>
+                            )}
+                            {(v.tablesCount || 0) > 0 && (
+                              <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-[10px] font-bold text-cyan-300">
+                                {v.tablesCount} Mesas QR
+                              </span>
+                            )}
+                            {v.rewardsCount > 0 && (
+                              <span className="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[10px] font-bold text-amber-300">
+                                {v.rewardsCount} Premios Club
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-zinc-800/80">
+                          <Link
+                            href={`/reservas/${v.slug}`}
+                            className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-md transition-all"
+                          >
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span>Reservar Mesa / Camarote</span>
+                          </Link>
+
+                          <div className="flex items-center justify-between gap-2">
+                            <Link
+                              href={`/guest?venue=${v.slug}`}
+                              className="flex-1 py-1.5 px-2.5 rounded-xl bg-zinc-800/90 hover:bg-purple-600/25 border border-zinc-700 hover:border-purple-400/50 text-purple-200 text-[11px] font-bold inline-flex items-center justify-center gap-1 transition-colors"
+                            >
+                              <QrCode className="w-3 h-3" />
+                              <span>Estoy en Mesa</span>
+                            </Link>
+
+                            <button
+                              type="button"
+                              onClick={() => openReviewModal(v)}
+                              className="py-1.5 px-3 rounded-xl bg-zinc-800/90 hover:bg-amber-500/20 border border-zinc-700 hover:border-amber-400/50 text-amber-200 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                            >
+                              <Star className="w-3 h-3 text-amber-400" />
+                              <span>Opinar</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* OFERTAS RELÁMPAGO ACTIVAS */}
+            {showDealsSection && filteredDeals.length > 0 && (
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-black uppercase tracking-wider text-amber-300 flex items-center gap-2">
@@ -786,7 +1033,7 @@ export default function ClientSuperApp() {
                   </h2>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {exploreData.flashDeals.map((deal) => (
+                  {filteredDeals.map((deal) => (
                     <div
                       key={deal.id}
                       className="p-4 rounded-2xl bg-gradient-to-br from-amber-950/70 via-zinc-900 to-fuchsia-950/40 border border-amber-400/50 shadow-lg space-y-2"
@@ -819,28 +1066,29 @@ export default function ClientSuperApp() {
             )}
 
             {/* EVENTOS Y FIESTAS */}
-            <section className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
-                  <Ticket className="w-4 h-4 text-fuchsia-400" />
-                  <span>Eventos, Fiestas &amp; Entradas</span>
-                </h2>
-                <Link href="/eventos" className="text-xs font-bold text-fuchsia-400 hover:text-fuchsia-300">
-                  Ver todos &rarr;
-                </Link>
-              </div>
+            {showEventsSection && (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                    <Ticket className="w-4 h-4 text-fuchsia-400" />
+                    <span>Eventos, Fiestas &amp; Entradas</span>
+                  </h2>
+                  <Link href="/eventos" className="text-xs font-bold text-fuchsia-400 hover:text-fuchsia-300">
+                    Ver todos &rarr;
+                  </Link>
+                </div>
 
-              {loadingExplore ? (
-                <div className="p-8 rounded-2xl bg-zinc-900/50 border border-zinc-800 text-center text-xs text-zinc-400">
-                  Cargando eventos en vivo...
-                </div>
-              ) : !exploreData || exploreData.events.length === 0 ? (
-                <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 text-center text-xs text-zinc-400">
-                  Próximamente nuevos eventos y fiestas publicadas por los locales CYNKO.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                  {exploreData.events.map((ev) => (
+                {loadingExplore ? (
+                  <div className="p-8 rounded-2xl bg-zinc-900/50 border border-zinc-800 text-center text-xs text-zinc-400">
+                    Cargando eventos en vivo...
+                  </div>
+                ) : filteredEvents.length === 0 ? (
+                  <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 text-center text-xs text-zinc-400">
+                    {q ? "No hay eventos que coincidan con tu búsqueda." : "Próximamente nuevos eventos y fiestas publicadas por los locales CYNKO."}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                    {filteredEvents.map((ev) => (
                     <Link
                       key={ev.id}
                       href={`/eventos/${ev.code}`}
@@ -900,22 +1148,23 @@ export default function ClientSuperApp() {
                       </div>
                     </Link>
                   ))}
-                </div>
-              )}
-            </section>
+                  </div>
+                )}
+              </section>
+            )}
 
             {/* CONCURSOS DE KARAOKE */}
-            {exploreData && exploreData.contests.length > 0 && (
+            {showContestsSection && filteredContests.length > 0 && (
               <section className="space-y-3">
                 <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-amber-400" />
                   <span>Concursos &amp; Certámenes en Vivo</span>
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {exploreData.contests.map((c) => (
+                  {filteredContests.map((c) => (
                     <Link
                       key={c.id}
-                      href="/guest"
+                      href={`/guest?venue=${c.tenant.slug}`}
                       className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/50 via-zinc-900 to-zinc-900 border border-amber-500/40 hover:border-amber-400 transition-all flex items-center justify-between gap-3"
                     >
                       <div className="min-w-0">
@@ -935,72 +1184,9 @@ export default function ClientSuperApp() {
                 </div>
               </section>
             )}
-
-            {/* LOCALES ADHERIDOS CYNKO CLUB */}
-            {exploreData && exploreData.venues.length > 0 && (
-              <section className="space-y-3">
-                <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
-                  <Store className="w-4 h-4 text-cyan-400" />
-                  <span>Locales donde acumulas puntos CYNKO Club</span>
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {exploreData.venues.map((v) => (
-                    <div
-                      key={v.id}
-                      className="p-3.5 rounded-2xl bg-zinc-900/75 border border-zinc-800 flex flex-col justify-between gap-2.5"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-black text-white truncate">{v.name}</h3>
-                            {v.hasLiveEvent && (
-                              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse" title="Evento en vivo" />
-                            )}
-                          </div>
-                          <p className="text-[11px] text-zinc-400 truncate mt-0.5">
-                            {v.address || "Local adherido CYNKO Club"}
-                          </p>
-                        </div>
-                        <span className="px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-400/30 text-[11px] font-black text-amber-300 inline-flex items-center gap-1 shrink-0">
-                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                          <span>{v.reviewsCount && v.reviewsCount > 0 ? `${v.avgRating} (${v.reviewsCount})` : "Nuevo"}</span>
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-800/80">
-                        <button
-                          type="button"
-                          onClick={() => openReviewModal(v)}
-                          className="px-2.5 py-1.5 rounded-xl bg-zinc-800/90 hover:bg-amber-500/20 border border-zinc-700 hover:border-amber-400/50 text-amber-200 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
-                        >
-                          <Star className="w-3 h-3 text-amber-400" />
-                          <span>Opinar</span>
-                        </button>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <Link
-                            href={`/guest?venue=${v.slug}`}
-                            className="px-2.5 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600 border border-purple-500/40 text-purple-200 hover:text-white text-[11px] font-bold inline-flex items-center gap-1 transition-colors"
-                          >
-                            <QrCode className="w-3 h-3" />
-                            <span>Mesa</span>
-                          </Link>
-
-                          <Link
-                            href={`/reservas/${v.slug}`}
-                            className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-fuchsia-600 text-white text-[11px] font-bold transition-colors"
-                          >
-                            Reservar
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
           </div>
-        )}
+          );
+        })()}
 
         {/* ============================================================ */}
         {/* PESTAÑA 2: CABINA DJ PERSONAL (BANDEJA A & B PARA REGISTRADOS) */}
