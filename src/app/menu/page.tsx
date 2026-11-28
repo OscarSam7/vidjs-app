@@ -230,10 +230,12 @@ function CustomerMenuPwaContent() {
   });
 
   const openProductModal = (product: any) => {
+    const defaultOptions = parseOptions(product?.optionsJson);
     setCustomizingProduct(product);
     setCustomQty(1);
     setCustomObservations("");
-    setCustomExtras([]);
+    // Las opciones adicionales vienen añadidas por defecto para que el cliente pueda quitarlas o volver a agregarlas con un toque
+    setCustomExtras(defaultOptions);
   };
 
   const toggleExtra = (extra: ExtraOption) => {
@@ -246,12 +248,23 @@ function CustomerMenuPwaContent() {
 
   const addToCart = () => {
     if (!customizingProduct) return;
+    const allOpts = parseOptions(customizingProduct.optionsJson);
+    const removedIncludedOpts = allOpts.filter(
+      (opt) => (opt.priceCents || 0) === 0 && !customExtras.some((e) => e.id === opt.id)
+    );
+    const removedNote =
+      removedIncludedOpts.length > 0
+        ? `Sin: ${removedIncludedOpts.map((o) => o.name).join(", ")}`
+        : "";
+    const manualObs = customObservations.trim();
+    const combinedObs = [removedNote, manualObs].filter(Boolean).join(" • ");
+
     const newItem: CartItem = {
       cartItemId: `${customizingProduct.id}-${Date.now()}-${Math.random()}`,
       product: customizingProduct,
       quantity: customQty,
       selectedExtras: customExtras,
-      observations: customObservations.trim(),
+      observations: combinedObs,
     };
     setCart((prev) => [...prev, newItem]);
     setCustomizingProduct(null);
@@ -662,28 +675,79 @@ function CustomerMenuPwaContent() {
             </div>
 
             {customizingOptions.length > 0 && (
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-300 block">
-                  Opciones Adicionales:
-                </label>
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <label className="text-xs font-bold text-zinc-200 block">
+                      Opciones Adicionales
+                    </label>
+                    <span className="text-[11px] text-zinc-400">
+                      Vienen incluidas por defecto · Toca la casilla para quitar o agregar
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/35 text-[10px] font-bold text-purple-300 shrink-0">
+                    {customExtras.length}/{customizingOptions.length}
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 gap-2">
                   {customizingOptions.map((opt) => {
                     const checked = customExtras.some((e) => e.id === opt.id);
                     return (
-                      <label
+                      <button
                         key={opt.id}
+                        type="button"
+                        role="checkbox"
+                        aria-checked={checked}
                         onClick={() => toggleExtra(opt)}
-                        className={`p-3 rounded-xl border text-xs flex items-center justify-between cursor-pointer transition ${
+                        className={`w-full p-3 rounded-xl border text-left flex items-center justify-between gap-3 cursor-pointer transition-all active:scale-[0.99] ${
                           checked
-                            ? "bg-purple-600/20 border-purple-500 text-white"
-                            : "bg-zinc-950 border-white/10 text-zinc-300"
+                            ? "bg-purple-600/20 border-purple-500/80 text-white shadow-sm"
+                            : "bg-zinc-950/90 border-white/10 text-zinc-400 hover:border-white/20"
                         }`}
                       >
-                        <span>{opt.name}</span>
-                        <span className="font-bold text-emerald-400">
-                          +{formatGuaranies(opt.priceCents)}
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Casillita táctil (Touch Checkbox) */}
+                          <span
+                            className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+                              checked
+                                ? "bg-purple-600 border-purple-400 text-white shadow-md shadow-purple-600/30"
+                                : "bg-zinc-900 border-zinc-600 text-transparent"
+                            }`}
+                          >
+                            <Check className="w-4 h-4 stroke-[3]" />
+                          </span>
+                          <div className="min-w-0">
+                            <div
+                              className={`text-xs font-bold truncate ${
+                                checked ? "text-white" : "text-zinc-400 line-through"
+                              }`}
+                            >
+                              {opt.name}
+                            </div>
+                            <div
+                              className={`text-[10px] font-semibold ${
+                                checked ? "text-emerald-400" : "text-zinc-500"
+                              }`}
+                            >
+                              {checked ? "Añadido · Toca para quitar" : "Quitado · Toca para agregar"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <span
+                          className={`text-xs font-bold shrink-0 ${
+                            opt.priceCents > 0
+                              ? checked
+                                ? "text-emerald-400"
+                                : "text-zinc-500 line-through"
+                              : checked
+                              ? "text-purple-300"
+                              : "text-zinc-500"
+                          }`}
+                        >
+                          {opt.priceCents > 0 ? `+${formatGuaranies(opt.priceCents)}` : "Incluido"}
                         </span>
-                      </label>
+                      </button>
                     );
                   })}
                 </div>
