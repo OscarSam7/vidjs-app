@@ -30,6 +30,10 @@ import {
   Layers,
   Eye,
   EyeOff,
+  MapPin,
+  Phone,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
 import { VipSelectModal } from "@/components/ui/VipSelectModal";
 
@@ -38,6 +42,9 @@ interface VenueItem {
   name: string;
   slug: string;
   address?: string | null;
+  phone?: string | null;
+  whatsappNumber?: string | null;
+  googleReviewUrl?: string | null;
 }
 
 interface EventItem {
@@ -75,7 +82,9 @@ export default function EventsManagementPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isVenueModalOpen, setIsVenueModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
+  const [editingVenue, setEditingVenue] = useState<VenueItem | null>(null);
 
   // Estados de formularios
   const [formData, setFormData] = useState({
@@ -88,9 +97,73 @@ export default function EventsManagementPage() {
     pin: "",
     status: "ACTIVE" as "DRAFT" | "ACTIVE" | "PAUSED" | "FINISHED",
   });
+  const [venueFormData, setVenueFormData] = useState({
+    name: "",
+    address: "",
+    phone: "",
+    whatsappNumber: "",
+    googleReviewUrl: "",
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittingVenue, setIsSubmittingVenue] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [visiblePins, setVisiblePins] = useState<Record<string, boolean>>({});
+
+  // Abrir modal de edición/creación de sede
+  const handleOpenVenueModal = (venue?: VenueItem) => {
+    if (venue) {
+      setEditingVenue(venue);
+      setVenueFormData({
+        name: venue.name || "",
+        address: venue.address || "",
+        phone: venue.phone || "",
+        whatsappNumber: venue.whatsappNumber || "",
+        googleReviewUrl: venue.googleReviewUrl || "",
+      });
+    } else {
+      setEditingVenue(null);
+      setVenueFormData({
+        name: "",
+        address: "",
+        phone: "",
+        whatsappNumber: "",
+        googleReviewUrl: "",
+      });
+    }
+    setIsVenueModalOpen(true);
+  };
+
+  // Guardar sede (crear o editar)
+  const handleSaveVenue = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!venueFormData.name.trim()) {
+      showFeedback("error", "El nombre de la sede es obligatorio.");
+      return;
+    }
+    setIsSubmittingVenue(true);
+    try {
+      const isEdit = Boolean(editingVenue?.id);
+      const res = await fetch("/api/v1/venues", {
+        method: isEdit ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingVenue?.id,
+          ...venueFormData,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.message || "Error al guardar sede.");
+      }
+      showFeedback("success", json.message || "Sede guardada exitosamente.");
+      setIsVenueModalOpen(false);
+      await fetchEvents();
+    } catch (err: any) {
+      showFeedback("error", err.message || "Error al procesar la sede.");
+    } finally {
+      setIsSubmittingVenue(false);
+    }
+  };
 
   // Cargar eventos y sedes
   const fetchEvents = async () => {
@@ -423,6 +496,15 @@ export default function EventsManagementPage() {
           </button>
 
           <button
+            onClick={() => handleOpenVenueModal(venues[0])}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-purple-500/40 text-purple-200 hover:text-white font-bold text-xs sm:text-sm transition-all cursor-pointer shadow-sm"
+            title="Editar sede o local físico del establecimiento"
+          >
+            <Building2 className="w-4 h-4 text-purple-400" />
+            <span>Editar Sede / Local</span>
+          </button>
+
+          <button
             onClick={handleOpenCreateModal}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-purple-950/60 transition-all cursor-pointer active:scale-95"
           >
@@ -601,9 +683,19 @@ export default function EventsManagementPage() {
 
                   {/* Sede y Horarios */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs text-zinc-300">
-                    <div className="flex items-center gap-2 p-2 rounded-xl bg-zinc-900/70 border border-zinc-850">
-                      <Building2 className="w-4 h-4 text-purple-400 shrink-0" />
-                      <span className="truncate font-semibold">{event.venue.name}</span>
+                    <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-zinc-900/70 border border-zinc-850">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Building2 className="w-4 h-4 text-purple-400 shrink-0" />
+                        <span className="truncate font-semibold">{event.venue.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenVenueModal(event.venue)}
+                        className="text-[10px] text-purple-400 hover:text-purple-300 font-bold underline cursor-pointer shrink-0"
+                        title="Editar nombre y datos de esta sede física"
+                      >
+                        Editar sede
+                      </button>
                     </div>
 
                     <div className="flex items-center gap-2 p-2 rounded-xl bg-zinc-900/70 border border-zinc-850">
@@ -785,7 +877,31 @@ export default function EventsManagementPage() {
 
               {/* Sede / Local */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-300">Sede / Local Físico *</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-zinc-300">Sede / Local Físico *</label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const v = venues.find((item) => item.id === formData.venueId) || venues[0];
+                        handleOpenVenueModal(v);
+                      }}
+                      className="text-[11px] text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      <span>Editar sede</span>
+                    </button>
+                    <span className="text-zinc-600">&bull;</span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenVenueModal()}
+                      className="text-[11px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Nueva</span>
+                    </button>
+                  </div>
+                </div>
                 <VipSelectModal
                   value={formData.venueId}
                   onChange={(val) => setFormData({ ...formData, venueId: val })}
@@ -984,7 +1100,20 @@ export default function EventsManagementPage() {
 
               {/* Sede / Local */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-300">Sede / Local Físico</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-zinc-300">Sede / Local Físico</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const v = venues.find((item) => item.id === formData.venueId) || venues[0];
+                      handleOpenVenueModal(v);
+                    }}
+                    className="text-[11px] text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    <span>Editar datos de la sede</span>
+                  </button>
+                </div>
                 <VipSelectModal
                   value={formData.venueId}
                   onChange={(val) => setFormData({ ...formData, venueId: val })}
@@ -1180,6 +1309,138 @@ export default function EventsManagementPage() {
                 {isSubmitting ? "Eliminando..." : "Sí, Eliminar Evento"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDITAR / CREAR SEDE O LOCAL FÍSICO */}
+      {isVenueModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-zinc-950 border border-purple-500/40 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setIsVenueModalOpen(false)}
+              className="absolute top-4 right-4 text-zinc-500 hover:text-white p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-600/20 text-purple-300 border border-purple-500/40 text-[11px] font-black uppercase">
+                <Building2 className="w-3.5 h-3.5" />
+                <span>{editingVenue?.id ? "Editar Sede Física" : "Nueva Sede / Local"}</span>
+              </div>
+              <h2 className="text-xl font-black text-white">
+                {editingVenue?.id ? "Datos del Local / Sede" : "Registrar Nueva Sede"}
+              </h2>
+              <p className="text-xs text-zinc-400">
+                {editingVenue?.id
+                  ? `Modifica el nombre, dirección y canales de contacto de "${editingVenue.name}".`
+                  : "Crea una nueva sucursal o sede física para albergar eventos y mesas."}
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveVenue} className="space-y-4">
+              {/* Nombre de la Sede */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-zinc-300">Nombre del Local / Sede *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="ej. Sede Central, Retro Bar, Salón VIP..."
+                  value={venueFormData.name}
+                  onChange={(e) => setVenueFormData({ ...venueFormData, name: e.target.value })}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500 font-bold"
+                />
+              </div>
+
+              {/* Dirección Física */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-zinc-300 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Dirección Física / Ubicación</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="ej. Av. Mariscal López 1234 c/ San Martín, Asunción"
+                  value={venueFormData.address}
+                  onChange={(e) => setVenueFormData({ ...venueFormData, address: e.target.value })}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              {/* WhatsApp y Teléfono */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-zinc-300 flex items-center gap-1">
+                    <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>WhatsApp de Reservas</span>
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="ej. +595 981 123456"
+                    value={venueFormData.whatsappNumber}
+                    onChange={(e) => setVenueFormData({ ...venueFormData, whatsappNumber: e.target.value })}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-zinc-300">Teléfono Central (Opcional)</label>
+                  <input
+                    type="tel"
+                    placeholder="ej. 021 600 000"
+                    value={venueFormData.phone}
+                    onChange={(e) => setVenueFormData({ ...venueFormData, phone: e.target.value })}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Enlace Google Maps / Reseñas */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-zinc-300 flex items-center gap-1">
+                  <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Enlace de Reseñas de Google Maps (Opcional)</span>
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://g.page/r/.../review"
+                  value={venueFormData.googleReviewUrl}
+                  onChange={(e) => setVenueFormData({ ...venueFormData, googleReviewUrl: e.target.value })}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500"
+                />
+                <span className="text-[10px] text-zinc-500 block">
+                  Permite a tus clientes dejar reseñas 5 estrellas directas desde la Super App.
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setIsVenueModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-zinc-300 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingVenue}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm cursor-pointer shadow-lg shadow-purple-950/60 flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSubmittingVenue ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Guardando Sede...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>{editingVenue?.id ? "Guardar Cambios de Sede" : "Crear Sede"}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

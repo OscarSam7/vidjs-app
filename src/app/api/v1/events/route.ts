@@ -53,6 +53,9 @@ export async function GET(req: NextRequest) {
             name: true,
             slug: true,
             address: true,
+            phone: true,
+            whatsappNumber: true,
+            googleReviewUrl: true,
           },
         },
         _count: {
@@ -78,6 +81,9 @@ export async function GET(req: NextRequest) {
         name: true,
         slug: true,
         address: true,
+        phone: true,
+        whatsappNumber: true,
+        googleReviewUrl: true,
       },
       orderBy: { name: "asc" },
     });
