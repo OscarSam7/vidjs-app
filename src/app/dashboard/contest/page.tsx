@@ -1514,9 +1514,9 @@ export default function ContestDashboardPage() {
               </div>
             </button>
 
-            {/* Menú Flotante Ultra Moderno (Superpuesto encima de todo con z-50) */}
+            {/* Menú Flotante Ultra Moderno (Fondo sólido 100% opaco, superpuesto con z-50) */}
             {contestDropdownOpen && (
-              <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-72 sm:w-80 max-h-80 overflow-y-auto bg-zinc-900/98 backdrop-blur-2xl border border-amber-500/40 rounded-2xl shadow-2xl p-2 z-50 space-y-1 divide-y divide-zinc-800/80 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-full sm:w-80 max-h-80 overflow-y-auto bg-zinc-950 border border-amber-500/50 rounded-2xl shadow-2xl shadow-black/80 p-2 z-50 space-y-1 divide-y divide-zinc-800/80 animate-in fade-in zoom-in-95 duration-150">
                 <div className="px-2 py-1 flex items-center justify-between text-[11px] font-bold text-zinc-400">
                   <span>Certámenes Creados ({contests.length})</span>
                   <span className="text-[10px] text-amber-400 font-mono">CYNKO OS</span>

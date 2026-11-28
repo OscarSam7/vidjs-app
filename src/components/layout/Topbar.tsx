@@ -125,7 +125,7 @@ export function Topbar({
               <button
                 type="button"
                 onClick={() => setVenuePickerOpen(true)}
-                className="px-3 py-1.5 rounded-xl bg-[var(--card-bg-elevated)] hover:bg-[var(--card-bg-subtle)] border border-purple-500/30 hover:border-purple-400 text-xs font-bold text-[var(--text-heading)] flex items-center gap-2 shadow-sm transition-all cursor-pointer active:scale-95 max-w-[175px] sm:max-w-[230px]"
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-[var(--card-bg-elevated)] hover:bg-[var(--card-bg-subtle)] border border-purple-500/30 hover:border-purple-400 text-xs font-bold text-[var(--text-heading)] flex items-center gap-1.5 sm:gap-2 shadow-sm transition-all cursor-pointer active:scale-95 max-w-[125px] sm:max-w-[230px]"
                 aria-label="Seleccionar sede o local"
                 title="Cambiar sede o local activo"
               >
