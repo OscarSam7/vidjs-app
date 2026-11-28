@@ -102,7 +102,7 @@ export function Topbar({
 
   return (
     <>
-      <header className="h-14 bg-[var(--background,#080F1F)]/95 backdrop-blur-md border-b border-[var(--card-border,#263858)] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40 shrink-0 transition-colors">
+      <header className="h-14 bg-[var(--background,#080F1F)]/95 backdrop-blur-md border-b border-[var(--card-border,#263858)] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-[60] shrink-0 transition-colors">
         {/* Left section: Sidebar toggle & Venue Selector */}
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <button

@@ -1484,7 +1484,7 @@ export default function ContestDashboardPage() {
       {/* ============================================================ */}
       {/* 1. TOP HEADER DEL CAMPEONATO & SELECTOR MODERNO              */}
       {/* ============================================================ */}
-      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-4 bg-zinc-900/90 border border-zinc-800/80 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-2xl backdrop-blur-md relative z-40 w-full max-w-full">
+      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-4 bg-zinc-900/90 border border-zinc-800/80 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-2xl backdrop-blur-md relative z-20 w-full max-w-full">
         {/* BLOQUE DE SELECTOR & ACCIONES (En móvil/tablet se posiciona ARRIBA, sobre las informaciones) */}
         <div className="flex items-center gap-2 flex-wrap order-1 xl:order-2 w-full xl:w-auto justify-between xl:justify-end shrink-0 max-w-full">
           {/* Selector de Concurso Ultra Moderno (Aparece sobre las informaciones y flota con z-50) */}
