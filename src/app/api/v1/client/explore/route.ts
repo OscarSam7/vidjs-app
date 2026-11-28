@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const now = new Date();
 
-    const [events, contests, flashDeals, tenants] = await Promise.all([
+    const [events, contests, flashDeals, tenants, promotedEvents] = await Promise.all([
       // Eventos activos o próximos con contador de sesiones en vivo (Pulse Live)
       prisma.event.findMany({
         where: {
@@ -80,6 +80,16 @@ export async function GET() {
         },
         orderBy: { createdAt: "desc" },
         take: 24,
+      }),
+
+      // Eventos externos promocionados (pagos y aprobados) para el Carrusel Principal
+      prisma.eventPromotionSubmission.findMany({
+        where: {
+          status: "APPROVED",
+          OR: [{ featuredUntil: null }, { featuredUntil: { gt: now } }],
+        },
+        orderBy: { createdAt: "desc" },
+        take: 12,
       }),
     ]);
 
@@ -167,6 +177,20 @@ export async function GET() {
             categories,
           };
         }),
+        promotedEvents: promotedEvents.map((p) => ({
+          id: p.id,
+          eventName: p.eventName,
+          eventType: p.eventType,
+          eventDate: p.eventDate,
+          locationName: p.locationName,
+          city: p.city,
+          description: p.description,
+          bannerUrl: p.bannerUrl,
+          ticketPriceLabel: p.ticketPriceLabel,
+          organizerName: p.organizerName,
+          organizerPhone: p.organizerPhone,
+          planCode: p.planCode,
+        })),
       },
     });
   } catch (error) {

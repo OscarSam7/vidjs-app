@@ -2111,6 +2111,35 @@ model VenueReview {
   @@index([createdAt])
 }
 
+// 57. Solicitudes Pagas de Publicación / Destacado de Eventos Externos en Carrusel CYNKO
+model EventPromotionSubmission {
+  id               String    @id @default(cuid())
+  organizerName    String
+  organizerPhone   String
+  organizerEmail   String?
+  eventName        String
+  eventType        String    @default("FIESTA") // FIESTA, CONCIERTO, FESTIVAL, KARAOKE, FERIA, DEPORTIVO, OTRO
+  eventDate        DateTime
+  locationName     String
+  city             String?
+  description      String?   @db.Text
+  bannerUrl        String?
+  ticketPriceLabel String?   // Ej: "Gs. 50.000" o "Entrada Libre"
+  planCode         String    @default("CAROUSEL_7D") // STANDARD, CAROUSEL_7D, FULL_PROMO_15D
+  amountCents      Int       @default(350000)
+  currency         String    @default("PYG")
+  paymentMethod    String    @default("TRANSFER") // TRANSFER, QR_PAGOS, PIX
+  paymentReference String?
+  paymentStatus    String    @default("PENDING_REVIEW") // PENDING_REVIEW, PAID, REJECTED
+  status           String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  featuredUntil    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([status, featuredUntil])
+  @@index([createdAt])
+}
+
 
 
 

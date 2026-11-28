@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
@@ -39,11 +39,15 @@ import {
   ExternalLink,
   X,
   Search,
+  ChevronLeft,
+  ChevronRight,
+  Megaphone,
 } from "lucide-react";
 import { CynkoLogo } from "@/components/ui/ZynkoLogo";
 import { QRCodeImage } from "@/components/ui/QRCodeImage";
 import PwaInstallButton from "@/components/pwa/PwaInstallButton";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { PromoteEventModal } from "@/components/client/PromoteEventModal";
 
 const VirtualDjConsole = dynamic(() => import("@/components/dj/VirtualDjConsole"), {
   ssr: false,
@@ -149,6 +153,20 @@ interface ExploreData {
     tablesCount?: number;
     categories?: string[];
   }>;
+  promotedEvents?: Array<{
+    id: string;
+    eventName: string;
+    eventType: string;
+    eventDate: string;
+    locationName: string;
+    city?: string | null;
+    description?: string | null;
+    bannerUrl?: string | null;
+    ticketPriceLabel?: string | null;
+    organizerName: string;
+    organizerPhone: string;
+    planCode: string;
+  }>;
 }
 
 interface ClubRewardItem {
@@ -221,7 +239,112 @@ export default function ClientSuperApp() {
   // UI Helpers
   const [copiedRef, setCopiedRef] = useState(false);
   const [isPairPcOpen, setIsPairPcOpen] = useState(false);
+  const [isPromoteModalOpen, setIsPromoteModalOpen] = useState(false);
+  const [heroSlideIdx, setHeroSlideIdx] = useState(0);
+  const [heroPaused, setHeroPaused] = useState(false);
+  const eventsCarouselRef = useRef<HTMLDivElement | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+
+  const featuredSlides = useMemo(() => {
+    const slides: Array<{
+      id: string;
+      kind: "CONTEST" | "PROMOTED" | "EVENT";
+      badge: string;
+      title: string;
+      subtitle: string;
+      venueLabel: string;
+      dateLabel?: string;
+      bannerUrl?: string | null;
+      href: string;
+      external?: boolean;
+      ctaLabel: string;
+    }> = [];
+
+    for (const c of exploreData?.contests || []) {
+      slides.push({
+        id: `contest-${c.id}`,
+        kind: "CONTEST",
+        badge: "CONCURSO EN VIVO · LOCAL CYNKO",
+        title: c.name,
+        subtitle: c.description || `Certamen oficial en ${c.tenant.name}. ¡Postúlate desde tu mesa o desde la app!`,
+        venueLabel: c.tenant.name,
+        dateLabel: c.registrationFee > 0 ? `Inscripción $${c.registrationFee.toLocaleString()}` : "Inscripción Gratuita",
+        href: `/guest?venue=${c.tenant.slug}`,
+        ctaLabel: "Participar Ahora",
+      });
+    }
+
+    for (const p of exploreData?.promotedEvents || []) {
+      const cleanPhone = (p.organizerPhone || "").replace(/[^0-9]/g, "");
+      const waMsg = encodeURIComponent(`Hola ${p.organizerName}, vi tu evento "${p.eventName}" en CYNKO y quiero información / entradas.`);
+      slides.push({
+        id: `promo-${p.id}`,
+        kind: "PROMOTED",
+        badge: "EVENTO DESTACADO · PATROCINADO",
+        title: p.eventName,
+        subtitle: p.description || `${p.eventType} en ${p.locationName}${p.city ? `, ${p.city}` : ""}`,
+        venueLabel: `${p.locationName}${p.ticketPriceLabel ? ` • ${p.ticketPriceLabel}` : ""}`,
+        dateLabel: new Date(p.eventDate).toLocaleDateString("es-PY", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        bannerUrl: p.bannerUrl,
+        href: cleanPhone ? `https://wa.me/${cleanPhone}?text=${waMsg}` : "/eventos",
+        external: Boolean(cleanPhone),
+        ctaLabel: cleanPhone ? "Entradas / WhatsApp" : "Ver Detalles",
+      });
+    }
+
+    for (const ev of (exploreData?.events || []).slice(0, 6)) {
+      slides.push({
+        id: `event-${ev.id}`,
+        kind: "EVENT",
+        badge: ev.status === "ACTIVE" ? "EVENTO EN VIVO · LOCAL CYNKO" : "EVENTO CYNKO",
+        title: ev.name,
+        subtitle: ev.description || `${ev.eventType} organizado por ${ev.tenant.name}`,
+        venueLabel: ev.locationName || ev.tenant.name,
+        dateLabel: new Date(ev.startsAt).toLocaleDateString("es-PY", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+        }),
+        bannerUrl: ev.bannerUrl,
+        href: `/eventos/${ev.code}`,
+        ctaLabel: "Ver Entradas",
+      });
+    }
+
+    return slides;
+  }, [exploreData]);
+
+  useEffect(() => {
+    if (featuredSlides.length <= 1) {
+      setHeroSlideIdx(0);
+      return;
+    }
+    if (heroSlideIdx >= featuredSlides.length) {
+      setHeroSlideIdx(0);
+    }
+  }, [featuredSlides.length, heroSlideIdx]);
+
+  useEffect(() => {
+    if (heroPaused || featuredSlides.length <= 1) return;
+    const timer = setInterval(() => {
+      setHeroSlideIdx((prev) => (prev + 1) % featuredSlides.length);
+    }, 5500);
+    return () => clearInterval(timer);
+  }, [heroPaused, featuredSlides.length]);
+
+  const scrollEventsCarousel = useCallback((dir: "left" | "right") => {
+    if (!eventsCarouselRef.current) return;
+    eventsCarouselRef.current.scrollBy({
+      left: dir === "left" ? -330 : 330,
+      behavior: "smooth",
+    });
+  }, []);
 
   // Modal de Reseña Express + Enlace Google Reviews
   const [reviewVenue, setReviewVenue] = useState<{
@@ -799,10 +922,26 @@ export default function ClientSuperApp() {
             return exploreCategory === "ALL" || exploreCategory === "OFERTAS";
           });
 
+          const filteredPromotedEvents = (exploreData?.promotedEvents || []).filter((p) => {
+            const matchesText =
+              !q ||
+              p.eventName.toLowerCase().includes(q) ||
+              (p.description || "").toLowerCase().includes(q) ||
+              p.locationName.toLowerCase().includes(q) ||
+              p.organizerName.toLowerCase().includes(q);
+            if (!matchesText) return false;
+            if (exploreCategory === "ALL" || exploreCategory === "EVENTOS") return true;
+            if (exploreCategory === "KARAOKE") return p.eventName.toLowerCase().includes("karaoke") || p.eventType.toLowerCase().includes("karaoke");
+            if (exploreCategory === "DISCOTECAS") return p.eventType.toLowerCase().includes("fiesta") || p.eventType.toLowerCase().includes("festival") || p.eventType.toLowerCase().includes("concierto");
+            return false;
+          });
+
           const showVenuesSection = ["ALL", "LOCALES", "RESERVAS", "KARAOKE", "DISCOTECAS"].includes(exploreCategory);
           const showEventsSection = ["ALL", "EVENTOS", "KARAOKE", "DISCOTECAS"].includes(exploreCategory);
           const showContestsSection = ["ALL", "CONCURSOS", "KARAOKE"].includes(exploreCategory);
           const showDealsSection = ["ALL", "OFERTAS"].includes(exploreCategory);
+
+          const activeHeroSlide = featuredSlides.length > 0 ? featuredSlides[heroSlideIdx % featuredSlides.length] : null;
 
           return (
           <div className="space-y-6">
@@ -867,6 +1006,14 @@ export default function ClientSuperApp() {
                     <QrCode className="w-4 h-4 text-cyan-400" />
                     <span>Estoy en un Local (Mesa QR)</span>
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => setIsPromoteModalOpen(true)}
+                    className="px-4 py-2.5 rounded-xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-amber-300 text-xs font-black flex items-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <Megaphone className="w-4 h-4" />
+                    <span>+ Publicar mi Evento</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -900,6 +1047,139 @@ export default function ClientSuperApp() {
                 );
               })}
             </div>
+
+            {/* CARRUSEL PRINCIPAL DESTACADO (Concursos CYNKO + Eventos de Locales + Eventos Patrocinados Pagos) */}
+            {activeHeroSlide && (
+              <section
+                onMouseEnter={() => setHeroPaused(true)}
+                onMouseLeave={() => setHeroPaused(false)}
+                className="relative rounded-3xl overflow-hidden border border-amber-400/35 bg-gradient-to-br from-zinc-900 via-purple-950/70 to-amber-950/50 shadow-2xl"
+              >
+                {activeHeroSlide.bannerUrl && (
+                  <img
+                    src={activeHeroSlide.bannerUrl}
+                    alt={activeHeroSlide.title}
+                    className="absolute inset-0 w-full h-full object-cover opacity-35 transition-all duration-500"
+                  />
+                )}
+                <div className="relative z-10 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-black/75 via-black/45 to-transparent">
+                  <div className="space-y-2 max-w-xl">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                          activeHeroSlide.kind === "CONTEST"
+                            ? "bg-amber-400/20 border-amber-400/50 text-amber-300"
+                            : activeHeroSlide.kind === "PROMOTED"
+                            ? "bg-fuchsia-500/25 border-fuchsia-400/60 text-fuchsia-200"
+                            : "bg-emerald-500/20 border-emerald-400/50 text-emerald-200"
+                        }`}
+                      >
+                        {activeHeroSlide.kind === "CONTEST" ? (
+                          <Trophy className="w-3 h-3" />
+                        ) : activeHeroSlide.kind === "PROMOTED" ? (
+                          <Sparkles className="w-3 h-3" />
+                        ) : (
+                          <Ticket className="w-3 h-3" />
+                        )}
+                        <span>{activeHeroSlide.badge}</span>
+                      </span>
+                      {activeHeroSlide.dateLabel && (
+                        <span className="text-[11px] font-bold text-zinc-300 flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-amber-400" />
+                          <span>{activeHeroSlide.dateLabel}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
+                      {activeHeroSlide.title}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-zinc-200 line-clamp-2">
+                      {activeHeroSlide.subtitle}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-amber-200">
+                      <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>{activeHeroSlide.venueLabel}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap sm:flex-col items-center sm:items-end gap-2.5 shrink-0">
+                    {activeHeroSlide.external ? (
+                      <a
+                        href={activeHeroSlide.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-fuchsia-500 hover:from-amber-300 hover:to-fuchsia-400 text-black font-black text-xs inline-flex items-center gap-2 shadow-lg transition-all"
+                      >
+                        <span>{activeHeroSlide.ctaLabel}</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    ) : (
+                      <Link
+                        href={activeHeroSlide.href}
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-fuchsia-500 hover:from-amber-300 hover:to-fuchsia-400 text-black font-black text-xs inline-flex items-center gap-2 shadow-lg transition-all"
+                      >
+                        <span>{activeHeroSlide.ctaLabel}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setIsPromoteModalOpen(true)}
+                      className="px-3.5 py-2 rounded-xl bg-black/60 hover:bg-black/80 border border-white/20 text-white text-[11px] font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Megaphone className="w-3.5 h-3.5 text-amber-400" />
+                      <span>¿Tienes un evento? Publícalo aquí</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Controles del Carrusel Principal */}
+                {featuredSlides.length > 1 && (
+                  <div className="relative z-10 px-5 pb-3.5 pt-1 flex items-center justify-between gap-3 bg-black/40 border-t border-white/10">
+                    <div className="flex items-center gap-1.5">
+                      {featuredSlides.map((slide, idx) => (
+                        <button
+                          key={slide.id}
+                          type="button"
+                          onClick={() => setHeroSlideIdx(idx)}
+                          aria-label={`Ir al destacado ${idx + 1}`}
+                          className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                            idx === heroSlideIdx % featuredSlides.length
+                              ? "w-7 bg-amber-400"
+                              : "w-2 bg-white/30 hover:bg-white/60"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono text-zinc-400 mr-1">
+                        {(heroSlideIdx % featuredSlides.length) + 1}/{featuredSlides.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setHeroSlideIdx((prev) => (prev - 1 + featuredSlides.length) % featuredSlides.length)
+                        }
+                        aria-label="Anterior destacado"
+                        className="p-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 text-white cursor-pointer"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setHeroSlideIdx((prev) => (prev + 1) % featuredSlides.length)}
+                        aria-label="Siguiente destacado"
+                        className="p-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 text-white cursor-pointer"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
 
             {/* LOCALES EN CYNKO — RESERVAR MESAS Y CAMAROTES VIP */}
             {showVenuesSection && (
@@ -1065,89 +1345,202 @@ export default function ClientSuperApp() {
               </section>
             )}
 
-            {/* EVENTOS Y FIESTAS */}
+            {/* EVENTOS Y FIESTAS (MODO CARRUSEL HORIZONTAL + PUBLICAR EVENTO PAGO) */}
             {showEventsSection && (
               <section className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
                     <Ticket className="w-4 h-4 text-fuchsia-400" />
                     <span>Eventos, Fiestas &amp; Entradas</span>
                   </h2>
-                  <Link href="/eventos" className="text-xs font-bold text-fuchsia-400 hover:text-fuchsia-300">
-                    Ver todos &rarr;
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsPromoteModalOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-amber-300 text-[11px] font-black inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Megaphone className="w-3.5 h-3.5" />
+                      <span>Lanzar mi Evento</span>
+                    </button>
+                    <div className="hidden sm:flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => scrollEventsCarousel("left")}
+                        aria-label="Desplazar eventos a la izquierda"
+                        className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white cursor-pointer"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => scrollEventsCarousel("right")}
+                        aria-label="Desplazar eventos a la derecha"
+                        className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white cursor-pointer"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <Link href="/eventos" className="text-xs font-bold text-fuchsia-400 hover:text-fuchsia-300">
+                      Ver todos &rarr;
+                    </Link>
+                  </div>
                 </div>
 
                 {loadingExplore ? (
                   <div className="p-8 rounded-2xl bg-zinc-900/50 border border-zinc-800 text-center text-xs text-zinc-400">
                     Cargando eventos en vivo...
                   </div>
-                ) : filteredEvents.length === 0 ? (
-                  <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 text-center text-xs text-zinc-400">
-                    {q ? "No hay eventos que coincidan con tu búsqueda." : "Próximamente nuevos eventos y fiestas publicadas por los locales CYNKO."}
+                ) : filteredEvents.length === 0 && filteredPromotedEvents.length === 0 ? (
+                  <div className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 text-center space-y-3">
+                    <p className="text-xs text-zinc-400">
+                      {q
+                        ? "No hay eventos que coincidan con tu búsqueda."
+                        : "Próximamente nuevos eventos y fiestas publicadas por locales y organizadores en CYNKO."}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsPromoteModalOpen(true)}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-fuchsia-500 text-black text-xs font-black inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Megaphone className="w-3.5 h-3.5" />
+                      <span>Publicar mi Evento en CYNKO</span>
+                    </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                    {filteredEvents.map((ev) => (
-                    <Link
-                      key={ev.id}
-                      href={`/eventos/${ev.code}`}
-                      className="group rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-fuchsia-500/60 overflow-hidden transition-all flex flex-col shadow-lg"
-                    >
-                      <div className="h-28 bg-gradient-to-br from-purple-950 via-zinc-900 to-amber-950/60 relative p-3 flex flex-col justify-between">
-                        {ev.bannerUrl && (
-                          <img
-                            src={ev.bannerUrl}
-                            alt={ev.name}
-                            className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-300"
-                          />
-                        )}
-                        <div className="relative z-10 flex items-center justify-between">
-                          <span className="px-2 py-0.5 rounded-full bg-black/70 border border-white/15 text-[10px] font-black text-amber-300">
-                            {ev.eventType}
-                          </span>
-                          {ev.status === "ACTIVE" && (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-[10px] font-black text-emerald-300 flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                              EN VIVO {ev.pulseCount > 0 ? `• 🔥 ${ev.pulseCount}` : ""}
-                            </span>
-                          )}
-                        </div>
-                        <div className="relative z-10 text-[11px] font-bold text-white/90 drop-shadow">
-                          {ev.tenant.name}
-                        </div>
-                      </div>
-                      <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2">
-                        <div>
-                          <h3 className="text-sm font-black text-white group-hover:text-fuchsia-300 transition-colors line-clamp-1">
-                            {ev.name}
-                          </h3>
-                          <div className="mt-1.5 space-y-1 text-[11px] text-zinc-400">
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="w-3.5 h-3.5 text-fuchsia-400 shrink-0" />
-                              <span>
-                                {new Date(ev.startsAt).toLocaleDateString("es-PY", {
-                                  weekday: "short",
-                                  day: "numeric",
-                                  month: "short",
-                                })}
+                  <div
+                    ref={eventsCarouselRef}
+                    className="flex gap-3.5 overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-none"
+                  >
+                    {/* Eventos Patrocinados / Externos Pagos Aprobados */}
+                    {filteredPromotedEvents.map((p) => {
+                      const cleanPhone = (p.organizerPhone || "").replace(/[^0-9]/g, "");
+                      const waMsg = encodeURIComponent(
+                        `Hola ${p.organizerName}, vi tu evento "${p.eventName}" en CYNKO y quiero más info / entradas.`
+                      );
+                      const href = cleanPhone ? `https://wa.me/${cleanPhone}?text=${waMsg}` : "/eventos";
+                      return (
+                        <a
+                          key={`promo-card-${p.id}`}
+                          href={href}
+                          target={cleanPhone ? "_blank" : undefined}
+                          rel={cleanPhone ? "noopener noreferrer" : undefined}
+                          className="group min-w-[270px] sm:min-w-[305px] max-w-[320px] shrink-0 snap-start rounded-2xl bg-zinc-900/80 border border-amber-400/50 hover:border-amber-300 overflow-hidden transition-all flex flex-col shadow-lg"
+                        >
+                          <div className="h-28 bg-gradient-to-br from-amber-950/70 via-zinc-900 to-fuchsia-950/60 relative p-3 flex flex-col justify-between">
+                            {p.bannerUrl && (
+                              <img
+                                src={p.bannerUrl}
+                                alt={p.eventName}
+                                className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-300"
+                              />
+                            )}
+                            <div className="relative z-10 flex items-center justify-between gap-1.5">
+                              <span className="px-2 py-0.5 rounded-full bg-amber-400 text-black text-[10px] font-black">
+                                DESTACADO
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full bg-black/70 border border-white/15 text-[10px] font-bold text-white">
+                                {p.eventType}
                               </span>
                             </div>
-                            {ev.locationName && (
-                              <div className="flex items-center gap-1.5 truncate">
-                                <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                                <span className="truncate">{ev.locationName}</span>
+                            <div className="relative z-10 text-[11px] font-bold text-amber-200 drop-shadow truncate">
+                              {p.organizerName}
+                            </div>
+                          </div>
+                          <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2">
+                            <div>
+                              <h3 className="text-sm font-black text-white group-hover:text-amber-300 transition-colors line-clamp-1">
+                                {p.eventName}
+                              </h3>
+                              <div className="mt-1.5 space-y-1 text-[11px] text-zinc-400">
+                                <div className="flex items-center gap-1.5">
+                                  <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                  <span>
+                                    {new Date(p.eventDate).toLocaleDateString("es-PY", {
+                                      weekday: "short",
+                                      day: "numeric",
+                                      month: "short",
+                                    })}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <MapPin className="w-3.5 h-3.5 text-fuchsia-400 shrink-0" />
+                                  <span className="truncate">
+                                    {p.locationName}
+                                    {p.city ? `, ${p.city}` : ""}
+                                  </span>
+                                </div>
                               </div>
+                            </div>
+                            <div className="pt-2 border-t border-zinc-800 flex items-center justify-between text-xs font-black text-amber-300">
+                              <span>{p.ticketPriceLabel || "Consultar Entradas"}</span>
+                              <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                            </div>
+                          </div>
+                        </a>
+                      );
+                    })}
+
+                    {/* Eventos de Locales Suscritos a CYNKO */}
+                    {filteredEvents.map((ev) => (
+                      <Link
+                        key={ev.id}
+                        href={`/eventos/${ev.code}`}
+                        className="group min-w-[270px] sm:min-w-[305px] max-w-[320px] shrink-0 snap-start rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-fuchsia-500/60 overflow-hidden transition-all flex flex-col shadow-lg"
+                      >
+                        <div className="h-28 bg-gradient-to-br from-purple-950 via-zinc-900 to-amber-950/60 relative p-3 flex flex-col justify-between">
+                          {ev.bannerUrl && (
+                            <img
+                              src={ev.bannerUrl}
+                              alt={ev.name}
+                              className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-300"
+                            />
+                          )}
+                          <div className="relative z-10 flex items-center justify-between">
+                            <span className="px-2 py-0.5 rounded-full bg-black/70 border border-white/15 text-[10px] font-black text-amber-300">
+                              {ev.eventType}
+                            </span>
+                            {ev.status === "ACTIVE" && (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-[10px] font-black text-emerald-300 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                EN VIVO {ev.pulseCount > 0 ? `• 🔥 ${ev.pulseCount}` : ""}
+                              </span>
                             )}
                           </div>
+                          <div className="relative z-10 text-[11px] font-bold text-white/90 drop-shadow">
+                            {ev.tenant.name}
+                          </div>
                         </div>
-                        <div className="pt-2 border-t border-zinc-800 flex items-center justify-between text-xs font-black text-amber-300">
-                          <span>Ver Entradas / Detalles</span>
-                          <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                        <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2">
+                          <div>
+                            <h3 className="text-sm font-black text-white group-hover:text-fuchsia-300 transition-colors line-clamp-1">
+                              {ev.name}
+                            </h3>
+                            <div className="mt-1.5 space-y-1 text-[11px] text-zinc-400">
+                              <div className="flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-fuchsia-400 shrink-0" />
+                                <span>
+                                  {new Date(ev.startsAt).toLocaleDateString("es-PY", {
+                                    weekday: "short",
+                                    day: "numeric",
+                                    month: "short",
+                                  })}
+                                </span>
+                              </div>
+                              {ev.locationName && (
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                  <span className="truncate">{ev.locationName}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="pt-2 border-t border-zinc-800 flex items-center justify-between text-xs font-black text-amber-300">
+                            <span>Ver Entradas / Detalles</span>
+                            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                          </div>
                         </div>
-                      </div>
-                    </Link>
-                  ))}
+                      </Link>
+                    ))}
                   </div>
                 )}
               </section>
@@ -1575,6 +1968,15 @@ export default function ClientSuperApp() {
       </nav>
       {/* Modal Escáner de Cámara en Vivo para Conectar PC con QR */}
       <DevicePairModal isOpen={isPairPcOpen} onClose={() => setIsPairPcOpen(false)} />
+
+      {/* Modal de Publicación Paga de Eventos en Carrusel CYNKO */}
+      <PromoteEventModal
+        isOpen={isPromoteModalOpen}
+        onClose={() => setIsPromoteModalOpen(false)}
+        defaultOrganizerName={client?.name || ""}
+        defaultOrganizerEmail={client?.email || ""}
+        defaultOrganizerPhone={client?.phone || ""}
+      />
 
       {/* Modal de Reseña Express + Enlace Directo a Google Maps */}
       {reviewVenue && (
