@@ -38,7 +38,6 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { TicketPaymentModal } from "@/components/events/TicketPaymentModal";
-import { EditAboutEventModal } from "@/components/events/EditAboutEventModal";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 interface TierSelection {
@@ -74,9 +73,6 @@ export default function PublicEventLaunchPage({
   // Success ticket modal
   const [purchasedTickets, setPurchasedTickets] = useState<any[] | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
-
-  // Edit "Sobre este evento" modal
-  const [isEditAboutOpen, setIsEditAboutOpen] = useState(false);
 
   useEffect(() => {
     setIsLoading(true);
@@ -501,20 +497,9 @@ export default function PublicEventLaunchPage({
 
             {/* "Sobre este evento" */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-                  <span>Sobre este evento</span>
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setIsEditAboutOpen(true)}
-                  className="px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
-                  title="Editar descripción y etiquetas con emoticones"
-                >
-                  <span>✏️</span>
-                  <span>Editar detalles</span>
-                </button>
-              </div>
+              <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                <span>Sobre este evento</span>
+              </h3>
               <div
                 className={cn(
                   "p-5 rounded-2xl border text-sm leading-relaxed space-y-3",
@@ -903,24 +888,6 @@ export default function PublicEventLaunchPage({
           setTierCounts({});
         }}
       />
-
-      {/* MODAL: Editar "Sobre este evento" */}
-      {event && (
-        <EditAboutEventModal
-          isOpen={isEditAboutOpen}
-          onClose={() => setIsEditAboutOpen(false)}
-          eventCode={event.code}
-          initialDescription={event.description || ""}
-          initialHighlights={event.highlights || []}
-          onSaveSuccess={(updated) => {
-            setEvent((prev: any) => ({
-              ...prev,
-              description: updated.description,
-              highlights: updated.highlights,
-            }));
-          }}
-        />
-      )}
     </div>
   );
 }
