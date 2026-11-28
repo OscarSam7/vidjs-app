@@ -161,6 +161,8 @@ export async function GET() {
             typeof parsedSettings?.partyInvite?.allowCompanions === "boolean"
               ? parsedSettings.partyInvite.allowCompanions
               : true;
+          const partyVisibility: "PUBLIC" | "PRIVATE" =
+            parsedSettings?.partyInvite?.visibility === "PRIVATE" ? "PRIVATE" : "PUBLIC";
 
           const lowerName = t.name.toLowerCase();
           const categories: string[] = ["LOCALES"];
@@ -196,6 +198,7 @@ export async function GET() {
             tablesCount: isPersonalParty ? 0 : t._count?.tables || 0,
             isPersonalParty,
             allowCompanions,
+            partyVisibility,
             rsvpCount: t._count?.privatePartyRsvps || 0,
             categories,
           };

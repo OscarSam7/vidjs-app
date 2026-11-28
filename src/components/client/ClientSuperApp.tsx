@@ -154,6 +154,7 @@ interface ExploreData {
     tablesCount?: number;
     isPersonalParty?: boolean;
     allowCompanions?: boolean;
+    partyVisibility?: "PUBLIC" | "PRIVATE";
     rsvpCount?: number;
     categories?: string[];
   }>;
@@ -1258,7 +1259,7 @@ export default function ClientSuperApp() {
                             {v.isPersonalParty ? (
                               <>
                                 <span className="px-2 py-0.5 rounded-md bg-pink-500/15 border border-pink-500/35 text-[10px] font-bold text-pink-300">
-                                  🎉 Fiesta Privada / Cumpleaños
+                                  {v.partyVisibility === "PRIVATE" ? "🔒 Evento Privado" : "🎉 Fiesta Pública"}
                                 </span>
                                 {v.allowCompanions !== false ? (
                                   <span className="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[10px] font-bold text-amber-300">

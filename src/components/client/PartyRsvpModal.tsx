@@ -21,6 +21,7 @@ interface PartyRsvpModalProps {
     slug: string;
     address?: string | null;
     allowCompanions?: boolean;
+    partyVisibility?: "PUBLIC" | "PRIVATE";
     rsvpCount?: number;
   } | null;
   onClose: () => void;
@@ -42,12 +43,14 @@ export function PartyRsvpModal({
   const [companionName, setCompanionName] = useState("");
   const [note, setNote] = useState("");
   const [allowCompanions, setAllowCompanions] = useState<boolean>(venue?.allowCompanions !== false);
+  const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">(venue?.partyVisibility === "PRIVATE" ? "PRIVATE" : "PUBLIC");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmedData, setConfirmedData] = useState<{
     guestName: string;
     companionName?: string | null;
     totalPeopleCount: number;
+    isPrivatePending: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -60,16 +63,22 @@ export function PartyRsvpModal({
     setError(null);
     setConfirmedData(null);
     setAllowCompanions(venue.allowCompanions !== false);
+    setVisibility(venue.partyVisibility === "PRIVATE" ? "PRIVATE" : "PUBLIC");
 
-    // Verificar en tiempo real si el anfitrión permite acompañante
+    // Verificar en tiempo real configuración del anfitrión (acompañante + público/privado)
     fetch(`/api/v1/client/party-rsvp?slug=${encodeURIComponent(venue.slug)}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((json) => {
-        if (json?.success && typeof json.allowCompanions === "boolean") {
-          setAllowCompanions(json.allowCompanions);
-          if (!json.allowCompanions) {
-            setHasCompanion(false);
-            setCompanionName("");
+        if (json?.success) {
+          if (typeof json.allowCompanions === "boolean") {
+            setAllowCompanions(json.allowCompanions);
+            if (!json.allowCompanions) {
+              setHasCompanion(false);
+              setCompanionName("");
+            }
+          }
+          if (json.visibility === "PRIVATE" || json.visibility === "PUBLIC") {
+            setVisibility(json.visibility);
           }
         }
       })
@@ -113,6 +122,7 @@ export function PartyRsvpModal({
         guestName: json.rsvp?.guestName || guestName.trim(),
         companionName: json.rsvp?.companionName || null,
         totalPeopleCount: json.totalPeopleCount || 1,
+        isPrivatePending: json.visibility === "PRIVATE" || json.rsvp?.status === "PENDING",
       });
       if (onConfirmed && typeof json.confirmedCount === "number") {
         onConfirmed(venue.slug, json.confirmedCount);
@@ -163,16 +173,33 @@ export function PartyRsvpModal({
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <div className="space-y-1.5">
-                <h4 className="text-lg font-black text-white">¡Presencia Confirmada!</h4>
+                <h4 className="text-lg font-black text-white">
+                  {confirmedData.isPrivatePending ? "¡Confirmación Enviada!" : "¡Presencia Confirmada!"}
+                </h4>
                 <p className="text-xs text-zinc-300">
-                  Te esperamos, <strong className="text-amber-300">{confirmedData.guestName}</strong>
-                  {confirmedData.companionName ? (
+                  {confirmedData.isPrivatePending ? (
                     <>
-                      {" "}
-                      junto a <strong className="text-pink-300">{confirmedData.companionName}</strong>
+                      Gracias, <strong className="text-amber-300">{confirmedData.guestName}</strong>
+                      {confirmedData.companionName ? (
+                        <>
+                          {" "}
+                          (con <strong className="text-pink-300">{confirmedData.companionName}</strong>)
+                        </>
+                      ) : null}
+                      . Como es un evento privado, el anfitrión te avisará cuando tu lugar quede reservado.
                     </>
-                  ) : null}
-                  .
+                  ) : (
+                    <>
+                      Te esperamos, <strong className="text-amber-300">{confirmedData.guestName}</strong>
+                      {confirmedData.companionName ? (
+                        <>
+                          {" "}
+                          junto a <strong className="text-pink-300">{confirmedData.companionName}</strong>
+                        </>
+                      ) : null}
+                      .
+                    </>
+                  )}
                 </p>
               </div>
               <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-[11px] font-bold text-zinc-300">
@@ -191,6 +218,14 @@ export function PartyRsvpModal({
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-3.5">
+              {visibility === "PRIVATE" && (
+                <div className="px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-400/35 text-[11px] text-amber-200 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>
+                    <strong>Evento Privado:</strong> deja tu WhatsApp para que el anfitrión te avise cuando tu lugar esté reservado.
+                  </span>
+                </div>
+              )}
               <div>
                 <label className="block text-[11px] font-bold text-zinc-300 mb-1">
                   Tu Nombre y Apellido *

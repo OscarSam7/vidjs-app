@@ -2143,15 +2143,17 @@ model EventPromotionSubmission {
 
 // 58. Confirmaciones de Presencia (RSVP) para Fiestas Privadas / Cumpleaños (Plan Amigos)
 model PrivatePartyRsvp {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   tenantId      String
-  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   guestName     String
   guestPhone    String?
-  hasCompanion  Boolean  @default(false)
+  hasCompanion  Boolean   @default(false)
   companionName String?
   note          String?
-  createdAt     DateTime @default(now())
+  status        String    @default("CONFIRMED") // PENDING (privado esperando aviso), CONFIRMED (lugar reservado)
+  notifiedAt    DateTime?
+  createdAt     DateTime  @default(now())
 
   @@index([tenantId, createdAt])
 }

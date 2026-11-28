@@ -7,7 +7,13 @@ import { handleApiError } from "@/lib/errors";
 export const dynamic = "force-dynamic";
 
 const patchSchema = z.object({
-  allowCompanions: z.boolean(),
+  allowCompanions: z.boolean().optional(),
+  visibility: z.enum(["PUBLIC", "PRIVATE"]).optional(),
+});
+
+const reserveSpotSchema = z.object({
+  action: z.literal("RESERVE_SPOT"),
+  rsvpId: z.string().min(4),
 });
 
 function safeParseSettings(raw?: string | null): Record<string, any> {
@@ -49,6 +55,8 @@ export async function GET() {
       typeof settings?.partyInvite?.allowCompanions === "boolean"
         ? settings.partyInvite.allowCompanions
         : true;
+    const visibility: "PUBLIC" | "PRIVATE" =
+      settings?.partyInvite?.visibility === "PRIVATE" ? "PRIVATE" : "PUBLIC";
     const isPersonalParty =
       tenant.subscription?.plan?.code === "PERSONAL" || settings?.isPersonalParty === true;
 
@@ -58,8 +66,10 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
+      tenantName: tenant.name,
       isPersonalParty,
       allowCompanions,
+      visibility,
       confirmedCount,
       totalPeopleCount,
       rsvps,
@@ -75,7 +85,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const parsed = patchSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: "Valor inválido para allowCompanions" }, { status: 400 });
+      return NextResponse.json({ error: "Datos inválidos de configuración" }, { status: 400 });
     }
 
     const tenant = await prisma.tenant.findUnique({
@@ -87,15 +97,33 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Tenant no encontrado" }, { status: 404 });
     }
 
-    // Preservar TODAS las demás configuraciones intactas y actualizar únicamente partyInvite.allowCompanions
+    // Preservar TODAS las demás configuraciones intactas y actualizar únicamente partyInvite
     const currentSettings = safeParseSettings(tenant.settings);
+    const currentPartyInvite =
+      currentSettings.partyInvite && typeof currentSettings.partyInvite === "object"
+        ? currentSettings.partyInvite
+        : {};
+
+    const nextAllowCompanions =
+      typeof parsed.data.allowCompanions === "boolean"
+        ? parsed.data.allowCompanions
+        : typeof currentPartyInvite.allowCompanions === "boolean"
+        ? currentPartyInvite.allowCompanions
+        : true;
+
+    const nextVisibility: "PUBLIC" | "PRIVATE" =
+      parsed.data.visibility
+        ? parsed.data.visibility
+        : currentPartyInvite.visibility === "PRIVATE"
+        ? "PRIVATE"
+        : "PUBLIC";
+
     const nextSettings = {
       ...currentSettings,
       partyInvite: {
-        ...(currentSettings.partyInvite && typeof currentSettings.partyInvite === "object"
-          ? currentSettings.partyInvite
-          : {}),
-        allowCompanions: parsed.data.allowCompanions,
+        ...currentPartyInvite,
+        allowCompanions: nextAllowCompanions,
+        visibility: nextVisibility,
       },
     };
 
@@ -106,7 +134,62 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      allowCompanions: parsed.data.allowCompanions,
+      allowCompanions: nextAllowCompanions,
+      visibility: nextVisibility,
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+// POST: El anfitrión confirma y avisa al invitado que su lugar ya está reservado
+export async function POST(req: NextRequest) {
+  try {
+    const { tenantId } = await requireTenantContext();
+    const body = await req.json();
+    const parsed = reserveSpotSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 });
+    }
+
+    const [tenant, existing] = await Promise.all([
+      prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { id: true, name: true },
+      }),
+      prisma.privatePartyRsvp.findFirst({
+        where: { id: parsed.data.rsvpId, tenantId },
+      }),
+    ]);
+
+    if (!tenant || !existing) {
+      return NextResponse.json({ error: "Invitado no encontrado" }, { status: 404 });
+    }
+
+    const updated = await prisma.privatePartyRsvp.update({
+      where: { id: existing.id },
+      data: {
+        status: "CONFIRMED",
+        notifiedAt: new Date(),
+      },
+    });
+
+    const companionText =
+      updated.hasCompanion && updated.companionName
+        ? ` junto a ${updated.companionName}`
+        : "";
+    const msg = encodeURIComponent(
+      `🎉 ¡Hola ${updated.guestName}! Te confirmamos desde ${tenant.name} que tu lugar ya está reservado para vos${companionText}. ¡Te esperamos!`
+    );
+    const cleanPhone = (updated.guestPhone || "").replace(/[^0-9]/g, "");
+    const whatsappUrl = cleanPhone
+      ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${msg}`
+      : `https://api.whatsapp.com/send?text=${msg}`;
+
+    return NextResponse.json({
+      success: true,
+      rsvp: updated,
+      whatsappUrl,
     });
   } catch (error) {
     return handleApiError(error);

@@ -246,7 +246,9 @@ export default function DjBoothPage() {
   const [selectedShareTableId, setSelectedShareTableId] = useState<string>("");
   const [copiedShareLink, setCopiedShareLink] = useState(false);
   const [partyAllowCompanions, setPartyAllowCompanions] = useState<boolean>(true);
+  const [partyVisibility, setPartyVisibility] = useState<"PUBLIC" | "PRIVATE">("PUBLIC");
   const [savingPartyInviteConfig, setSavingPartyInviteConfig] = useState(false);
+  const [notifyingRsvpId, setNotifyingRsvpId] = useState<string | null>(null);
   const [partyRsvps, setPartyRsvps] = useState<
     Array<{
       id: string;
@@ -255,6 +257,8 @@ export default function DjBoothPage() {
       hasCompanion: boolean;
       companionName?: string | null;
       note?: string | null;
+      status?: string;
+      notifiedAt?: string | null;
       createdAt: string;
     }>
   >([]);
@@ -268,6 +272,7 @@ export default function DjBoothPage() {
       .then((json) => {
         if (json?.success) {
           setPartyAllowCompanions(json.allowCompanions !== false);
+          setPartyVisibility(json.visibility === "PRIVATE" ? "PRIVATE" : "PUBLIC");
           setPartyRsvps(Array.isArray(json.rsvps) ? json.rsvps : []);
           setPartyTotalPeople(typeof json.totalPeopleCount === "number" ? json.totalPeopleCount : 0);
         }
@@ -292,6 +297,59 @@ export default function DjBoothPage() {
       setPartyAllowCompanions(!nextValue);
     } finally {
       setSavingPartyInviteConfig(false);
+    }
+  };
+
+  const handleChangePartyVisibility = async (nextVisibility: "PUBLIC" | "PRIVATE") => {
+    if (nextVisibility === partyVisibility) return;
+    const prev = partyVisibility;
+    setPartyVisibility(nextVisibility);
+    setSavingPartyInviteConfig(true);
+    try {
+      const res = await fetch("/api/v1/dj/party-invite-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visibility: nextVisibility }),
+      });
+      if (!res.ok) {
+        setPartyVisibility(prev);
+      }
+    } catch {
+      setPartyVisibility(prev);
+    } finally {
+      setSavingPartyInviteConfig(false);
+    }
+  };
+
+  const handleNotifySpotReserved = async (rsvpId: string) => {
+    setNotifyingRsvpId(rsvpId);
+    try {
+      const res = await fetch("/api/v1/dj/party-invite-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "RESERVE_SPOT", rsvpId }),
+      });
+      const json = await res.json();
+      if (res.ok && json?.success) {
+        setPartyRsvps((prev) =>
+          prev.map((item) =>
+            item.id === rsvpId
+              ? {
+                  ...item,
+                  status: "CONFIRMED",
+                  notifiedAt: json.rsvp?.notifiedAt || new Date().toISOString(),
+                }
+              : item
+          )
+        );
+        if (json.whatsappUrl && typeof window !== "undefined") {
+          window.open(json.whatsappUrl, "_blank", "noopener,noreferrer");
+        }
+      }
+    } catch {
+      // silent
+    } finally {
+      setNotifyingRsvpId(null);
     }
   };
 
@@ -3501,8 +3559,46 @@ export default function DjBoothPage() {
                     </a>
                   )}
 
-                  {/* Configuración de Invitación & Confirmaciones (Acompañante +1) */}
+                  {/* Configuración de Invitación & Confirmaciones (Público/Privado + Acompañante +1) */}
                   <div className="pt-3 border-t border-zinc-800 space-y-2.5">
+                    {/* Selector Público / Privado */}
+                    <div className="p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-black text-white">Privacidad del Evento</span>
+                        <div className="flex items-center gap-1 bg-zinc-950 p-0.5 rounded-xl border border-zinc-800">
+                          <button
+                            type="button"
+                            disabled={savingPartyInviteConfig}
+                            onClick={() => handleChangePartyVisibility("PUBLIC")}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-black cursor-pointer transition-all ${
+                              partyVisibility === "PUBLIC"
+                                ? "bg-emerald-600 text-white shadow"
+                                : "text-zinc-400 hover:text-white"
+                            }`}
+                          >
+                            🌐 Público
+                          </button>
+                          <button
+                            type="button"
+                            disabled={savingPartyInviteConfig}
+                            onClick={() => handleChangePartyVisibility("PRIVATE")}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-black cursor-pointer transition-all ${
+                              partyVisibility === "PRIVATE"
+                                ? "bg-amber-500 text-black shadow"
+                                : "text-zinc-400 hover:text-white"
+                            }`}
+                          >
+                            🔒 Privado
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-zinc-400 leading-snug">
+                        {partyVisibility === "PRIVATE"
+                          ? "Evento Privado: cuando un invitado confirma, podrás avisarle con un botón que su lugar ya está reservado."
+                          : "Evento Público: los invitados confirman directo y quedan automáticamente en la lista."}
+                      </p>
+                    </div>
+
                     <div className="p-3 rounded-2xl bg-zinc-900/90 border border-pink-500/30 flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <div className="text-xs font-black text-white">
@@ -3549,25 +3645,64 @@ export default function DjBoothPage() {
                     </div>
 
                     {showRsvpListInModal && partyRsvps.length > 0 && (
-                      <div className="max-h-40 overflow-y-auto rounded-xl bg-zinc-900/80 border border-zinc-800 divide-y divide-zinc-800">
-                        {partyRsvps.map((r) => (
-                          <div key={r.id} className="px-3 py-2 text-[11px] flex items-center justify-between gap-2">
-                            <div className="min-w-0">
-                              <div className="font-bold text-white truncate">{r.guestName}</div>
-                              {r.hasCompanion && r.companionName && (
-                                <div className="text-[10px] text-pink-300 truncate">
-                                  + Acompañante: {r.companionName}
+                      <div className="max-h-56 overflow-y-auto rounded-xl bg-zinc-900/80 border border-zinc-800 divide-y divide-zinc-800">
+                        {partyRsvps.map((r) => {
+                          const isReservedNotified = Boolean(r.notifiedAt);
+                          const isPending = r.status === "PENDING";
+                          return (
+                            <div key={r.id} className="px-3 py-2.5 text-[11px] space-y-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className="font-bold text-white truncate">{r.guestName}</div>
+                                  {r.hasCompanion && r.companionName && (
+                                    <div className="text-[10px] text-pink-300 truncate">
+                                      + Acompañante: {r.companionName}
+                                    </div>
+                                  )}
+                                  {r.note && (
+                                    <div className="text-[10px] text-zinc-400 truncate">&ldquo;{r.note}&rdquo;</div>
+                                  )}
                                 </div>
-                              )}
-                              {r.note && (
-                                <div className="text-[10px] text-zinc-400 truncate">&ldquo;{r.note}&rdquo;</div>
+                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                  <span className="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-[9px] font-black text-zinc-200">
+                                    {r.hasCompanion ? "2 pers." : "1 pers."}
+                                  </span>
+                                  {isPending ? (
+                                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-[9px] font-black text-amber-300">
+                                      Pendiente aviso
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/35 text-[9px] font-black text-emerald-300">
+                                      {isReservedNotified ? "✓ Lugar reservado" : "Confirmado"}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {(partyVisibility === "PRIVATE" || isPending || isReservedNotified) && (
+                                <button
+                                  type="button"
+                                  disabled={notifyingRsvpId === r.id}
+                                  onClick={() => handleNotifySpotReserved(r.id)}
+                                  className={`w-full py-1.5 px-2.5 rounded-lg text-[10px] font-black flex items-center justify-center gap-1.5 cursor-pointer transition-all disabled:opacity-60 ${
+                                    isReservedNotified
+                                      ? "bg-emerald-950/60 hover:bg-emerald-900/70 border border-emerald-500/40 text-emerald-300"
+                                      : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow"
+                                  }`}
+                                >
+                                  <Send className="w-3 h-3" />
+                                  <span>
+                                    {notifyingRsvpId === r.id
+                                      ? "Confirmando..."
+                                      : isReservedNotified
+                                      ? "Volver a avisar que su lugar está reservado"
+                                      : "Avisar que su lugar está reservado"}
+                                  </span>
+                                </button>
                               )}
                             </div>
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[9px] font-black text-emerald-300 shrink-0">
-                              {r.hasCompanion ? "2 pers." : "1 pers."}
-                            </span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>

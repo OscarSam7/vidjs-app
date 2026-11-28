@@ -13,16 +13,21 @@ const rsvpSchema = z.object({
   note: z.string().max(240).optional().or(z.literal("")),
 });
 
-function parseAllowCompanions(rawSettings?: string | null): boolean {
-  if (!rawSettings) return true;
+function parsePartyInviteSettings(rawSettings?: string | null): {
+  allowCompanions: boolean;
+  visibility: "PUBLIC" | "PRIVATE";
+} {
+  if (!rawSettings) return { allowCompanions: true, visibility: "PUBLIC" };
   try {
     const parsed = JSON.parse(rawSettings);
-    if (parsed?.partyInvite && typeof parsed.partyInvite.allowCompanions === "boolean") {
-      return parsed.partyInvite.allowCompanions;
-    }
-    return true;
+    const allowCompanions =
+      typeof parsed?.partyInvite?.allowCompanions === "boolean"
+        ? parsed.partyInvite.allowCompanions
+        : true;
+    const visibility = parsed?.partyInvite?.visibility === "PRIVATE" ? "PRIVATE" : "PUBLIC";
+    return { allowCompanions, visibility };
   } catch {
-    return true;
+    return { allowCompanions: true, visibility: "PUBLIC" };
   }
 }
 
@@ -50,7 +55,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
     }
 
-    const allowCompanions = parseAllowCompanions(tenant.settings);
+    const { allowCompanions, visibility } = parsePartyInviteSettings(tenant.settings);
     const confirmedCount = tenant.privatePartyRsvps.length;
     const totalPeopleCount = tenant.privatePartyRsvps.reduce(
       (acc, r) => acc + (r.hasCompanion ? 2 : 1),
@@ -60,6 +65,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       allowCompanions,
+      visibility,
       confirmedCount,
       totalPeopleCount,
     });
@@ -90,7 +96,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Fiesta o evento no encontrado" }, { status: 404 });
     }
 
-    const allowCompanions = parseAllowCompanions(tenant.settings);
+    const { allowCompanions, visibility } = parsePartyInviteSettings(tenant.settings);
     const wantsCompanion = Boolean(d.hasCompanion);
 
     if (wantsCompanion && !allowCompanions) {
@@ -116,6 +122,7 @@ export async function POST(req: NextRequest) {
         hasCompanion: wantsCompanion && allowCompanions,
         companionName: wantsCompanion && allowCompanions ? cleanCompanion : null,
         note: d.note?.trim() || null,
+        status: visibility === "PRIVATE" ? "PENDING" : "CONFIRMED",
       },
     });
 
@@ -129,6 +136,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      visibility,
       rsvp: created,
       confirmedCount,
       totalPeopleCount,
