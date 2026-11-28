@@ -48,6 +48,7 @@ import { QRCodeImage } from "@/components/ui/QRCodeImage";
 import PwaInstallButton from "@/components/pwa/PwaInstallButton";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { PromoteEventModal } from "@/components/client/PromoteEventModal";
+import { PartyRsvpModal } from "@/components/client/PartyRsvpModal";
 
 const VirtualDjConsole = dynamic(() => import("@/components/dj/VirtualDjConsole"), {
   ssr: false,
@@ -151,6 +152,9 @@ interface ExploreData {
     rewardsCount: number;
     reservationPackagesCount?: number;
     tablesCount?: number;
+    isPersonalParty?: boolean;
+    allowCompanions?: boolean;
+    rsvpCount?: number;
     categories?: string[];
   }>;
   promotedEvents?: Array<{
@@ -240,6 +244,7 @@ export default function ClientSuperApp() {
   const [copiedRef, setCopiedRef] = useState(false);
   const [isPairPcOpen, setIsPairPcOpen] = useState(false);
   const [isPromoteModalOpen, setIsPromoteModalOpen] = useState(false);
+  const [rsvpVenue, setRsvpVenue] = useState<ExploreData["venues"][number] | null>(null);
   const [heroSlideIdx, setHeroSlideIdx] = useState(0);
   const [heroPaused, setHeroPaused] = useState(false);
   const eventsCarouselRef = useRef<HTMLDivElement | null>(null);
@@ -1248,53 +1253,100 @@ export default function ClientSuperApp() {
                             </span>
                           </div>
 
-                          {/* Insignias de servicios del local */}
+                          {/* Insignias de servicios del local o fiesta privada */}
                           <div className="flex flex-wrap gap-1.5">
-                            {(v.reservationPackagesCount || 0) > 0 && (
-                              <span className="px-2 py-0.5 rounded-md bg-fuchsia-500/15 border border-fuchsia-500/30 text-[10px] font-bold text-fuchsia-300">
-                                {v.reservationPackagesCount} Combos / Camarotes VIP
-                              </span>
-                            )}
-                            {(v.tablesCount || 0) > 0 && (
-                              <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-[10px] font-bold text-cyan-300">
-                                {v.tablesCount} Mesas QR
-                              </span>
-                            )}
-                            {v.rewardsCount > 0 && (
-                              <span className="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[10px] font-bold text-amber-300">
-                                {v.rewardsCount} Premios Club
-                              </span>
+                            {v.isPersonalParty ? (
+                              <>
+                                <span className="px-2 py-0.5 rounded-md bg-pink-500/15 border border-pink-500/35 text-[10px] font-bold text-pink-300">
+                                  🎉 Fiesta Privada / Cumpleaños
+                                </span>
+                                {v.allowCompanions !== false ? (
+                                  <span className="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[10px] font-bold text-amber-300">
+                                    Permite acompañante (+1)
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-[10px] font-bold text-zinc-300">
+                                    Invitación personal
+                                  </span>
+                                )}
+                                {(v.rsvpCount || 0) > 0 && (
+                                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/35 text-[10px] font-bold text-emerald-300">
+                                    {v.rsvpCount} {v.rsvpCount === 1 ? "confirmado" : "confirmados"}
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                {(v.reservationPackagesCount || 0) > 0 && (
+                                  <span className="px-2 py-0.5 rounded-md bg-fuchsia-500/15 border border-fuchsia-500/30 text-[10px] font-bold text-fuchsia-300">
+                                    {v.reservationPackagesCount} Combos / Camarotes VIP
+                                  </span>
+                                )}
+                                {(v.tablesCount || 0) > 0 && (
+                                  <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-[10px] font-bold text-cyan-300">
+                                    {v.tablesCount} Mesas QR
+                                  </span>
+                                )}
+                                {v.rewardsCount > 0 && (
+                                  <span className="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[10px] font-bold text-amber-300">
+                                    {v.rewardsCount} Premios Club
+                                  </span>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
 
                         <div className="space-y-2 pt-2 border-t border-zinc-800/80">
-                          <Link
-                            href={`/reservas/${v.slug}`}
-                            className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-md transition-all"
-                          >
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span>Reservar Mesa / Camarote</span>
-                          </Link>
+                          {v.isPersonalParty ? (
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setRsvpVenue(v)}
+                                className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500 via-pink-600 to-purple-600 hover:from-amber-400 hover:via-pink-500 hover:to-purple-500 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Confirmo mi Presencia</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openReviewModal(v)}
+                                className="py-2 px-3 rounded-xl bg-zinc-800/90 hover:bg-amber-500/20 border border-zinc-700 hover:border-amber-400/50 text-amber-200 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <Star className="w-3 h-3 text-amber-400" />
+                                <span>Opinar</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <Link
+                                href={`/reservas/${v.slug}`}
+                                className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-md transition-all"
+                              >
+                                <Calendar className="w-3.5 h-3.5" />
+                                <span>Reservar Mesa / Camarote</span>
+                              </Link>
 
-                          <div className="flex items-center justify-between gap-2">
-                            <Link
-                              href={`/guest?venue=${v.slug}`}
-                              className="flex-1 py-1.5 px-2.5 rounded-xl bg-zinc-800/90 hover:bg-purple-600/25 border border-zinc-700 hover:border-purple-400/50 text-purple-200 text-[11px] font-bold inline-flex items-center justify-center gap-1 transition-colors"
-                            >
-                              <QrCode className="w-3 h-3" />
-                              <span>Estoy en Mesa</span>
-                            </Link>
+                              <div className="flex items-center justify-between gap-2">
+                                <Link
+                                  href={`/guest?venue=${v.slug}`}
+                                  className="flex-1 py-1.5 px-2.5 rounded-xl bg-zinc-800/90 hover:bg-purple-600/25 border border-zinc-700 hover:border-purple-400/50 text-purple-200 text-[11px] font-bold inline-flex items-center justify-center gap-1 transition-colors"
+                                >
+                                  <QrCode className="w-3 h-3" />
+                                  <span>Estoy en Mesa</span>
+                                </Link>
 
-                            <button
-                              type="button"
-                              onClick={() => openReviewModal(v)}
-                              className="py-1.5 px-3 rounded-xl bg-zinc-800/90 hover:bg-amber-500/20 border border-zinc-700 hover:border-amber-400/50 text-amber-200 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
-                            >
-                              <Star className="w-3 h-3 text-amber-400" />
-                              <span>Opinar</span>
-                            </button>
-                          </div>
+                                <button
+                                  type="button"
+                                  onClick={() => openReviewModal(v)}
+                                  className="py-1.5 px-3 rounded-xl bg-zinc-800/90 hover:bg-amber-500/20 border border-zinc-700 hover:border-amber-400/50 text-amber-200 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                >
+                                  <Star className="w-3 h-3 text-amber-400" />
+                                  <span>Opinar</span>
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1976,6 +2028,27 @@ export default function ClientSuperApp() {
         defaultOrganizerName={client?.name || ""}
         defaultOrganizerEmail={client?.email || ""}
         defaultOrganizerPhone={client?.phone || ""}
+      />
+
+      {/* Modal de Confirmación de Presencia (RSVP) para Fiestas Privadas / Cumpleaños */}
+      <PartyRsvpModal
+        venue={rsvpVenue}
+        onClose={() => setRsvpVenue(null)}
+        defaultGuestName={client?.name || ""}
+        defaultGuestPhone={client?.phone || ""}
+        onConfirmed={(slug, newCount) => {
+          setExploreData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  venues: prev.venues.map((item) =>
+                    item.slug === slug ? { ...item, rsvpCount: newCount } : item
+                  ),
+                }
+              : prev
+          );
+          showToast("success", "¡Presencia confirmada correctamente!");
+        }}
       />
 
       {/* Modal de Reseña Express + Enlace Directo a Google Maps */}

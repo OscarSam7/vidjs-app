@@ -60,6 +60,10 @@ export async function GET() {
           name: true,
           slug: true,
           logoUrl: true,
+          settings: true,
+          subscription: {
+            select: { plan: { select: { code: true } } },
+          },
           venues: {
             where: { active: true },
             select: { id: true, name: true, address: true, whatsappNumber: true, googleReviewUrl: true },
@@ -75,6 +79,7 @@ export async function GET() {
               reservationPackages: { where: { active: true } },
               tables: { where: { active: true } },
               karaokeContests: { where: { status: { in: ["ACTIVE", "REGISTRATION"] } } },
+              privatePartyRsvps: true,
             },
           },
         },
@@ -142,6 +147,21 @@ export async function GET() {
                   ).toFixed(1)
                 )
               : 0;
+          let parsedSettings: Record<string, any> = {};
+          if (t.settings) {
+            try {
+              parsedSettings = JSON.parse(t.settings) || {};
+            } catch {
+              parsedSettings = {};
+            }
+          }
+          const isPersonalParty =
+            t.subscription?.plan?.code === "PERSONAL" || parsedSettings?.isPersonalParty === true;
+          const allowCompanions =
+            typeof parsedSettings?.partyInvite?.allowCompanions === "boolean"
+              ? parsedSettings.partyInvite.allowCompanions
+              : true;
+
           const lowerName = t.name.toLowerCase();
           const categories: string[] = ["LOCALES"];
           if (lowerName.includes("karaoke") || (t._count?.karaokeContests || 0) > 0) {
@@ -153,10 +173,10 @@ export async function GET() {
           if (lowerName.includes("rumba") || lowerName.includes("club") || lowerName.includes("stage") || lowerName.includes("disco")) {
             categories.push("DISCOTECAS");
           }
-          if (lowerName.includes("cumple") || lowerName.includes("fiesta") || lowerName.includes("quincho")) {
+          if (isPersonalParty || lowerName.includes("cumple") || lowerName.includes("fiesta") || lowerName.includes("quincho")) {
             categories.push("FIESTAS");
           }
-          if ((t._count?.reservationPackages || 0) > 0 || (t._count?.tables || 0) > 0) {
+          if (!isPersonalParty && ((t._count?.reservationPackages || 0) > 0 || (t._count?.tables || 0) > 0)) {
             categories.push("RESERVAS");
           }
 
@@ -172,8 +192,11 @@ export async function GET() {
             reviewsCount: revCount,
             hasLiveEvent: (t._count?.events || 0) > 0,
             rewardsCount: t._count?.clubRewards || 0,
-            reservationPackagesCount: t._count?.reservationPackages || 0,
-            tablesCount: t._count?.tables || 0,
+            reservationPackagesCount: isPersonalParty ? 0 : t._count?.reservationPackages || 0,
+            tablesCount: isPersonalParty ? 0 : t._count?.tables || 0,
+            isPersonalParty,
+            allowCompanions,
+            rsvpCount: t._count?.privatePartyRsvps || 0,
             categories,
           };
         }),

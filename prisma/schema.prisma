@@ -66,6 +66,7 @@ model Tenant {
   clubRedemptions       ClubRedemption[]
   clubFlashDeals        ClubFlashDeal[]
   venueReviews          VenueReview[]
+  privatePartyRsvps     PrivatePartyRsvp[]
 
   @@index([status])
   @@index([slug])
@@ -2138,6 +2139,21 @@ model EventPromotionSubmission {
 
   @@index([status, featuredUntil])
   @@index([createdAt])
+}
+
+// 58. Confirmaciones de Presencia (RSVP) para Fiestas Privadas / Cumpleaños (Plan Amigos)
+model PrivatePartyRsvp {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  guestName     String
+  guestPhone    String?
+  hasCompanion  Boolean  @default(false)
+  companionName String?
+  note          String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, createdAt])
 }
 
 

@@ -245,6 +245,55 @@ export default function DjBoothPage() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedShareTableId, setSelectedShareTableId] = useState<string>("");
   const [copiedShareLink, setCopiedShareLink] = useState(false);
+  const [partyAllowCompanions, setPartyAllowCompanions] = useState<boolean>(true);
+  const [savingPartyInviteConfig, setSavingPartyInviteConfig] = useState(false);
+  const [partyRsvps, setPartyRsvps] = useState<
+    Array<{
+      id: string;
+      guestName: string;
+      guestPhone?: string | null;
+      hasCompanion: boolean;
+      companionName?: string | null;
+      note?: string | null;
+      createdAt: string;
+    }>
+  >([]);
+  const [partyTotalPeople, setPartyTotalPeople] = useState(0);
+  const [showRsvpListInModal, setShowRsvpListInModal] = useState(false);
+
+  useEffect(() => {
+    if (!isShareModalOpen) return;
+    fetch("/api/v1/dj/party-invite-settings", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((json) => {
+        if (json?.success) {
+          setPartyAllowCompanions(json.allowCompanions !== false);
+          setPartyRsvps(Array.isArray(json.rsvps) ? json.rsvps : []);
+          setPartyTotalPeople(typeof json.totalPeopleCount === "number" ? json.totalPeopleCount : 0);
+        }
+      })
+      .catch(() => {});
+  }, [isShareModalOpen]);
+
+  const handleTogglePartyCompanions = async () => {
+    const nextValue = !partyAllowCompanions;
+    setPartyAllowCompanions(nextValue);
+    setSavingPartyInviteConfig(true);
+    try {
+      const res = await fetch("/api/v1/dj/party-invite-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ allowCompanions: nextValue }),
+      });
+      if (!res.ok) {
+        setPartyAllowCompanions(!nextValue);
+      }
+    } catch {
+      setPartyAllowCompanions(!nextValue);
+    } finally {
+      setSavingPartyInviteConfig(false);
+    }
+  };
 
   // ➕ Carga Manual de Pedidos (Fuera de App / QR)
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
@@ -3307,8 +3356,8 @@ export default function DjBoothPage() {
 
       {/* 📲 Modal de Invitar Amigos / QR y WhatsApp */}
       {isShareModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-zinc-950 border border-pink-500/40 rounded-3xl p-6 space-y-5 shadow-2xl">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-md bg-zinc-950 border border-pink-500/40 rounded-3xl p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto my-auto">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-pink-500/20 text-pink-400 border border-pink-500/30">
@@ -3451,6 +3500,77 @@ export default function DjBoothPage() {
                       📺 Abrir Pantalla Gigante para TV del Living
                     </a>
                   )}
+
+                  {/* Configuración de Invitación & Confirmaciones (Acompañante +1) */}
+                  <div className="pt-3 border-t border-zinc-800 space-y-2.5">
+                    <div className="p-3 rounded-2xl bg-zinc-900/90 border border-pink-500/30 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-xs font-black text-white">
+                          Permitir agregar acompañante (+1)
+                        </div>
+                        <p className="text-[10px] text-zinc-400 leading-snug">
+                          {partyAllowCompanions
+                            ? "Activado: tus invitados pueden sumar un acompañante al confirmar presencia."
+                            : "Desactivado: invitación personal, no permite agregar acompañantes."}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={partyAllowCompanions}
+                        disabled={savingPartyInviteConfig}
+                        onClick={handleTogglePartyCompanions}
+                        className={`w-11 h-6 rounded-full transition-colors p-0.5 cursor-pointer shrink-0 disabled:opacity-60 ${
+                          partyAllowCompanions ? "bg-pink-600" : "bg-zinc-700"
+                        }`}
+                      >
+                        <span
+                          className={`block w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                            partyAllowCompanions ? "translate-x-5" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[11px] font-bold text-zinc-300">
+                        Confirmados: <strong className="text-pink-300">{partyRsvps.length}</strong>{" "}
+                        <span className="text-zinc-500">({partyTotalPeople} personas)</span>
+                      </span>
+                      {partyRsvps.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowRsvpListInModal((v) => !v)}
+                          className="text-[11px] font-bold text-amber-300 hover:text-amber-200 cursor-pointer"
+                        >
+                          {showRsvpListInModal ? "Ocultar lista" : "Ver confirmados"}
+                        </button>
+                      )}
+                    </div>
+
+                    {showRsvpListInModal && partyRsvps.length > 0 && (
+                      <div className="max-h-40 overflow-y-auto rounded-xl bg-zinc-900/80 border border-zinc-800 divide-y divide-zinc-800">
+                        {partyRsvps.map((r) => (
+                          <div key={r.id} className="px-3 py-2 text-[11px] flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="font-bold text-white truncate">{r.guestName}</div>
+                              {r.hasCompanion && r.companionName && (
+                                <div className="text-[10px] text-pink-300 truncate">
+                                  + Acompañante: {r.companionName}
+                                </div>
+                              )}
+                              {r.note && (
+                                <div className="text-[10px] text-zinc-400 truncate">&ldquo;{r.note}&rdquo;</div>
+                              )}
+                            </div>
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[9px] font-black text-emerald-300 shrink-0">
+                              {r.hasCompanion ? "2 pers." : "1 pers."}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })()}
