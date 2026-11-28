@@ -34,6 +34,8 @@ import {
   Phone,
   ExternalLink,
   Loader2,
+  Users,
+  Send,
 } from "lucide-react";
 import { VipSelectModal } from "@/components/ui/VipSelectModal";
 import { PRESET_HIGHLIGHT_OPTIONS, EventHighlight } from "@/components/events/EditAboutEventModal";
@@ -86,6 +88,62 @@ export default function EventsManagementPage() {
   const [isVenueModalOpen, setIsVenueModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
   const [editingVenue, setEditingVenue] = useState<VenueItem | null>(null);
+
+  // Modal de Invitados RSVP & Aviso de Lugar Reservado
+  const [isRsvpModalOpen, setIsRsvpModalOpen] = useState(false);
+  const [rsvpModalEvent, setRsvpModalEvent] = useState<EventItem | null>(null);
+  const [rsvpsList, setRsvpsList] = useState<any[]>([]);
+  const [loadingRsvps, setLoadingRsvps] = useState(false);
+  const [notifyingRsvpId, setNotifyingRsvpId] = useState<string | null>(null);
+
+  const handleOpenRsvpModal = async (event: EventItem) => {
+    setRsvpModalEvent(event);
+    setIsRsvpModalOpen(true);
+    setLoadingRsvps(true);
+    try {
+      const res = await fetch("/api/v1/dj/party-invite-settings", { cache: "no-store" });
+      const json = await res.json();
+      if (json?.success) {
+        setRsvpsList(Array.isArray(json.rsvps) ? json.rsvps : []);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingRsvps(false);
+    }
+  };
+
+  const handleNotifySpotReserved = async (rsvpId: string) => {
+    setNotifyingRsvpId(rsvpId);
+    try {
+      const res = await fetch("/api/v1/dj/party-invite-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "RESERVE_SPOT", rsvpId }),
+      });
+      const json = await res.json();
+      if (res.ok && json?.success) {
+        setRsvpsList((prev) =>
+          prev.map((item) =>
+            item.id === rsvpId
+              ? {
+                  ...item,
+                  status: "CONFIRMED",
+                  notifiedAt: json.rsvp?.notifiedAt || new Date().toISOString(),
+                }
+              : item
+          )
+        );
+        if (json.whatsappUrl && typeof window !== "undefined") {
+          window.open(json.whatsappUrl, "_blank", "noopener,noreferrer");
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setNotifyingRsvpId(null);
+    }
+  };
 
   // Estados de formularios
   const [formData, setFormData] = useState({
@@ -833,6 +891,16 @@ export default function EventsManagementPage() {
                       <Headphones className="w-3.5 h-3.5 text-cyan-400" />
                       <span>Cabina DJ</span>
                     </Link>
+
+                    {/* Botón directo para ver confirmados y avisar lugar reservado */}
+                    <button
+                      onClick={() => handleOpenRsvpModal(event)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/40 text-emerald-300 hover:text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+                      title="Ver lista de invitados confirmados (RSVP) y avisar por WhatsApp que su lugar está reservado"
+                    >
+                      <Users className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Invitados RSVP</span>
+                    </button>
 
                     {/* Botón rápido de Pausa / Reanudar */}
                     {event.status === "ACTIVE" ? (
@@ -1769,6 +1837,145 @@ export default function EventsManagementPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Invitados Confirmados (RSVP) & Aviso de Lugar Reservado */}
+      {isRsvpModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-zinc-950 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-5 text-white my-8 max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-zinc-800 pb-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <Users className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                      <span>Invitados Confirmados (RSVP)</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-mono">
+                        {rsvpsList.length} confirmados
+                      </span>
+                    </h2>
+                    <p className="text-xs text-zinc-400">
+                      {rsvpModalEvent?.name} — Notifica a tus invitados confirmados que su lugar ya está reservado.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRsvpModalOpen(false)}
+                className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto pr-1 space-y-3">
+              {loadingRsvps ? (
+                <div className="p-8 text-center text-zinc-400 flex flex-col items-center justify-center gap-2">
+                  <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+                  <span className="text-xs">Cargando lista de confirmados...</span>
+                </div>
+              ) : rsvpsList.length === 0 ? (
+                <div className="p-8 text-center rounded-2xl bg-zinc-900/60 border border-zinc-800 text-zinc-400 space-y-2">
+                  <p className="text-sm font-semibold text-zinc-300">Aún no hay invitados confirmados</p>
+                  <p className="text-xs text-zinc-500">
+                    Cuando tus invitados confirmen asistencia desde el enlace o código QR de la fiesta, aparecerán en esta lista con un botón directo para responderles por WhatsApp.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {rsvpsList.map((r) => {
+                    const isReservedNotified = Boolean(r.notifiedAt);
+                    const isPending = r.status === "PENDING";
+                    return (
+                      <div
+                        key={r.id}
+                        className="p-3.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700 transition-all space-y-2.5"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="font-bold text-white text-sm truncate">{r.guestName}</div>
+                            {r.guestPhone && (
+                              <div className="text-xs text-zinc-400 font-mono flex items-center gap-1 mt-0.5">
+                                <span>📱</span>
+                                <span>{r.guestPhone}</span>
+                              </div>
+                            )}
+                            {r.hasCompanion && r.companionName && (
+                              <div className="text-xs text-pink-300 font-medium truncate mt-1 flex items-center gap-1">
+                                <span>👥</span>
+                                <span>Acompañante (+1): <strong>{r.companionName}</strong></span>
+                              </div>
+                            )}
+                            {r.note && (
+                              <div className="text-xs text-zinc-400 italic truncate mt-1">
+                                &ldquo;{r.note}&rdquo;
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-[10px] font-black text-zinc-200">
+                              {r.hasCompanion ? "2 personas" : "1 persona"}
+                            </span>
+                            {isPending ? (
+                              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-[10px] font-black text-amber-300">
+                                Pendiente aviso
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[10px] font-black text-emerald-300">
+                                {isReservedNotified ? "✓ Lugar reservado" : "Confirmado"}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Botón de aviso WhatsApp */}
+                        <button
+                          type="button"
+                          disabled={notifyingRsvpId === r.id}
+                          onClick={() => handleNotifySpotReserved(r.id)}
+                          className={`w-full py-2 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-60 ${
+                            isReservedNotified
+                              ? "bg-emerald-950/60 hover:bg-emerald-900/70 border border-emerald-500/40 text-emerald-300"
+                              : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md shadow-emerald-900/40"
+                          }`}
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>
+                            {notifyingRsvpId === r.id
+                              ? "Abriendo WhatsApp..."
+                              : isReservedNotified
+                              ? "✓ Volver a avisar que su lugar está reservado"
+                              : "📲 Avisar por WhatsApp que su lugar está reservado"}
+                          </span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between border-t border-zinc-800 pt-3 text-xs text-zinc-400">
+              <span>
+                Total confirmados: <strong className="text-white">{rsvpsList.length}</strong> (
+                {rsvpsList.reduce((acc, r) => acc + (r.hasCompanion ? 2 : 1), 0)} personas)
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsRsvpModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}

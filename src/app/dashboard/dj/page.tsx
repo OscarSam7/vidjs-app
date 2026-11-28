@@ -263,10 +263,9 @@ export default function DjBoothPage() {
     }>
   >([]);
   const [partyTotalPeople, setPartyTotalPeople] = useState(0);
-  const [showRsvpListInModal, setShowRsvpListInModal] = useState(false);
+  const [showRsvpListInModal, setShowRsvpListInModal] = useState(true);
 
-  useEffect(() => {
-    if (!isShareModalOpen) return;
+  const fetchPartyRsvps = () => {
     fetch("/api/v1/dj/party-invite-settings", { cache: "no-store" })
       .then((r) => r.json())
       .then((json) => {
@@ -278,6 +277,10 @@ export default function DjBoothPage() {
         }
       })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchPartyRsvps();
   }, [isShareModalOpen]);
 
   const handleTogglePartyCompanions = async () => {
@@ -1671,6 +1674,8 @@ export default function DjBoothPage() {
                       if (data.tables && data.tables.length > 0 && !selectedShareTableId) {
                         setSelectedShareTableId(data.tables[0].id);
                       }
+                      fetchPartyRsvps();
+                      setShowRsvpListInModal(true);
                       setIsShareModalOpen(true);
                     }}
                     className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-pink-600/30 via-purple-600/30 to-indigo-600/30 hover:from-pink-600/50 hover:to-indigo-600/50 border border-pink-500/40 text-pink-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm whitespace-nowrap shrink-0"
@@ -1678,6 +1683,31 @@ export default function DjBoothPage() {
                   >
                     <QrCode className="w-3.5 h-3.5 text-pink-400 shrink-0" />
                     <span>📲 Invitar Amigos</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (data.tables && data.tables.length > 0 && !selectedShareTableId) {
+                        setSelectedShareTableId(data.tables[0].id);
+                      }
+                      fetchPartyRsvps();
+                      setShowRsvpListInModal(true);
+                      setIsShareModalOpen(true);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm whitespace-nowrap shrink-0 ${
+                      partyRsvps.some((r) => r.status === "PENDING" || !r.notifiedAt)
+                        ? "bg-emerald-950/80 hover:bg-emerald-900 border-emerald-400 text-emerald-200 ring-2 ring-emerald-500/30"
+                        : "bg-emerald-950/40 hover:bg-emerald-900/60 border-emerald-600/40 text-emerald-300"
+                    }`}
+                    title="Ver lista de confirmados y responder avisando que su lugar está reservado"
+                  >
+                    <Users className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>👥 Confirmados RSVP ({partyRsvps.length})</span>
+                    {partyRsvps.some((r) => r.status === "PENDING" || !r.notifiedAt) && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-black text-[9px] font-black animate-pulse">
+                        Avisar lugar
+                      </span>
+                    )}
                   </button>
 
                   <button
@@ -3628,83 +3658,95 @@ export default function DjBoothPage() {
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between px-1">
-                      <span className="text-[11px] font-bold text-zinc-300">
-                        Confirmados: <strong className="text-pink-300">{partyRsvps.length}</strong>{" "}
-                        <span className="text-zinc-500">({partyTotalPeople} personas)</span>
-                      </span>
-                      {partyRsvps.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setShowRsvpListInModal((v) => !v)}
-                          className="text-[11px] font-bold text-amber-300 hover:text-amber-200 cursor-pointer"
-                        >
-                          {showRsvpListInModal ? "Ocultar lista" : "Ver confirmados"}
-                        </button>
-                      )}
-                    </div>
+                    {/* Sección Invitados Confirmados & Responder que su lugar está reservado */}
+                    <div className="p-3.5 rounded-2xl bg-zinc-900/90 border border-emerald-500/40 space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-emerald-400" />
+                          <span className="text-xs font-black text-white">
+                            Invitados Confirmados ({partyRsvps.length})
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-bold text-emerald-300">
+                          {partyTotalPeople} personas en total
+                        </span>
+                      </div>
 
-                    {showRsvpListInModal && partyRsvps.length > 0 && (
-                      <div className="max-h-56 overflow-y-auto rounded-xl bg-zinc-900/80 border border-zinc-800 divide-y divide-zinc-800">
-                        {partyRsvps.map((r) => {
-                          const isReservedNotified = Boolean(r.notifiedAt);
-                          const isPending = r.status === "PENDING";
-                          return (
-                            <div key={r.id} className="px-3 py-2.5 text-[11px] space-y-2">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                  <div className="font-bold text-white truncate">{r.guestName}</div>
-                                  {r.hasCompanion && r.companionName && (
-                                    <div className="text-[10px] text-pink-300 truncate">
-                                      + Acompañante: {r.companionName}
-                                    </div>
-                                  )}
-                                  {r.note && (
-                                    <div className="text-[10px] text-zinc-400 truncate">&ldquo;{r.note}&rdquo;</div>
-                                  )}
-                                </div>
-                                <div className="flex flex-col items-end gap-1 shrink-0">
-                                  <span className="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-[9px] font-black text-zinc-200">
-                                    {r.hasCompanion ? "2 pers." : "1 pers."}
-                                  </span>
-                                  {isPending ? (
-                                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-[9px] font-black text-amber-300">
-                                      Pendiente aviso
-                                    </span>
-                                  ) : (
-                                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/35 text-[9px] font-black text-emerald-300">
-                                      {isReservedNotified ? "✓ Lugar reservado" : "Confirmado"}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+                      <p className="text-[10px] text-zinc-400 leading-snug">
+                        Aquí puedes responder a cada invitado confirmado con un botón para avisarle por WhatsApp que su lugar ya está 100% reservado.
+                      </p>
 
-                              {(partyVisibility === "PRIVATE" || isPending || isReservedNotified) && (
+                      {partyRsvps.length === 0 ? (
+                        <div className="p-3 text-center rounded-xl bg-zinc-950/60 border border-zinc-800 text-xs text-zinc-400">
+                          Aún no hay invitados confirmados. Comparte el link o código QR arriba para que confirmen asistencia.
+                        </div>
+                      ) : (
+                        <div className="max-h-64 overflow-y-auto rounded-xl bg-zinc-950 border border-zinc-800 divide-y divide-zinc-850">
+                          {partyRsvps.map((r) => {
+                            const isReservedNotified = Boolean(r.notifiedAt);
+                            const isPending = r.status === "PENDING";
+                            return (
+                              <div key={r.id} className="p-3 text-[11px] space-y-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-white truncate text-xs">{r.guestName}</div>
+                                    {r.guestPhone && (
+                                      <div className="text-[10px] text-zinc-400 font-mono">
+                                        📱 {r.guestPhone}
+                                      </div>
+                                    )}
+                                    {r.hasCompanion && r.companionName && (
+                                      <div className="text-[10px] text-pink-300 font-medium truncate mt-0.5">
+                                        + Acompañante: {r.companionName}
+                                      </div>
+                                    )}
+                                    {r.note && (
+                                      <div className="text-[10px] text-zinc-400 italic truncate mt-0.5">
+                                        &ldquo;{r.note}&rdquo;
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col items-end gap-1 shrink-0">
+                                    <span className="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-[9px] font-black text-zinc-200">
+                                      {r.hasCompanion ? "2 pers." : "1 pers."}
+                                    </span>
+                                    {isPending ? (
+                                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-[9px] font-black text-amber-300">
+                                        Pendiente aviso
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/35 text-[9px] font-black text-emerald-300">
+                                        {isReservedNotified ? "✓ Lugar reservado" : "Confirmado"}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
                                 <button
                                   type="button"
                                   disabled={notifyingRsvpId === r.id}
                                   onClick={() => handleNotifySpotReserved(r.id)}
-                                  className={`w-full py-1.5 px-2.5 rounded-lg text-[10px] font-black flex items-center justify-center gap-1.5 cursor-pointer transition-all disabled:opacity-60 ${
+                                  className={`w-full py-2 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-60 ${
                                     isReservedNotified
-                                      ? "bg-emerald-950/60 hover:bg-emerald-900/70 border border-emerald-500/40 text-emerald-300"
-                                      : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow"
+                                      ? "bg-emerald-950/60 hover:bg-emerald-900/70 border border-emerald-500/40 text-emerald-300 shadow-sm"
+                                      : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md shadow-emerald-900/40"
                                   }`}
                                 >
-                                  <Send className="w-3 h-3" />
+                                  <Send className="w-3.5 h-3.5" />
                                   <span>
                                     {notifyingRsvpId === r.id
-                                      ? "Confirmando..."
+                                      ? "Abriendo WhatsApp..."
                                       : isReservedNotified
-                                      ? "Volver a avisar que su lugar está reservado"
-                                      : "Avisar que su lugar está reservado"}
+                                      ? "✓ Volver a avisar que su lugar está reservado"
+                                      : "📲 Avisar que su lugar está reservado"}
                                   </span>
                                 </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
