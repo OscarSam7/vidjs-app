@@ -36,6 +36,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { VipSelectModal } from "@/components/ui/VipSelectModal";
+import { PRESET_HIGHLIGHT_OPTIONS, EventHighlight } from "@/components/events/EditAboutEventModal";
 
 interface VenueItem {
   id: string;
@@ -96,7 +97,10 @@ export default function EventsManagementPage() {
     endsAt: "",
     pin: "",
     status: "ACTIVE" as "DRAFT" | "ACTIVE" | "PAUSED" | "FINISHED",
+    highlights: [] as EventHighlight[],
   });
+  const [dashCustomEmoji, setDashCustomEmoji] = useState("✨");
+  const [dashCustomLabel, setDashCustomLabel] = useState("");
   const [venueFormData, setVenueFormData] = useState({
     name: "",
     address: "",
@@ -260,13 +264,27 @@ export default function EventsManagementPage() {
       endsAt: defaultEnds,
       pin: "",
       status: "ACTIVE",
+      highlights: [],
     });
+    setDashCustomLabel("");
     setIsCreateModalOpen(true);
   };
 
   // Abrir modal de edición
   const handleOpenEditModal = (event: EventItem) => {
     setSelectedEvent(event);
+    let initialHighlights: EventHighlight[] = [];
+    if (event.settings) {
+      try {
+        const s = JSON.parse(event.settings);
+        if (Array.isArray(s.highlights)) {
+          initialHighlights = s.highlights;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
     setFormData({
       name: event.name,
       venueId: event.venueId,
@@ -276,7 +294,9 @@ export default function EventsManagementPage() {
       endsAt: formatDatetimeForInput(event.endsAt),
       pin: event.pin || "",
       status: event.status,
+      highlights: initialHighlights,
     });
+    setDashCustomLabel("");
     setIsEditModalOpen(true);
   };
 
@@ -288,7 +308,12 @@ export default function EventsManagementPage() {
       const res = await fetch("/api/v1/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          settings: {
+            highlights: formData.highlights,
+          },
+        }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -316,6 +341,9 @@ export default function EventsManagementPage() {
         body: JSON.stringify({
           id: selectedEvent.id,
           ...formData,
+          settings: {
+            highlights: formData.highlights,
+          },
         }),
       });
       const json = await res.json();
@@ -679,6 +707,32 @@ export default function EventsManagementPage() {
                         {event.description}
                       </p>
                     )}
+                    {(() => {
+                      try {
+                        const parsed = event.settings ? JSON.parse(event.settings) : null;
+                        if (parsed && Array.isArray(parsed.highlights) && parsed.highlights.length > 0) {
+                          return (
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {parsed.highlights.slice(0, 4).map((h: any, i: number) => (
+                                <span
+                                  key={i}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-950/40 border border-purple-800/40 text-[11px] text-purple-300 font-medium"
+                                >
+                                  <span>{h.icon}</span>
+                                  <span>{h.label}</span>
+                                </span>
+                              ))}
+                              {parsed.highlights.length > 4 && (
+                                <span className="text-[10px] text-zinc-500 self-center">
+                                  +{parsed.highlights.length - 4} más
+                                </span>
+                              )}
+                            </div>
+                          );
+                        }
+                      } catch (e) {}
+                      return null;
+                    })()}
                   </div>
 
                   {/* Sede y Horarios */}
@@ -1042,6 +1096,143 @@ export default function EventsManagementPage() {
                 />
               </div>
 
+              {/* Sección "Sobre este evento: Etiquetas y Emoticones" */}
+              <div className="space-y-3 pt-3 border-t border-zinc-800">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                    <span>✨</span>
+                    <span>Etiquetas para "Sobre este evento" ({formData.highlights.length}):</span>
+                  </label>
+                  {formData.highlights.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, highlights: [] }))}
+                      className="text-[11px] text-zinc-500 hover:text-rose-400"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+
+                {/* Active chips */}
+                {formData.highlights.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-zinc-950/70 border border-zinc-800">
+                    {formData.highlights.map((h, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-950/60 border border-purple-700/50 text-purple-200 text-xs font-medium"
+                      >
+                        <span>{h.icon}</span>
+                        <span>{h.label}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              highlights: prev.highlights.filter((_, i) => i !== idx),
+                            }))
+                          }
+                          className="text-purple-400 hover:text-rose-400 ml-1 text-sm font-bold"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Opciones con emoticones para elegir */}
+                <div className="space-y-1">
+                  <span className="text-[11px] text-zinc-400">Opciones para elegir con sus emoticones:</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-32 overflow-y-auto p-1 bg-zinc-950/40 rounded-xl border border-zinc-800/60">
+                    {PRESET_HIGHLIGHT_OPTIONS.slice(0, 15).map((item, idx) => {
+                      const isSel = formData.highlights.some(
+                        (h) => h.label.toLowerCase() === item.label.toLowerCase()
+                      );
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            if (isSel) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                highlights: prev.highlights.filter(
+                                  (h) => h.label.toLowerCase() !== item.label.toLowerCase()
+                                ),
+                              }));
+                            } else {
+                              setFormData((prev) => ({
+                                ...prev,
+                                highlights: [...prev.highlights, item],
+                              }));
+                            }
+                          }}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border text-left transition-all ${
+                            isSel
+                              ? "bg-purple-600/30 border-purple-500 text-purple-200"
+                              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                          }`}
+                        >
+                          <span>{item.icon}</span>
+                          <span className="truncate">{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Tipear etiqueta personalizada */}
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={dashCustomEmoji}
+                    onChange={(e) => setDashCustomEmoji(e.target.value)}
+                    placeholder="😀"
+                    maxLength={4}
+                    className="w-12 text-center bg-zinc-900 border border-zinc-800 rounded-xl py-1.5 text-sm text-white focus:outline-none focus:border-purple-500"
+                    title="Emoticón"
+                  />
+                  <input
+                    type="text"
+                    value={dashCustomLabel}
+                    onChange={(e) => setDashCustomLabel(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const clean = dashCustomLabel.trim();
+                        if (clean && !formData.highlights.some((h) => h.label.toLowerCase() === clean.toLowerCase())) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            highlights: [...prev.highlights, { icon: dashCustomEmoji || "✨", label: clean }],
+                          }));
+                          setDashCustomLabel("");
+                        }
+                      }
+                    }}
+                    placeholder="Tipear etiqueta personalizada..."
+                    className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const clean = dashCustomLabel.trim();
+                      if (clean && !formData.highlights.some((h) => h.label.toLowerCase() === clean.toLowerCase())) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          highlights: [...prev.highlights, { icon: dashCustomEmoji || "✨", label: clean }],
+                        }));
+                        setDashCustomLabel("");
+                      }
+                    }}
+                    disabled={!dashCustomLabel.trim()}
+                    className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs"
+                  >
+                    + Agregar
+                  </button>
+                </div>
+              </div>
+
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
                 <button
                   type="button"
@@ -1244,6 +1435,143 @@ export default function EventsManagementPage() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500 resize-none"
                 />
+              </div>
+
+              {/* Sección "Sobre este evento: Etiquetas y Emoticones" */}
+              <div className="space-y-3 pt-3 border-t border-zinc-800">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                    <span>✨</span>
+                    <span>Etiquetas para "Sobre este evento" ({formData.highlights.length}):</span>
+                  </label>
+                  {formData.highlights.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, highlights: [] }))}
+                      className="text-[11px] text-zinc-500 hover:text-rose-400"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+
+                {/* Active chips */}
+                {formData.highlights.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-zinc-950/70 border border-zinc-800">
+                    {formData.highlights.map((h, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-950/60 border border-purple-700/50 text-purple-200 text-xs font-medium"
+                      >
+                        <span>{h.icon}</span>
+                        <span>{h.label}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              highlights: prev.highlights.filter((_, i) => i !== idx),
+                            }))
+                          }
+                          className="text-purple-400 hover:text-rose-400 ml-1 text-sm font-bold"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Opciones con emoticones para elegir */}
+                <div className="space-y-1">
+                  <span className="text-[11px] text-zinc-400">Opciones para elegir con sus emoticones:</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-32 overflow-y-auto p-1 bg-zinc-950/40 rounded-xl border border-zinc-800/60">
+                    {PRESET_HIGHLIGHT_OPTIONS.slice(0, 15).map((item, idx) => {
+                      const isSel = formData.highlights.some(
+                        (h) => h.label.toLowerCase() === item.label.toLowerCase()
+                      );
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            if (isSel) {
+                              setFormData((prev) => ({
+                                ...prev,
+                                highlights: prev.highlights.filter(
+                                  (h) => h.label.toLowerCase() !== item.label.toLowerCase()
+                                ),
+                              }));
+                            } else {
+                              setFormData((prev) => ({
+                                ...prev,
+                                highlights: [...prev.highlights, item],
+                              }));
+                            }
+                          }}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border text-left transition-all ${
+                            isSel
+                              ? "bg-purple-600/30 border-purple-500 text-purple-200"
+                              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                          }`}
+                        >
+                          <span>{item.icon}</span>
+                          <span className="truncate">{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Tipear etiqueta personalizada */}
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={dashCustomEmoji}
+                    onChange={(e) => setDashCustomEmoji(e.target.value)}
+                    placeholder="😀"
+                    maxLength={4}
+                    className="w-12 text-center bg-zinc-900 border border-zinc-800 rounded-xl py-1.5 text-sm text-white focus:outline-none focus:border-purple-500"
+                    title="Emoticón"
+                  />
+                  <input
+                    type="text"
+                    value={dashCustomLabel}
+                    onChange={(e) => setDashCustomLabel(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const clean = dashCustomLabel.trim();
+                        if (clean && !formData.highlights.some((h) => h.label.toLowerCase() === clean.toLowerCase())) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            highlights: [...prev.highlights, { icon: dashCustomEmoji || "✨", label: clean }],
+                          }));
+                          setDashCustomLabel("");
+                        }
+                      }
+                    }}
+                    placeholder="Tipear etiqueta personalizada..."
+                    className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const clean = dashCustomLabel.trim();
+                      if (clean && !formData.highlights.some((h) => h.label.toLowerCase() === clean.toLowerCase())) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          highlights: [...prev.highlights, { icon: dashCustomEmoji || "✨", label: clean }],
+                        }));
+                        setDashCustomLabel("");
+                      }
+                    }}
+                    disabled={!dashCustomLabel.trim()}
+                    className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs"
+                  >
+                    + Agregar
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">

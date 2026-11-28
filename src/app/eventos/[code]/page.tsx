@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { TicketPaymentModal } from "@/components/events/TicketPaymentModal";
+import { EditAboutEventModal } from "@/components/events/EditAboutEventModal";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 interface TierSelection {
@@ -73,6 +74,9 @@ export default function PublicEventLaunchPage({
   // Success ticket modal
   const [purchasedTickets, setPurchasedTickets] = useState<any[] | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+
+  // Edit "Sobre este evento" modal
+  const [isEditAboutOpen, setIsEditAboutOpen] = useState(false);
 
   useEffect(() => {
     setIsLoading(true);
@@ -497,9 +501,20 @@ export default function PublicEventLaunchPage({
 
             {/* "Sobre este evento" */}
             <div className="space-y-4">
-              <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-                <span>Sobre este evento</span>
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                  <span>Sobre este evento</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsEditAboutOpen(true)}
+                  className="px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+                  title="Editar descripción y etiquetas con emoticones"
+                >
+                  <span>✏️</span>
+                  <span>Editar detalles</span>
+                </button>
+              </div>
               <div
                 className={cn(
                   "p-5 rounded-2xl border text-sm leading-relaxed space-y-3",
@@ -508,26 +523,41 @@ export default function PublicEventLaunchPage({
                     : "bg-white border-slate-200 text-slate-700 shadow-sm"
                 )}
               >
-                <p>{event.description}</p>
+                <p className="whitespace-pre-line">{event.description}</p>
 
                 {/* Highlights tags */}
                 <div className="pt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                  <div className="p-2 rounded-xl bg-purple-950/40 border border-purple-800/40 text-purple-300 font-semibold flex items-center gap-1.5">
-                    <span>🍹</span>
-                    <span>Open Bar</span>
-                  </div>
-                  <div className="p-2 rounded-xl bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 font-semibold flex items-center gap-1.5">
-                    <span>🍲</span>
-                    <span>Feijoada Libre</span>
-                  </div>
-                  <div className="p-2 rounded-xl bg-indigo-950/40 border border-indigo-800/40 text-indigo-300 font-semibold flex items-center gap-1.5">
-                    <span>🎸</span>
-                    <span>Pagode en Vivo</span>
-                  </div>
-                  <div className="p-2 rounded-xl bg-pink-950/40 border border-pink-800/40 text-pink-300 font-semibold flex items-center gap-1.5">
-                    <span>🪪</span>
-                    <span>Acceso con QR</span>
-                  </div>
+                  {(event.highlights && event.highlights.length > 0
+                    ? event.highlights
+                    : [
+                        { icon: "🍹", label: "Open Bar" },
+                        { icon: "🍲", label: "Feijoada Libre" },
+                        { icon: "🎸", label: "Pagode en Vivo" },
+                        { icon: "🪪", label: "Acceso con QR" },
+                      ]
+                  ).map((h: any, i: number) => {
+                    const colorVariants = [
+                      "bg-purple-950/40 border-purple-800/40 text-purple-300",
+                      "bg-emerald-950/40 border-emerald-800/40 text-emerald-300",
+                      "bg-indigo-950/40 border-indigo-800/40 text-indigo-300",
+                      "bg-pink-950/40 border-pink-800/40 text-pink-300",
+                      "bg-amber-950/40 border-amber-800/40 text-amber-300",
+                      "bg-cyan-950/40 border-cyan-800/40 text-cyan-300",
+                    ];
+                    const colorClass = colorVariants[i % colorVariants.length];
+                    return (
+                      <div
+                        key={i}
+                        className={cn(
+                          "p-2.5 rounded-xl border font-semibold flex items-center gap-2 transition-all",
+                          colorClass
+                        )}
+                      >
+                        <span className="text-base shrink-0">{h.icon}</span>
+                        <span className="truncate">{h.label}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -873,6 +903,24 @@ export default function PublicEventLaunchPage({
           setTierCounts({});
         }}
       />
+
+      {/* MODAL: Editar "Sobre este evento" */}
+      {event && (
+        <EditAboutEventModal
+          isOpen={isEditAboutOpen}
+          onClose={() => setIsEditAboutOpen(false)}
+          eventCode={event.code}
+          initialDescription={event.description || ""}
+          initialHighlights={event.highlights || []}
+          onSaveSuccess={(updated) => {
+            setEvent((prev: any) => ({
+              ...prev,
+              description: updated.description,
+              highlights: updated.highlights,
+            }));
+          }}
+        />
+      )}
     </div>
   );
 }

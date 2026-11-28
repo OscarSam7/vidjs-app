@@ -34,6 +34,10 @@ export interface PublicEventItem {
     colorHex: string;
     description?: string;
   }[];
+  highlights?: {
+    icon: string;
+    label: string;
+  }[];
   faq: {
     question: string;
     answer: string;
@@ -288,6 +292,24 @@ export async function GET(req: NextRequest) {
       });
 
       if (dbEvent) {
+        let eventHighlights: Array<{ icon: string; label: string }> = [
+          { icon: "🍹", label: "Open Bar" },
+          { icon: "🍲", label: "Feijoada Libre" },
+          { icon: "🎸", label: "Pagode en Vivo" },
+          { icon: "🪪", label: "Acceso con QR" },
+        ];
+
+        if (dbEvent.settings) {
+          try {
+            const parsed = JSON.parse(dbEvent.settings);
+            if (Array.isArray(parsed.highlights) && parsed.highlights.length > 0) {
+              eventHighlights = parsed.highlights;
+            }
+          } catch (e) {
+            // keep default
+          }
+        }
+
         const publicEvent: PublicEventItem = {
           id: dbEvent.id,
           name: dbEvent.name,
@@ -310,6 +332,7 @@ export async function GET(req: NextRequest) {
           interestedCount: 1500,
           friendsGoingCount: 8,
           likesCount: 95,
+          highlights: eventHighlights,
           tiers: dbEvent.accreditationTypes.map((t) => {
             const count = t._count.participants;
             const avail = t.maxAvailable ? Math.max(0, t.maxAvailable - count) : 200;
@@ -383,6 +406,24 @@ export async function GET(req: NextRequest) {
     });
 
     const formattedDbEvents: PublicEventItem[] = dbEvents.map((dbEvent) => {
+      let eventHighlights: Array<{ icon: string; label: string }> = [
+        { icon: "🍹", label: "Open Bar" },
+        { icon: "🍲", label: "Feijoada Libre" },
+        { icon: "🎸", label: "Pagode en Vivo" },
+        { icon: "🪪", label: "Acceso con QR" },
+      ];
+
+      if (dbEvent.settings) {
+        try {
+          const parsed = JSON.parse(dbEvent.settings);
+          if (Array.isArray(parsed.highlights) && parsed.highlights.length > 0) {
+            eventHighlights = parsed.highlights;
+          }
+        } catch (e) {
+          // keep default
+        }
+      }
+
       return {
         id: dbEvent.id,
         name: dbEvent.name,
@@ -405,6 +446,7 @@ export async function GET(req: NextRequest) {
         interestedCount: 1200,
         friendsGoingCount: 6,
         likesCount: 88,
+        highlights: eventHighlights,
         tiers: dbEvent.accreditationTypes.map((t) => {
           const count = t._count.participants;
           const avail = t.maxAvailable ? Math.max(0, t.maxAvailable - count) : 200;
@@ -447,5 +489,83 @@ export async function GET(req: NextRequest) {
       events: DEFAULT_SAMPLE_EVENTS,
       total: DEFAULT_SAMPLE_EVENTS.length,
     });
+  }
+}
+
+/**
+ * PATCH /api/v1/events/public
+ * Permite al organizador actualizar "Sobre este evento" (descripción y etiquetas con emoticones).
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { code, description, highlights } = body;
+
+    if (!code || typeof code !== "string") {
+      return NextResponse.json(
+        { success: false, error: "El código del evento es requerido." },
+        { status: 400 }
+      );
+    }
+
+    const cleanCode = code.trim().toUpperCase();
+    const dbEvent = await prisma.event.findFirst({
+      where: { code: cleanCode },
+    });
+
+    if (dbEvent) {
+      let currentSettings: any = {};
+      if (dbEvent.settings) {
+        try {
+          currentSettings = JSON.parse(dbEvent.settings);
+        } catch (e) {
+          currentSettings = {};
+        }
+      }
+
+      if (Array.isArray(highlights)) {
+        currentSettings.highlights = highlights;
+      }
+
+      const updateData: any = {
+        settings: JSON.stringify(currentSettings),
+      };
+
+      if (typeof description === "string") {
+        updateData.description = description.trim();
+      }
+
+      const updated = await prisma.event.update({
+        where: { id: dbEvent.id },
+        data: updateData,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Información de 'Sobre este evento' actualizada exitosamente.",
+        event: {
+          code: updated.code,
+          description: updated.description,
+          highlights: currentSettings.highlights || [],
+        },
+      });
+    }
+
+    // Si es un evento de prueba en memoria o demo
+    return NextResponse.json({
+      success: true,
+      message: "Información actualizada (modo demo).",
+      event: {
+        code: cleanCode,
+        description: description || "",
+        highlights: Array.isArray(highlights) ? highlights : [],
+      },
+    });
+  } catch (error: any) {
+    console.error("Error updating public event about section:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Error al actualizar evento." },
+      { status: 500 }
+    );
   }
 }

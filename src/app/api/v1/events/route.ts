@@ -355,10 +355,19 @@ export async function PUT(req: NextRequest) {
     }
 
     if (settings !== undefined) {
-      if (typeof settings === "string") {
+      let merged: any = {};
+      if (existingEvent.settings) {
+        try {
+          merged = JSON.parse(existingEvent.settings);
+        } catch (e) {
+          merged = {};
+        }
+      }
+      if (typeof settings === "object" && settings !== null) {
+        merged = { ...merged, ...settings };
+        updateData.settings = JSON.stringify(merged);
+      } else if (typeof settings === "string") {
         updateData.settings = settings;
-      } else if (typeof settings === "object") {
-        updateData.settings = JSON.stringify(settings);
       }
     }
 
